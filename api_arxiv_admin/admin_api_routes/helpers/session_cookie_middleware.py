@@ -1,0 +1,162 @@
+import json
+import os
+from datetime import datetime, timezone
+import logging
+
+import asyncio
+from typing import Any, Callable, Optional
+
+import httpcore
+import httpx
+from cachetools import TTLCache
+from arxiv.auth.user_claims import ArxivUserClaims
+from fastapi import Request, Response, HTTPException, status
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.applications import ASGIApp
+from starlette.datastructures import Headers, MutableHeaders
+
+import jwt
+import jwcrypto
+import jwcrypto.jwt
+
+from admin_api_routes import BadCookie
+from admin_api_routes.helpers.user_session import UserSession
+
+logger = logging.getLogger(__name__)
+
+refresh_timeout = int(os.environ.get('KC_TIMEOUT', '2'))
+refresh_retry = int(os.environ.get('KC_RETRY', '5'))
+
+async def refresh_token(aaa_url: str,
+                        cookies: dict,
+                        session_cookie: str,
+                        classic_cookie: str) -> Optional[dict]:
+    for iter in range(refresh_retry):
+        try:
+            async with httpx.AsyncClient() as client:
+                refresh_response = await client.post(
+                    aaa_url,
+                    json={
+                        "session": session_cookie,
+                        "classic": classic_cookie,
+                    },
+                    cookies=cookies,
+                    timeout=refresh_timeout,
+                )
+
+            if refresh_response.status_code == 200:
+                # Extract the new token from the response
+                refreshed_tokens = refresh_response.json()
+                return refreshed_tokens
+            elif refresh_response.status_code >= 500 and refresh_response.status_code <= 599:
+                # This needs a retry
+                logger.warning("post to %s status %s. iter=%d", aaa_url, refresh_response.status_code,
+                               iter)
+                continue
+            else:
+                logger.warning("calling %s failed. status = %s: %s",
+                               aaa_url,
+                               refresh_response.status_code,
+                               str(refresh_response.content))
+                break
+
+        except httpcore.ConnectTimeout:
+            logger.warning("post to %s timed out. iter=%d", aaa_url, iter)
+            continue
+
+        except Exception as exc:
+            logger.warning("calling %s failed.", aaa_url, exc_info=exc)
+            break
+
+    return None
+
+
+# Define custom middleware to add a cookie to the response
+class SessionCookieMiddleware(BaseHTTPMiddleware):
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        session_cookie_name = request.app.extra['AUTH_SESSION_COOKIE_NAME']
+        classic_cookie_name = request.app.extra['CLASSIC_COOKIE_NAME']
+        cookies = request.cookies
+        session_cookie = cookies.get(session_cookie_name)
+        classic_cookie = cookies.get(classic_cookie_name)
+
+        user_session: UserSession = request.app.extra['user_session']
+        secret = request.app.extra['JWT_SECRET']
+        if not secret:
+            logger.error("The app is misconfigured or no JWT secret has been set")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        refreshed_tokens = None
+        claims = None
+
+        if session_cookie is not None:
+            tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
+            user_id = tokens['sub']
+
+            while claims is None:
+                try:
+                    await user_session.lock(user_id)
+
+                    user_cookies = user_session.get_user_cookies(user_id)
+                    if user_cookies and user_cookies.get('session') != session_cookie:
+                        refreshed_tokens = user_cookies
+                        session_cookie = user_cookies['session']
+                        tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
+
+                    try:
+                        claims = ArxivUserClaims.decode_jwt_payload(tokens, jwt_payload, secret)
+                        break
+
+                    except jwcrypto.jwt.JWTExpired:
+                        pass
+
+                    except jwt.ExpiredSignatureError:
+                        pass
+
+                    except jwcrypto.jwt.JWTInvalidClaimFormat:
+                        logger.warning(f"Chowed cookie '{session_cookie}'")
+                        raise BadCookie()
+
+                    except jwt.DecodeError:
+                        logger.warning(f"Chowed cookie '{session_cookie}'")
+                        raise BadCookie()
+
+                    except Exception as exc:
+                        logger.warning(f"token {session_cookie} is wrong?", exc_info=exc)
+                        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                    refreshed_tokens = await refresh_token(request.app.extra['AAA_TOKEN_REFRESH_URL'],
+                                                           cookies, session_cookie, classic_cookie)
+                    user_session.set_user_cookies(user_id, refreshed_tokens)
+
+                except Exception as exc:
+                    logger.debug("foo!", exc_info=exc)
+                    raise
+
+                finally:
+                    user_session.unlock(user_id)
+
+        request.state.user_claims = claims
+        response = await call_next(request)
+
+        if refreshed_tokens:
+            max_age = refreshed_tokens.get("max_age")
+            domain = refreshed_tokens.get("domain")
+            secure = refreshed_tokens.get("secure")
+            samesite = refreshed_tokens.get("samesite")
+            new_session_cookie = refreshed_tokens.get("session")
+            new_classic_cookie = refreshed_tokens.get("classic")
+
+            response.set_cookie(session_cookie_name, new_session_cookie,
+                                max_age=max_age, domain=domain, secure=secure, samesite=samesite)
+
+            if new_classic_cookie:
+                response.set_cookie(classic_cookie_name, new_classic_cookie,
+                                    max_age=max_age, domain=domain, secure=secure, samesite=samesite)
+            pass
+        return response

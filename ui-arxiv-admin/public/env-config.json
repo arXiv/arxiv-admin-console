@@ -1,0 +1,5 @@
+{
+  "AAA_URL": "http://localhost.arxiv.org:5100/aaa",
+  "ADMIN_API_BACKEND_URL": "http://localhost.arxiv.org:5100/admin-api/v1",
+  "ADMIN_APP_ROOT": "http://localhost.arxiv.org:5100/admin-console/"
+}

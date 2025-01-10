@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "admin-api"
+version = "0.1.0"
+description = "arXiv user admin API"
+authors = ["Naoyuki Tai <ntai@arxiv.org>"]
+license = "BSD-3"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pydantic = { version = "^2.10.0" }
+fastapi = "^0.115"
+arxiv-base = {git = "https://github.com/arXiv/arxiv-base.git", rev = "656c8e841a2c610019f19fff8cc8d13d0983e377"}
+pymysql = "^1.1.0"
+ruamel-yaml = "^0.18.6"
+python-json-logger = "^2.0.7"
+python-dateutil = "^2.8.2"
+fastapi-pagination = "^0.12.26"
+pyjwt = "^2.9.0"
+python-keycloak = "^4.3.0"
+requests = "^2.32.3"
+jwcrypto = "^1.5.6"
+httpx = "^0.27.2"
+cachetools = "^5.5.0"
+sqlalchemy = "^2.0.36"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

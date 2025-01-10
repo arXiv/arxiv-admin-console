@@ -1,0 +1,26 @@
+
+services:
+  admin-api:
+    image: ${TESTSITE_TAG}:latest
+    container_name: admin-api
+    ports:
+      - "${ADMIN_API_PORT}:${ADMIN_API_PORT}"
+    environment:
+      PORT: ${ADMIN_API_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      KC_URL_PUBLIC: ${KC_URL_PUBLIC}
+      NGINX_PORT: ${NGINX_PORT} 
+    network_mode: host
+
+  admin-console:
+    image: ${ADMIN_UI_TAG}:latest
+    container_name: admin-console
+    ports:
+      - "${ADMIN_CONSOLE_PORT}:${ADMIN_CONSOLE_PORT}"
+    environment:
+      PORT: ${ADMIN_CONSOLE_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      KC_URL_PUBLIC: ${KC_URL_PUBLIC}
+      NGINX_PORT: ${NGINX_PORT} 
+    network_mode: host
+
