@@ -24,21 +24,20 @@ router = APIRouter(prefix="/admin_logs", dependencies=[Depends(is_any_user)])
 
 class AdminLogModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int
-    logtime: Optional[str]
+    logtime: Optional[str] = None
     created: datetime
-    paper_id: Optional[str]
-    username: Optional[str]
-    host: Optional[str]
-    program: Optional[str]
-    command: Optional[str]
-    logtext: Optional[str]
-    document_id: Optional[int]
-    submission_id: Optional[int]
-    notify: Optional[int]
+    paper_id: Optional[str] = None
+    username: Optional[str] = None
+    host: Optional[str] = None
+    program: Optional[str] = None
+    command: Optional[str] = None
+    logtext: Optional[str] = None
+    document_id: Optional[int] = None
+    submission_id: Optional[int] = None
+    notify: Optional[int] = None
 
     @staticmethod
     def base_select(db: Session):

@@ -32,7 +32,7 @@ from admin_api_routes.documents import router as document_router
 from admin_api_routes.moderators import router as moderator_router
 from admin_api_routes.ownership_requests import router as ownership_request_router
 from admin_api_routes.ownership_requests_audit import router as ownership_request_audit_router
-from admin_api_routes.paper_owners import router as ownership_router
+from admin_api_routes.paper_owners import router as paper_owner_router
 from admin_api_routes.submissions import router as submission_router, meta_router as submission_meta_router
 from admin_api_routes.submission_categories import router as submission_categories_router
 from admin_api_routes.user import router as user_router
@@ -186,14 +186,13 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(endorsement_router, prefix="/v1")
     app.include_router(endorsement_request_router, prefix="/v1")
     app.include_router(endorsement_request_audit_router, prefix="/v1")
+    app.include_router(paper_owner_router, prefix="/v1")
     app.include_router(ownership_request_router, prefix="/v1")
     app.include_router(ownership_request_audit_router, prefix="/v1")
     app.include_router(moderator_router, prefix="/v1")
     app.include_router(document_router, prefix="/v1")
-    app.include_router(ownership_router, prefix="/v1")
     app.include_router(submission_router, prefix="/v1")
     app.include_router(submission_meta_router, prefix="/v1")
-    app.include_router(tapir_session_router, prefix="/v1")
     app.include_router(member_institution_router, prefix="/v1")
     app.include_router(frontend_router)
     app.include_router(tapir_session_router, prefix="/v1")

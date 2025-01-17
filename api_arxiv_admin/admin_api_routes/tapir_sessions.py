@@ -25,7 +25,6 @@ class TapirSessionModel(BaseModel):
     close_session: bool
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
     @classmethod
@@ -142,7 +141,7 @@ async def get_tapir_session_for_user(
 
 
 
-@router.put("/{id:int}")
+@router.put("/{id:int}/close")
 async def close_tapir_session(
         request: Request,
         id:int,

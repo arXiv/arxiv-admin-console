@@ -14,7 +14,6 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsement_r
 
 class EndorsementRequestsAuditModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int

@@ -20,7 +20,6 @@ router = APIRouter(prefix="/submission_categories", dependencies=[Depends(is_adm
 
 class SubmissionCategoryModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     category: str
@@ -38,7 +37,6 @@ class SubmissionCategoryModel(BaseModel):
 
 class SubmissionCategoryResultModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int

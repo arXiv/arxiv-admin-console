@@ -18,7 +18,6 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/email_templat
 
 class EmailTemplateModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int

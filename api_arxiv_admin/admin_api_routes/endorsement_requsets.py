@@ -25,7 +25,6 @@ router = APIRouter(prefix="/endorsement_requests", dependencies=[Depends(is_any_
 
 class EndorsementRequestModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int

@@ -32,7 +32,6 @@ class WorkflowStatus(str, Enum):
 
 class OwnershipRequestModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int  # request_id
@@ -145,18 +144,6 @@ def list_ownership_requests(
     response.headers['X-Total-Count'] = str(count)
     result = [OwnershipRequestModel.from_record(item, session) for item in query.offset(_start).limit(_end - _start).all()]
     return result
-
-
-@router.get("/{id:int}")
-async def get_ownership_request(
-        id: int,
-        session: Session = Depends(get_db),
-    ) ->OwnershipRequestModel:
-    oreq = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == id).one_or_none()
-    if oreq is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return OwnershipRequestModel.from_record(oreq, session)
-
 
 
 @router.get("/{id:int}")

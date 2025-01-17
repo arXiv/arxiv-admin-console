@@ -23,7 +23,6 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsements"
 
 class EndorsementModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int # Mapped[intpk]

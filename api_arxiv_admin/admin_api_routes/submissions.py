@@ -99,7 +99,6 @@ class SubmissionModel(BaseModel):
     submission_categories: Optional[List[SubmissionCategoryModel]]
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
     @staticmethod

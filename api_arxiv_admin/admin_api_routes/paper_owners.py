@@ -24,7 +24,6 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/paper_owners"
 
 class OwnershipModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: str

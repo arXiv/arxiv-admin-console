@@ -22,7 +22,6 @@ router = APIRouter(dependencies=[Depends(is_any_user)], prefix='/ownership_reque
 
 class OwnershipRequestsAuditModel(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int  # request_id

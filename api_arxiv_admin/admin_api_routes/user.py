@@ -77,7 +77,6 @@ class UserBaseModel(BaseModel):
 
 class UserModel(UserBaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
 
     id: int

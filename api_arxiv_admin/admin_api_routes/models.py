@@ -11,7 +11,6 @@ from arxiv.db.models import Document, Metadata, PaperPw, TapirUser, Demographic,
     OwnershipRequestsAudit, PaperOwner, Category, CrossControl
 
 class OrmConfig(BaseConfig):
-    orm_mode = True
     from_attributes = True
 
 

@@ -43,7 +43,6 @@ class DemographicModel(BaseModel):
     veto_status: str # Mapped[Literal['ok', 'no-endorse', 'no-upload', 'no-replace']] = mapped_column(Enum('ok', 'no-endorse', 'no-upload', 'no-replace'), nullable=False, server_default=text("'ok'"))
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
     @staticmethod

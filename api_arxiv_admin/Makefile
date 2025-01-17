@@ -1,5 +1,5 @@
-include .env
-export $(shell sed 's/=.*//' .env)
+include ../.env
+export $(shell sed 's/=.*//' ../.env)
 
 app_tag := arxiv-admin-api
 app_name := arxiv-admin-api
@@ -56,9 +56,9 @@ help:
 	@awk '/^#-#/ { print substr($$0, 5)}' Makefile
 
 #-#
-#-# Command: docker
+#-# Command: docker-image
 #-#   builds the docker image
-docker: /usr/bin/docker
+docker-image: /usr/bin/docker
 	@echo "PLATFORM: ${PLATFORM}"
 	@echo "dockerport: ${app_port}"
 	@echo "tag: ${app_tag}"
