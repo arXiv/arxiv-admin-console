@@ -76,6 +76,26 @@ class CreateOwnershipRequestModel(BaseModel):
     remote_addr: Optional[str] = None
 
 
+
+class UpdateOwnershipRequestModel(BaseModel):
+    """
+        make_owner: This field is checked to determine if the action is to approve ownership. If present, the function proceeds to process the approval of ownership for selected documents.
+
+        approve_<doc_id>: These fields are dynamically generated based on the document IDs. The function looks for keys in the form that start with approve_ followed by a document ID (e.g., approve_123). These represent the documents that the user has selected to approve for ownership.
+
+        is_author: This field is used to determine if the user is an author of the document. It is a boolean field that influences the flag_author attribute when creating a new PaperOwner record.
+
+        reject: This field is checked to determine if the action is to reject the ownership request. If present, the function updates the ownership request status to "rejected".
+
+        revisit: This field is checked to determine if the action is to revisit the ownership request. If present, the function updates the ownership request status to "pending".
+    """
+    make_owner: bool = False
+    is_author: bool = False
+    endorsement_request_id: Optional[int] = None
+    document_ids: Optional[List[int]] = None
+    remote_addr: Optional[str] = None
+
+
 class PaperOwnershipDecisionModel(BaseModel):
     workflow_status: WorkflowStatus # Literal['pending', 'accepted', 'rejected']
     rejected_document_ids: List[int]
@@ -106,13 +126,15 @@ def list_ownership_requests(
         endorsement_request_id: Optional[int] = Query(None),
         workflow_status: Optional[Literal['pending', 'accepted', 'rejected']] = Query(None),
         session: Session = Depends(get_db),
-
+        current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[OwnershipRequestModel]:
     query = OwnershipRequestModel.base_query(session)
     if id is not None:
         query = query.filter(OwnershipRequest.request_id.in_(id))
         _start = None
         _end = None
+        if not current_user.is_admin:
+            query = query.filter(OwnershipRequest.user_id == current_user.user_id)
     else:
         if preset is not None or start_date is not None or end_date is not None:
             t0 = datetime.datetime.now(datetime.UTC)
@@ -132,7 +154,12 @@ def list_ownership_requests(
                     query = query.filter(OwnershipRequestsAudit.date.between(t_begin, t_end))
 
         if user_id:
+            if not current_user.is_admin and current_user.user_id != user_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
             query = query.filter(OwnershipRequest.user_id == user_id)
+        else:
+            if not current_user.is_admin:
+                query = query.filter(OwnershipRequest.user_id == current_user.user_id)
 
         if workflow_status is not None:
             query = query.filter(OwnershipRequest.workflow_status == workflow_status)
@@ -149,13 +176,17 @@ def list_ownership_requests(
 @router.get("/{id:int}")
 async def get_ownership_request(
         id: int,
+        current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db),
     ) ->OwnershipRequestModel:
-    # noinspection PyTypeChecker
-    oreq = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == id).one_or_none()
+    query = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == id)
+    if not current_user.is_admin:
+        query = query.filter(OwnershipRequest.user_id == current_user.user_id)
+    oreq = query.one_or_none()
     if oreq is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return OwnershipRequestModel.from_record(oreq, session)
+
 
 
 @router.post('/')
@@ -213,7 +244,84 @@ async def create_ownership_request(
         remote_addr = ownership_request.remote_addr,
         remote_host = "",
         tracking_cookie = "",
-        date = datetime_to_epoch(request_date, datetime.datetime.now())
+        date = datetime_to_epoch(request_date)
+    )
+    session.add(audit)
+    session.refresh(audit)
+
+    for doc_id in ownership_request.document_ids:
+        # $sql = "INSERT INTO arXiv_ownership_requests_papers (request_id,document_id) VALUES (LAST_INSERT_ID(),$document_id)";
+        a_o_r_p = t_arXiv_ownership_requests_papers(
+            request_id = just_created.request_id,
+            document_id = doc_id,
+        )
+        session.add(a_o_r_p)
+
+    session.commit()
+
+    return OwnershipRequestModel.from_record(just_created, session)
+
+
+@router.put("/{id:int}")
+async def update_ownership_request(
+        id: int,
+        request: Request,
+        ownership_request: UpdateOwnershipRequestModel,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(transaction)) -> OwnershipRequestModel:
+    """Update ownership request.
+
+
+   $auth->conn->begin();
+
+   $sql="INSERT INTO arXiv_ownership_requests (user_id,workflow_status,endorsement_request_id) VALUES ($auth->user_id,'pending',$_endorsement_request_id)";
+   $auth->conn->query($sql);
+
+   $sql="INSERT INTO arXiv_ownership_requests_audit (request_id,remote_addr,remote_host,session_id,tracking_cookie,date) VALUES (LAST_INSERT_ID(),'$_remote_addr','$_remote_host','$_session_id','$_tracking_cookie',{$auth->timestamp})";
+   $auth->conn->query($sql);
+
+   foreach($documents as $document_id) {
+      $sql="INSERT INTO arXiv_ownership_requests_papers (request_id,document_id) VALUES (LAST_INSERT_ID(),$document_id)";
+      $auth->conn->query($sql);
+   }
+
+   $request_id=$auth->conn->select_scalar("SELECT LAST_INSERT_ID()");
+   $auth->conn->commit();
+
+    """
+
+    document = DocumentModel.base_select(session).filter(Document.document_id == id).one_or_none()
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    user_id = ownership_request.user_id if ownership_request.user_id else current_user.user_id
+
+    # ownerships = [OwnershipModel.model_validate(paper) for paper in OwnershipModel.base_select(session).filter(PaperOwner.document_id.in_(ownership_request.document_ids)).filter(PaperOwner.user_id == user_id).all()]
+    # ids = [ownerhip.id for ownerhip in ownerships]
+
+    request_date = datetime.date.today()
+    #     request_id: Mapped[intpk]
+    #     user_id: Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
+    #     endorsement_request_id: Mapped[Optional[int]] = mapped_column(ForeignKey('arXiv_endorsement_requests.request_id'), index=True)
+    #     workflow_status: Mapped[Literal['pending', 'accepted', 'rejected']] = mapped_column(Enum('pending', 'accepted', 'rejected'), nullable=False, server_default=FetchedValue())
+    req = OwnershipRequest(
+        user_id = user_id,
+        endorsement_request_id = ownership_request.endorsement_request_id,
+        workflow_status = 'pending'
+    )
+    session.add(req)
+    session.refresh(req)
+    just_created = OwnershipRequestModel.base_query(session).filter(req.request_id).one_or_none()
+
+    #    $sql="INSERT INTO arXiv_ownership_requests_audit (request_id,remote_addr,remote_host,session_id,tracking_cookie,date) VALUES (LAST_INSERT_ID(),'$_remote_addr','$_remote_host','$_session_id','$_tracking_cookie',{$auth->timestamp})";
+
+    audit = OwnershipRequestsAudit(
+        request_id = just_created.request_id,
+        session_id = int(current_user.tapir_session_id),
+        remote_addr = ownership_request.remote_addr,
+        remote_host = "",
+        tracking_cookie = "",
+        date = datetime_to_epoch(request_date)
     )
     session.add(audit)
     session.refresh(audit)
@@ -241,6 +349,9 @@ async def create_paper_ownership_decision(
     """Ownership creation
 
     """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
     ownership_request = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == request_id).one_or_none()
 
     if ownership_request is None:
@@ -255,7 +366,7 @@ async def create_paper_ownership_decision(
     user_id = ownership_request.user_id
     admin_id = current_user.user_id
 
-    current_request: OwnershipRequestModel = OwnershipRequestModel.from_record(ownership_request, session)
+    current_request: OwnershipRequestModel = OwnershipRequestModel.from_record(ownership_request)
     docs = set(current_request.document_ids)
     decided_docs = set(decision.accepted_document_ids) | set(decision.rejected_document_ids)
     if docs != decided_docs:

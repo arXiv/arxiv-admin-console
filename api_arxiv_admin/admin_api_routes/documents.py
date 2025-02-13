@@ -1,18 +1,18 @@
 """arXiv paper display routes."""
-
+from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Document, Submission
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 # from .models import CrossControlModel
 import re
 import time
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
+from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +24,14 @@ class DocumentModel(BaseModel):
     id: int # document_id
     paper_id: str
     title: str
-    authors: Optional[str]
+    authors: Optional[str] = None
     submitter_email: str
-    submitter_id: Optional[int]
+    submitter_id: Optional[int] = None
     dated: datetime
-    primary_subject_class: Optional[str]
-    created: Optional[datetime]
+    primary_subject_class: Optional[str] = None
+    created: Optional[datetime] = None
 
-    last_submission_id: Optional[int]
+    last_submission_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -179,13 +179,16 @@ async def list_documents(
 
 @router.get("/paper_id/{paper_id:str}")
 def get_document(paper_id:str,
+                 current_user: ArxivUserClaims = Depends(get_current_user),
                  session: Session = Depends(get_db)) -> DocumentModel:
     """Display a paper."""
     query = DocumentModel.base_select(session).filter(Document.paper_id == paper_id)
+    if not current_user.is_admin:
+        query = query.filter(Document.submitter_id == current_user.user_id)
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return doc
+    return populate_last_submission_id(session, DocumentModel.model_validate(doc))
 
 @router.get("/{id:str}")
 def get_document(id:int,

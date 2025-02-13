@@ -3,19 +3,19 @@ from datetime import timedelta, datetime, date
 from typing import Optional, List, Tuple
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from arxiv.auth.user_claims import ArxivUserClaims
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias, \
-    literal_column
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import literal_column, func, and_  # case, Select, distinct, exists, alias,  select, update
 
-from pydantic import BaseModel, validator
+from sqlalchemy.orm import Session # , joinedload
+
+from pydantic import BaseModel #, validator
 from arxiv.base import logging
 from arxiv.db import transaction
 from arxiv.db.models import PaperOwner
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
-
+from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class OwnershipModel(BaseModel):
             PaperOwner.flag_auto,
         )
 
-ownership_id_re = re.compile("user_(\d+)-doc_(\d+)")
+ownership_id_re = re.compile(r"user_(\d+)-doc_(\d+)")
 
 
 def to_ids(one_id: str) -> Tuple[Optional[int], Optional[int]]:
@@ -84,6 +84,7 @@ async def list_ownerships(
         document_id: Optional[int] = Query(None),
         id: Optional[List[str]] = Query(None,
                                         description="List of paper owner"),
+        current_user: ArxivUserClaims = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
     query = OwnershipModel.base_select(db)
@@ -108,7 +109,7 @@ async def list_ownerships(
             raise HTTPException(status_code=400)
     else:
         if _start < 0 or _end < _start:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                 detail="Invalid start or end index")
         if user_id is not None:
             query = query.filter(PaperOwner.user_id == user_id)
@@ -129,7 +130,7 @@ async def list_ownerships(
                     order_column = getattr(PaperOwner, key)
                     order_columns.append(order_column)
                 except AttributeError:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                         detail="Invalid start or end index")
 
         if preset is not None:
@@ -137,18 +138,18 @@ async def list_ownerships(
             if matched:
                 t_begin = datetime_to_epoch(None, t0 - timedelta(days=int(matched.group(1))))
                 t_end = datetime_to_epoch(None, t0)
-                query = query.filter(PaperOwner.issued_when.between(t_begin, t_end))
+                query = query.filter(PaperOwner.date.between(t_begin, t_end))
             else:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid preset format")
         else:
             if start_date or end_date:
                 t_begin = datetime_to_epoch(start_date, VERY_OLDE)
                 t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
-                query = query.filter(PaperOwner.issued_when.between(t_begin, t_end))
+                query = query.filter(PaperOwner.date.between(t_begin, t_end))
 
         if flag_valid is not None:
-            query = query.filter(PaperOwner.flag_valid == flag_valid)
+            query = query.filter(PaperOwner.valid == flag_valid)
 
         for column in order_columns:
             if _order == "DESC":
@@ -176,13 +177,20 @@ async def list_ownerships_for_user(
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         flag_valid: Optional[bool] = Query(None),
         document_id: Optional[int] = Query(None),
+        current_user: ArxivUserClaims = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
     query = OwnershipModel.base_select(db)
 
+
     if _start < 0 or _end < _start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                             detail="Invalid start or end index")
+
+    if not current_user.is_admin or user_id != current_user.user_id:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                            details="Not authorized")
+
     query = query.filter(PaperOwner.user_id == user_id)
     if document_id is not None:
         query = query.filter(PaperOwner.document_id == document_id)
@@ -200,26 +208,26 @@ async def list_ownerships_for_user(
                 order_column = getattr(PaperOwner, key)
                 order_columns.append(order_column)
             except AttributeError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid start or end index")
 
     if preset is not None:
-        matched = re.search("last_(\d+)_days", preset)
+        matched = re.search(r"last_(\d+)_days", preset)
         if matched:
             t_begin = datetime_to_epoch(None, t0 - timedelta(days=int(matched.group(1))))
             t_end = datetime_to_epoch(None, t0)
-            query = query.filter(PaperOwner.issued_when.between(t_begin, t_end))
+            query = query.filter(PaperOwner.date.between(t_begin, t_end))
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                 detail="Invalid preset format")
     else:
         if start_date or end_date:
             t_begin = datetime_to_epoch(start_date, VERY_OLDE)
             t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
-            query = query.filter(PaperOwner.issued_when.between(t_begin, t_end))
+            query = query.filter(PaperOwner.date.between(t_begin, t_end))
 
     if flag_valid is not None:
-        query = query.filter(PaperOwner.flag_valid == flag_valid)
+        query = query.filter(PaperOwner.valid == flag_valid)
 
     for column in order_columns:
         if _order == "DESC":
@@ -238,27 +246,32 @@ async def list_ownerships_for_user(
 async def get_ownership(id: str, db: Session = Depends(get_db)) -> OwnershipModel:
     uid, did = to_ids(id)
     if not uid or not did:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST)
     item = OwnershipModel.base_select(db).filter(and_(
         PaperOwner.user_id == uid,
         PaperOwner.document_id == did,
     )).one_or_none()
     if item:
         return OwnershipModel.model_validate(item)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND)
 
 
 @router.put('/{id:str}')
 async def update_ownership(
         request: Request,
         id: str,
+        current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction)) -> OwnershipModel:
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,)
+
     uid, did = to_ids(id)
     if uid is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST)
     body = await request.json()
 
-    item = session.query(PaperOwner).filter(PaperOwner.ownership_id == id).first()
+    item = session.query(PaperOwner).filter(PaperOwner.user_id == id).first()
     if item is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -275,6 +288,7 @@ async def update_ownership(
 @router.post('/')
 async def create_ownership(
         request: Request,
+        current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction)) -> OwnershipModel:
     body = await request.json()
 

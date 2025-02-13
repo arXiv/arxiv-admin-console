@@ -1,24 +1,21 @@
 """arXiv category routes."""
-import re
-from datetime import timedelta, datetime, date
 from enum import Enum
-from typing import Optional, List, Any
+from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, and_
+from sqlalchemy.orm import Session
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db import transaction
 from arxiv.db.models import Category
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
+from . import get_db, transaction
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/categories")
+router = APIRouter(prefix="/categories", tags=["user_portal"])
 
 class EndorseOption(str, Enum):
     y = 'y'

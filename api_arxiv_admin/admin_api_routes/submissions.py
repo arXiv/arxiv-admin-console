@@ -63,7 +63,7 @@ class SubmissionModel(BaseModel):
     submitter_email: Optional[str] = None  # = mapped_column(String(64))
     created: Optional[datetime] = None
     updated: Optional[datetime] = None
-    status: str # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    status: int # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
     sticky_status: Optional[int] = None  # = mapped_column(Integer)
     must_process: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
     submit_time: Optional[datetime] = None

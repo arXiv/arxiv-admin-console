@@ -1,22 +1,18 @@
 """arXiv submission routes."""
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
-
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db import transaction
-from arxiv.db.models import Submission, Demographic, TapirUser, Category, SubmissionCategory
+from arxiv.db.models import SubmissionCategory
 
-from . import get_db, is_any_user, get_current_user, is_admin_user
-from .categories import CategoryModel
+from . import get_db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/submission_categories", dependencies=[Depends(is_admin_user)])
+router = APIRouter(prefix="/submission_categories")
 
 class SubmissionCategoryModel(BaseModel):
     class Config:
