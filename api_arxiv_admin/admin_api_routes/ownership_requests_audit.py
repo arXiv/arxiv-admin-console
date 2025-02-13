@@ -106,7 +106,7 @@ def list_ownership_requests_audit(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [OwnershipRequestsAuditModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [OwnershipRequestsAuditModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -118,6 +118,6 @@ def get_ownership_requests_audit(
     req = OwnershipRequestsAuditModel.base_query(session).filter(OwnershipRequestsAudit.request_id == id).all()
     if req is None:
         return Response(status_code=404)
-    result = [OwnershipRequestsAuditModel.from_orm(item) for item in req]
+    result = [OwnershipRequestsAuditModel.model_validate(item) for item in req]
     return result
 

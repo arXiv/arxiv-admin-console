@@ -133,7 +133,7 @@ async def list_endorsements(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [EndorsementModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [EndorsementModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -141,7 +141,7 @@ async def list_endorsements(
 async def get_endorsement(id: int, db: Session = Depends(get_db)) -> EndorsementModel:
     item = EndorsementModel.base_select(db).filter(Endorsement.endorsement_id == id).all()
     if item:
-        return EndorsementModel.from_orm(item[0])
+        return EndorsementModel.model_validate(item[0])
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -163,7 +163,7 @@ async def update_endorsement(
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    return EndorsementModel.from_orm(item)
+    return EndorsementModel.model_validate(item)
 
 
 @router.post('/')
@@ -176,4 +176,4 @@ async def create_endorsement(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return EndorsementModel.from_orm(item)
+    return EndorsementModel.model_validate(item)

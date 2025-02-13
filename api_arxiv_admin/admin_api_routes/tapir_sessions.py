@@ -113,7 +113,7 @@ async def list_tapir_sessions(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [TapirSessionModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [TapirSessionModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -180,5 +180,5 @@ async def close_tapir_session(
         session.commit()
         session.refresh(tapir_session)
 
-    return TapirSessionModel.from_orm(TapirSessionModel.base_query(session).filter(TapirSession.session_id == id).one_or_none())
+    return TapirSessionModel.model_validate(TapirSessionModel.base_query(session).filter(TapirSession.session_id == id).one_or_none())
 

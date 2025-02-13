@@ -68,7 +68,7 @@ async def list_endorsement_requests_audit(
         query = query.filter(EndorsementRequestsAudit.request_id.in_(id))
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [EndorsementRequestsAuditModel.from_orm(user) for user in query.offset(_start).limit(_end - _start).all()]
+    result = [EndorsementRequestsAuditModel.model_validate(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -76,5 +76,5 @@ async def list_endorsement_requests_audit(
 async def get_endorsement_requests_audit(id: int, db: Session = Depends(get_db)) -> EndorsementRequestsAuditModel:
     item = db.query(EndorsementRequestsAudit).where(EndorsementRequestsAudit.request_id == id)
     if item:
-        return EndorsementRequestsAuditModel.from_orm(item[0])
+        return EndorsementRequestsAuditModel.model_validate(item[0])
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

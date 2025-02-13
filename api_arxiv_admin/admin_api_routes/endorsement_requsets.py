@@ -6,7 +6,7 @@ from typing import Optional, List
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_
+from sqlalchemy import case # select, update, func, Select, distinct, exists, and_, or_
 from sqlalchemy.orm import Session, joinedload
 
 from pydantic import BaseModel
@@ -62,6 +62,9 @@ class EndorsementRequestModel(BaseModel):
             #Endorsement.endorsement_id.label("endorsement"),
             # Audit ID (single value)
             #EndorsementRequestsAudit.session_id.label("audit")
+        ).options(
+            joinedload(EndorsementRequest.endorsee),
+            joinedload(EndorsementRequest.endorsement).joinedload(Endorsement.endorser),
         ).outerjoin(
             Demographic,
             Demographic.user_id == EndorsementRequest.endorsee_id,
@@ -87,6 +90,7 @@ async def list_endorsement_requests(
         db: Session = Depends(get_db),
 
     ) -> List[EndorsementRequestModel]:
+
     query = EndorsementRequestModel.base_select(db)
 
     if _start < 0 or _end < _start:
@@ -147,7 +151,7 @@ async def list_endorsement_requests(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [EndorsementRequestModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [EndorsementRequestModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -161,7 +165,7 @@ async def get_endorsement_request(id: int,
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
-    return EndorsementRequestModel.from_orm(item)
+    return EndorsementRequestModel.model_validate(item)
 
 
 @router.put('/{id:int}', dependencies=[Depends(is_any_user)])
@@ -188,7 +192,7 @@ async def update_endorsement_request(
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
     updated = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.request_id == id).one_or_none()
-    return EndorsementRequestModel.from_orm(updated)
+    return EndorsementRequestModel.model_validate(updated)
 
 
 @router.post('/')
@@ -204,7 +208,7 @@ async def create_endorsement_request(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return EndorsementRequestModel.from_orm(item)
+    return EndorsementRequestModel.model_validate(item)
 
 
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)

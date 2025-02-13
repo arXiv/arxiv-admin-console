@@ -158,7 +158,7 @@ async def list_ownerships(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [OwnershipModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [OwnershipModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -229,7 +229,7 @@ async def list_ownerships_for_user(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [OwnershipModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [OwnershipModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -244,7 +244,7 @@ async def get_ownership(id: str, db: Session = Depends(get_db)) -> OwnershipMode
         PaperOwner.document_id == did,
     )).one_or_none()
     if item:
-        return OwnershipModel.from_orm(item)
+        return OwnershipModel.model_validate(item)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -269,7 +269,7 @@ async def update_ownership(
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    return OwnershipModel.from_orm(item)
+    return OwnershipModel.model_validate(item)
 
 
 @router.post('/')
@@ -282,4 +282,4 @@ async def create_ownership(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return OwnershipModel.from_orm(item)
+    return OwnershipModel.model_validate(item)

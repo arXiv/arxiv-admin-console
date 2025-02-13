@@ -130,7 +130,7 @@ async def list_moderators_0(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    return [ModeratorModel.from_orm(mod) for mod in query.offset(_start).limit(_end - _start).all()]
+    return [ModeratorModel.model_validate(mod) for mod in query.offset(_start).limit(_end - _start).all()]
 
 
 @router.get('/{archive}/subject-class')
@@ -155,7 +155,7 @@ async def list_moderators_1(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    return [ModeratorModel.from_orm(mod) for mod in query.offset(_start).limit(_end - _start).all()]
+    return [ModeratorModel.model_validate(mod) for mod in query.offset(_start).limit(_end - _start).all()]
 
 
 @router.get('/{archive}/subject-class/{subject_class}')
@@ -172,7 +172,7 @@ async def list_moderators_2(
     )
     count = query.count()
     response.headers['X-Total-Count'] = count
-    return [ModeratorModel.from_orm(row) for row in query.all()]
+    return [ModeratorModel.model_validate(row) for row in query.all()]
 
 
 @router.get('/{id:str}')
@@ -186,7 +186,7 @@ async def get_moderator(id: str, db: Session = Depends(get_db)) -> ModeratorMode
             t_arXiv_moderators.c.subject_class == subject_class
         )).one_or_none()
     if mod:
-        return ModeratorModel.from_orm(mod)
+        return ModeratorModel.model_validate(mod)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -210,7 +210,7 @@ async def update_moderator(request: Request, id: str,
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    return ModeratorModel.from_orm(item)
+    return ModeratorModel.model_validate(item)
 
 
 @router.post('/')
@@ -223,7 +223,7 @@ async def create_moderator(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return ModeratorModel.from_orm(item)
+    return ModeratorModel.model_validate(item)
 
 
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)

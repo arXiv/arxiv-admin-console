@@ -91,7 +91,7 @@ async def list_membership_institutions(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [MemberInstitutionModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [MemberInstitutionModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -99,5 +99,5 @@ async def list_membership_institutions(
 async def membership_institution_data(id: int, db: Session = Depends(get_db)) -> MemberInstitutionModel:
     item = MemberInstitutionModel.base_select(db).filter(MemberInstitution.id == id).one_or_none()
     if item:
-        return MemberInstitutionModel.from_orm(item)
+        return MemberInstitutionModel.model_validate(item)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

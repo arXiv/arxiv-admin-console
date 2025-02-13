@@ -113,7 +113,7 @@ async def list_admin_logs(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [AdminLogModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [AdminLogModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -127,7 +127,7 @@ async def get_admin_log(id: int,
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
-    return AdminLogModel.from_orm(item)
+    return AdminLogModel.model_validate(item)
 
 
 @router.put('/{id:int}', dependencies=[Depends(is_any_user)])
@@ -154,7 +154,7 @@ async def update_admin_log(
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
     updated = AdminLogModel.base_select(session).filter(AdminLog.log_id == id).one_or_none()
-    return AdminLogModel.from_orm(updated)
+    return AdminLogModel.model_validate(updated)
 
 
 @router.post('/')
@@ -170,7 +170,7 @@ async def create_admin_log(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return AdminLogModel.from_orm(item)
+    return AdminLogModel.model_validate(item)
 
 
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)

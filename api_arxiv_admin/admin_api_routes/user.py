@@ -159,7 +159,7 @@ def get_one_user(user_id:int, db: Session = Depends(get_db)) -> UserModel:
     # @ignore-types
     user = UserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
     if user:
-        return UserModel.from_orm(user)
+        return UserModel.model_validate(user)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -203,7 +203,7 @@ def list_user_by_username(response: Response,
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [UserModel.from_orm(user) for user in query.offset(_start).limit(_end - _start).all()]
+    result = [UserModel.model_validate(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -220,7 +220,7 @@ def get_user_by_username(username: str,
     user = query.one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,)
-    return UserModel.from_orm(user)
+    return UserModel.model_validate(user)
 
 
 @router.get("/")
@@ -349,7 +349,7 @@ async def list_users(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [UserModel.from_orm(user) for user in query.offset(_start).limit(_end - _start).all()]
+    result = [UserModel.model_validate(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -391,7 +391,7 @@ async def update_user(request: Request,
 
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data
-    return UserModel.from_orm(user)
+    return UserModel.model_validate(user)
 
 
 @router.post('/')
@@ -404,7 +404,7 @@ async def create_user(request: Request, session: Session = Depends(transaction))
         if key in user.__dict__:
             setattr(user, key, value)
     session.add(user)
-    return UserModel.from_orm(user)
+    return UserModel.model_validate(user)
 
 
 @router.delete('/{user_id:int}')
@@ -416,4 +416,4 @@ def delete_user(user_id: int, session: Session = Depends(transaction)) -> UserMo
 
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data
-    return UserModel.from_orm(user)
+    return UserModel.model_validate(user)

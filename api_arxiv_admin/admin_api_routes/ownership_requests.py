@@ -64,7 +64,7 @@ class OwnershipRequestModel(BaseModel):
 
     @classmethod
     def from_record(cls, record: OwnershipRequest, session: Session) -> 'OwnershipRequestModel':
-        data: 'OwnershipRequestModel' = cls.from_orm(record)
+        data: 'OwnershipRequestModel' = cls.model_validate(record)
         populate_document_ids(data, record, session)
         return data
 
@@ -188,7 +188,7 @@ async def create_ownership_request(
 
     user_id = ownership_request.user_id if ownership_request.user_id else current_user.user_id
 
-    # ownerships = [OwnershipModel.from_orm(paper) for paper in OwnershipModel.base_select(session).filter(PaperOwner.document_id.in_(ownership_request.document_ids)).filter(PaperOwner.user_id == user_id).all()]
+    # ownerships = [OwnershipModel.model_validate(paper) for paper in OwnershipModel.base_select(session).filter(PaperOwner.document_id.in_(ownership_request.document_ids)).filter(PaperOwner.user_id == user_id).all()]
     # ids = [ownerhip.id for ownerhip in ownerships]
 
     request_date = datetime.date.today()

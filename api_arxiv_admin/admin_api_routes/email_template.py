@@ -107,7 +107,7 @@ async def list_templates(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [EmailTemplateModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [EmailTemplateModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -115,7 +115,7 @@ async def list_templates(
 async def template_data(id: int, db: Session = Depends(get_db)) -> EmailTemplateModel:
     item = EmailTemplateModel.base_select(db).filter(TapirEmailTemplate.template_id == id).all()
     if item:
-        return EmailTemplateModel.from_orm(item[0])
+        return EmailTemplateModel.model_validate(item[0])
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -137,7 +137,7 @@ async def update_template(request: Request,
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
     mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == item.template_id).one_or_none()
-    return EmailTemplateModel.from_orm(mint)
+    return EmailTemplateModel.model_validate(mint)
 
 
 @router.post('/')
@@ -159,7 +159,7 @@ async def create_email_template(request: Request,
     session.commit()
     session.refresh(item)
     mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == item.template_id).one_or_none()
-    return EmailTemplateModel.from_orm(mint)
+    return EmailTemplateModel.model_validate(mint)
 
 
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)

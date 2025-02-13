@@ -77,8 +77,8 @@ sphinx = ["sphinx", "sphinx-autodoc-typehints", "sphinxcontrib-websupport"]
 [package.source]
 type = "git"
 url = "https://github.com/arXiv/arxiv-base.git"
-reference = "656c8e841a2c610019f19fff8cc8d13d0983e377"
-resolved_reference = "656c8e841a2c610019f19fff8cc8d13d0983e377"
+reference = "11e1c636f1db900a279d48f28f3a7a37ab6765a7"
+resolved_reference = "11e1c636f1db900a279d48f28f3a7a37ab6765a7"
 
 [[package]]
 name = "async-property"
@@ -2233,4 +2233,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d8fb77f52b9b7e097183a81f2e8b6cb8d2a0afb955be2c2ce6bf27354711c05c"
+content-hash = "228693c53b5b10ba991d5320e1c86b01370621bd71d354555bc3b7cb695cc276"

@@ -113,7 +113,7 @@ async def list_demographics(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [DemographicModel.from_orm(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [DemographicModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 

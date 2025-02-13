@@ -173,7 +173,7 @@ async def list_documents(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result: List[DocumentModel] = [populate_last_submission_id(db, DocumentModel.from_orm(item)) for item in query.offset(_start).limit(_end - _start).all()]
+    result: List[DocumentModel] = [populate_last_submission_id(db, DocumentModel.model_validate(item)) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -195,5 +195,5 @@ def get_document(id:int,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return populate_last_submission_id(session, DocumentModel.from_orm(doc))
+    return populate_last_submission_id(session, DocumentModel.model_validate(doc))
 

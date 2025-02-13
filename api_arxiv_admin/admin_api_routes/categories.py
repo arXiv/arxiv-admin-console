@@ -100,7 +100,7 @@ async def list_categories(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    return [CategoryModel.from_orm(cat) for cat in query.offset(_start).limit(_end - _start).all()]
+    return [CategoryModel.model_validate(cat) for cat in query.offset(_start).limit(_end - _start).all()]
 
 
 @router.get('/{archive}/subject-class')
@@ -125,7 +125,7 @@ async def list_subject_classes(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    return [CategoryModel.from_orm(cat) for cat in query.offset(_start).limit(_end - _start).all()]
+    return [CategoryModel.model_validate(cat) for cat in query.offset(_start).limit(_end - _start).all()]
 
 
 @router.get('/{archive}/subject-class/{subject_class}')
@@ -145,7 +145,7 @@ async def get_category(
 
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,)
-    return CategoryModel.from_orm(category)
+    return CategoryModel.model_validate(category)
 
 
 @router.get('/{id:str}')
@@ -156,7 +156,7 @@ async def get_category(id: str, db: Session = Depends(get_db)) -> CategoryModel:
             Category.archive == archive,
             Category.subject_class == subject_class)).all()
     if item:
-        return CategoryModel.from_orm(item[0])
+        return CategoryModel.model_validate(item[0])
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -181,7 +181,7 @@ async def update_category(
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    return CategoryModel.from_orm(item)
+    return CategoryModel.model_validate(item)
 
 
 @router.post('/')
@@ -194,7 +194,7 @@ async def create_category(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return CategoryModel.from_orm(item)
+    return CategoryModel.model_validate(item)
 
 
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)

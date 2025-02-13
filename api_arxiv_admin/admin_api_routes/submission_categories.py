@@ -48,6 +48,6 @@ class SubmissionCategoryResultModel(BaseModel):
 async def get_submission_categories(id: int,
                                     db: Session = Depends(get_db)) -> SubmissionCategoryResultModel:
     cats = SubmissionCategoryModel.base_select(db).filter(SubmissionCategory.submission_id == id).order_by(SubmissionCategory.is_primary.desc()).all()
-    categories = [SubmissionCategoryModel.from_orm(item) for item in cats]
+    categories = [SubmissionCategoryModel.model_validate(item) for item in cats]
     result = SubmissionCategoryResultModel(id=id, categories=categories)
     return result
