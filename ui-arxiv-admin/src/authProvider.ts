@@ -46,6 +46,7 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
         window.location.href = `${runtimeProps.AAA_URL}/login?next_page=${encodeURIComponent(currentUrl)}`;
         return Promise.resolve();
     },
+
     // called when the user clicks on the logout button
     logout: () => {
         if (logoutInProgress) {
@@ -104,9 +105,10 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
 
     // called when the user navigates to a new location, to check for authentication
     checkAuth: async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('access_token');
-        // const token_type = urlParams.get('token_type') || 'Bearer';
+        // I stopped using keycloak access token in URL
+        // const urlParams = new URLSearchParams(window.location.search);
+        const token = getCookie(runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME);
+        // const token_type = 'Bearer';
         // If no token, reject the promise
         const arxiv_token = getCookie(runtimeProps.ARXIV_COOKIE_NAME);
 

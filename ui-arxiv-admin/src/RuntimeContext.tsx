@@ -8,15 +8,17 @@ export interface RuntimeProps
     ADMIN_API_BACKEND_URL: string,
     ADMIN_APP_ROOT: string,
     ARXIV_COOKIE_NAME: string,
-    TAPIR_COOKIE_NAME: string
+    TAPIR_COOKIE_NAME: string,
+    ARXIV_KEYCLOAK_COOKIE_NAME: string,
 }
 
 const defaultRuntimeProps : RuntimeProps = {
     AAA_URL: 'http://localhost.arxiv.org:5000/aaa',
     ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5000/admin-api/v1',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
-    ARXIV_COOKIE_NAME: "arxiv_session_cookie",
-    TAPIR_COOKIE_NAME: "tapir_session_cookie",
+    ARXIV_COOKIE_NAME: "arxiv_oidc_session",
+    TAPIR_COOKIE_NAME: "tapir_session",
+    ARXIV_KEYCLOAK_COOKIE_NAME: "arxiv_keycloak_token",
 };
 
 export const RuntimeContext = createContext<RuntimeProps>(defaultRuntimeProps);
@@ -29,6 +31,11 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
     const [runtimeEnv, setRuntimeEnv] = useState<RuntimeProps>(defaultRuntimeProps);
     const [loading, setLoading] = useState<boolean>(true);
 
+    const updateRuntimeEnv = (props: Partial<RuntimeProps>) => {
+        const newEnv = Object.assign({}, runtimeEnv, props);
+        setRuntimeEnv(newEnv);
+    }
+
     useEffect(() => {
         const fetchRuntimeEnvironment = async () => {
             try {
@@ -36,7 +43,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 if ((window.location.port !== "80") && (window.location.port !== "") && (window.location.port !== "443"))
                     baseUrl = baseUrl + ":" + window.location.port;
                 baseUrl = baseUrl + "/";
-                const runtime1: RuntimeProps = {
+                const runtime1: Partial<RuntimeProps> = {
                     AAA_URL: baseUrl + "aaa",
                     ADMIN_API_BACKEND_URL: baseUrl + "admin-api/v1",
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
@@ -44,12 +51,12 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                     TAPIR_COOKIE_NAME: defaultRuntimeProps.TAPIR_COOKIE_NAME,
                 };
                 console.log("runtime-1: " + JSON.stringify(runtime1));
-                setRuntimeEnv(runtime1);
+                updateRuntimeEnv(runtime1);
                 const cookie_name_response = await fetch(`${runtime1.AAA_URL}/token-names`);
                 const cookie_names = await cookie_name_response.json();
                 console.log("cookie_names: " + JSON.stringify(cookie_names));
 
-                const runtime2: RuntimeProps = {
+                const runtime2: Partial<RuntimeProps> = {
                     AAA_URL: baseUrl + "aaa",
                     ADMIN_API_BACKEND_URL: baseUrl + "admin-api/v1",
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
@@ -58,7 +65,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 };
 
                 console.log("runtime-2: " + JSON.stringify(runtime2));
-                setRuntimeEnv(runtime2);
+                updateRuntimeEnv(runtime2);
             } catch (error) {
                 console.error('Error fetching runtime urls:', error);
             } finally {
@@ -66,7 +73,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
             }
         };
 
-        fetchRuntimeEnvironment();
+        fetchRuntimeEnvironment().then(_r => null);
     }, []);
 
     if (loading) {

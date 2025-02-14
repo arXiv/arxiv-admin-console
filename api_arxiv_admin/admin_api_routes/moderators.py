@@ -295,7 +295,7 @@ async def delete_moderator(id: str, session: Session = Depends(transaction)) -> 
     return _delete_moderator(session, user_id, archive, subject_class)
 
 
-@router.delete('/user/{user_id:str}/archive/{archive:sts}/subject_class/{subject_class}',
+@router.delete('/user/{user_id:str}/archive/{archive:str}/subject_class/{subject_class:str}',
                status_code=status.HTTP_204_NO_CONTENT,
                description="Delete moderator operation in a straightforward interface."
                )

@@ -62,9 +62,6 @@ class EndorsementRequestModel(BaseModel):
             #Endorsement.endorsement_id.label("endorsement"),
             # Audit ID (single value)
             #EndorsementRequestsAudit.session_id.label("audit")
-        ).options(
-            joinedload(EndorsementRequest.endorsee),
-            joinedload(EndorsementRequest.endorsement).joinedload(Endorsement.endorser),
         ).outerjoin(
             Demographic,
             Demographic.user_id == EndorsementRequest.endorsee_id,
