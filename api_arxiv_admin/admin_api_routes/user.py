@@ -245,6 +245,7 @@ async def list_users(
         start_joined_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_joined_date: Optional[date] = Query(None, description="End date for filtering"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
+        q: Optional[str] = Query(None, description="Query string"),
         db: Session = Depends(get_db)
 ) -> List[UserModel]:
     """
@@ -273,6 +274,14 @@ async def list_users(
         query = query.filter(TapirUser.user_id.in_(id))
 
     else:
+        if q:
+            if "@" in q:
+                query = query.filter(TapirUser.email == q)
+            elif q[0] in "0123456789":
+                query = query.filter(TapirUser.user_id == q)
+            else:
+                query = query.filter(TapirUser.last_name == q)
+
         if suspect:
             dgfx = aliased(Demographic)
             query = query.join(dgfx, dgfx.user_id == TapirUser.user_id)

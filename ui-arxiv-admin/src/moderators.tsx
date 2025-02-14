@@ -19,7 +19,7 @@ import {
     DateField,
     ReferenceField,
     NumberField,
-    DateInput, useListContext, SelectInput
+    DateInput, useListContext, SelectInput, AutocompleteInput
 } from 'react-admin';
 
 import { addDays } from 'date-fns';
@@ -104,14 +104,7 @@ const ModeratorTitle = () => {
 export const ModeratorEdit = () => (
     <Edit title={<ModeratorTitle />}>
         <SimpleForm>
-            <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
-                {", "}
-                <TextField source={"first_name"} />
-            </ReferenceField>
-
-            <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
+            <ReferenceField source="user_id" reference="users" label={"User"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
                 <TextField source={"last_name"} />
                 {", "}
@@ -119,17 +112,13 @@ export const ModeratorEdit = () => (
             </ReferenceField>
 
             <TextInput source="archive" />
-
             <TextInput source="subject_class" />
-            <BooleanInput source="flag_valid" label={"Valid"} />
 
-            <TextInput source="type" />
-            <NumberInput source="point_value" label={"Point"} />
-            <DateInput source="issued_when" label={"Issued"} />
-
-            <ReferenceField source="request_id" reference="moderator_request" label={"Request"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-            </ReferenceField>
+            <BooleanInput source="is_public" label={"Public"}/>
+            <BooleanInput source="no_email" label={"No Email"}/>
+            <BooleanInput source="no_web_email" label={"No Web Email"}/>
+            <BooleanInput source="no_reply_to" label={"No Reply-To"}/>
+            <BooleanInput source="daily_update" label={"Daily Update"}/>
         </SimpleForm>
     </Edit>
 );
@@ -137,28 +126,20 @@ export const ModeratorEdit = () => (
 export const ModeratorCreate = () => (
     <Create>
         <SimpleForm>
-            <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
-                {", "}
-                <TextField source={"first_name"} />
-            </ReferenceField>
-
-            <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
-                {", "}
-                <TextField source={"first_name"} />
-            </ReferenceField>
+            <ReferenceInput source="user_id" reference="users">
+                <AutocompleteInput
+                    optionText={(record) => `${record.last_name}, ${record.first_name} (${record.email}) ${record.id}`}
+                />
+            </ReferenceInput>
 
             <TextInput source="archive" />
-
             <TextInput source="subject_class" />
-            <BooleanInput source="flag_valid" label={"Valid"}/>
 
-            <TextInput source="type" />
-            <NumberInput source="point_value" label={"Point"} />
-            <DateInput source="issued_when" label={"Issued"} />
+            <BooleanInput source="is_public" label={"Public"}/>
+            <BooleanInput source="no_email" label={"No Email"}/>
+            <BooleanInput source="no_web_email" label={"No Web Mail"}/>
+            <BooleanInput source="no_reply_to" label={"No Reply-To"}/>
+            <BooleanInput source="daily_update" label={"Daily Update"}/>
 
         </SimpleForm>
     </Create>

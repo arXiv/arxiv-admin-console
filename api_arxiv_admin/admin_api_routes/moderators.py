@@ -7,15 +7,15 @@ from typing import Optional, List, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_
+from sqlalchemy import insert, func, and_, select # case, Select, distinct, exists, update,
 from sqlalchemy.orm import Session, joinedload, Query as SAQuery
 
 from pydantic import BaseModel, Field
 from arxiv.base import logging
-from arxiv.db import transaction
+# from arxiv.db import transaction
 from arxiv.db.models import t_arXiv_moderators, TapirUser
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
+from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -262,11 +262,32 @@ async def create_moderator(
         session: Session = Depends(transaction)) -> ModeratorModel:
     body = await request.json()
 
-    item = t_arXiv_moderators(**body)
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return ModeratorModel.model_validate(item)
+    stmt = insert(t_arXiv_moderators).values(**body)
+
+    try:
+        result = session.execute(stmt)
+        session.commit()
+
+        # Retrieve the inserted row using a SELECT query
+        user_id = body.get("user_id")
+        archive = body.get("archive")
+        subject_class = body.get("subject_class")
+
+        query = select(t_arXiv_moderators).where(
+            t_arXiv_moderators.c.user_id == user_id,
+            t_arXiv_moderators.c.archive == archive,
+            t_arXiv_moderators.c.subject_class == subject_class
+        )
+        inserted_row = session.execute(query).fetchone()
+
+        if not inserted_row:
+            raise HTTPException(status_code=500, detail="Failed to fetch inserted record")
+
+        return ModeratorModel.model_validate(dict(inserted_row))
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 def _delete_moderator(session: Session, user_id: str, archive: str, subject_class: str) -> Response:
