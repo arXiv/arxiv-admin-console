@@ -48,6 +48,9 @@ async def refresh_token(aaa_url: str,
                 # Extract the new token from the response
                 refreshed_tokens = refresh_response.json()
                 return refreshed_tokens
+            elif refresh_response.status_code == 401:
+                logger.info("post to %s: bad/expired refresh token", aaa_url)
+                return {"session": None, "classic": None, "max_age": 0, "secure": False, "samesite": ""}
             elif refresh_response.status_code >= 500 and refresh_response.status_code <= 599:
                 # This needs a retry
                 logger.warning("post to %s status %s. iter=%d", aaa_url, refresh_response.status_code,

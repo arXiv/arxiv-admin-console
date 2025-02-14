@@ -21,6 +21,49 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/moderators")
 
+"""
+<?php
+
+   require "tapir-auth-plus.php";
+   require "tapir-audit.php";
+
+   $auth=new Tapir_Auth_Plus(tapir_connect_rw());
+   $auth->required(M4_CAP_EDIT_USERS);
+
+   $user_id=$_GET["user_id"] ;
+   $category=trim($_GET["category"]);
+   $tapir_dest=$_GET["tapir_dest"];
+
+   list($archive,$subject_class)=split("\.",$category);
+
+   if (!$subject_class)
+     $subject_class="";
+
+   $_user_id=addslashes($user_id);
+   $_archive=addslashes($archive);
+   $_subject_class=addslashes($subject_class);
+
+   $sql="SELECT COUNT(*) FROM arXiv_categories WHERE archive='$_archive' AND subject_class='$_subject_class'";
+   $category_count=$auth->conn->select_scalar($sql);
+
+   if (!$category_count) {
+      $auth->perish("Invalid category [$category]");
+   };
+
+   $sql="SELECT COUNT(*) FROM arXiv_moderators WHERE archive='$_archive' AND subject_class='$_subject_class' AND user_id=$user_id";
+   $moderator_count=$auth->conn->select_scalar($sql); 
+
+   if ($moderator_count) {
+      $sql="DELETE FROM arXiv_moderators WHERE user_id=$user_id AND archive='$_archive' AND subject_class='$_subject_class'";
+      $auth->conn->query($sql);
+      tapir_audit_admin($user_id,"unmake-moderator",$category);
+   } else {
+      $auth->conn->query("INSERT INTO arXiv_moderators (user_id,archive,subject_class) VALUES($user_id,'$_archive','$_subject_class')");
+      tapir_audit_admin($user_id,"make-moderator",$category);
+   };
+
+?>
+"""
 
 class ModeratorModel(BaseModel):
     id: str
@@ -226,9 +269,7 @@ async def create_moderator(
     return ModeratorModel.model_validate(item)
 
 
-@router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_moderator(id: str, session: Session = Depends(transaction)) -> Response:
-    [user_id, archive, subject_class] = id.split("+")
+def _delete_moderator(session: Session, user_id: str, archive: str, subject_class: str) -> Response:
     item = session.query(t_arXiv_moderators).filter(
         and_(
             t_arXiv_moderators.c.user_id == user_id,
@@ -240,3 +281,26 @@ async def delete_moderator(id: str, session: Session = Depends(transaction)) -> 
     item.delete_instance()
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT,
+               description="""parameter ID is user_id "+" archive "+" subject_class where + is a literal character.
+ This is because react-admin's delete row must have a single ID, and I chose to use + as separator."""
+               )
+async def delete_moderator(id: str, session: Session = Depends(transaction)) -> Response:
+    """
+    delete_moderator:
+    """
+    [user_id, archive, subject_class] = id.split("+")
+    return _delete_moderator(session, user_id, archive, subject_class)
+
+
+@router.delete('/user/{user_id:str}/archive/{archive:sts}/subject_class/{subject_class}',
+               status_code=status.HTTP_204_NO_CONTENT,
+               description="Delete moderator operation in a straightforward interface."
+               )
+async def delete_moderator_2(user_id: str,
+                             archive: str,
+                             subject_class: str,
+                             session: Session = Depends(transaction)) -> Response:
+    return _delete_moderator(session, user_id, archive, subject_class)
