@@ -43,7 +43,9 @@ help:
 #-#
 #-# Command: bootstrap
 #-#   noop
-bootstrap:
+bootstrap: node_modules/
+
+node_modules/:
 	npm install
 
 #-#
@@ -87,7 +89,7 @@ sh: stop
 #-#
 #-# Command: sh
 #-#   runs a bash shell in the container to look inside of it
-build:
+build: node_modules/
 	npm run build
 
 #-#

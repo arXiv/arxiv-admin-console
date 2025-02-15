@@ -1,26 +1,25 @@
 
 services:
   admin-api:
-    image: ${TESTSITE_TAG}:latest
+    image: ${ADMIN_API_TAG}:latest
     container_name: admin-api
     ports:
       - "${ADMIN_API_PORT}:${ADMIN_API_PORT}"
     environment:
-      PORT: ${ADMIN_API_PORT}
+      CLASSIC_COOKIE_NAME: tapir_session
+      CLASSIC_DB_URI: ${CLASSIC_DB_URI}
+      CLASSIC_SESSION_HASH: ${CLASSIC_SESSION_HASH}
       JWT_SECRET: ${JWT_SECRET}
-      KC_URL_PUBLIC: ${KC_URL_PUBLIC}
-      NGINX_PORT: ${NGINX_PORT} 
+      PORT: ${ADMIN_API_PORT}
     network_mode: host
 
   admin-console:
-    image: ${ADMIN_UI_TAG}:latest
+    image: ${ADMIN_CONSOLE_TAG}:latest
     container_name: admin-console
     ports:
       - "${ADMIN_CONSOLE_PORT}:${ADMIN_CONSOLE_PORT}"
     environment:
       PORT: ${ADMIN_CONSOLE_PORT}
       JWT_SECRET: ${JWT_SECRET}
-      KC_URL_PUBLIC: ${KC_URL_PUBLIC}
-      NGINX_PORT: ${NGINX_PORT} 
     network_mode: host
 

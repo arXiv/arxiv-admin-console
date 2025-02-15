@@ -1,9 +1,9 @@
 include ../.env
 export $(shell sed 's/=.*//' ../.env)
 
-app_tag := arxiv-admin-api
+app_tag := ${ADMIN_API_TAG}
 app_name := arxiv-admin-api
-app_port := 4041
+app_port := ${ADMIN_API_PORT}
 dockerport := 8080
 
 ROOT_DIR := $(shell pwd)
