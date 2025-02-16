@@ -1,11 +1,6 @@
-FROM python:3.11-bookworm
+FROM python:3.12-bookworm
 
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8 ; exit 0
-
-RUN apt-get update -y -o APT::Get::AllowUnauthenticated=true
-RUN apt-get install -y --allow-unauthenticated --no-install-recommends build-essential gcc python3-dev default-libmysqlclient-dev pkg-config
-RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update -y -o APT::Get::AllowUnauthenticated=true && \
     apt-get install -y --allow-unauthenticated --no-install-recommends build-essential gcc python3-dev default-libmysqlclient-dev pkg-config && \
@@ -23,18 +18,16 @@ RUN $VIRTUAL_ENV/bin/python -m pip install -U pip
 
 WORKDIR /opt/arxiv/
 RUN $VIRTUAL_ENV/bin/pip install poetry
-RUN $VIRTUAL_ENV/bin/poetry config virtualenvs.create false ; exit 0
 
 COPY poetry.lock pyproject.toml main.py app-logging.conf app_logging.py hypercorn-config.toml /opt/arxiv/
 
-RUN $VIRTUAL_ENV/bin/poetry lock --no-update ; exit 0
-RUN $VIRTUAL_ENV/bin/poetry install --no-dev --no-interaction --no-ansi ; exit 0
+# RUN $VIRTUAL_ENV/bin/poetry lock --no-update ; exit 0
+RUN $VIRTUAL_ENV/bin/poetry install --no-interaction --no-ansi
 RUN $VIRTUAL_ENV/bin/pip install hypercorn
 RUN $VIRTUAL_ENV/bin/pip uninstall -y poetry
 
 COPY admin_api_routes /opt/arxiv/admin_api_routes
-
-ENV WORKERS 8
+ENV WORKERS 4
 ENV SQLALCHEMY_TRACK_MODIFICATIONS False
 EXPOSE $PORT
 CMD  $VIRTUAL_ENV/bin/hypercorn --config hypercorn-config.toml --bind 0.0.0.0:$PORT --log-config app-logging.conf --workers $WORKERS "main:create_app()"

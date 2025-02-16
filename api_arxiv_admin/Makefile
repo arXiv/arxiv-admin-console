@@ -7,34 +7,39 @@ app_port := ${ADMIN_API_PORT}
 dockerport := ${ADMIN_API_PORT}
 
 ROOT_DIR := $(shell pwd)
-ADMINAPI_CPUS := $(shell echo $${ADMINAPI_CPUS:-4})
-ADMINAPI_WORKERS := $(shell echo $${ADMINAPI_WORKERS:-8})
+ADMINAPI_CPUS := $(shell echo $${ADMINAPI_CPUS:-2})
+ADMINAPI_WORKERS := $(shell echo $${ADMINAPI_WORKERS:-4})
 ADMINAPI_DOCKER_PLATFORM := $(shell echo $${ADMINAPI_DOCKER_PLATFORM:-linux/amd64})
 
-KEYCLOAK_SERVER_URL := ${shell cat ${HOME}/.arxiv/keycloak-url-dev}
-KEYCLOAK_CLIENT_SECRET := $(shell cat ${HOME}/.arxiv/keycloak-secret-dev)
-CLASSIC_DB_URI := $(shell cat ${HOME}/.arxiv/arxiv-db-dev)
+# This should be in .env
+# CLASSIC_DB_URI := $(shell cat ${HOME}/.arxiv/arxiv-db-dev)
 
-AAA_TOKEN_REFRESH_URL := $(shell echo $${AAA_TOKEN_REFRESH_URL:-https://dev3.arxiv.org/aaa/refresh})
-AAA_LOGIN_REDIRECT_URL := $(shell echo $${AAA_LOGIN_REDIRECT_URL:-https://dev3.arxiv.org/aaa/login})
+# This should be in .env
+# AAA_TOKEN_REFRESH_URL := $(shell echo $${AAA_TOKEN_REFRESH_URL:-https://dev3.arxiv.org/aaa/refresh})
+# AAA_LOGIN_REDIRECT_URL := $(shell echo $${AAA_LOGIN_REDIRECT_URL:-https://dev3.arxiv.org/aaa/login})
 
-ADMIN_CONSOLE_URL := $(shell echo $${ADMIN_CONSOLE_URL:-https://dev3.arxiv.org/admin-console})
+# This should be in .env
+# ADMIN_CONSOLE_URL := $(shell echo $${ADMIN_CONSOLE_URL:-https://dev3.arxiv.org/admin-console})
 
-JWT_SECRET := $(shell cat ${HOME}/.arxiv/jwt-secret)
-AUTH_SESSION_COOKIE_NAME := arxiv_oidc_session
+# This should be in .env
+#JWT_SECRET := $(shell cat ${HOME}/.arxiv/jwt-secret)
+
+# This should be fetched from AAA
 CLASSIC_COOKIE_NAME := tapir_session
+AUTH_SESSION_COOKIE_NAME := arxiv_oidc_session
+
 
 APP_DOCKER_RUN := docker run --cpus ${ADMINAPI_CPUS} --rm -p ${app_port}:${dockerport} \
 -e PORT=${dockerport} -e WORKERS=${ADMINAPI_WORKERS} \
 -e ADMIN_API_ROOT_PATH=/admin-api \
--e ADMIN_APP_URL=${ADMIN_CONSOLE_URL} \
--e CLASSIC_DB_URI=${CLASSIC_DB_URI} \
--e AAA_TOKEN_REFRESH_URL=${AAA_TOKEN_REFRESH_URL} \
--e AAA_LOGIN_REDIRECT_URL=${AAA_LOGIN_REDIRECT_URL} \
--e JWT_SECRET=${JWT_SECRET} \
--e AUTH_SESSION_COOKIE_NAME=${AUTH_SESSION_COOKIE_NAME} \
--e CLASSIC_COOKIE_NAME=${CLASSIC_COOKIE_NAME} \
---name ${app_name} --security-opt="no-new-privileges=true"
+-e ADMIN_APP_URL="${ADMIN_CONSOLE_URL}" \
+-e CLASSIC_DB_URI="${CLASSIC_DB_URI}" \
+-e AAA_TOKEN_REFRESH_URL="${AAA_TOKEN_REFRESH_URL}" \
+-e AAA_LOGIN_REDIRECT_URL="${AAA_LOGIN_REDIRECT_URL}" \
+-e JWT_SECRET="${JWT_SECRET}" \
+-e AUTH_SESSION_COOKIE_NAME="${AUTH_SESSION_COOKIE_NAME}" \
+-e CLASSIC_COOKIE_NAME="${CLASSIC_COOKIE_NAME}" \
+--name "${app_name}" --security-opt="no-new-privileges=true"
 
 .PHONY: HELLO docker run stop bootstrap show-env
 
@@ -107,7 +112,7 @@ venv:
 	python3.12 -m venv venv
 
 venv/bin/poetry: /usr/bin/python3.12 /usr/lib/python3.12/ensurepip/__init__.py venv
-	. venv/bin/activate && pip install --upgrade pip && pip install poetry
+	. venv/bin/activate && pip install --upgrade pip && pip install poetry --no-ansi
 
 venv/lib/python3.12/site-packages/fastapi: venv/bin/poetry
 	. venv/bin/activate && poetry install
