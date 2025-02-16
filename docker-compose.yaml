@@ -13,6 +13,7 @@ services:
       PORT: ${ADMIN_API_PORT}
     network_mode: host
 
+#
   admin-console:
     image: ${ADMIN_CONSOLE_TAG}:latest
     container_name: admin-console

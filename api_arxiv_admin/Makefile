@@ -4,7 +4,7 @@ export $(shell sed 's/=.*//' ../.env)
 app_tag := ${ADMIN_API_TAG}
 app_name := arxiv-admin-api
 app_port := ${ADMIN_API_PORT}
-dockerport := 8080
+dockerport := ${ADMIN_API_PORT}
 
 ROOT_DIR := $(shell pwd)
 ADMINAPI_CPUS := $(shell echo $${ADMINAPI_CPUS:-4})

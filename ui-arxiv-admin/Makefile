@@ -1,8 +1,11 @@
 
-app_tag := arxiv-admin-console
-app_name := arxiv-admin-console
-app_port := 21511
-dockerport := 21511
+include ../.env
+export $(shell sed 's/=.*//' ../.env)
+
+app_tag := ${ADMIN_CONSOLE_TAG}
+app_name := admin-console-ui
+app_port := ${ADMIN_CONSOLE_PORT}
+dockerport := ${ADMIN_CONSOLE_PORT}
 
 ROOT_DIR := $(shell pwd)
 WEBAPP_CPUS := 2
