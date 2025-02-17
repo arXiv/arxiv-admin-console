@@ -6,5 +6,5 @@ COPY ./nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx.sh /
 RUN chmod +x /nginx.sh
-EXPOSE 4042
+EXPOSE 21511
 CMD /nginx.sh
