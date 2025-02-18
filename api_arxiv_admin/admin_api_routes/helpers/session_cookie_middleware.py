@@ -48,9 +48,10 @@ async def refresh_token(aaa_url: str,
                 # Extract the new token from the response
                 refreshed_tokens = refresh_response.json()
                 return refreshed_tokens
-            elif refresh_response.status_code == 401:
+            elif refresh_response.status_code in [401, 422]:
                 logger.info("post to %s: bad/expired refresh token", aaa_url)
-                return {"session": None, "classic": None, "max_age": 0, "secure": False, "samesite": ""}
+                # return {"session": None, "classic": None, "max_age": 0, "secure": False, "samesite": ""}
+                return None
             elif refresh_response.status_code >= 500 and refresh_response.status_code <= 599:
                 # This needs a retry
                 logger.warning("post to %s status %s. iter=%d", aaa_url, refresh_response.status_code,
@@ -101,15 +102,19 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
             tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
             user_id = tokens['sub']
 
-            while claims is None:
+            while claims is None and session_cookie is not None:
                 try:
                     await user_session.lock(user_id)
 
+                    # cached cookies
                     user_cookies = user_session.get_user_cookies(user_id)
-                    if user_cookies and user_cookies.get('session') != session_cookie:
+                    # cache exists
+                    if user_cookies and user_cookies.get('session') and user_cookies.get('session') != session_cookie:
+                        # I already have the valid cookie in the cache. So use it
                         refreshed_tokens = user_cookies
                         session_cookie = user_cookies['session']
-                        tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
+                        if session_cookie:
+                            tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
 
                     try:
                         claims = ArxivUserClaims.decode_jwt_payload(tokens, jwt_payload, secret)
@@ -136,7 +141,8 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
                     refreshed_tokens = await refresh_token(request.app.extra['AAA_TOKEN_REFRESH_URL'],
                                                            cookies, session_cookie, classic_cookie)
                     user_session.set_user_cookies(user_id, refreshed_tokens)
-
+                    if refreshed_tokens is None:
+                        break
                 except Exception as exc:
                     logger.debug("foo!", exc_info=exc)
                     raise
