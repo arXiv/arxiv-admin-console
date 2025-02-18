@@ -3,7 +3,7 @@ WORKDIR /app
 COPY ./public ./public
 COPY index.html .
 COPY ./src ./src
-COPY package*.json react-app.conf tsconfig.json .
+COPY package*.json react-app.conf tsconfig.json vite.config.ts .
 RUN npm install
 RUN npm run build
 FROM nginx:alpine AS production
