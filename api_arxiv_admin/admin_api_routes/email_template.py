@@ -4,10 +4,11 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session, aliased
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from enum import IntEnum
 
 from arxiv.base import logging
-from arxiv.db.models import TapirEmailTemplate, TapirUser, TapirNickname
+from arxiv.db.models import TapirEmailTemplate, TapirUser #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
 
 from . import is_admin_user, get_db, get_current_user, transaction
@@ -15,6 +16,12 @@ from . import is_admin_user, get_db, get_current_user, transaction
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/email_templates")
+
+class WorkflowStatus(IntEnum):
+    UNKNOWN = 0
+    PENDING = 1
+    ACCEPTED = 2
+    REJECTED = 3
 
 class EmailTemplateModel(BaseModel):
     class Config:
@@ -28,7 +35,7 @@ class EmailTemplateModel(BaseModel):
     sql_statement: str
     created_by: int
     updated_by: int
-    updated_date: Optional[datetime.datetime]
+    updated_date: Optional[datetime.datetime] = None
     workflow_status: str
     flag_system: bool
     creator_first_name: str
@@ -58,6 +65,20 @@ class EmailTemplateModel(BaseModel):
             TapirEmailTemplate.workflow_status,
             TapirEmailTemplate.flag_system,
         ).join(creator, TapirEmailTemplate.created_by == creator.user_id).join(updater, TapirEmailTemplate.updated_by == updater.user_id)
+
+    @field_validator("workflow_status", mode="before")
+    @classmethod
+    def convert_workflow_status(cls, value) -> str:
+        if isinstance(value, int):
+            return WorkflowStatus(value).name.lower()
+        return str(value)
+
+    @field_validator("flag_system", mode="before")
+    @classmethod
+    def convert_flag_system(cls, value) -> bool:
+        if not isinstance(value, bool):
+            return bool(value)
+        return value
 
     pass
 
