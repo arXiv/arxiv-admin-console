@@ -16,7 +16,7 @@ from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_u
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/documents")
+router = APIRouter(prefix="/documents")
 
 yymm_re = re.compile(r"^\d{4}\.\d{0,5}")
 
@@ -183,8 +183,6 @@ def get_document(paper_id:str,
                  session: Session = Depends(get_db)) -> DocumentModel:
     """Display a paper."""
     query = DocumentModel.base_select(session).filter(Document.paper_id == paper_id)
-    if not current_user.is_admin:
-        query = query.filter(Document.submitter_id == current_user.user_id)
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
