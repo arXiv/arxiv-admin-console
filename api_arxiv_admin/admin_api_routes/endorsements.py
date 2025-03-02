@@ -3,6 +3,7 @@ from datetime import timedelta, datetime, date
 from typing import Optional, List
 import re
 
+from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
 from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
@@ -11,9 +12,10 @@ from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel, validator
 from arxiv.base import logging
 from arxiv.db import transaction
-from arxiv.db.models import Endorsement
+from arxiv.db.models import Endorsement, EndorsementRequest, TapirUser
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
+from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host
+from .biz.endorsement_biz import ArxivEndorsementParams, arxiv_endorse
 from .categories import CategoryModel
 
 logger = logging.getLogger(__name__)
@@ -142,7 +144,7 @@ async def get_endorsement(id: int, db: Session = Depends(get_db)) -> Endorsement
     item = EndorsementModel.base_select(db).filter(Endorsement.endorsement_id == id).all()
     if item:
         return EndorsementModel.model_validate(item[0])
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement '{id}' not found")
 
 
 @router.put('/{id:int}')
@@ -154,7 +156,7 @@ async def update_endorsement(
 
     item = session.query(Endorsement).filter(Endorsement.endorsement_id == id).first()
     if item is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement '{id}' not found")
 
     # Verify?
     for key, value in body.items():
@@ -166,14 +168,58 @@ async def update_endorsement(
     return EndorsementModel.model_validate(item)
 
 
-@router.post('/')
+
+@router.post('/', description="Create a new endorsement by admin")
 async def create_endorsement(
         request: Request,
+        current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction)) -> EndorsementModel:
-    body = await request.json()
-
-    item = Endorsement(**body)
+    item = Endorsement(**request.json())
     session.add(item)
     session.commit()
     session.refresh(item)
     return EndorsementModel.model_validate(item)
+
+
+class EndorsementCodeModel(BaseModel):
+    endorser_id: str
+    endorsement_code: str
+    comment: str
+    knows_personally: bool
+    seen_paper: bool
+
+
+@router.post('/endorse', description="Create endorsement by a user")
+async def endorse(
+        request: Request,
+        body: EndorsementCodeModel,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(transaction)) -> EndorsementModel:
+
+    endorser = session.query(TapirUser).filter(TapirUser.user_id == body.endorser_id).one_or_none()
+    if endorser is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorser not found")
+
+    endorsement_req = session.query(EndorsementRequest).filter(EndorsementRequest.secret == body.endorsement_code).one_or_none()
+    if not endorsement_req:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid endorsement code")
+
+    params = ArxivEndorsementParams(
+        issued_when = endorsement_req.issued_when,
+        endorser_id = body.endorser_id,
+        endorsee_id = endorsement_req.endorsee_id,
+        archive = endorsement_req.archive,
+        subject_class = endorsement_req.subject_class,
+        point_value = endorsement_req.point_value,
+        type_ = "user" if not current_user.is_admin else "admin",
+        comment = body.comment,
+        knows_personally =  body.knows_personally,
+        admin_user_id = current_user.user_id if current_user.is_admin else None,
+        remote_addr = get_client_host(request),
+        remote_host = get_client_host(request),
+        tracking_cookie = endorser.tracking_cookie)
+    try:
+        arxiv_endorse(session, params)
+
+    except Exception as e:
+        pass

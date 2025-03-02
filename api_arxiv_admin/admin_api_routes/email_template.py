@@ -137,7 +137,7 @@ async def template_data(id: int, db: Session = Depends(get_db)) -> EmailTemplate
     item = EmailTemplateModel.base_select(db).filter(TapirEmailTemplate.template_id == id).all()
     if item:
         return EmailTemplateModel.model_validate(item[0])
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
 
 
 @router.put('/{id:int}')
@@ -148,7 +148,7 @@ async def update_template(request: Request,
 
     item = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if item is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
 
     # Verify?
     for key, value in body.items():

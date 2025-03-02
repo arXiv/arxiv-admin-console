@@ -158,10 +158,10 @@ async def get_endorsement_request(id: int,
                                   db: Session = Depends(get_db)) -> EndorsementRequestModel:
     item: EndorsementRequest = EndorsementRequestModel.base_select(db).filter(EndorsementRequest.request_id == id).one_or_none()
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement request with id {id} not found")
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN)
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
     return EndorsementRequestModel.model_validate(item)
 
 
@@ -175,10 +175,10 @@ async def update_endorsement_request(
 
     item = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
     if item is None:
-        raise HTTPException(status_code=404, detail="Endorsement request not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement request with id {id} not found")
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN)
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     #
     flag_open = body.gep("flag_open")
@@ -224,3 +224,17 @@ async def delete_endorsement_request(
     item.delete_instance()
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get('/code')
+async def get_endorsement_request_by_secret(
+        secret: str = Query(None, description="Find an endorsement request by code"),
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        db: Session = Depends(get_db)
+) -> EndorsementRequestModel:
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Please log in first")
+    item: EndorsementRequest = EndorsementRequestModel.base_select(db).filter(EndorsementRequest.secret == secret).one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement request with code {secret} not found")
+    return EndorsementRequestModel.model_validate(item)

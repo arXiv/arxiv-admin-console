@@ -141,7 +141,7 @@ async def get_category(
         )).one_or_none()
 
     if not category:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No such category {archive}/{subject_class}")
     return CategoryModel.model_validate(category)
 
 
@@ -154,7 +154,7 @@ async def get_category(id: str, db: Session = Depends(get_db)) -> CategoryModel:
             Category.subject_class == subject_class)).all()
     if item:
         return CategoryModel.model_validate(item[0])
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No such category {archive}/{subject_class}")
 
 
 @router.put('/{id:str}')
@@ -169,7 +169,7 @@ async def update_category(
             Category.archive == archive,
             Category.subject_class == subject_class).one_or_none())
     if item is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
 
     # Verify?
     for key, value in body.items():
@@ -205,7 +205,7 @@ async def delete_category(
             Category.archive == archive,
             Category.subject_class == subject_class)).one_or_none()
     if item is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
     item.delete_instance()
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

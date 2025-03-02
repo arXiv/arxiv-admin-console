@@ -39,15 +39,15 @@ async def is_admin_user(request: Request) -> bool:
     if user:
         if user.is_admin:
             return True
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not an admin")
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthenticated")
 
 
 async def is_any_user(request: Request) -> bool:
     user = await get_current_user(request)
     if user:
         return True
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthenticated")
 
 
 async def get_session_cookie(request: Request) -> str | None:
@@ -121,3 +121,11 @@ def datetime_to_epoch(timestamp: datetime.datetime | datetime.date | None,
     return int(time.mktime(timestamp.timetuple()))
 
 VERY_OLDE = datetime.datetime(1981, 1, 1)
+
+
+def get_client_host(request: Request) -> Optional[str]:
+    host = request.headers.get('x-real-ip')
+    if not host:
+        host = request.client.host
+    return host
+

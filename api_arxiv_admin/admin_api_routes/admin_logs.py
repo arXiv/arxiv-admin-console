@@ -123,10 +123,10 @@ async def get_admin_log(id: int,
                                   db: Session = Depends(get_db)) -> AdminLogModel:
     item: AdminLog = AdminLogModel.base_select(db).filter(AdminLog.log_id == id).one_or_none()
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin log is not found.")
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN)
+        return Response(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
     return AdminLogModel.model_validate(item)
 
 

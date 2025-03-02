@@ -1,4 +1,7 @@
 """arXiv paper display routes."""
+import json
+import urllib
+
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
 from typing import Optional, List
@@ -173,9 +176,19 @@ async def list_submissions(
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         document_id: Optional[int] = Query(None, description="Document ID"),
         submitter_id: Optional[int] = Query(None, description="Submitter ID"),
+        filter: Optional[str] = Query(None, description="MUI DataGrid Filter"),
         db: Session = Depends(get_db),
         current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[SubmissionModel]:
+    datagrid_filter = None
+    if filter:
+        try:
+            datagrid_filter = json.loads(urllib.parse.unquote(filter))
+            logger.debug(f"datagrid_filter={datagrid_filter}")
+        except Exception:
+            logger.warning(f"datagrid_filter={filter}")
+            pass
+
     query = SubmissionModel.base_select(db)
 
     if _start < 0 or _end < _start:
@@ -253,6 +266,35 @@ async def list_submissions(
                 # t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
                 t_end = end_date if end_date else datetime.now()
                 query = query.filter(Submission.submit_time.between(t_begin, t_end))
+
+        if datagrid_filter:
+            field_name = datagrid_filter.get("field")
+            if field_name == "id":
+                field_name = "submission_id"
+            op_name = datagrid_filter.get("operator")
+            value = datagrid_filter.get("value")
+            if field_name and op_name and value and hasattr(Submission, field_name):
+                field = getattr(Submission, field_name)
+                match op_name:
+                    case "contains":
+                        query = query.filter(field.contains(value))
+                    case "doesNotContain":
+                        query = query.filter(field.not_contains(value))
+                    case "startsWith":
+                        query = query.filter(field.startswith(value))
+                    case "endsWith":
+                        query = query.filter(field.endswith(value))
+                    case "equals":
+                        query = query.filter(field == value)
+                    case "doesNotEqual":
+                        query = query.filter(field != value)
+                    case "is empty":
+                        query = query.filter(field == "")
+                    case "is not empty":
+                        query = query.filter(field != "")
+                    case "isAnyOf":
+                        pass
+
 
     for column in order_columns:
         if _order == "DESC":
