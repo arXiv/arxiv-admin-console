@@ -52,7 +52,12 @@ HELLO:
 	@echo Docker command params is:
 	@echo ${APP_DOCKER_RUN}
 
-bootstrap: venv/lib/python3.12/site-packages/fastapi
+bootstrap: setup-${OS}
+
+setup-debian: venv/lib/python3.12/site-packages/fastapi
+
+setup-arch:
+
 
 #-#
 #-# Command: help
