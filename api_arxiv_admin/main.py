@@ -44,6 +44,8 @@ from admin_api_routes.frontend import router as frontend_router
 from admin_api_routes.helpers.session_cookie_middleware import SessionCookieMiddleware
 from admin_api_routes.helpers.user_session import UserSession
 
+from admin_api_routes.public_users import router as public_users_router
+
 from arxiv.base.logging import getLogger
 
 from arxiv.config import Settings
@@ -199,6 +201,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(tapir_session_router, prefix="/v1")
     app.include_router(submission_categories_router, prefix="/v1")
     app.include_router(countries_router, prefix="/v1")
+    app.include_router(public_users_router, prefix="/v1")
+
 
     @app.middleware("http")
     async def apply_response_headers(request: Request, call_next: Callable) -> Response:

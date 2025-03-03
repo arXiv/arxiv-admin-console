@@ -15,7 +15,7 @@ from arxiv.db import transaction
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic, TapirCountry,
                              t_arXiv_black_email, t_arXiv_white_email, Category)
 
-from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch
+from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, is_any_user
 
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/users")
 
@@ -160,7 +160,7 @@ def get_one_user(user_id:int, db: Session = Depends(get_db)) -> UserModel:
     user = UserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
     if user:
         return UserModel.model_validate(user)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 @router.get("/username/")
@@ -426,3 +426,4 @@ def delete_user(user_id: int, session: Session = Depends(transaction)) -> UserMo
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data
     return UserModel.model_validate(user)
+
