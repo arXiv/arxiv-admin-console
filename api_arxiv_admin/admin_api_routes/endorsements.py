@@ -198,7 +198,7 @@ async def endorse(
             if endorsement:
                 return EndorsementModel.model_validate(endorsement)
         else:
-            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=business.outcome)
+            raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=business.outcome)
 
     except Exception as e:
         logging.error(e)

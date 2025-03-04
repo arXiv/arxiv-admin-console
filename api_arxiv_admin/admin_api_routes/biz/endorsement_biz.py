@@ -273,14 +273,10 @@ class EndorsementBusiness:
         pass  # Implement the required number of papers for endorsement
 
     @property
-    def endorser_veto_state(self) -> bool:
+    def is_endorser_vetoed(self) -> bool:
         """Check if the endorseR has a veto status"""
         veto_status = self.endorseR.veto_status
-        if veto_status != "ok":
-            self.accepted = True
-            self.reason = "This endorsing user's ability to endorse has been suspended by administrative action."
-            return False
-        return True
+        return veto_status != "ok"
 
     @property
     def window(self):
@@ -308,7 +304,7 @@ class EndorsementBusiness:
         # endorsement_category = canonicalize_category(self.endorsement_archive, self.endorsement_subject_class)
 
         # Check if the endorseR has a veto status
-        if not self.endorser_veto_state:
+        if self.is_endorser_vetoed:
             return self.reject(False, "This endorsing user's ability to endorse has been suspended by administrative action.")
 
         if self.endorser_is_proxy_submitter:
@@ -318,8 +314,8 @@ class EndorsementBusiness:
         if not category:
             return self.reject(True,"We don't issue endorsements for non-definitive categories - no such category.")
 
-        elif category.definitive == 0:
-            return self.reject(True, "We don't issue endorsements for non-definitive categories")
+        elif not category.definitive:
+            return self.reject(True, "We don't issue endorsements for non-definitive categories.")
 
         endorsement_domain = self.accessor.get_domain_info(category)
         if not endorsement_domain:
@@ -328,6 +324,7 @@ class EndorsementBusiness:
         self.endorsement_domain = endorsement_domain
 
         #
+        # It appears that there is no domain that is accept-all. So this is useless.
         if endorsement_domain.endorse_all == "y":
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
             return self.accept(True, f"Everyone gets an autoendorsement for category {category}.")
@@ -336,11 +333,11 @@ class EndorsementBusiness:
         # enabled, then any moderator within that domain should be able to endorse
         # within that domain (not just their moderated category)
         if endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.endorsement_request.archive, None):
-            return self.accept(True, f"User is a moderator in {self.endorsement_request.archive}")
+            return self.accept(True, f"Endorser {self.endorseR.username} is a moderator in {self.endorsement_request.archive}.")
 
         if self.accessor.is_moderator(self.endorseR.id, self.endorsement_request.archive, self.endorsement_request.subject_class):
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
-            return self.accept(True, f"User is a moderator in {category}")
+            return self.accept(True, f"Endorser {self.endorseR.username} is a moderator in {category}.")
 
         # The code below works to limit endorsement privs to only those authors
         # that are allowed to submit to a category (doesn't seem to make any
@@ -355,7 +352,7 @@ class EndorsementBusiness:
 
         # Go through existing endorsements
         # not sure canon_FOOs are correct.
-        endorsements = self.accessor.get_endorsements(self.endorseE.user_id, self.canon_archive, self.canon_subject_class)
+        endorsements = self.accessor.get_endorsements(self.endorseE.id, self.canon_archive, self.canon_subject_class)
         valid_endorsements = [endorsement for endorsement in endorsements if endorsement.point_value and endorsement.flag_valid]
 
         has_endorsements = False
