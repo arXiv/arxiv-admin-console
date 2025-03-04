@@ -7,16 +7,12 @@ from logging import getLogger
 from fastapi import Request, HTTPException, status
 import os
 
-import jwt
-import jwcrypto
-import jwcrypto.jwt
 from sqlalchemy.orm import sessionmaker
 
 from .models import *
 from arxiv.auth.user_claims import ArxivUserClaims
 # from arxiv.auth.openid.oidc_idp import ArxivOidcIdpClient
-from arxiv.db import Session
-
+from .helpers.get_hostname import get_hostname
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -58,6 +54,18 @@ async def get_session_cookie(request: Request) -> str | None:
 async def get_current_user(request: Request) -> ArxivUserClaims | None:
     logger = getLogger(__name__)
     return request.state.user_claims
+
+
+def get_tracking_cookie(request: Request) -> str | None:
+    tracking_cookie_key = request.app.extra['TRACKING_COOKIE_NAME']
+    return request.cookies.get(tracking_cookie_key)
+
+
+def get_client_host(request: Request) -> Optional[str]:
+    host = request.headers.get('x-real-ip')
+    if not host:
+        host = request.client.host
+    return host
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False)
@@ -129,3 +137,6 @@ def get_client_host(request: Request) -> Optional[str]:
         host = request.client.host
     return host
 
+
+async def get_client_host_name(request: Request) -> Optional[str]:
+    return await get_hostname(get_client_host(request))

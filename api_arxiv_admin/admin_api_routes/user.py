@@ -147,6 +147,10 @@ class UserModel(UserBaseModel):
         ).outerjoin(Demographic, TapirUser.user_id == Demographic.user_id)
         )
 
+    @property
+    def is_admin(self) -> bool:
+        return self.flag_edit_users or self.flag_edit_system
+
     pass
 
 
@@ -374,7 +378,7 @@ async def update_user(request: Request,
 
     demographic = session.query(Demographic).filter(Demographic.user_id == user_id).first()
 
-    update_data = user_update.dict(exclude_unset=True)  # Exclude fields that were not provided
+    update_data = user_update.model_dump(exclude_unset=True)  # Exclude fields that were not provided
 
     # check new category
     if hasattr(update_data, 'archive'):
@@ -418,7 +422,7 @@ async def create_user(request: Request, session: Session = Depends(transaction))
 
 @router.delete('/{user_id:int}')
 def delete_user(user_id: int, session: Session = Depends(transaction)) -> UserModel:
-    user: TapirUser = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
+    user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     user.flag_deleted = True
@@ -426,4 +430,3 @@ def delete_user(user_id: int, session: Session = Depends(transaction)) -> UserMo
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data
     return UserModel.model_validate(user)
-

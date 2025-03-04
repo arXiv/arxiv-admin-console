@@ -1,26 +1,37 @@
 """arXiv endorsement routes."""
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, UTC
+from enum import Enum
 from typing import Optional, List
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
-from sqlalchemy.orm import Session, joinedload
+# from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
+from sqlalchemy.orm import Session #, joinedload
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel # , validator
 from arxiv.base import logging
 from arxiv.db import transaction
-from arxiv.db.models import Endorsement, EndorsementRequest, TapirUser
+from arxiv.db.models import Endorsement, EndorsementRequest #, TapirUser
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host
-from .biz.endorsement_biz import ArxivEndorsementParams, arxiv_endorse
+from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host, \
+    get_tracking_cookie, get_client_host_name
+from .biz.endorsement_biz import EndorsementBusiness
+from .biz.endorsement_io import EndorsementDBAccessor
 from .categories import CategoryModel
+from .endorsement_requsets import EndorsementRequestModel
+from .user import UserModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsements")
+
+
+class EndorsementType(str, Enum):
+    user = "user"
+    admin = "admin"
+    auto = "auto"
 
 
 class EndorsementModel(BaseModel):
@@ -33,7 +44,7 @@ class EndorsementModel(BaseModel):
     archive: str #  mapped_column(String(16), nullable=False, server_default=FetchedValue())
     subject_class: str # Mapped[str] = mapped_column(String(16), nullable=False, server_default=FetchedValue())
     flag_valid: int # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
-    type: str | None # Mapped[Optional[Literal['user', 'admin', 'auto']]] = mapped_column(Enum('user', 'admin', 'auto'))
+    type: EndorsementType | None # Mapped[Optional[Literal['user', 'admin', 'auto']]] = mapped_column(Enum('user', 'admin', 'auto'))
     point_value: int # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
     issued_when: datetime # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
     request_id: int | None # Mapped[Optional[int]] = mapped_column(ForeignKey('arXiv_endorsement_requests.request_id'), index=True)
@@ -192,34 +203,55 @@ class EndorsementCodeModel(BaseModel):
 @router.post('/endorse', description="Create endorsement by a user")
 async def endorse(
         request: Request,
-        body: EndorsementCodeModel,
+        endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> EndorsementModel:
+        session: Session = Depends(transaction),
+        tracking_cookie: str | None = Depends(get_tracking_cookie),
+        client_host: str | None = Depends(get_client_host),
+        client_host_name: str | None = Depends(get_client_host_name)
+        ) -> EndorsementModel:
 
-    endorser = session.query(TapirUser).filter(TapirUser.user_id == body.endorser_id).one_or_none()
-    if endorser is None:
+    proto_endorser = UserModel.base_select(session).filter(UserModel.id == endorsement_code.endorser_id).one_or_none()
+    if proto_endorser is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorser not found")
+    endorser = UserModel.model_validate(proto_endorser)
 
-    endorsement_req = session.query(EndorsementRequest).filter(EndorsementRequest.secret == body.endorsement_code).one_or_none()
-    if not endorsement_req:
+    proto_endorsement_req = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.secret == endorsement_code.endorsement_code).one_or_none()
+    if not proto_endorsement_req:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid endorsement code")
+    endorsement_request = EndorsementRequestModel.model_validate(proto_endorsement_req)
 
-    params = ArxivEndorsementParams(
-        issued_when = endorsement_req.issued_when,
-        endorser_id = body.endorser_id,
-        endorsee_id = endorsement_req.endorsee_id,
-        archive = endorsement_req.archive,
-        subject_class = endorsement_req.subject_class,
-        point_value = endorsement_req.point_value,
-        type_ = "user" if not current_user.is_admin else "admin",
-        comment = body.comment,
-        knows_personally =  body.knows_personally,
-        admin_user_id = current_user.user_id if current_user.is_admin else None,
-        remote_addr = get_client_host(request),
-        remote_host = get_client_host(request),
-        tracking_cookie = endorser.tracking_cookie)
+    proto_endorsee = UserModel.base_select(session).filter(UserModel.id == endorsement_request.endorsee_id).one_or_none()
+    if proto_endorsee is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses not found")
+    endorsee = UserModel.model_validate(proto_endorsee)
+
+    audit_timestamp = datetime.now(UTC)
+    accessor = EndorsementDBAccessor(session)
+    business = EndorsementBusiness(
+        accessor,
+        endorsement_code,
+        endorser,
+        endorsee,
+        endorsement_request,
+        current_user.tapir_session_id,
+
+        client_host,
+        client_host_name,
+
+        audit_timestamp,
+        tracking_cookie,
+    )
+
     try:
-        arxiv_endorse(session, params)
+        if business.can_endorse():
+            endorsement = business.endorse()
+            if endorsement:
+                return EndorsementModel.model_validate(endorsement)
+        else:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=business.outcome)
 
     except Exception as e:
+        logging.error(e)
         pass
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorsement not found")
