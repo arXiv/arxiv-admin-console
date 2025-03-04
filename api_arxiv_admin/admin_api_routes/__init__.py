@@ -3,6 +3,7 @@ import datetime
 import time
 from http.client import HTTPException
 from logging import getLogger
+from typing import Optional
 
 from fastapi import Request, HTTPException, status
 import os

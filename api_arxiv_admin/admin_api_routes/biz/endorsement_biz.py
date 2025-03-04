@@ -5,7 +5,7 @@ from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNick
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from ..endorsement_requsets import EndorsementRequestModel
-from ..endorsements import EndorsementType, EndorsementCodeModel
+from ..models.endorsement_model import EndorsementType, EndorsementCodeModel
 from ..user import UserModel
 
 

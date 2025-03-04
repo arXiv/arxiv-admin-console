@@ -10,7 +10,7 @@ from arxiv.db.models import (
 )
 
 from .. import datetime_to_epoch, VERY_OLDE
-from ..endorsements import EndorsementType
+from ..models.endorsement_model import EndorsementType
 from ..user import UserModel
 
 from .endorsement_biz import (EndorsementAccessor, EndorsementWithEndorser, PaperProps,
