@@ -73,6 +73,7 @@ LOGOUT_REDIRECT_URL = os.environ.get("LOGOUT_REDIRECT_URL", ADMIN_APP_URL)
 JWT_SECRET = os.environ.get("JWT_SECRET")
 AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "arxiv_oidc_session")
 CLASSIC_COOKIE_NAME = os.environ.get("CLASSIC_COOKIE_NAME", "tapir_session")
+TRACKING_COOKIE_NAME = os.environ.get("TRACKING_COOKIE_NAME", "tapir_tracking")
 
 SQLALCHMEY_MAPPING = {
     'pool_size': 8,
@@ -162,6 +163,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         AUTH_SESSION_COOKIE_NAME=AUTH_SESSION_COOKIE_NAME,
         CLASSIC_COOKIE_NAME=CLASSIC_COOKIE_NAME,
         AAA_TOKEN_REFRESH_URL=AAA_TOKEN_REFRESH_URL,
+        TRACKING_COOKIE_NAME=TRACKING_COOKIE_NAME,
         user_session=UserSession(),
     )
 
