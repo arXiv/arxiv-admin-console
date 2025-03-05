@@ -168,8 +168,8 @@ class EndorsementAccessor:
         pass
 
 
-# Some magic value somewhere
-arXiv_endorsement_window: [timedelta] = [timedelta(days=180), timedelta(days=0)]
+# Some magic values
+arXiv_endorsement_window: [timedelta] = [timedelta(days=365 * 5 + 1), timedelta(days=30 * 3)]
 
 class EndorsementBusiness:
     accessor: EndorsementAccessor
@@ -352,38 +352,35 @@ class EndorsementBusiness:
 
         # Go through existing endorsements
         # not sure canon_FOOs are correct.
-        endorsements = self.accessor.get_endorsements(self.endorseE.id, self.canon_archive, self.canon_subject_class)
+        endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.canon_archive, self.canon_subject_class)
         valid_endorsements = [endorsement for endorsement in endorsements if endorsement.point_value and endorsement.flag_valid]
 
-        has_endorsements = False
         reason = ""
-        endorsers = []
-        #
         # One of next two need to set has_endorsements to True
         # otherwise, this is rejected
 
-        # check 1
+        # check 1 - has_endorsements
         if len(valid_endorsements) > 0:
             total_points = sum(endorsement.point_value for endorsement in valid_endorsements)
             if total_points < self.endorsement_threshold:
-                return self.reject(False, f"User has only negative endorsements for this category ({total_points}/{self.endorsement_threshold})")
+                return self.reject(False, f"User has not reached to enough endorsements for this category ({total_points}/{self.endorsement_threshold})")
 
-            endorsers = [endorser.endorser_username for endorser in valid_endorsements]
-
-            for endorsement in valid_endorsements:
-                match endorsement.type:
-                    case "user":
-                        reason = reason + f"User has been endorsed by {', '.join(endorsers)}\n"
-                    case "auto":
-                        reason = reason + "User has been autoendorsed\n"
-                    case "admin":
-                        reason = reason + f"Admin endorsement from {', '.join(endorsers)}\n"
-                    case _:
-                        reason = reason + "Unknown endorsement type\n"
+            # endorsers = [endorser.endorser_username for endorser in valid_endorsements]
+            # for endorsement in valid_endorsements:
+            #     match endorsement.type:
+            #         case "user":
+            #             reason = reason + f"User has been endorsed by {', '.join(endorsers)}\n"
+            #         case "auto":
+            #             reason = reason + "User has been autoendorsed\n"
+            #         case "admin":
+            #             reason = reason + f"Admin endorsement from {', '.join(endorsers)}\n"
+            #         case _:
+            #             reason = reason + "Unknown endorsement type\n"
             self.total_points = total_points
-            has_endorsements = True
 
-        # check 2
+        # check 2 - auto endorsed
+
+        # First test to see if there is a reason not to autoendorse (questionable category, marked invalid, is flagged)
         questionable_category = self.accessor.get_questionable_categories(self.canon_archive, self.canon_subject_class)
 
         if questionable_category:
@@ -392,35 +389,32 @@ class EndorsementBusiness:
             ]
             if invalids:
                 return self.reject(False, "User's autoendorsement has been invalidated (strong case).")
-            has_endorsements = True
         else:
             invalidated = [endorsement for endorsement in endorsements if not endorsement.flag_valid and endorsement.type == 'auto']
             if not invalidated:
-                has_endorsements = True
-            else:
-                 season = "User's autoendorsement has been invalidated."
+                return self.reject(False, "User's autoendorsement has been invalidated.")
 
-            if not self.endorseE.is_suspect:
-                has_endorsements = True
-            else:
-                reason = "User is flagged, does not get autoendorsed."
+            if self.endorseE.is_suspect:
+                return self.reject(False, "User is flagged, does not get autoendorsed.")
 
         # Now we have done tests to see if there are reasons not to autoendorse this
         # user, do tests to find out whether we should...
         papers = self.accessor.get_papers_by_user(str(self.endorseE.id), endorsement_domain.endorsement_domain,
                                                   self.window, require_author=False)
 
-        if len(papers) > endorsement_domain.papers_to_endorse:  # Required papers for autoendorsement. If users paper count is greater than or equal to the archive limit....
-            has_endorsements = True                #  auto endorse for this archive.category
-
-        # If the endorsement domain accepts all academic email, good.
-        if endorsement_domain.endorse_email == "y":
-            if self.accessor.is_academic_email(self.endorseE.email):
-                has_endorsements = True
-
-        if not has_endorsements:
+        not_enough_papers = (len(papers) < endorsement_domain.papers_to_endorse)
+        the_domain_does_not_accept_email = endorsement_domain.endorse_email != "y"
+        not_academic_email = endorsement_domain.endorse_email == "y" and (not self.accessor.is_academic_email(self.endorseE.email))
+        if not_enough_papers and the_domain_does_not_accept_email and not_academic_email:
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
-            return self.reject(False, f"User is not allowed to submit to {category}.")
+            reason = f"User is not allowed to submit to {category}."
+            if not_enough_papers:
+                reason = reason + " Not enough papers endorsed."
+            if the_domain_does_not_accept_email:
+                reason = reason + " The domain does not accept email based endorsement."
+            if not not_academic_email:
+                reason = reason + " The submitter email is not academic institution."
+            return self.reject(False, reason)
 
         # ==============================================================================================================
         # Look at the endorsers
@@ -430,7 +424,9 @@ class EndorsementBusiness:
 
         if not papers:
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
-            return self.reject(False, f"User has no registered papers in {category} in the 3mo-5yr window.")
+            # This message does not make any sense to me.
+            #
+            return self.reject(False, f"Endorser has no registered papers in {category} in the 3mo-5yr window.")
 
         authored_papers = [paper for paper in papers if paper.flag_author]
         not_authored_papers = [paper for paper in papers if not paper.flag_author]
@@ -438,16 +434,21 @@ class EndorsementBusiness:
         N_papers = endorsement_domain.papers_to_endorse
 
         if len(authored_papers) >= N_papers:
-            return self.accept(False, f"Author of: {', '.join(map(str, authored_papers[:N_papers]))}")
+            # This also makes very little sense.
+            titles = [paper.title for paper in authored_papers[:N_papers]]
+            return self.accept(False, f"Author of: {', '.join(titles)}")
 
         if len(papers) >= N_papers:
-            return self.reject(True, f"Not Author of: {', '.join(map(str, not_authored_papers))}")
+            # This also makes very little sense.
+            titles = [paper.title for paper in not_authored_papers]
+            return self.reject(True, f"Not Author of: {', '.join(titles)}")
 
         category = pretty_category(self.canon_archive, self.canon_subject_class)
-        reason = f"User must be the registered author of {N_papers} registered papers to endorse for {category} "
-        reason = reason + f"but has only {len(authored_papers)} in the 3mo-5yr window"
+        reason = f"User must be the registered author of {N_papers} registered papers to endorse for {category}"
+        reason = reason + f" but has only {len(authored_papers)} in the 3mo-5yr window"
         if len(papers) > len(authored_papers):
             reason += f" (user is non-author of {len(papers) - len(authored_papers)})"
+        reason = reason + "."
         return self.reject(False, reason)
 
 
