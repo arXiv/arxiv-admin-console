@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, R
 # from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
 from sqlalchemy.orm import Session #, joinedload
 
-from pydantic import BaseModel # , validator
 from arxiv.base import logging
 from arxiv.db import transaction
 from arxiv.db.models import Endorsement, EndorsementRequest #, TapirUser
@@ -20,7 +19,7 @@ from .biz.endorsement_biz import EndorsementBusiness
 from .biz.endorsement_io import EndorsementDBAccessor
 from .endorsement_requsets import EndorsementRequestModel
 from .user import UserModel
-from .models.endorsement_model import EndorsementModel, EndorsementCodeModel
+from .dao.endorsement_model import EndorsementModel, EndorsementCodeModel
 
 logger = logging.getLogger(__name__)
 
