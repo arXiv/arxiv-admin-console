@@ -188,6 +188,7 @@ class EndorsementBusiness:
     # admin_user_id: Optional[str]
     tracking_cookie: str # $_tracking_cookie =$_COOKIE["M4_TRACKING_COOKIE_NAME"];
     endorsement_type: EndorsementType
+    total_points: int
 
     def __init__(self, accessor: EndorsementAccessor,
                  endorsement_code: EndorsementCodeModel,
@@ -224,6 +225,8 @@ class EndorsementBusiness:
         self.audit_timestamp = audit_timestamp
         # self.admin_user_id = admin_user_id
         self.tracking_cookie = tracking_cookie
+
+        self.total_points = 0
         pass
 
     @property
@@ -282,6 +285,13 @@ class EndorsementBusiness:
     def window(self):
         return [self.audit_timestamp - t for t in arXiv_endorsement_window]
 
+    @property
+    def archive(self):
+        return self.endorsement_request.archive
+
+    @property
+    def subject_class(self):
+        return self.endorsement_request.subject_class
 
     def reject(self, public_reason: bool, reason: str) -> bool:
         self.accepted = False
@@ -312,7 +322,9 @@ class EndorsementBusiness:
 
         category = self.accessor.get_category(self.canon_archive, self.canon_subject_class)
         if not category:
-            return self.reject(True,"We don't issue endorsements for non-definitive categories - no such category.")
+            category = self.accessor.get_category(self.archive, self.subject_class)
+            if not category:
+                return self.reject(True,"We don't issue endorsements for non-definitive categories - no such category.")
 
         elif not category.definitive:
             return self.reject(True, "We don't issue endorsements for non-definitive categories.")
@@ -326,7 +338,7 @@ class EndorsementBusiness:
         #
         # It appears that there is no domain that is accept-all. So this is useless.
         if endorsement_domain.endorse_all == "y":
-            category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
+            category = pretty_category(self.archive, self.subject_class)
             return self.accept(True, f"Everyone gets an autoendorsement for category {category}.")
 
         # ARXIVDEV-3461 - if this endorsement domain has the mod_endorse_all field
@@ -336,7 +348,7 @@ class EndorsementBusiness:
             return self.accept(True, f"Endorser {self.endorseR.username} is a moderator in {self.endorsement_request.archive}.")
 
         if self.accessor.is_moderator(self.endorseR.id, self.endorsement_request.archive, self.endorsement_request.subject_class):
-            category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
+            category = pretty_category(self.archive, self.subject_class)
             return self.accept(True, f"Endorser {self.endorseR.username} is a moderator in {category}.")
 
         # The code below works to limit endorsement privs to only those authors
@@ -352,31 +364,18 @@ class EndorsementBusiness:
 
         # Go through existing endorsements
         # not sure canon_FOOs are correct.
-        endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.canon_archive, self.canon_subject_class)
+        endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.archive, self.subject_class)
+        if self.archive != self.canon_archive and self.subject_class != self.canon_subject_class:
+            endorsements += self.accessor.get_endorsements(str(self.endorseE.id), self.canon_archive, self.canon_subject_class)
         valid_endorsements = [endorsement for endorsement in endorsements if endorsement.point_value and endorsement.flag_valid]
 
-        reason = ""
         # One of next two need to set has_endorsements to True
         # otherwise, this is rejected
 
         # check 1 - has_endorsements
-        if len(valid_endorsements) > 0:
-            total_points = sum(endorsement.point_value for endorsement in valid_endorsements)
-            if total_points < self.endorsement_threshold:
-                return self.reject(False, f"User has not reached to enough endorsements for this category ({total_points}/{self.endorsement_threshold})")
-
-            # endorsers = [endorser.endorser_username for endorser in valid_endorsements]
-            # for endorsement in valid_endorsements:
-            #     match endorsement.type:
-            #         case "user":
-            #             reason = reason + f"User has been endorsed by {', '.join(endorsers)}\n"
-            #         case "auto":
-            #             reason = reason + "User has been autoendorsed\n"
-            #         case "admin":
-            #             reason = reason + f"Admin endorsement from {', '.join(endorsers)}\n"
-            #         case _:
-            #             reason = reason + "Unknown endorsement type\n"
-            self.total_points = total_points
+        self.total_points = sum(endorsement.point_value for endorsement in valid_endorsements)
+        if self.total_points >= self.endorsement_threshold:
+            return self.accept(False, f"User has reached to enough endorsements for this category ({self.total_points}/{self.endorsement_threshold})")
 
         # check 2 - auto endorsed
 
@@ -385,7 +384,7 @@ class EndorsementBusiness:
 
         if questionable_category:
             invalids = [
-                endorsement for endorsement in endorsements if (not endorsement.flag_valid) and endorsement.type == "auto" and endorsement.archive == self.canon_archive and endorsement.subject_class == self.canon_subject_class
+                endorsement for endorsement in endorsements if (not endorsement.flag_valid) and endorsement.type == "auto" and ((endorsement.archive == self.canon_archive and endorsement.subject_class == self.canon_subject_class) or (endorsement.archive == self.archive and endorsement.subject_class == self.subject_class))
             ]
             if invalids:
                 return self.reject(False, "User's autoendorsement has been invalidated (strong case).")
@@ -424,9 +423,10 @@ class EndorsementBusiness:
 
         if not papers:
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
-            # This message does not make any sense to me.
-            #
-            return self.reject(False, f"Endorser has no registered papers in {category} in the 3mo-5yr window.")
+            # The original message did not make any sense to me.
+            # Added the first part of error message.
+            reason = f"User has reached to enough endorsements for this category ({self.total_points}/{self.endorsement_threshold}). Endorser has no registered papers in {category} in the 3mo-5yr window."
+            return self.reject(False, reason)
 
         authored_papers = [paper for paper in papers if paper.flag_author]
         not_authored_papers = [paper for paper in papers if not paper.flag_author]
