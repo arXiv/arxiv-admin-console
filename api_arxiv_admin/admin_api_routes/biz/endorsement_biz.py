@@ -402,14 +402,14 @@ class EndorsementBusiness:
                                                   self.window, require_author=False)
 
         not_enough_papers = (len(papers) < endorsement_domain.papers_to_endorse)
-        the_domain_does_not_accept_email = endorsement_domain.endorse_email != "y"
         not_academic_email = endorsement_domain.endorse_email == "y" and (not self.accessor.is_academic_email(self.endorseE.email))
-        if not_enough_papers and the_domain_does_not_accept_email and not_academic_email:
+        does_not_accept_email = endorsement_domain.endorse_email != "y"
+        if not_enough_papers and (not_academic_email or does_not_accept_email):
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
             reason = f"User is not allowed to submit to {category}."
             if not_enough_papers:
                 reason = reason + " Not enough papers endorsed."
-            if the_domain_does_not_accept_email:
+            if does_not_accept_email:
                 reason = reason + " The domain does not accept email based endorsement."
             if not not_academic_email:
                 reason = reason + " The submitter email is not academic institution."
@@ -436,12 +436,12 @@ class EndorsementBusiness:
         if len(authored_papers) >= N_papers:
             # This also makes very little sense.
             titles = [paper.title for paper in authored_papers[:N_papers]]
-            return self.accept(False, f"Author of: {', '.join(titles)}")
+            return self.accept(False, f"Endorser is author of: {', '.join(titles)}.")
 
         if len(papers) >= N_papers:
             # This also makes very little sense.
             titles = [paper.title for paper in not_authored_papers]
-            return self.reject(True, f"Not Author of: {', '.join(titles)}")
+            return self.reject(True, f"Not Author of: {', '.join(titles)}.")
 
         category = pretty_category(self.canon_archive, self.canon_subject_class)
         reason = f"User must be the registered author of {N_papers} registered papers to endorse for {category}"

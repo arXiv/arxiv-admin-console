@@ -12,6 +12,7 @@ from ..categories import CategoryModel
 
 logger = logging.getLogger(__name__)
 
+
 class EndorsementCodeModel(BaseModel):
     endorser_id: str
     endorsement_code: str
@@ -60,4 +61,10 @@ class EndorsementModel(BaseModel):
             Endorsement.issued_when,
             Endorsement.request_id,
         )
+
+class EndorsementOutcomeModel(BaseModel):
+    accepted: bool
+    reason: str
+    endorsement: Optional[EndorsementModel]
+
 

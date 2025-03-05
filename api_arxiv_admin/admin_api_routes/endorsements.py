@@ -1,25 +1,29 @@
 """arXiv endorsement routes."""
 from datetime import timedelta, datetime, date, UTC
-from typing import Optional, List
+from typing import Optional, List, Any, Coroutine
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from fastapi.responses import JSONResponse
 
 # from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
 from sqlalchemy.orm import Session #, joinedload
+from sqlalchemy.exc import IntegrityError
 
 from arxiv.base import logging
 from arxiv.db import transaction
 from arxiv.db.models import Endorsement, EndorsementRequest #, TapirUser
+from starlette.responses import JSONResponse
 
+from admin_api_routes.dao.endorsement_model import EndorsementOutcomeModel
 from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host, \
     get_tracking_cookie, get_client_host_name
 from .biz.endorsement_biz import EndorsementBusiness
 from .biz.endorsement_io import EndorsementDBAccessor
 from .endorsement_requsets import EndorsementRequestModel
 from .user import UserModel
-from .dao.endorsement_model import EndorsementModel, EndorsementCodeModel
+from .dao.endorsement_model import EndorsementModel, EndorsementCodeModel, EndorsementOutcomeModel
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +139,6 @@ async def update_endorsement(
     return EndorsementModel.model_validate(item)
 
 
-
 @router.post('/', description="Create a new endorsement by admin")
 async def create_endorsement(
         request: Request,
@@ -148,16 +151,17 @@ async def create_endorsement(
     return EndorsementModel.model_validate(item)
 
 
-@router.post('/endorse', description="Create endorsement by a user")
-async def endorse(
+async def _endorse(
         request: Request,
+        response: Response,
+        preflight: bool,
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
-        ) -> EndorsementModel:
+        ) -> EndorsementOutcomeModel:
 
     proto_endorser = UserModel.base_select(session).filter(UserModel.id == endorsement_code.endorser_id).one_or_none()
     if proto_endorser is None:
@@ -192,14 +196,84 @@ async def endorse(
     )
 
     try:
-        if business.can_endorse():
-            endorsement = business.endorse()
-            if endorsement:
-                return EndorsementModel.model_validate(endorsement)
-        else:
-            raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=business.outcome)
+        accepted = business.can_endorse()
+    except Exception as exc:
+        logging.error(exc)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Endorsement criteria is met but failed on database operation") from exc
 
-    except Exception as e:
-        logging.error(e)
-        pass
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorsement not found")
+    if not accepted:
+        response.status = status.HTTP_405_METHOD_NOT_ALLOWED
+        return EndorsementOutcomeModel(reason=business.reason, accepted=False, endorsement=None)
+
+    if preflight:
+        return EndorsementOutcomeModel(reason=business.reason, accepted=accepted, endorsement=None)
+
+    try:
+        endorsement = business.endorse()
+        if endorsement:
+            return EndorsementOutcomeModel(
+                reason=business.reason,
+                accepted=True,
+                endorsement=EndorsementModel.model_validate(endorsement))
+        else:
+            response.status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            response.detail = "Endorsement criteria is met but failed on database operation"
+            return EndorsementOutcomeModel(reason=business.reason, accepted=False, endorsement=None)
+
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="During creating endorsement, the database operation failed due to an integrity error.")
+
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+    # NOTREACHED: not reached but please leave this here for back stop
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Endorsement criteria is met but failed on database operation")
+
+
+
+@router.post(
+    '/endorse',
+    description="Create endorsement by a user",
+    responses={
+        200: {"model": EndorsementOutcomeModel, "description": "Successful endorsement"},
+        405: {"model": EndorsementOutcomeModel, "description": "Endorsement not allowed"},
+        400: {"description": "Bad request"},
+        404: {"description": "Invalid endorsement code"},
+    }
+)
+async def endorse(
+        request: Request,
+        response: Response,
+        endorsement_code: EndorsementCodeModel,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(transaction),
+        tracking_cookie: str | None = Depends(get_tracking_cookie),
+        client_host: str | None = Depends(get_client_host),
+        client_host_name: str | None = Depends(get_client_host_name)
+        ) -> EndorsementOutcomeModel:
+    return await _endorse(request, response, False, endorsement_code, current_user, session, tracking_cookie, client_host, client_host_name)
+
+
+@router.post(
+    '/endorsement-preflight',
+    description="Create endorsement by a user",
+    responses={
+        200: {"model": EndorsementOutcomeModel, "description": "Successful endorsement"},
+        400: {"description": "Bad request"},
+        404: {"description": "Invalid endorsement code"},
+    }
+)
+async def endorsement_preflight(
+        request: Request,
+        response: Response,
+        endorsement_code: EndorsementCodeModel,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(transaction),
+        tracking_cookie: str | None = Depends(get_tracking_cookie),
+        client_host: str | None = Depends(get_client_host),
+        client_host_name: str | None = Depends(get_client_host_name)
+        ) -> EndorsementOutcomeModel:
+
+    return await _endorse(request, response, True, endorsement_code, current_user, session, tracking_cookie, client_host, client_host_name)

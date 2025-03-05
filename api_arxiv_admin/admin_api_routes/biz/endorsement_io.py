@@ -303,10 +303,8 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
         except IntegrityError:
             session.rollback()
-            return None
+            raise
 
         except Exception as e:
             session.rollback()
-            return None
-
-
+            raise e
