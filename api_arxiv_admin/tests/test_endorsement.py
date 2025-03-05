@@ -824,7 +824,7 @@ class TestEndorsement(unittest.TestCase):
 
 
     def test_accept_enough_endorsements(self):
-        """Reject because not enough submissions"""
+        """Accept because enough endorsements"""
         endorser = UserModel.model_validate(USERS["cookie"])   # Ordinary monster
         endorsee = UserModel.model_validate(USERS["user600"])  # Ordinary user
 
@@ -858,7 +858,7 @@ class TestEndorsement(unittest.TestCase):
         self.assertEqual("User has reached to enough endorsements for this category (15/10)", business.reason)
 
     def test_reject_not_enough_endorsements(self):
-        """Reject because not enough submissions"""
+        """Reject because not enough endorsements"""
         endorser = UserModel.model_validate(USERS["cookie"])   # Ordinary monster
         endorsee = UserModel.model_validate(USERS["user700"])  # Ordinary user
 
