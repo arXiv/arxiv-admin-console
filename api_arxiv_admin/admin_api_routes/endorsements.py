@@ -193,13 +193,18 @@ async def _endorse(
 
     audit_timestamp = datetime.now(UTC)
     accessor = EndorsementDBAccessor(session)
+    tapir_session_id = None
+    try:
+        tapir_session_id = current_user.tapir_session_id
+    except AttributeError:
+        pass
     business = EndorsementBusiness(
         accessor,
         endorsement_code,
         endorser,
         endorsee,
         endorsement_request,
-        current_user.tapir_session_id,
+        tapir_session_id,
 
         client_host,
         client_host_name,
@@ -216,7 +221,7 @@ async def _endorse(
                             detail="Endorsement criteria is met but failed on database operation") from exc
 
     if not accepted:
-        response.status = status.HTTP_405_METHOD_NOT_ALLOWED
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
         return EndorsementOutcomeModel(reason=business.reason, accepted=False, endorsement=None)
 
     if preflight:
@@ -230,7 +235,7 @@ async def _endorse(
                 accepted=True,
                 endorsement=EndorsementModel.model_validate(endorsement))
         else:
-            response.status = status.HTTP_500_INTERNAL_SERVER_ERROR
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             response.detail = "Endorsement criteria is met but failed on database operation"
             return EndorsementOutcomeModel(reason=business.reason, accepted=False, endorsement=None)
 

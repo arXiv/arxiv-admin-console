@@ -25,7 +25,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
     def is_moderator(self, user_id: int, archive: str, subject_class: Optional[str] = None) -> bool:
         query = self.session.query(t_arXiv_moderators).filter(and_(
             t_arXiv_moderators.c.user_id == user_id,
-            t_arXiv_moderators.c.archived == archive
+            t_arXiv_moderators.c.archive == archive
         ))
 
         if subject_class and subject_class != "*":
