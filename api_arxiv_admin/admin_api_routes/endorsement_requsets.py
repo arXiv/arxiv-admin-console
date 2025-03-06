@@ -1,22 +1,24 @@
 """arXiv endorsement routes."""
 import re
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, UTC
+from sqlite3 import IntegrityError
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
 from sqlalchemy import case # select, update, func, Select, distinct, exists, and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session #, joinedload
 
 from pydantic import BaseModel
 from arxiv.base import logging
 from arxiv.db import transaction
-from arxiv.db.models import Endorsement, EndorsementRequest, Demographic, TapirUser, Category, \
-    EndorsementRequestsAudit, EndorsementRequestsAudit
+from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user
-from .categories import CategoryModel
+from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
+from .biz.endorsement_coed import endorsement_code
+# from .categories import CategoryModel
+from .dao.endorsement_request_model import EndorsementRequestRequestModel
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +29,17 @@ class EndorsementRequestModel(BaseModel):
     class Config:
         from_attributes = True
 
-    id: int
-    endorsee_id: int
-    archive: str
-    subject_class: str
-    secret: str
-    flag_valid: bool
-    flag_open: bool
-    issued_when: datetime
-    point_value: int
-    flag_suspect: bool
+    id: Optional[int] = None
+    endorsee_id: Optional[int] = None
+    archive: Optional[str] = None
+    subject_class: Optional[str] = None
+    secret: Optional[str] = None
+    flag_valid: Optional[bool] = None
+    flag_open: Optional[bool] = None
+    issued_when: Optional[datetime] = None
+    flag_suspect: Optional[bool] = None
+
+    endorsee_username: Optional[str] = None
 
     @staticmethod
     def base_select(db: Session):
@@ -55,7 +58,7 @@ class EndorsementRequestModel(BaseModel):
             EndorsementRequest.issued_when,
             EndorsementRequest.point_value,
             Demographic.flag_suspect.label("flag_suspect"),
-
+            TapirNickname.nickname.label("endorsee_username")
             # Endorsee ID (single value)
             #TapirUser.user_id.label("endorsee"),
             # Endorsement ID (single value)
@@ -63,11 +66,11 @@ class EndorsementRequestModel(BaseModel):
             # Audit ID (single value)
             #EndorsementRequestsAudit.session_id.label("audit")
         ).outerjoin(
-            Demographic,
-            Demographic.user_id == EndorsementRequest.endorsee_id,
+            Demographic, Demographic.user_id == EndorsementRequest.endorsee_id
+        ).outerjoin(
+            TapirNickname, TapirNickname.user_id == EndorsementRequest.endorsee_id,
         )
     pass
-
 
 
 @router.get('/')
@@ -161,31 +164,39 @@ async def get_endorsement_request(id: int,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement request with id {id} not found")
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
     return EndorsementRequestModel.model_validate(item)
 
 
 @router.put('/{id:int}', dependencies=[Depends(is_any_user)])
 async def update_endorsement_request(
-        request: Request,
         id: int,
+        body: EndorsementRequestModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction)) -> EndorsementRequestModel:
-    body = await request.json()
 
-    item = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
+    item: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement request with id {id} not found")
 
     if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     #
-    flag_open = body.gep("flag_open")
-    if flag_open == False and item.point_value == 0:
-        item.point_value = 10
+    if body.flag_open is not None:
+        if body.flag_open == False and item.point_value == 0:
+            item.point_value = 10
+        if body.flag_open == True and item.point_value == 10:
+            item.point_value = 0
 
-    item.flag_valid = body.gep("flag_valid", item.flag_valid)
+    if body.flag_valid is not None:
+        item.flag_valid = body.flag_valid
+
+    if current_user.is_admin:
+        if body.archive is not None:
+            item.archive = body.archive
+            item.subject_class = body.subject_class
+    session.add(item)
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
     updated = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.request_id == id).one_or_none()
@@ -194,18 +205,53 @@ async def update_endorsement_request(
 
 @router.post('/')
 async def create_endorsement_request(
-        request: Request,
+        respones: Response,
+        body: EndorsementRequestRequestModel,
+        current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction)) -> EndorsementRequestModel:
-    body = await request.json()
-    # ID is decided after added
-    if "id" in body:
-        del body["id"]
+    endorsee_id = body.endorsee_id
+    if endorsee_id is None:
+        endorsee_id = current_user.user_id
 
-    item = EndorsementRequest(**body)
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return EndorsementRequestModel.model_validate(item)
+    if endorsee_id != current_user.user_id and (not current_user.is_admin):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to create endorsement for other users.")
+
+    timestamp = datetime_to_epoch(None, datetime.now(UTC))
+    er: EndorsementRequest
+    for _ in range(10):
+        code = endorsement_code()
+        er = EndorsementRequest(
+            endorsee_id=endorsee_id,
+            archive=body.archive,
+            subject_class=body.subject_class,
+            secret=code,
+            flag_valid=1,
+            issued_when=timestamp,
+            point_value=0)
+        try:
+            session.add(er)
+            session.commit()
+            session.refresh(er)
+        except IntegrityError:
+            pass
+        except Exception as exc:
+            logger.error(f"Creating Endorsement request failed", exc_info=exc)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unknown database opesation error " + str(exc)) from exc
+        if er is not None:
+            break
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Code creation failed")
+
+    respones.status_code = status.HTTP_201_CREATED
+    erm = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.request_id == er.request_id).one_or_none()
+    if erm is None:
+        msg = f"Endorsement request {er.request_id} is created but not accessible"
+        logger.warning(msg)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=msg)
+    logger.info(f"Endorsement request {er.request_id} is created successfully.")
+    return EndorsementRequestModel.model_validate(erm)
 
 
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
@@ -213,15 +259,13 @@ async def delete_endorsement_request(
         id: int,
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(transaction)) -> Response:
-
-    item: EndorsementRequest = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
+    if not current_user.is_admin:
+        return Response(status_code=status.HTTP_403_FORBIDDEN)
+    item: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN)
-
-    item.delete_instance()
+    session.delete(item)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

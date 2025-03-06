@@ -425,7 +425,7 @@ class EndorsementBusiness:
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
             # The original message did not make any sense to me.
             # Added the first part of error message.
-            reason = f"User has reached to enough endorsements for this category ({self.total_points}/{self.endorsement_threshold}). Endorser has no registered papers in {category} in the 3mo-5yr window."
+            reason = f"User has not reached to enough endorsements for this category ({self.total_points}/{self.endorsement_threshold}). Endorser has no registered papers in {category} in the 3mo-5yr window."
             return self.reject(False, reason)
 
         authored_papers = [paper for paper in papers if paper.flag_author]

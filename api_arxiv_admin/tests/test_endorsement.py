@@ -174,6 +174,21 @@ USER_DATA = {
             "veto_status": "ok"
         },
 
+    "user900":
+        {
+            "id": "900",
+            "email": "user900@example.edu",
+            "first_name": "Kyuhyaku",
+            "last_name": "Youzer",
+            "suffix_name": "",
+            "username": "user900",
+            "archive": "econ",
+            "subject_class": "EM",
+            "original_subject_classes": "econ.EM",
+            "flag_group_econ": True,
+            "veto_status": "ok"
+        },
+
 }
 
 def get_user_data(moniker: str) -> dict:
@@ -329,7 +344,14 @@ class TestEndorsementAccessor(EndorsementAccessor):
                            dated=datetime.fromisoformat("2000-01-04T00:00:00Z")),
                 PaperProps(document_id=8005, flag_author=True, title="Paper 8005",
                            dated=datetime.fromisoformat("2000-01-05T00:00:00Z")),
+            ],
+            "900": [
+                PaperProps(document_id=9001, flag_author=True, title="Paper 9001",
+                           dated=datetime.fromisoformat("2000-01-01T00:00:00Z")),
+                PaperProps(document_id=9002, flag_author=True, title="Paper 9002",
+                           dated=datetime.fromisoformat("2000-01-02T00:00:00Z")),
             ]
+
         }.get(user_id, [])
 
 
@@ -731,8 +753,8 @@ class TestEndorsement(unittest.TestCase):
             "User has reached to enough endorsements for this category (5/10). Endorser has no registered papers in econ.EM in the 3mo-5yr window.",
             business.reason)
 
-    def test_accept_enough_papers(self):
-        """Reject because not enough endorsements"""
+    def test_accept_endorser_with_enough_papers(self):
+        """Accept because the endorser has enough paper quota"""
         endorser = UserModel.model_validate(get_user_data("user800"))  # Ordinary user
         endorsee = UserModel.model_validate(get_user_data("user700"))  # Ordinary user
 
@@ -764,6 +786,40 @@ class TestEndorsement(unittest.TestCase):
         )
         self.assertTrue(business.can_endorse())
         self.assertEqual("Endorser is author of: Paper 8001, Paper 8002, Paper 8003.", business.reason)
+
+    def test_reject_endorser_without_enough_papers(self):
+        """Accept because the endorser has enough paper quota"""
+        endorser = UserModel.model_validate(get_user_data("user900"))  # Ordinary user
+        endorsee = UserModel.model_validate(get_user_data("user700"))  # Ordinary user
+
+        code: EndorsementCodeModel = EndorsementCodeModel(
+            endorser_id=str(endorser.id),
+            endorsement_code="GOOD01",
+            comment="This is good",
+            knows_personally=True,
+            seen_paper=True,
+        )
+
+        data = endorsement_request_good_econ_data.copy()
+        data['endorsee_id'] = str(endorsee.id)
+        endorsement_request = EndorsementRequestModel.model_validate(data)
+
+        business = EndorsementBusiness(
+            self.accessor,
+            code,
+            endorser,
+            endorsee,
+            endorsement_request,
+            str(self.tapir_session_id),
+
+            self.client_host,
+            self.client_host_name,
+
+            self.audit_timestamp,
+            self.tracking_cookie,
+        )
+        self.assertFalse(business.can_endorse())
+        self.assertEqual("User must be the registered author of 3 registered papers to endorse for econ.EM but has only 2 in the 3mo-5yr window.", business.reason)
 
 
 if __name__ == '__main__':

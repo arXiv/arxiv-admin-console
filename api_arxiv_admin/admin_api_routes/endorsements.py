@@ -5,20 +5,16 @@ import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
-from fastapi.responses import JSONResponse
 
 # from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
 from sqlalchemy.orm import Session #, joinedload
 from sqlalchemy.exc import IntegrityError
 
 from arxiv.base import logging
-from arxiv.db import transaction
-from arxiv.db.models import Endorsement, EndorsementRequest #, TapirUser
-from starlette.responses import JSONResponse
+from arxiv.db.models import Endorsement, EndorsementRequest, TapirUser
 
-from admin_api_routes.dao.endorsement_model import EndorsementOutcomeModel
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host, \
-    get_tracking_cookie, get_client_host_name
+from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host, \
+    get_tracking_cookie, get_client_host_name, is_any_user
 from .biz.endorsement_biz import EndorsementBusiness
 from .biz.endorsement_io import EndorsementDBAccessor
 from .endorsement_requsets import EndorsementRequestModel
@@ -27,7 +23,7 @@ from .dao.endorsement_model import EndorsementModel, EndorsementCodeModel, Endor
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsements")
+router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/endorsements")
 
 
 @router.get('/')
@@ -40,11 +36,13 @@ async def list_endorsements(
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
+        type: Optional[List[str] | str] = Query(None, description="user, auto, admin"),
         flag_valid: Optional[bool] = Query(None),
         endorsee_id: Optional[int] = Query(None),
         endorser_id: Optional[int] = Query(None),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         request_id: Optional[int] = Query(None),
+        current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> List[EndorsementModel]:
     query = EndorsementModel.base_select(db)
@@ -52,7 +50,6 @@ async def list_endorsements(
     if _start < 0 or _end < _start:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid start or end index")
-
     t0 = datetime.now()
 
     order_columns = []
@@ -68,6 +65,9 @@ async def list_endorsements(
             except AttributeError:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid start or end index")
+
+    if not current_user.is_admin:
+        query = query.filter(Endorsement.endorsee_id == current_user.user_id)
 
     if id is not None:
         query = query.filter(Endorsement.endorsement_id.in_(id))
@@ -97,6 +97,12 @@ async def list_endorsements(
         if flag_valid is not None:
             query = query.filter(Endorsement.flag_valid == flag_valid)
 
+        if type is not None:
+            if isinstance(type, str):
+                query = query.filter(Endorsement.type == type)
+            elif isinstance(type, list):
+                query = query.filter(Endorsement.type.in_(type))
+
         for column in order_columns:
             if _order == "DESC":
                 query = query.order_by(column.desc())
@@ -111,7 +117,9 @@ async def list_endorsements(
 
 
 @router.get('/{id:int}')
-async def get_endorsement(id: int, db: Session = Depends(get_db)) -> EndorsementModel:
+async def get_endorsement(id: int,
+                          current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
+                          db: Session = Depends(get_db)) -> EndorsementModel:
     item = EndorsementModel.base_select(db).filter(Endorsement.endorsement_id == id).all()
     if item:
         return EndorsementModel.model_validate(item[0])
@@ -122,7 +130,10 @@ async def get_endorsement(id: int, db: Session = Depends(get_db)) -> Endorsement
 async def update_endorsement(
         request: Request,
         id: int,
-        session: Session = Depends(transaction)) -> EndorsementModel:
+        current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
+        session: Session = Depends(get_db)) -> EndorsementModel:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to update endorsements.")
     body = await request.json()
 
     item = session.query(Endorsement).filter(Endorsement.endorsement_id == id).first()
@@ -143,7 +154,9 @@ async def update_endorsement(
 async def create_endorsement(
         request: Request,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> EndorsementModel:
+        session: Session = Depends(get_db)) -> EndorsementModel:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to create endorsements.")
     item = Endorsement(**request.json())
     session.add(item)
     session.commit()
@@ -152,18 +165,18 @@ async def create_endorsement(
 
 
 async def _endorse(
+        session: Session,
         request: Request,
         response: Response,
         preflight: bool,
         endorsement_code: EndorsementCodeModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction),
-        tracking_cookie: str | None = Depends(get_tracking_cookie),
-        client_host: str | None = Depends(get_client_host),
-        client_host_name: str | None = Depends(get_client_host_name)
+        current_user: ArxivUserClaims,
+        tracking_cookie: str | None,
+        client_host: str | None,
+        client_host_name: str | None
         ) -> EndorsementOutcomeModel:
 
-    proto_endorser = UserModel.base_select(session).filter(UserModel.id == endorsement_code.endorser_id).one_or_none()
+    proto_endorser = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_code.endorser_id).one_or_none()
     if proto_endorser is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorser not found")
     endorser = UserModel.model_validate(proto_endorser)
@@ -173,7 +186,7 @@ async def _endorse(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid endorsement code")
     endorsement_request = EndorsementRequestModel.model_validate(proto_endorsement_req)
 
-    proto_endorsee = UserModel.base_select(session).filter(UserModel.id == endorsement_request.endorsee_id).one_or_none()
+    proto_endorsee = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_request.endorsee_id).one_or_none()
     if proto_endorsee is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses not found")
     endorsee = UserModel.model_validate(proto_endorsee)
@@ -248,12 +261,12 @@ async def endorse(
         response: Response,
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction),
+        session: Session = Depends(get_db),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
-    return await _endorse(request, response, False, endorsement_code, current_user, session, tracking_cookie, client_host, client_host_name)
+    return await _endorse(session, request, response, False, endorsement_code, current_user, tracking_cookie, client_host, client_host_name)
 
 
 @router.post(
@@ -270,10 +283,10 @@ async def endorsement_preflight(
         response: Response,
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction),
+        session: Session = Depends(get_db),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
 
-    return await _endorse(request, response, True, endorsement_code, current_user, session, tracking_cookie, client_host, client_host_name)
+    return await _endorse(session, request, response, True, endorsement_code, current_user, tracking_cookie, client_host, client_host_name)
