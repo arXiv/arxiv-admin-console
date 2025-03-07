@@ -136,9 +136,13 @@ def create_app(*args, **kwargs) -> FastAPI:
         CLASSIC_DB_URI = DB_URI,
         LATEXML_DB_URI = None
     )
-    from arxiv.db import init as arxiv_db_init
-    arxiv_db_init(settings)
-    from arxiv.db import _classic_engine
+    from .admin_api_routes.database import Database
+    database = Database(settings)
+    database.set_to_global()
+
+    # from arxiv.db import init as arxiv_db_init
+    # arxiv_db_init(settings)
+    # from arxiv.db import _classic_engine
 
     @sqlalchemy.event.listens_for(_classic_engine, "before_cursor_execute")
     def before_execute(conn: ExecutionContext, _cursor, _str_statement: str, _effective_parameters: Tuple[Any],
@@ -164,6 +168,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         CLASSIC_COOKIE_NAME=CLASSIC_COOKIE_NAME,
         AAA_TOKEN_REFRESH_URL=AAA_TOKEN_REFRESH_URL,
         TRACKING_COOKIE_NAME=TRACKING_COOKIE_NAME,
+        DATABASE=database,
         user_session=UserSession(),
     )
 

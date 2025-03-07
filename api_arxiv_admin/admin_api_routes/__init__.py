@@ -3,13 +3,11 @@ import datetime
 import time
 from http.client import HTTPException
 from logging import getLogger
-from typing import Optional
 
 from fastapi import Request, HTTPException, status
 import os
 
-from sqlalchemy.orm import sessionmaker
-
+from .database import Database
 from .models import *
 from arxiv.auth.user_claims import ArxivUserClaims
 # from arxiv.auth.openid.oidc_idp import ArxivOidcIdpClient
@@ -69,55 +67,6 @@ def get_client_host(request: Request) -> Optional[str]:
     return host
 
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False)
-def get_db():
-    """Dependency for fastapi routes"""
-    logger = getLogger(__name__)
-    from arxiv.db import _classic_engine
-    with SessionLocal(bind=_classic_engine) as session:
-        try:
-            yield session
-            if session.new or session.dirty or session.deleted:
-                session.commit()
-        except HTTPException:  # HTTP exception is a normal business
-            session.rollback()
-            raise
-        except Exception as e:
-            logger.warning(f'Commit failed, rolling back', exc_info=1)
-            session.rollback()
-            raise
-
-    # with Session() as db:
-    #     try:
-    #         yield db
-    #         if db.new or db.dirty or db.deleted:
-    #             db.commit()
-    #     except Exception as e:
-    #         logger.warning(f'Commit failed, rolling back', exc_info=1)
-    #         db.rollback()
-    #         raise
-    #     finally:
-    #         db.close()
-
-
-def transaction():
-    logger = getLogger(__name__)
-    from arxiv.db import _classic_engine
-    with SessionLocal(bind=_classic_engine) as session:
-        try:
-            yield session
-            if session.new or session.dirty or session.deleted:
-                session.commit()
-        except HTTPException:  # HTTP exception is a normal business
-            session.rollback()
-            raise
-        except Exception as e:
-            logger = getLogger(__name__)
-            logger.warning(f'Commit failed, rolling back', exc_info=1)
-            session.rollback()
-            raise
-
-
 def datetime_to_epoch(timestamp: datetime.datetime | datetime.date | None,
                       default: datetime.date | datetime.datetime,
                       hour=0, minute=0, second=0) -> int:
@@ -141,3 +90,10 @@ def get_client_host(request: Request) -> Optional[str]:
 
 async def get_client_host_name(request: Request) -> Optional[str]:
     return await get_hostname(get_client_host(request))
+
+
+def get_db():
+    db = Database.get_from_global()
+    yield from db.get_session()
+
+

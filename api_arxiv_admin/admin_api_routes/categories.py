@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from arxiv.base import logging
 from arxiv.db.models import Category
 
-from . import get_db, transaction
+from . import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,6 @@ async def list_subject_classes(
 
 @router.get('/{archive}/subject-class/{subject_class}')
 async def get_category(
-        response: Response,
         archive: str,
         subject_class: str,
         db: Session = Depends(get_db)
@@ -161,7 +160,7 @@ async def get_category(id: str, db: Session = Depends(get_db)) -> CategoryModel:
 async def update_category(
         request: Request,
         id: str,
-        session: Session = Depends(transaction)) -> CategoryModel:
+        session: Session = Depends(get_db)) -> CategoryModel:
     body = await request.json()
     [archive, subject_class] = id.split(".")
     item = session.query(Category).filter(
@@ -184,7 +183,7 @@ async def update_category(
 @router.post('/')
 async def create_category(
         request: Request,
-        session: Session = Depends(transaction)) -> CategoryModel:
+        session: Session = Depends(get_db)) -> CategoryModel:
     body = await request.json()
 
     item = Category(**body)
@@ -197,7 +196,7 @@ async def create_category(
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
         id: str,
-        session: Session = Depends(transaction)) -> Response:
+        session: Session = Depends(get_db)) -> Response:
 
     [archive, subject_class] = id.split(".")
     item = session.query(Category).filter(
@@ -206,6 +205,6 @@ async def delete_category(
             Category.subject_class == subject_class)).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
-    item.delete_instance()
+    session.delete(item)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -173,7 +173,8 @@ async def _endorse(
         current_user: ArxivUserClaims,
         tracking_cookie: str | None,
         client_host: str | None,
-        client_host_name: str | None
+        client_host_name: str | None,
+        audit_timestamp: datetime
         ) -> EndorsementOutcomeModel:
 
     proto_endorser = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_code.endorser_id).one_or_none()
@@ -191,7 +192,6 @@ async def _endorse(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses not found")
     endorsee = UserModel.model_validate(proto_endorsee)
 
-    audit_timestamp = datetime.now(UTC)
     accessor = EndorsementDBAccessor(session)
     tapir_session_id = None
     try:
@@ -271,7 +271,8 @@ async def endorse(
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
-    return await _endorse(session, request, response, False, endorsement_code, current_user, tracking_cookie, client_host, client_host_name)
+    audit_timestamp = datetime.now(UTC)
+    return await _endorse(session, request, response, False, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
 
 
 @router.post(
@@ -293,5 +294,5 @@ async def endorsement_preflight(
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
-
-    return await _endorse(session, request, response, True, endorsement_code, current_user, tracking_cookie, client_host, client_host_name)
+    audit_timestamp = datetime.now(UTC)
+    return await _endorse(session, request, response, True, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)

@@ -15,7 +15,7 @@ from arxiv.base import logging
 # from arxiv.db import transaction
 from arxiv.db.models import t_arXiv_moderators, TapirUser
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, transaction
+from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +235,7 @@ async def get_moderator(id: str, db: Session = Depends(get_db)) -> ModeratorMode
 
 @router.put('/{id:str}')
 async def update_moderator(request: Request, id: str,
-                           session: Session = Depends(transaction)) -> ModeratorModel:
+                           session: Session = Depends(get_db)) -> ModeratorModel:
     body = await request.json()
     [user_id, archive, subject_class] = id.split("+")
     item = ModeratorModel.base_query(session).filter(
@@ -259,7 +259,7 @@ async def update_moderator(request: Request, id: str,
 @router.post('/')
 async def create_moderator(
         request: Request,
-        session: Session = Depends(transaction)) -> ModeratorModel:
+        session: Session = Depends(get_db)) -> ModeratorModel:
     body = await request.json()
 
     stmt = insert(t_arXiv_moderators).values(**body)
@@ -308,7 +308,7 @@ def _delete_moderator(session: Session, user_id: str, archive: str, subject_clas
                description="""parameter ID is user_id "+" archive "+" subject_class where + is a literal character.
  This is because react-admin's delete row must have a single ID, and I chose to use + as separator."""
                )
-async def delete_moderator(id: str, session: Session = Depends(transaction)) -> Response:
+async def delete_moderator(id: str, session: Session = Depends(get_db)) -> Response:
     """
     delete_moderator:
     """
@@ -323,5 +323,5 @@ async def delete_moderator(id: str, session: Session = Depends(transaction)) -> 
 async def delete_moderator_2(user_id: str,
                              archive: str,
                              subject_class: str,
-                             session: Session = Depends(transaction)) -> Response:
+                             session: Session = Depends(get_db)) -> Response:
     return _delete_moderator(session, user_id, archive, subject_class)

@@ -11,11 +11,9 @@ from sqlalchemy.orm import Session, joinedload
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db import transaction
 from arxiv.db.models import AdminLog
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user
-from .categories import CategoryModel
+from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user, is_admin_user
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +69,7 @@ async def list_admin_logs(
         paper_id: Optional[str] = Query(None, alias="paper_id"),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
+        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
         db: Session = Depends(get_db),
 
     ) -> List[AdminLogModel]:
@@ -119,14 +118,15 @@ async def list_admin_logs(
 
 @router.get('/{id:int}')
 async def get_admin_log(id: int,
-                                  current_user: ArxivUserClaims = Depends(get_current_user),
-                                  db: Session = Depends(get_db)) -> AdminLogModel:
-    item: AdminLog = AdminLogModel.base_select(db).filter(AdminLog.log_id == id).one_or_none()
+                        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
+                        current_user: ArxivUserClaims = Depends(get_current_user),
+                        db: Session = Depends(get_db)) -> AdminLogModel:
+    item: AdminLog = AdminLogModel.base_select(db).filter(AdminLog.id == id).one_or_none()
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin log is not found.")
 
-    if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+    if current_user.user_id != item.id and (not (current_user.is_admin or current_user.is_mod)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
     return AdminLogModel.model_validate(item)
 
 
@@ -134,16 +134,13 @@ async def get_admin_log(id: int,
 async def update_admin_log(
         request: Request,
         id: int,
-        current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> AdminLogModel:
+        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
+        session: Session = Depends(get_db)) -> AdminLogModel:
     body = await request.json()
 
-    item = session.query(AdminLog).filter(AdminLog.log_id == id).one_or_none()
+    item = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="Admin log not found")
-
-    if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN)
 
     #
     flag_open = body.gep("flag_open")
@@ -153,14 +150,15 @@ async def update_admin_log(
     item.flag_valid = body.gep("flag_valid", item.flag_valid)
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    updated = AdminLogModel.base_select(session).filter(AdminLog.log_id == id).one_or_none()
+    updated = AdminLogModel.base_select(session).filter(AdminLog.id == id).one_or_none()
     return AdminLogModel.model_validate(updated)
 
 
 @router.post('/')
 async def create_admin_log(
         request: Request,
-        session: Session = Depends(transaction)) -> AdminLogModel:
+        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
+        session: Session = Depends(get_db)) -> AdminLogModel:
     body = await request.json()
     # ID is decided after added
     if "id" in body:
@@ -176,10 +174,11 @@ async def create_admin_log(
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_admin_log(
         id: int,
+        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> Response:
+        session: Session = Depends(get_db)) -> Response:
 
-    item: AdminLog = session.query(AdminLog).filter(AdminLog.log_id == id).one_or_none()
+    item: AdminLog = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="User not found")
 

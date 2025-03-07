@@ -52,7 +52,11 @@ HELLO:
 	@echo Docker command params is:
 	@echo ${APP_DOCKER_RUN}
 
-bootstrap: setup-${OS}
+#-#
+#-# Command: bootstrap
+#-#   
+bootstrap: setup-${OS} 
+
 
 setup-debian: venv/lib/python3.12/site-packages/fastapi
 
@@ -115,9 +119,11 @@ sh: stop
 
 venv:
 	python3.12 -m venv venv
+	. venv/bin/activate && pip install --upgrade pip
+
 
 venv/bin/poetry: /usr/bin/python3.12 /usr/lib/python3.12/ensurepip/__init__.py venv
-	. venv/bin/activate && pip install --upgrade pip && pip install poetry --no-ansi
+	. venv/bin/activate && pip install --upgrade pip && pip install poetry 
 
 venv/lib/python3.12/site-packages/fastapi: venv/bin/poetry
 	. venv/bin/activate && poetry install

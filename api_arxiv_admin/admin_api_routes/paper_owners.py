@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session # , joinedload
 
 from pydantic import BaseModel #, validator
 from arxiv.base import logging
-from arxiv.db import transaction
 from arxiv.db.models import PaperOwner
 
 from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user
@@ -189,7 +188,7 @@ async def list_ownerships_for_user(
 
     if not current_user.is_admin or user_id != current_user.user_id:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
-                            details="Not authorized")
+                            detail="Not authorized")
 
     query = query.filter(PaperOwner.user_id == user_id)
     if document_id is not None:
@@ -261,7 +260,7 @@ async def update_ownership(
         request: Request,
         id: str,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> OwnershipModel:
+        session: Session = Depends(get_db)) -> OwnershipModel:
 
     if not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,)
@@ -289,7 +288,7 @@ async def update_ownership(
 async def create_ownership(
         request: Request,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> OwnershipModel:
+        session: Session = Depends(get_db)) -> OwnershipModel:
     body = await request.json()
 
     item = PaperOwner(**body)

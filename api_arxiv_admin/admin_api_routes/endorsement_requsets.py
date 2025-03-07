@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session #, joinedload
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db import transaction
 from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
@@ -173,7 +172,7 @@ async def update_endorsement_request(
         id: int,
         body: EndorsementRequestModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> EndorsementRequestModel:
+        session: Session = Depends(get_db)) -> EndorsementRequestModel:
 
     item: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
     if item is None:
@@ -208,7 +207,7 @@ async def create_endorsement_request(
         respones: Response,
         body: EndorsementRequestRequestModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> EndorsementRequestModel:
+        session: Session = Depends(get_db)) -> EndorsementRequestModel:
     endorsee_id = body.endorsee_id
     if endorsee_id is None:
         endorsee_id = current_user.user_id
@@ -258,7 +257,7 @@ async def create_endorsement_request(
 async def delete_endorsement_request(
         id: int,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> Response:
+        session: Session = Depends(get_db)) -> Response:
     if not current_user.is_admin:
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     item: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()

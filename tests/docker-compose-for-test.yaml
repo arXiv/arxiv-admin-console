@@ -1,0 +1,29 @@
+
+services:
+  arxiv-test-db:
+    image: mysql:5.7.20
+    container_name: fixture-arxiv-test-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: arXiv
+      MYSQL_USER: arxiv
+      MYSQL_PASSWORD: arxiv_password
+      MYSQL_TCP_PORT: ${ARXIV_DB_PORT}
+    network_mode: host
+
+  arxiv-test-db-setup:
+    image: mysql:5.7.20
+    container_name: fixture-arxiv-test-db-setup
+    depends_on:
+      - arxiv-test-db
+    network_mode: host
+    environment:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: arXiv
+      MYSQL_USER: arxiv
+      MYSQL_PASSWORD: arxiv_password
+      MYSQL_TCP_PORT: ${ARXIV_DB_PORT}
+    volumes:
+      - ./:/tests/:ro
+    entrypoint: bash /tests/restore-arxiv-db.sh /tests/data/test-arxiv-db-data.sql.gz

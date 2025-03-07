@@ -6,16 +6,15 @@ from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
 from fastapi.responses import Response
 
-from sqlalchemy import select, case, distinct, exists, text, and_
+from sqlalchemy import select, case, distinct, exists, and_
 from sqlalchemy.orm import Session, aliased
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from arxiv.db import transaction
-from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic, TapirCountry,
-                             t_arXiv_black_email, t_arXiv_white_email, Category)
+from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
+                             t_arXiv_black_email, Category)
 
-from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, is_any_user
+from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch
 
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/users")
 
@@ -370,7 +369,7 @@ async def list_users(
 async def update_user(request: Request,
                       user_id: int,
                       user_update: UserUpdateModel,
-                      session: Session = Depends(transaction)) -> UserModel:
+                      session: Session = Depends(get_db)) -> UserModel:
     """Update user - by PUT"""
     user = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
     if user is None:
@@ -408,7 +407,7 @@ async def update_user(request: Request,
 
 
 @router.post('/')
-async def create_user(request: Request, session: Session = Depends(transaction)) -> UserModel:
+async def create_user(request: Request, session: Session = Depends(get_db)) -> UserModel:
     """Creates a new user - by POST"""
     body = await request.json()
 
@@ -421,7 +420,7 @@ async def create_user(request: Request, session: Session = Depends(transaction))
 
 
 @router.delete('/{user_id:int}')
-def delete_user(user_id: int, session: Session = Depends(transaction)) -> UserModel:
+def delete_user(user_id: int, session: Session = Depends(get_db)) -> UserModel:
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")

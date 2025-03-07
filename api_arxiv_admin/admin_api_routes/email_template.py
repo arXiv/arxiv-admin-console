@@ -11,7 +11,7 @@ from arxiv.base import logging
 from arxiv.db.models import TapirEmailTemplate, TapirUser #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
 
-from . import is_admin_user, get_db, get_current_user, transaction
+from . import is_admin_user, get_db, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ async def template_data(id: int, db: Session = Depends(get_db)) -> EmailTemplate
 @router.put('/{id:int}')
 async def update_template(request: Request,
                           id: int,
-                          session: Session = Depends(transaction)) -> EmailTemplateModel:
+                          session: Session = Depends(get_db)) -> EmailTemplateModel:
     body = await request.json()
 
     item = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
@@ -164,7 +164,7 @@ async def update_template(request: Request,
 @router.post('/')
 async def create_email_template(request: Request,
                                 user: ArxivUserClaims = Depends(get_current_user),
-                                session: Session = Depends(transaction)) -> EmailTemplateModel:
+                                session: Session = Depends(get_db)) -> EmailTemplateModel:
     body = await request.json()
 
     body['lang'] = 'en'
@@ -186,7 +186,7 @@ async def create_email_template(request: Request,
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_email_template(id: int,
                                 user: ArxivUserClaims = Depends(get_current_user),
-                                db: Session = Depends(transaction)) -> None:
+                                db: Session = Depends(get_db)) -> None:
     item = db.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail=f"Item {id} not found")

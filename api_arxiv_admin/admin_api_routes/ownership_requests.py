@@ -15,7 +15,7 @@ from arxiv.base import logging
 from arxiv.db.models import OwnershipRequest, t_arXiv_ownership_requests_papers, PaperOwner, OwnershipRequestsAudit, \
     TapirUser, Document
 
-from . import get_db, is_any_user, get_current_user, transaction, datetime_to_epoch, VERY_OLDE
+from . import get_db, is_any_user, get_current_user, datetime_to_epoch, VERY_OLDE, get_client_host
 from .documents import DocumentModel
 
 
@@ -194,7 +194,7 @@ async def create_ownership_request(
         request: Request,
         ownership_request: CreateOwnershipRequestModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> OwnershipRequestModel:
+        session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Create ownership request.
    $auth->conn->begin();
 
@@ -268,7 +268,7 @@ async def update_ownership_request(
         request: Request,
         ownership_request: UpdateOwnershipRequestModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> OwnershipRequestModel:
+        session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Update ownership request.
 
 
@@ -345,7 +345,8 @@ async def create_paper_ownership_decision(
         request_id: int,
         decision: PaperOwnershipDecisionModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(transaction)) -> OwnershipRequestModel:
+        remote_addr: str = Depends(get_client_host),
+        session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Ownership creation
 
     """
@@ -355,13 +356,13 @@ async def create_paper_ownership_decision(
     ownership_request = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == request_id).one_or_none()
 
     if ownership_request is None:
-        return HTTPException(status_code=status.HTTP_404_NOT_FOUND,)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ownership request not found")
 
     if ownership_request.workflow_status not in [ws.value for ws in WorkflowStatus]:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"workflow_status {ownership_request.workflow_status} is invalid")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"workflow_status {ownership_request.workflow_status} is invalid")
 
     if ownership_request.workflow_status != WorkflowStatus.pending:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"workflow_status {ownership_request.workflow_status} is not pending")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"workflow_status {ownership_request.workflow_status} is not pending")
 
     user_id = ownership_request.user_id
     admin_id = current_user.user_id
@@ -370,27 +371,27 @@ async def create_paper_ownership_decision(
     docs = set(current_request.document_ids)
     decided_docs = set(decision.accepted_document_ids) | set(decision.rejected_document_ids)
     if docs != decided_docs:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not all papers decided")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not all papers decided")
 
     if decision.workflow_status == WorkflowStatus.accepted and not decision.accepted_document_ids:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No accepted documents")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No accepted documents")
 
     ownership_request.workflow_status = decision.workflow_status
 
-    already_owns = select(PaperOwner.document_id).where(PaperOwner.user_id == user_id).scalar()
+    already_owns = session.query(PaperOwner.document_id).filter(PaperOwner.user_id == user_id).one_or_none()
 
     accepting = set(decision.accepted_document_ids).remove(set(already_owns))
 
-    user = select(TapirUser).where(TapirUser.user_id == user_id).one_or_none()
+    user: TapirUser = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
 
-    t_now = datetime.utcnow()
+    t_now = datetime.now(datetime.UTC)
     for doc_id in accepting:
         stmt = insert(PaperOwner).values(
             document_id = doc_id,
             user_id = user_id,
             date = t_now,
             added_by = admin_id,
-            remote_addr = user.remote_addr,
+            remote_addr = remote_addr,
             tracking_cookie = user.tracking_cookie,
             valid = True,
             flag_auto = False,

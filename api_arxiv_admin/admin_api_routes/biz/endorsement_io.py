@@ -1,12 +1,14 @@
+import logging
 from datetime import datetime, UTC
-from typing import Optional, List
-from sqlalchemy import and_, or_, between
-from sqlalchemy.orm import Session, aliased
+from typing import Optional, List, Tuple
+from sqlalchemy import and_, or_, between, text, select
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from arxiv.db.models import (
     Endorsement, EndorsementsAudit, Demographic, EndorsementRequest,
     TapirAdminAudit, t_arXiv_moderators, Category, EndorsementDomain, TapirUser,
-    QuestionableCategory, Document, t_arXiv_in_category, PaperOwner
+    QuestionableCategory, Document, t_arXiv_in_category, PaperOwner,
+    t_arXiv_black_email, t_arXiv_white_email
 )
 
 from .. import datetime_to_epoch, VERY_OLDE
@@ -15,6 +17,8 @@ from ..user import UserModel
 
 from .endorsement_biz import (EndorsementAccessor, EndorsementWithEndorser, PaperProps,
                               pretty_category, EndorsementBusiness)
+
+logger = logging.getLogger(__name__)
 
 class EndorsementDBAccessor(EndorsementAccessor):
     session: Session
@@ -66,26 +70,24 @@ class EndorsementDBAccessor(EndorsementAccessor):
         ).scalar()
 
     def get_papers_by_user(self, user_id: str, domain: str, window: [datetime | None], require_author: bool = True) -> List[PaperProps]:
-        in_category_alias = aliased(t_arXiv_in_category)
-
         query = (
             self.session.query(
                 PaperOwner.document_id,
                 PaperOwner.flag_author,
                 Document.title
             )
-            .join(in_category_alias, PaperOwner.document_id == in_category_alias.document_id)
+            .join(t_arXiv_in_category, PaperOwner.document_id == t_arXiv_in_category.c.document_id)
             .join(
                 Category,
                 and_(
-                    Category.archive == in_category_alias.archive,
-                    Category.subject_class == in_category_alias.subject_class
+                    Category.archive == t_arXiv_in_category.c.archive,
+                    Category.subject_class == t_arXiv_in_category.c.subject_class
                 )
             )
             .join(Document, PaperOwner.document_id == Document.document_id)
             .filter(
-                PaperOwner.user_id == user_id,
-                PaperOwner.valid.is_(True),
+                PaperOwner.user_id == int(user_id),
+                PaperOwner.valid == 1,
                 Category.endorsement_domain == domain
             )
         )
@@ -103,15 +105,34 @@ class EndorsementDBAccessor(EndorsementAccessor):
 
         # Convert query results into Pydantic models using model_validate
         results = [PaperProps.model_validate(row) for row in query.all()]
-
         return results
 
-    def is_academic_email(self, email: str) -> bool:
-        return False
+    def is_academic_email(self, email: str) -> Tuple[bool, str]:
+        """Checks if an email is academic based on blacklist and whitelist patterns."""
+
+        # Check blacklist first
+        blacklist_query = select(t_arXiv_black_email.c.pattern).where(
+            text(f"'{email}' LIKE pattern")  # Match the email against stored patterns
+        )
+        blacklisted_pattern = self.session.execute(blacklist_query).scalar()
+
+        if blacklisted_pattern:
+            return (False, f"{email} looks like a non-academic e-mail address. (Matches '{blacklisted_pattern}')")
+
+        # Check whitelist
+        whitelist_query = select(t_arXiv_white_email.c.pattern).where(
+            text(f"'{email}' LIKE pattern")  # Match the email against stored patterns
+        )
+        whitelisted_pattern = self.session.execute(whitelist_query).scalar()
+
+        if whitelisted_pattern:
+            return (True, f"{email} looks like an academic e-mail address. (Matches '{whitelisted_pattern}')")
+
+        return (False, f"{email} looks like a non-academic e-mail address. (Matches no patterns)")
 
     def get_user(self, id: str) -> UserModel | None:
         # @ignore-types
-        user = UserModel.base_select(self.session).filter(TapirUser.user_id == id).one_or_none()
+        user = UserModel.base_select(self.session).filter(TapirUser.user_id == int(id)).one_or_none()
         if user:
             return UserModel.model_validate(user)
         return None
@@ -205,15 +226,12 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
         # Ensure category consistency
         canon_archive, canon_subject_class = endorsement.canon_archive, endorsement.canon_subject_class
         canonical_category = pretty_category(canon_archive, canon_subject_class)
+        endorser_is_suspect = False
+        endorser_id = endorsement.endorseR.id if endorsement.endorseR.id else None
+        endorsement_type: EndorsementType
 
         try:
-            #
-            endorser_is_suspect = False
-
             # In what circumstance there is no endorser known? Is this because "auto endorse"?
-            #
-            endorser_id = endorsement.endorseR.id if endorsement.endorseR.id else None
-            endorsement_type: EndorsementType
             if endorser_id is None:
                 endorsement_type = EndorsementType.auto
                 # My guess is that, if there is an auto endorse already, no need for another auto endorse.
@@ -241,10 +259,19 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 type=endorsement_type.value,
                 point_value=endorsement.total_points,
                 issued_when=datetime_to_epoch(endorsement.audit_timestamp, datetime.now(UTC)),
-                request_id=endorsement.endorsement_request.request_id
+                request_id=endorsement.endorsement_request.id
             )
             session.add(new_endorsement)
-            session.flush()  # Ensure LAST_INSERT_ID is available
+
+            logger.info(f"Session step 1: {session.new!r}")  # Should only contain audit_entry
+            logger.info(f"Session step 1: {session.dirty!r}")  # Should contain modified objects
+
+            session.flush()
+
+            logger.info(f"Session step 2: {session.new!r}")  # Should only contain audit_entry
+            logger.info(f"Session step 2: {session.dirty!r}")  # Should contain modified objects
+
+            session.refresh(new_endorsement)
 
             # Insert audit record
             audit_entry = EndorsementsAudit(
@@ -259,11 +286,19 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
             )
             session.add(audit_entry)
 
+            logger.info(f"Session step 3: {session.new!r}")  # Should only contain audit_entry
+            logger.info(f"Session step 3: {session.dirty!r}")  # Should contain modified objects
+
+            session.flush()
+
             # Handle suspect endorsements
+            demographic: Demographic | None = session.query(Demographic).filter(Demographic.user_id == endorsement.endorseE.id).one_or_none()
+
             if endorsement.total_points and endorser_is_suspect:
-                session.query(Demographic).filter(
-                    Demographic.user_id == endorsement.endorseE.id
-                ).update({Demographic.flag_suspect: True})
+                if demographic and demographic.flag_suspect != 1:
+                    demographic.flag_suspect = 1
+                    session.add(demographic)
+                    session.flush()
 
                 self.tapir_audit_admin(
                     endorsement,
@@ -276,9 +311,10 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 )
 
             if not endorsement.total_points:
-                session.query(Demographic).filter(
-                    Demographic.user_id == endorsement.endorseE.id
-                ).update({Demographic.flag_suspect: True})
+                if demographic:
+                    demographic.flag_suspect = 1
+                    session.add(demographic)
+                    session.flush()
 
                 self.tapir_audit_admin(
                     endorsement,
@@ -291,20 +327,20 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 )
 
             # Update request if applicable
-            if endorsement.endorsement_request.request_id:
-                session.query(EndorsementRequest).filter(
-                    EndorsementRequest.request_id == endorsement.endorsement_request.id
-                ).update({
-                    EndorsementRequest.point_value: EndorsementRequest.point_value + endorsement.total_points,
-                })
+            if endorsement.endorsement_request.id and endorsement.total_points:
+                e_req: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == endorsement.endorsement_request.id).one_or_none()
+                if e_req:
+                    e_req.point_value = e_req.point_value + endorsement.total_points,
+                    session.add(e_req)
+                    session.flush()
 
             session.commit()
+            session.refresh(new_endorsement)
             return new_endorsement
 
-        except IntegrityError:
-            session.rollback()
+        except IntegrityError as exc:
+            logger.error("endorse %s", str(exc))
             raise
 
         except Exception as e:
-            session.rollback()
             raise e

@@ -48,19 +48,19 @@ def sqlalchemy_to_pydantic(
 
 # TapirEmailTemplateModel = sqlalchemy_to_pydantic(TapirEmailTemplate)
 # _CategoryModel = sqlalchemy_to_pydantic(Category)
-DocumentModel = sqlalchemy_to_pydantic(Document)
-MetadataModel = sqlalchemy_to_pydantic(Metadata)
-PaperPwModel = sqlalchemy_to_pydantic(PaperPw)
-DemographicModel = sqlalchemy_to_pydantic(Demographic)
+#DocumentModel = sqlalchemy_to_pydantic(Document)
+#MetadataModel = sqlalchemy_to_pydantic(Metadata)
+#PaperPwModel = sqlalchemy_to_pydantic(PaperPw)
+#DemographicModel = sqlalchemy_to_pydantic(Demographic)
 # EndorsementModel = sqlalchemy_to_pydantic(Endorsement)
 # EndorsementRequestModel = sqlalchemy_to_pydantic(EndorsementRequest)
-EndorsementRequestsAuditModel = sqlalchemy_to_pydantic(EndorsementRequestsAudit)
+#EndorsementRequestsAuditModel = sqlalchemy_to_pydantic(EndorsementRequestsAudit)
 
-OwnershipRequestsAuditModel = sqlalchemy_to_pydantic(OwnershipRequestsAudit)
-PaperOwnerModel = sqlalchemy_to_pydantic(PaperOwner, id_key="document_id")
+#OwnershipRequestsAuditModel = sqlalchemy_to_pydantic(OwnershipRequestsAudit)
+#PaperOwnerModel = sqlalchemy_to_pydantic(PaperOwner, id_key="document_id")
 
 # TapirUserModel = sqlalchemy_to_pydantic(TapirUser)
 
-CrossControlModel = sqlalchemy_to_pydantic(CrossControl)
+#CrossControlModel = sqlalchemy_to_pydantic(CrossControl)
 
 # TapirSessionModel = sqlalchemy_to_pydantic(TapirSession, id_key="session_id")

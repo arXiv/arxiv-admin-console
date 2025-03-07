@@ -81,7 +81,7 @@ class PaperProps(BaseModel):
     document_id: int
     flag_author: bool
     title: str
-    dated: Optional[datetime]
+    dated: Optional[datetime] = None
 
 
 class EndorsementAccessor:
@@ -113,8 +113,8 @@ class EndorsementAccessor:
         return []
 
     @abc.abstractmethod
-    def is_academic_email(self, email: str) -> bool:
-        return False
+    def is_academic_email(self, email: str) -> Tuple[bool, str]:
+        return (False, "Not implemented")
 
     @abc.abstractmethod
     def get_user(self, id: str) -> UserModel | None:
@@ -208,6 +208,7 @@ class EndorsementBusiness:
         self.endorseR = endorseR
         self.endorseE = endorseE
 
+        assert(isinstance(endorsement_request, EndorsementRequestModel))
         self.endorsement_request = endorsement_request
 
         self.canon_archive, self.canon_subject_class = canonicalize_category(endorsement_request.archive, endorsement_request.subject_class)
@@ -293,6 +294,11 @@ class EndorsementBusiness:
     def subject_class(self):
         return self.endorsement_request.subject_class
 
+    @property
+    def point_value(self) -> int:
+        return 10 if self.endorsement_code.positive else 0
+
+
     def reject(self, public_reason: bool, reason: str) -> bool:
         self.accepted = False
         self.public_reason = public_reason
@@ -312,6 +318,7 @@ class EndorsementBusiness:
 
     def can_endorse(self) -> bool:
         # endorsement_category = canonicalize_category(self.endorsement_archive, self.endorsement_subject_class)
+        self.total_points = self.point_value
 
         # Check if the endorseR has a veto status
         if self.is_endorser_vetoed:
@@ -373,7 +380,7 @@ class EndorsementBusiness:
         # otherwise, this is rejected
 
         # check 1 - has_endorsements
-        self.total_points = sum(endorsement.point_value for endorsement in valid_endorsements)
+        self.total_points += sum(endorsement.point_value for endorsement in valid_endorsements)
         if self.total_points >= self.endorsement_threshold:
             return self.accept(False, f"User has reached to enough endorsements for this category ({self.total_points}/{self.endorsement_threshold})")
 
@@ -390,10 +397,11 @@ class EndorsementBusiness:
                 return self.reject(False, "User's autoendorsement has been invalidated (strong case).")
         else:
             invalidated = [endorsement for endorsement in endorsements if not endorsement.flag_valid and endorsement.type == 'auto']
-            if not invalidated:
+            # if not invalidated: ? REVIEW THIS
+            if invalidated:
                 return self.reject(False, "User's autoendorsement has been invalidated.")
 
-            if self.endorseE.is_suspect:
+            if self.endorseE.flag_suspect:
                 return self.reject(False, "User is flagged, does not get autoendorsed.")
 
         # Now we have done tests to see if there are reasons not to autoendorse this
@@ -402,9 +410,9 @@ class EndorsementBusiness:
                                                   self.window, require_author=False)
 
         not_enough_papers = (len(papers) < endorsement_domain.papers_to_endorse)
-        not_academic_email = endorsement_domain.endorse_email == "y" and (not self.accessor.is_academic_email(self.endorseE.email))
+        not_academic_email = endorsement_domain.endorse_email == "y" and (not self.accessor.is_academic_email(self.endorseE.email)[0])
         does_not_accept_email = endorsement_domain.endorse_email != "y"
-        if not_enough_papers and (not_academic_email or does_not_accept_email):
+        if not_enough_papers and not_academic_email and does_not_accept_email:
             category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
             reason = f"User is not allowed to submit to {category}."
             if not_enough_papers:
