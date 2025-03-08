@@ -46,7 +46,7 @@ def sqlalchemy_to_pydantic(
     setattr(pydantic_model, 'id', property(id_property))
     return pydantic_model
 
-# TapirEmailTemplateModel = sqlalchemy_to_pydantic(TapirEmailTemplate)
+TapirEmailTemplateModel = sqlalchemy_to_pydantic(TapirEmailTemplate)
 # _CategoryModel = sqlalchemy_to_pydantic(Category)
 #DocumentModel = sqlalchemy_to_pydantic(Document)
 #MetadataModel = sqlalchemy_to_pydantic(Metadata)
@@ -56,11 +56,11 @@ def sqlalchemy_to_pydantic(
 # EndorsementRequestModel = sqlalchemy_to_pydantic(EndorsementRequest)
 #EndorsementRequestsAuditModel = sqlalchemy_to_pydantic(EndorsementRequestsAudit)
 
-#OwnershipRequestsAuditModel = sqlalchemy_to_pydantic(OwnershipRequestsAudit)
+OwnershipRequestsAuditModel = sqlalchemy_to_pydantic(OwnershipRequestsAudit)
 #PaperOwnerModel = sqlalchemy_to_pydantic(PaperOwner, id_key="document_id")
 
 # TapirUserModel = sqlalchemy_to_pydantic(TapirUser)
 
-#CrossControlModel = sqlalchemy_to_pydantic(CrossControl)
+CrossControlModel = sqlalchemy_to_pydantic(CrossControl)
 
 # TapirSessionModel = sqlalchemy_to_pydantic(TapirSession, id_key="session_id")

@@ -136,7 +136,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         CLASSIC_DB_URI = DB_URI,
         LATEXML_DB_URI = None
     )
-    from .admin_api_routes.database import Database
+    from admin_api_routes.database import Database
     database = Database(settings)
     database.set_to_global()
 
@@ -144,12 +144,12 @@ def create_app(*args, **kwargs) -> FastAPI:
     # arxiv_db_init(settings)
     # from arxiv.db import _classic_engine
 
-    @sqlalchemy.event.listens_for(_classic_engine, "before_cursor_execute")
+    @sqlalchemy.event.listens_for(database.engine, "before_cursor_execute")
     def before_execute(conn: ExecutionContext, _cursor, _str_statement: str, _effective_parameters: Tuple[Any],
                        _context, _context_executemany: bool):
         conn.info["query_start_time"] = time.time()
 
-    @sqlalchemy.event.listens_for(_classic_engine, "after_cursor_execute")
+    @sqlalchemy.event.listens_for(database.engine, "after_cursor_execute")
     def after_execute(conn: ExecutionContext, _cursor, str_statement: str, effective_parameters: Tuple[Any],
                       _context, _context_executemany: bool):
         total_time = time.time() - conn.info["query_start_time"]
@@ -159,7 +159,7 @@ def create_app(*args, **kwargs) -> FastAPI:
 
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
-        arxiv_db_engine=_classic_engine,
+        arxiv_db_engine=database.engine,
         arxiv_settings=settings,
         JWT_SECRET=jwt_secret,
         LOGIN_REDIRECT_URL=AAA_LOGIN_REDIRECT_URL,

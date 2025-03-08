@@ -113,12 +113,45 @@ class TestReadOnlys(unittest.TestCase):
                 cat = accessor.get_category(archive, subject_class)
                 self.assertNotEqual(None, cat)
                 domain = accessor.get_domain_info(cat)
-                self.assertEqual(expect, domain)
+                self.assertNotEqual(None, domain)
+                self.assertEqual(archive, domain.endorsement_domain)
 
-    def test_get_endorsements(self, user_id: str, canon_archive: str, canon_subject_class: str) -> List[EndorsementWithEndorser]| None:
+    def test_get_endorsements(self):
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
+            user_ids = session.query(TapirUser.user_id).all()
+            count = 0
+            for user_id in user_ids:
+                for archive, subject_class in [("cs", "AI"), ("cs", "CL")]:
+                    result = accessor.get_endorsements(user_id[0], archive, subject_class)
+                    if result is not None:
+                        count = count + len(result)
+            self.assertEqual(2, count)
 
+
+    def test_get_questionable_categories(self):
+        with DatabaseSession() as session:
+            accessor = EndorsementDBAccessor(session)
+            count = 0
+            for archive, subject_class in [("cs", "AI"), ("cs", "CL"), ("math", "GM"), ("physics", "gen-ph")]:
+                result = accessor.get_questionable_categories(archive, subject_class)
+                if result is not None:
+                    count = count + len(result)
+            self.assertEqual(2, count)
+
+
+    def test_get_papers_by_user(self):
+        with DatabaseSession() as session:
+            accessor = EndorsementDBAccessor(session)
+            user_ids = session.query(TapirUser.user_id).all()
+            count = 0
+            window = [None, None]
+            for user_id in user_ids:
+                result = accessor.get_papers_by_user(user_id[0], "cs", window, require_author = True)
+                if result is not None:
+                    count = count + len(result)
+            self.assertEqual(143, count)
+            pass
 
 
 class TestCreateEndorsement(unittest.TestCase):
