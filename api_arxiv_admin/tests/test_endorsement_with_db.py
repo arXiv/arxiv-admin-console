@@ -1,43 +1,37 @@
 import subprocess
 import time
 import unittest
-from datetime import datetime, UTC
+from datetime import datetime
+from typing import List
 
 from admin_api_routes.database import DatabaseSession
 from admin_api_routes.endorsement_requsets import EndorsementRequestModel
-from admin_api_routes.user import UserModel
 
 from arxiv.db.models import EndorsementRequest, \
     TapirUser  # Category, EndorsementDomain, QuestionableCategory, Endorsement,
 
-from admin_api_routes.biz.endorsement_biz import EndorsementBusiness
+from admin_api_routes.biz.endorsement_biz import EndorsementBusiness, EndorsementWithEndorser
 from admin_api_routes.biz.endorsement_io import EndorsementDBAccessor
 from admin_api_routes.endorsements import EndorsementCodeModel
 
+HOST = "127.0.0.1"
+DB_PORT = 21601
+DB_USER = "arxiv"
+DB_PASSWORD = "arxiv_password"
+MAX_RETRIES = 10
+RETRY_DELAY = 2
+DOCKER_COMPOSE_ARGS = ["docker", "compose", "-f", "../tests/docker-compose-for-test.yaml",
+                       "--env-file=../tests/test-env"]
 
 class TestReadOnlys(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        self.audit_timestamp = datetime.fromisoformat("2025-01-01T00:00:00Z")  # Using now makes it
-        self.client_host = "127.0.0.1"
-        self.client_host_name = "noplace-like@home.edu"
-        self.tracking_cookie = "I-ate-them-all"
-        self.tapir_session_id = 100
-        self.docker_compose_args = ["docker", "compose", "-f", "../tests/docker-compose-for-test.yaml", "--env-file=../tests/test-env"]
-
         # docker compose -f ./docker-compose-for-test.yaml --env-file=./test-env  up
-        subprocess.run(self.docker_compose_args + ["up", "-d"])
-        host = "127.0.0.1"
-        db_port = 21601
-        user = "arxiv"
-        password = "arxiv_password"
-        database = "arXiv"
-        max_retries = 10
-        retry_delay = 2
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"])
 
         from tests.restore_mysql import wait_for_mysql
-        wait_for_mysql(host, db_port, user, password, database, max_retries, retry_delay)
-        db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(user, password, host, db_port, database)
+        wait_for_mysql(HOST, DB_PORT, DB_USER, DB_PASSWORD, "arXiv", MAX_RETRIES, RETRY_DELAY)
+        db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(DB_USER, DB_PASSWORD, HOST, DB_PORT, "arXiv")
         from arxiv.config import Settings
         settings = Settings(
             CLASSIC_DB_URI = db_uri,
@@ -61,13 +55,12 @@ class TestReadOnlys(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """This method runs once after all test methods in the class."""
-        subprocess.run(self.docker_compose_args + ["down"])
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"])
 
     def test_see_papers(self):
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
-            domain = "cs"
             window = [None, None]
             count = 0
             for domain in ["cs"]:
@@ -99,12 +92,10 @@ class TestReadOnlys(unittest.TestCase):
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
-            domain = "cs"
-            window = [None, None]
             count = 0
-            for domain in ["cs"]:
+            for archive in ["cs"]:
                 for user_id in user_ids:
-                    if accessor.is_moderator(user_id[0], archive="cs"):
+                    if accessor.is_moderator(user_id[0], archive=archive):
                         count += 1
             self.assertEqual(2, count)
 
@@ -124,8 +115,9 @@ class TestReadOnlys(unittest.TestCase):
                 domain = accessor.get_domain_info(cat)
                 self.assertEqual(expect, domain)
 
-    def get_endorsements(self, user_id: str, canon_archive: str, canon_subject_class: str) -> List[EndorsementWithEndorser]| None:
-
+    def test_get_endorsements(self, user_id: str, canon_archive: str, canon_subject_class: str) -> List[EndorsementWithEndorser]| None:
+        with DatabaseSession() as session:
+            accessor = EndorsementDBAccessor(session)
 
 
 
@@ -133,25 +125,14 @@ class TestCreateEndorsement(unittest.TestCase):
 
     def setUp(self):
         self.audit_timestamp = datetime.fromisoformat("2025-01-01T00:00:00Z")  # Using now makes it
-        self.client_host = "127.0.0.1"
-        self.client_host_name = "noplace-like@home.edu"
-        self.tracking_cookie = "I-ate-them-all"
-        self.tapir_session_id = 100
-        self.docker_compose_args = ["docker", "compose", "-f", "../tests/docker-compose-for-test.yaml", "--env-file=../tests/test-env"]
 
         # docker compose -f ./docker-compose-for-test.yaml --env-file=./test-env  up
-        subprocess.run(self.docker_compose_args + ["up", "-d"])
-        host = "127.0.0.1"
-        db_port = 21601
-        user = "arxiv"
-        password = "arxiv_password"
-        database = "arXiv"
-        max_retries = 10
-        retry_delay = 2
+        self.tapir_session_id = 100
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"])
 
         from tests.restore_mysql import wait_for_mysql
-        wait_for_mysql(host, db_port, user, password, database, max_retries, retry_delay)
-        db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(user, password, host, db_port, database)
+        wait_for_mysql(HOST, DB_PORT, DB_USER, DB_PASSWORD, "arXiv", MAX_RETRIES, RETRY_DELAY)
+        db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(DB_USER, DB_PASSWORD, HOST, DB_PORT, "arXiv")
         from arxiv.config import Settings
         settings = Settings(
             CLASSIC_DB_URI = db_uri,
@@ -174,46 +155,12 @@ class TestCreateEndorsement(unittest.TestCase):
 
 
     def tearDown(self):
-        subprocess.run(self.docker_compose_args + ["down"])
-
-
-    def test_see_papers(self):
-        with DatabaseSession() as session:
-            accessor = EndorsementDBAccessor(session)
-            user_ids = session.query(TapirUser.user_id).all()
-            domain = "cs"
-            window = [None, None]
-            count = 0
-            for domain in ["cs"]:
-                for user_id in user_ids:
-                    papers = accessor.get_papers_by_user(user_id[0], domain, window, require_author=False)
-                    if len(papers) >= 3:
-                        print("Found {}".format(user_id[0]))
-                    count = count + len(papers)
-            self.assertTrue(count)
-
-
-    def test_academic_email(self):
-        with DatabaseSession() as session:
-            accessor = EndorsementDBAccessor(session)
-            answer, reason = accessor.is_academic_email("")
-            self.assertFalse(answer)
-            answer, reason = accessor.is_academic_email("%A%")
-            self.assertFalse(answer)
-            answer, reason = accessor.is_academic_email("me@my.biz")
-            self.assertFalse(answer)
-            answer, reason = accessor.is_academic_email("a@amuz.gda.pl")
-            self.assertTrue(answer)
-            answer, reason = accessor.is_academic_email("foobar@cornell.edu")
-            self.assertTrue(answer)
-            answer, reason = accessor.is_academic_email("foobar@arxiv.org")
-            # We may want to reconsider this...
-            self.assertFalse(answer)
-
-
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"])
 
     def test_create_endorsement(self):
-
+        client_host = "127.0.0.1"
+        client_host_name = "no-place-like@home.biz"
+        tracking_cookie = "I-ate-them-all"
         # Unfortunatnely, this seems to load the default
 
         endorsement_code = "R8T3GZ"
@@ -243,11 +190,11 @@ class TestCreateEndorsement(unittest.TestCase):
                 erm,
                 str(self.tapir_session_id),
 
-                self.client_host,
-                self.client_host_name,
+                client_host,
+                client_host_name,
 
                 self.audit_timestamp,
-                self.tracking_cookie,
+                tracking_cookie,
             )
             self.assertTrue(business.can_endorse())
             endorsement = business.endorse()
