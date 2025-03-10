@@ -258,8 +258,6 @@ class EndorsementBusiness:
         self.outcome.accepted = False
 
         self.total_points = 0
-
-
         pass
 
     @property

@@ -257,26 +257,23 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 subject_class=endorsement.canon_subject_class,
                 flag_valid=True,
                 type=endorsement_type.value,
-                point_value=endorsement.total_points,
+                point_value=endorsement.point_value if endorsement.endorsement_code.positive else 0,
                 issued_when=datetime_to_epoch(endorsement.audit_timestamp, datetime.now(UTC)),
                 request_id=endorsement.endorsement_request.id
             )
             session.add(new_endorsement)
-
-            logger.info(f"Session step 1: {session.new!r}")  # Should only contain audit_entry
-            logger.info(f"Session step 1: {session.dirty!r}")  # Should contain modified objects
-
             session.flush()
-
-            logger.info(f"Session step 2: {session.new!r}")  # Should only contain audit_entry
-            logger.info(f"Session step 2: {session.dirty!r}")  # Should contain modified objects
-
             session.refresh(new_endorsement)
 
+            # Now increase the total by this endorsement
+            if endorsement.endorsement_code.positive:
+                endorsement.total_points = endorsement.total_points + endorsement.point_value
+
             # Insert audit record
+            session_id = int(endorsement.session_id) if endorsement.session_id else 0
             audit_entry = EndorsementsAudit(
                 endorsement_id=new_endorsement.endorsement_id,
-                session_id=int(endorsement.session_id),
+                session_id=session_id,
                 remote_addr=endorsement.remote_host_ip,
                 remote_host=endorsement.remote_host_name,
                 tracking_cookie=endorsement.tracking_cookie,
@@ -285,20 +282,17 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 comment=endorsement.endorsement_code.comment
             )
             session.add(audit_entry)
-
-            logger.info(f"Session step 3: {session.new!r}")  # Should only contain audit_entry
-            logger.info(f"Session step 3: {session.dirty!r}")  # Should contain modified objects
-
             session.flush()
 
             # Handle suspect endorsements
             demographic: Demographic | None = session.query(Demographic).filter(Demographic.user_id == endorsement.endorseE.id).one_or_none()
 
-            if endorsement.total_points and endorser_is_suspect:
+            if endorsement.endorsement_code.positive and endorser_is_suspect:
                 if demographic and demographic.flag_suspect != 1:
                     demographic.flag_suspect = 1
                     session.add(demographic)
                     session.flush()
+                    session.refresh(demographic)
 
                 self.tapir_audit_admin(
                     endorsement,
@@ -310,11 +304,12 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     session_id=int(endorsement.session_id),
                 )
 
-            if not endorsement.total_points:
-                if demographic:
+            if not endorsement.endorsement_code.positive:
+                if demographic and demographic.flag_suspect != 1:
                     demographic.flag_suspect = 1
                     session.add(demographic)
                     session.flush()
+                    session.refresh(demographic)
 
                 self.tapir_audit_admin(
                     endorsement,
@@ -329,8 +324,8 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
             # Update request if applicable
             if endorsement.endorsement_request.id and endorsement.point_value:
                 e_req: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == endorsement.endorsement_request.id).one_or_none()
-                if e_req:
-                    e_req.point_value = e_req.point_value + endorsement.point_value,
+                if e_req and e_req.point_value != endorsement.total_points:
+                    e_req.point_value = endorsement.total_points
                     session.add(e_req)
                     session.flush()
 
