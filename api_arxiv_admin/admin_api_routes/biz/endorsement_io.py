@@ -365,11 +365,13 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
         try:
             endorsement = EndorsementModel.base_select(session).filter(
-                Endorsement.endorser_id.is_(endorser_id),
+                Endorsement.endorser_id == endorser_id,
                 Endorsement.endorsee_id == biz.endorseE.id,
                 Endorsement.archive == biz.canon_archive,
                 Endorsement.subject_class == biz.canon_subject_class
             ).one_or_none()
+            if endorsement is None:
+                return None
             return EndorsementModel.model_validate(endorsement)
 
         except Exception as exc:

@@ -372,8 +372,7 @@ class EndorsementBusiness:
     def _find_existing_endorsement(self):
         existing_endorsement = self.accessor.get_existing_endorsement(self)
         self.outcome.endorsement = existing_endorsement
-        if existing_endorsement:
-            self.submitted = True
+        self.submitted = existing_endorsement is not None
 
     def _find_endorsements(self):
         self.endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.archive, self.subject_class)
@@ -467,7 +466,7 @@ class EndorsementBusiness:
             if invalidated:
                 return self.reject("User's autoendorsement has been invalidated.", submit_acceptable=True)
 
-            if self.endorseE.flag_suspect:
+            if endorsee.flag_suspect:
                 return self.reject("User is flagged, does not get autoendorsed.", submit_acceptable=True)
 
         # Now we have done tests to see if there are reasons not to autoendorse this
@@ -503,7 +502,7 @@ class EndorsementBusiness:
             # The original message did not make any sense to me.
             # Added the first part of error message.
             reason = f"Endorser does not have enough registered papers in {category} in the 3mo-5yr window."
-            return self.reject(reason, request_acceptable=True)
+            return self.reject(reason, request_acceptable=True, public_reason=True)
 
         authored_papers = [paper for paper in papers if paper.flag_author]
         not_authored_papers = [paper for paper in papers if not paper.flag_author]

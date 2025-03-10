@@ -174,7 +174,8 @@ async def _endorse(
         tracking_cookie: str | None,
         client_host: str | None,
         client_host_name: str | None,
-        audit_timestamp: datetime
+        audit_timestamp: datetime,
+        show_email: bool = False
         ) -> EndorsementOutcomeModel:
     preflight = endorsement_code.preflight
     proto_endorser = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_code.endorser_id).one_or_none()
@@ -213,6 +214,9 @@ async def _endorse(
         tracking_cookie,
     )
 
+    if not show_email:
+        business.endorseE.email = ""
+
     try:
         acceptable = business.can_submit()
     except Exception as exc:
@@ -220,7 +224,7 @@ async def _endorse(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Endorsement criteria is met but failed on database operation") from exc
 
-    if not business.outcome.public_reason:
+    if not business.public_reason:
         logging.info("reason %s is emptied as it is not public", business.outcome.reason)
         business.outcome.reason = ""
 
@@ -273,28 +277,4 @@ async def endorse(
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
     audit_timestamp = datetime.now(UTC)
-    return await _endorse(session, request, response, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
-
-
-@router.post(
-    '/endorsement-preflight',
-    description="Create endorsement by a user",
-    responses={
-        200: {"model": EndorsementOutcomeModel, "description": "Successful endorsement"},
-        400: {"description": "Bad request"},
-        404: {"description": "Invalid endorsement code"},
-    }
-)
-async def endorsement_preflight(
-        request: Request,
-        response: Response,
-        endorsement_code: EndorsementCodeModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(get_db),
-        tracking_cookie: str | None = Depends(get_tracking_cookie),
-        client_host: str | None = Depends(get_client_host),
-        client_host_name: str | None = Depends(get_client_host_name)
-        ) -> EndorsementOutcomeModel:
-    audit_timestamp = datetime.now(UTC)
-    endorsement_code.preflight = True
-    return await _endorse(session, request, response, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
+    return await _endorse(session, request, response, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp, show_email=current_user.is_admin)

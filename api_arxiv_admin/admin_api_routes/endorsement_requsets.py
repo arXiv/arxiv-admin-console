@@ -15,7 +15,7 @@ from arxiv.base import logging
 from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
-from .biz.endorsement_coed import endorsement_code
+from .biz.endorsement_code import endorsement_code
 # from .categories import CategoryModel
 from .dao.endorsement_request_model import EndorsementRequestRequestModel
 
