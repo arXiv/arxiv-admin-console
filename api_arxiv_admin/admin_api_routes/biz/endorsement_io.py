@@ -12,7 +12,7 @@ from arxiv.db.models import (
 )
 
 from .. import datetime_to_epoch, VERY_OLDE
-from ..dao.endorsement_model import EndorsementType
+from ..dao.endorsement_model import EndorsementType, EndorsementModel
 from ..user import UserModel
 
 from .endorsement_biz import (EndorsementAccessor, EndorsementWithEndorser, PaperProps,
@@ -212,7 +212,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
         self.session.add(audit_entry)
 
 
-    def arxiv_endorse(self, endorsement: EndorsementBusiness) -> Endorsement | None:
+    def arxiv_endorse(self, endorsement: EndorsementBusiness) -> EndorsementModel | None:
         """
         Registers an endorsement for an arXiv user.
 
@@ -327,20 +327,51 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 )
 
             # Update request if applicable
-            if endorsement.endorsement_request.id and endorsement.total_points:
+            if endorsement.endorsement_request.id and endorsement.point_value:
                 e_req: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == endorsement.endorsement_request.id).one_or_none()
                 if e_req:
-                    e_req.point_value = e_req.point_value + endorsement.total_points,
+                    e_req.point_value = e_req.point_value + endorsement.point_value,
                     session.add(e_req)
                     session.flush()
 
             session.commit()
             session.refresh(new_endorsement)
-            return new_endorsement
+            endorsement = EndorsementModel.base_select(session).filter(Endorsement.endorsement_id == new_endorsement.endorsement_id).one_or_none()
+            return EndorsementModel.model_validate(endorsement)
 
         except IntegrityError as exc:
-            logger.error("endorse %s", str(exc))
+            logger.error("%s; endorse %s", __name__, str(exc))
             raise
 
-        except Exception as e:
-            raise e
+        except Exception as exc:
+            logger.error("%s; endorse %s", __name__, str(exc))
+            raise
+
+
+    def get_existing_endorsement(self, biz: EndorsementBusiness) -> EndorsementModel | None:
+        """
+        Registers an endorsement for an arXiv user.
+
+        :param self:
+        :param biz: An instance of ArxivEndorsementParams containing endorsement details.
+        :type biz: ArxivEndorsementParams
+        :return: True if the endorsement was successfully recorded, False otherwise.
+        :rtype: bool
+        """
+        endorser_id = biz.endorseR.id if biz.endorseR else None
+        if endorser_id is None:
+            return None
+        session = self.session  # sugar
+
+        try:
+            endorsement = EndorsementModel.base_select(session).filter(
+                Endorsement.endorser_id.is_(endorser_id),
+                Endorsement.endorsee_id == biz.endorseE.id,
+                Endorsement.archive == biz.canon_archive,
+                Endorsement.subject_class == biz.canon_subject_class
+            ).one_or_none()
+            return EndorsementModel.model_validate(endorsement)
+
+        except Exception as exc:
+            logger.error("%s; endorse %s", __name__, str(exc))
+            raise

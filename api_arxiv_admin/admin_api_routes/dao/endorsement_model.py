@@ -9,11 +9,14 @@ from arxiv.base import logging
 from arxiv.db.models import Endorsement
 
 from ..categories import CategoryModel
+from ..endorsement_requsets import EndorsementRequestModel
+from ..public_users import PublicUserModel
 
 logger = logging.getLogger(__name__)
 
 
 class EndorsementCodeModel(BaseModel):
+    preflight: bool
     endorser_id: str
     positive: bool
     endorsement_code: str
@@ -63,9 +66,13 @@ class EndorsementModel(BaseModel):
             Endorsement.request_id,
         )
 
+
 class EndorsementOutcomeModel(BaseModel):
-    accepted: bool
+    submitted: bool           # Endorser has submitted an endorsement
+    accepted: bool            # Endorsee has the endorsement accepted
+    request_acceptable: bool  # Endorsee can accept ths endorsementa
+    submit_acceptable: bool   # Endorser may submit
     reason: str
+    endorsement_request: EndorsementRequestModel
+    endorsee: Optional[PublicUserModel]
     endorsement: Optional[EndorsementModel]
-
-

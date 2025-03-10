@@ -1,6 +1,6 @@
 """arXiv endorsement routes."""
 from datetime import timedelta, datetime, date, UTC
-from typing import Optional, List, Any, Coroutine
+from typing import Optional, List
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -18,6 +18,7 @@ from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client
 from .biz.endorsement_biz import EndorsementBusiness
 from .biz.endorsement_io import EndorsementDBAccessor
 from .endorsement_requsets import EndorsementRequestModel
+from .public_users import PublicUserModel
 from .user import UserModel
 from .dao.endorsement_model import EndorsementModel, EndorsementCodeModel, EndorsementOutcomeModel
 
@@ -168,7 +169,6 @@ async def _endorse(
         session: Session,
         request: Request,
         response: Response,
-        preflight: bool,
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims,
         tracking_cookie: str | None,
@@ -176,7 +176,7 @@ async def _endorse(
         client_host_name: str | None,
         audit_timestamp: datetime
         ) -> EndorsementOutcomeModel:
-
+    preflight = endorsement_code.preflight
     proto_endorser = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_code.endorser_id).one_or_none()
     if proto_endorser is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorser not found")
@@ -187,10 +187,10 @@ async def _endorse(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid endorsement code")
     endorsement_request = EndorsementRequestModel.model_validate(proto_endorsement_req)
 
-    proto_endorsee = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_request.endorsee_id).one_or_none()
+    proto_endorsee = PublicUserModel.base_select(session).filter(TapirUser.user_id == endorsement_request.endorsee_id).one_or_none()
     if proto_endorsee is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses not found")
-    endorsee = UserModel.model_validate(proto_endorsee)
+    endorsee = PublicUserModel.model_validate(proto_endorsee)
 
     accessor = EndorsementDBAccessor(session)
     tapir_session_id = None
@@ -214,30 +214,32 @@ async def _endorse(
     )
 
     try:
-        accepted = business.can_endorse()
+        acceptable = business.can_submit()
     except Exception as exc:
         logging.error(exc)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Endorsement criteria is met but failed on database operation") from exc
 
-    if not accepted:
-        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-        return EndorsementOutcomeModel(reason=business.reason, accepted=False, endorsement=None)
+    if not business.outcome.public_reason:
+        logging.info("reason %s is emptied as it is not public", business.outcome.reason)
+        business.outcome.reason = ""
 
     if preflight:
-        return EndorsementOutcomeModel(reason=business.reason, accepted=accepted, endorsement=None)
+        return business.outcome
+
+    if not acceptable:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return business.outcome
 
     try:
-        endorsement = business.endorse()
+        endorsement = business.submit_endorsement()
         if endorsement:
-            return EndorsementOutcomeModel(
-                reason=business.reason,
-                accepted=True,
-                endorsement=EndorsementModel.model_validate(endorsement))
+            business.outcome.endorsement = endorsement
+            return business.outcome
         else:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             response.detail = "Endorsement criteria is met but failed on database operation"
-            return EndorsementOutcomeModel(reason=business.reason, accepted=False, endorsement=None)
+            return business.outcome
 
     except IntegrityError:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -248,7 +250,6 @@ async def _endorse(
 
     # NOTREACHED: not reached but please leave this here for back stop
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Endorsement criteria is met but failed on database operation")
-
 
 
 @router.post(
@@ -272,7 +273,7 @@ async def endorse(
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
     audit_timestamp = datetime.now(UTC)
-    return await _endorse(session, request, response, False, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
+    return await _endorse(session, request, response, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
 
 
 @router.post(
@@ -295,4 +296,5 @@ async def endorsement_preflight(
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
     audit_timestamp = datetime.now(UTC)
-    return await _endorse(session, request, response, True, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
+    endorsement_code.preflight = True
+    return await _endorse(session, request, response, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp)
