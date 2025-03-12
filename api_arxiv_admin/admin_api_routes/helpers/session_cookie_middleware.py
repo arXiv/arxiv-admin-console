@@ -1,26 +1,24 @@
-import json
 import os
-from datetime import datetime, timezone
 import logging
+from datetime import datetime
 
-import asyncio
 from typing import Any, Callable, Optional
 
 import httpcore
 import httpx
 from cachetools import TTLCache
-from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import Request, Response, HTTPException, status
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.applications import ASGIApp
-from starlette.datastructures import Headers, MutableHeaders
 
 import jwt
 import jwcrypto
 import jwcrypto.jwt
 
-from admin_api_routes import BadCookie
-from admin_api_routes.helpers.user_session import UserSession
+from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv.auth.legacy.cookies import unpack as legacy_cookie_unpack
+
+from admin_api_routes.helpers.user_session import UserSession, TapirSessionData
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +72,6 @@ async def refresh_token(aaa_url: str,
 
     return None
 
-
 # Define custom middleware to add a cookie to the response
 class SessionCookieMiddleware(BaseHTTPMiddleware):
 
@@ -87,7 +84,7 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
         classic_cookie_name = request.app.extra['CLASSIC_COOKIE_NAME']
         cookies = request.cookies
         session_cookie = cookies.get(session_cookie_name)
-        classic_cookie = cookies.get(classic_cookie_name)
+        legacy_cookie = cookies.get(classic_cookie_name)
 
         user_session: UserSession = request.app.extra['user_session']
         secret = request.app.extra['JWT_SECRET']
@@ -97,6 +94,24 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
 
         refreshed_tokens = None
         claims = None
+
+        if legacy_cookie is not None:
+            try:
+                tprs = legacy_cookie_unpack(legacy_cookie)
+                tpr_session = TapirSessionData(
+                    session_id=tprs[0],
+                    user_id=tprs[1],
+                    client_ip=tprs[2],
+                    session_created=tprs[3],
+                    session_exp=tprs[4],
+                    privilege=tprs[5]
+                )
+                request.state.tapir_session = tpr_session
+            except Exception as exc:
+                request.state.tapir_session = None
+                pass
+        else:
+            request.state.tapir_session = None
 
         if session_cookie is not None:
             tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
@@ -128,10 +143,12 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
 
                     except jwcrypto.jwt.JWTInvalidClaimFormat:
                         logger.warning(f"Chowed cookie '{session_cookie}'")
+                        from admin_api_routes import BadCookie
                         raise BadCookie()
 
                     except jwt.DecodeError:
                         logger.warning(f"Chowed cookie '{session_cookie}'")
+                        from admin_api_routes import BadCookie
                         raise BadCookie()
 
                     except Exception as exc:
@@ -139,7 +156,7 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
                         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
                     refreshed_tokens = await refresh_token(request.app.extra['AAA_TOKEN_REFRESH_URL'],
-                                                           cookies, session_cookie, classic_cookie)
+                                                           cookies, session_cookie, legacy_cookie)
                     user_session.set_user_cookies(user_id, refreshed_tokens)
                     if refreshed_tokens is None:
                         break

@@ -157,6 +157,16 @@ def create_app(*args, **kwargs) -> FastAPI:
 
     jwt_secret = get_application_config().get('JWT_SECRET', settings.SECRET_KEY)
 
+    for key in ['CLASSIC_SESSION_HASH', 'SESSION_DURATION', 'CLASSIC_COOKIE_NAME']:
+        if get_application_config().get(key) is None:
+            logging.warning(f"{key} is not set, and will fail Tapir Cookie operations")
+            # Fill in a default. Okay for test and local dev.
+            os.environ[key] = {
+                "CLASSIC_SESSION_HASH": "classic-secret",
+                "SESSION_DURATION": "36000",
+                "CLASSIC_COOKIE_NAME": "tapir_session"
+            }.get(key)
+
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
         arxiv_db_engine=database.engine,

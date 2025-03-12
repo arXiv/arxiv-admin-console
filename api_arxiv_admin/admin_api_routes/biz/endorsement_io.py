@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, UTC
 from typing import Optional, List, Tuple
+
+from fastapi import HTTPException, status
 from sqlalchemy import and_, or_, between, text, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -301,7 +303,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     data=f"{endorsement.endorseE.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=endorsement.endorseR.id,
-                    session_id=int(endorsement.session_id),
+                    session_id=session_id,
                 )
 
             if not endorsement.endorsement_code.positive:
@@ -318,7 +320,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     data=f"{endorsement.endorseR.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=-1,
-                    session_id=int(endorsement.session_id),
+                    session_id=session_id,
                 )
 
             # Update request if applicable
@@ -336,11 +338,11 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
         except IntegrityError as exc:
             logger.error("%s; endorse %s", __name__, str(exc))
-            raise
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
         except Exception as exc:
             logger.error("%s; endorse %s", __name__, str(exc))
-            raise
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
 
     def get_existing_endorsement(self, biz: EndorsementBusiness) -> EndorsementModel | None:

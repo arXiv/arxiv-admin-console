@@ -7,7 +7,8 @@ from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNick
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from ..endorsement_requsets import EndorsementRequestModel
-from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, EndorsementOutcomeModel, EndorsementModel
+from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, EndorsementOutcomeModel, EndorsementModel, \
+    EndorserCapabilityType
 from ..public_users import PublicUserModel
 from ..user import UserModel
 
@@ -249,7 +250,7 @@ class EndorsementBusiness:
             submitted=False,
             accepted = False,
             request_acceptable = False,
-            submit_acceptable = False,
+            endorser_capability= EndorserCapabilityType.unknown,
             reason = "",
             endorsement = None,
             endorsement_request = endorsement_request,
@@ -281,12 +282,12 @@ class EndorsementBusiness:
         self.outcome.request_acceptable = acceptable
 
     @property
-    def submit_acceptable(self) -> bool:
-        return self.outcome.submit_acceptable
+    def endorser_capability(self) -> EndorserCapabilityType:
+        return self.outcome.endorser_capability
 
-    @submit_acceptable.setter
-    def submit_acceptable(self, acceptable: bool) -> None:
-        self.outcome.submit_acceptable = acceptable
+    @endorser_capability.setter
+    def endorser_capability(self, capability: EndorserCapabilityType) -> None:
+        self.outcome.endorser_capability = capability
 
     @property
     def submitted(self) -> bool:
@@ -348,19 +349,23 @@ class EndorsementBusiness:
     def point_value(self) -> int:
         return 10 if self.endorsement_code.positive else 0
 
-    def reject(self, reason: str, public_reason: bool = False, submit_acceptable: bool = False, request_acceptable: bool = False) -> bool:
-        self.submit_acceptable = submit_acceptable
+    def reject(self, reason: str, public_reason: bool = False,
+               endorser_capability: EndorserCapabilityType = EndorserCapabilityType.uncredited,
+               request_acceptable: bool = False) -> bool:
+        self.endorser_capability = endorser_capability
         self.request_acceptable = request_acceptable
         self.public_reason = public_reason
         self.reason = reason
-        return self.submit_acceptable and self.request_acceptable
+        return self.endorser_capability and self.request_acceptable
 
-    def accept(self, reason: str, public_reason: bool = True, submit_acceptable: bool = True, request_acceptable: bool = True) -> bool:
-        self.submit_acceptable = submit_acceptable
+    def accept(self, reason: str, public_reason: bool = True,
+               endorser_capability: EndorserCapabilityType = EndorserCapabilityType.credited,
+               request_acceptable: bool = True) -> bool:
+        self.endorser_capability = endorser_capability
         self.request_acceptable = request_acceptable
         self.public_reason = public_reason
         self.reason = reason
-        return self.submit_acceptable and self.request_acceptable
+        return self.endorser_capability and self.request_acceptable
 
 
     def is_owner_in_domain(self, user_id: str, domain: str, require_author: bool) -> List[PaperProps]:
@@ -386,19 +391,26 @@ class EndorsementBusiness:
         self._find_existing_endorsement()
 
         if self.submitted:
-            self.submit_acceptable = False
-            return self.reject("You have submitted an endorsement", public_reason=True)
+            self.endorser_capability = False
+            vote = "positive" if self.endorsement.point_value else "negative"
+            return self.reject("You have submitted a {} endorsement.".format(vote), public_reason=True,
+                               endorser_capability=EndorserCapabilityType.credited)
 
-        # self.accepted = False  # This is not strictly true but set the state
+        if self.endorseR.id == self.endorseE.id:
+            return self.reject("You may not endorse yourself.", public_reason=True,
+                               endorser_capability=EndorserCapabilityType.oneself)
 
-        # Check if the endorseR has a veto status
+       # Check if the endorseR has a veto status
         if self.is_endorser_vetoed:
-            self.submit_acceptable = False
-            return self.reject("This endorsing user's ability to endorse has been suspended by administrative action.")
+            self.endorser_capability = False
+            return self.reject("This endorsing user's ability to endorse has been suspended by administrative action.",
+                               endorser_capability=EndorserCapabilityType.prohibited,
+                               public_reason=True,)
 
         if self.endorser_is_proxy_submitter:
-            self.submit_acceptable = False
-            return self.reject("Proxy submitters are not allowed to endorse.")
+            self.endorser_capability = False
+            return self.reject("Proxy submitters are not allowed to endorse.",
+                               endorser_capability=EndorserCapabilityType.uncredited,)
 
         category = self.accessor.get_category(self.canon_archive, self.canon_subject_class)
         if not category:
@@ -418,7 +430,7 @@ class EndorsementBusiness:
         #
         if endorsement_domain.endorse_all == "y":
             category = pretty_category(self.archive, self.subject_class)
-            return self.accept(f"Everyone gets an autoendorsement for category {category}.")
+            return self.accept(f"Everyone gets an auto-endorsement for category {category}.")
 
         # ARXIVDEV-3461 - if this endorsement domain has the mod_endorse_all field
         # enabled, then any moderator within that domain should be able to endorse
@@ -437,7 +449,8 @@ class EndorsementBusiness:
 
         if endorsee.veto_status == "no-upload":
             # Endorser is okay but endorsee is not
-            return self.reject("Requesting user's ability to upload has been suspended.", submit_acceptable=True)
+            return self.reject("Requesting user's ability to upload has been suspended.",
+                               endorser_capability = EndorserCapabilityType.unknown)
 
         # check 1 - has_endorsements
         self._find_endorsements()
@@ -455,17 +468,20 @@ class EndorsementBusiness:
                         (endorsement.archive == self.archive and endorsement.subject_class == self.subject_class))
             ]
             if invalids:
-                return self.reject("User's autoendorsement has been invalidated (strong case).", submit_acceptable=True)
+                return self.reject("User's auto-endorsement has been invalidated (strong case).",
+                                   endorser_capability = EndorserCapabilityType.unknown)
 
         else:
             invalidated = [endorsement for endorsement in self.endorsements if
                            not endorsement.flag_valid and endorsement.type == 'auto']
             # if not invalidated: ? REVIEW THIS
             if invalidated:
-                return self.reject("User's autoendorsement has been invalidated.", submit_acceptable=True)
+                return self.reject("User's auto-endorsement has been invalidated.",
+                                   endorser_capability = EndorserCapabilityType.unknown)
 
             if endorsee.flag_suspect:
-                return self.reject("User is flagged, does not get autoendorsed.", submit_acceptable=True)
+                return self.reject("User is flagged, does not get autoendorsed.",
+                                   endorser_capability = EndorserCapabilityType.unknown)
 
         # Now we have done tests to see if there are reasons not to autoendorse this
         # user, do tests to find out whether we should...
@@ -524,7 +540,6 @@ class EndorsementBusiness:
             reason += f" (user is non-author of {len(papers) - len(authored_papers)})"
         reason = reason + "."
         return self.reject(reason, request_acceptable=True)
-
 
     def submit_endorsement(self) -> EndorsementModel | None:
         result = self.accessor.arxiv_endorse(self)

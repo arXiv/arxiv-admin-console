@@ -1,6 +1,7 @@
 from typing import Dict, Optional, Any
 import asyncio
 from datetime import datetime
+from dataclasses import dataclass
 
 class UserSession:
     user_locks: Dict[str, asyncio.Lock]  # A dictionary to store locks for individual users
@@ -41,4 +42,13 @@ class UserSession:
 
     def get_user_cookies(self, user_id: str) -> Optional[Any]:
         return self.user_cookies.get(user_id)
+
+@dataclass
+class TapirSessionData:
+    session_id: str
+    user_id: str
+    client_ip: str
+    session_created: datetime
+    session_exp: datetime
+    privilege: str
 

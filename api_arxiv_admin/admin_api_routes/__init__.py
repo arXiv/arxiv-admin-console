@@ -8,6 +8,7 @@ from fastapi import Request, HTTPException, status
 import os
 
 from .database import Database
+from .helpers.session_cookie_middleware import TapirSessionData
 from .models import *
 from arxiv.auth.user_claims import ArxivUserClaims
 # from arxiv.auth.openid.oidc_idp import ArxivOidcIdpClient
@@ -53,6 +54,10 @@ async def get_session_cookie(request: Request) -> str | None:
 async def get_current_user(request: Request) -> ArxivUserClaims | None:
     logger = getLogger(__name__)
     return request.state.user_claims
+
+
+def get_tapir_session(request: Request) -> TapirSessionData | None:
+    return request.state.tapir_session
 
 
 def get_tracking_cookie(request: Request) -> str | None:

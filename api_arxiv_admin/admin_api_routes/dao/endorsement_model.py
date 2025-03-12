@@ -67,11 +67,19 @@ class EndorsementModel(BaseModel):
         )
 
 
+class EndorserCapabilityType(str, Enum):
+    unknown = "unknown"
+    credited = "credited"
+    uncredited = "uncredited"
+    prohibited = "prohibited"
+    oneself = "oneself"
+
+
 class EndorsementOutcomeModel(BaseModel):
     submitted: bool           # Endorser has submitted an endorsement
     accepted: bool            # Endorsee has the endorsement accepted
     request_acceptable: bool  # Endorsee can accept ths endorsementa
-    submit_acceptable: bool   # Endorser may submit
+    endorser_capability: EndorserCapabilityType   # Endorser's capability for submitting
     reason: str
     endorsement_request: EndorsementRequestModel
     endorsee: Optional[PublicUserModel]

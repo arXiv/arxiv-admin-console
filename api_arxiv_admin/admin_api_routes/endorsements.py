@@ -14,10 +14,11 @@ from arxiv.base import logging
 from arxiv.db.models import Endorsement, EndorsementRequest, TapirUser
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host, \
-    get_tracking_cookie, get_client_host_name, is_any_user
+    get_tracking_cookie, get_client_host_name, is_any_user, get_tapir_session
 from .biz.endorsement_biz import EndorsementBusiness
 from .biz.endorsement_io import EndorsementDBAccessor
 from .endorsement_requsets import EndorsementRequestModel
+from .helpers.user_session import TapirSessionData
 from .public_users import PublicUserModel
 from .user import UserModel
 from .dao.endorsement_model import EndorsementModel, EndorsementCodeModel, EndorsementOutcomeModel
@@ -171,6 +172,7 @@ async def _endorse(
         response: Response,
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims,
+        current_tapir_session: TapirSessionData,
         tracking_cookie: str | None,
         client_host: str | None,
         client_host_name: str | None,
@@ -194,11 +196,9 @@ async def _endorse(
     endorsee = PublicUserModel.model_validate(proto_endorsee)
 
     accessor = EndorsementDBAccessor(session)
-    tapir_session_id = None
-    try:
-        tapir_session_id = current_user.tapir_session_id
-    except AttributeError:
-        pass
+
+    tapir_session_id = current_tapir_session.session_id if current_tapir_session else None
+
     business = EndorsementBusiness(
         accessor,
         endorsement_code,
@@ -272,9 +272,10 @@ async def endorse(
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db),
+        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
     audit_timestamp = datetime.now(UTC)
-    return await _endorse(session, request, response, endorsement_code, current_user, tracking_cookie, client_host, client_host_name, audit_timestamp, show_email=current_user.is_admin)
+    return await _endorse(session, request, response, endorsement_code, current_user, current_tapir_session, tracking_cookie, client_host, client_host_name, audit_timestamp, show_email=current_user.is_admin)
