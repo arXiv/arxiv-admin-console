@@ -349,6 +349,11 @@ class EndorsementBusiness:
     def point_value(self) -> int:
         return 10 if self.endorsement_code.positive else 0
 
+    @property
+    def endorser_acceptable(self) -> bool:
+        return self.endorser_capability == EndorserCapabilityType.credited
+
+
     def reject(self, reason: str, public_reason: bool = False,
                endorser_capability: EndorserCapabilityType = EndorserCapabilityType.uncredited,
                request_acceptable: bool = False) -> bool:
@@ -356,7 +361,7 @@ class EndorsementBusiness:
         self.request_acceptable = request_acceptable
         self.public_reason = public_reason
         self.reason = reason
-        return self.endorser_capability and self.request_acceptable
+        return self.endorser_acceptable and self.request_acceptable
 
     def accept(self, reason: str, public_reason: bool = True,
                endorser_capability: EndorserCapabilityType = EndorserCapabilityType.credited,
@@ -365,7 +370,7 @@ class EndorsementBusiness:
         self.request_acceptable = request_acceptable
         self.public_reason = public_reason
         self.reason = reason
-        return self.endorser_capability and self.request_acceptable
+        return self.endorser_acceptable and self.request_acceptable
 
 
     def is_owner_in_domain(self, user_id: str, domain: str, require_author: bool) -> List[PaperProps]:
