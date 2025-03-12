@@ -198,15 +198,18 @@ class TestCreateEndorsement(unittest.TestCase):
 
         endorsement_code = "R8T3GZ"
         with DatabaseSession() as session:
-            er = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.secret == endorsement_code).one_or_none()
-            self.assertNotEqual(None, er)
-            erm = EndorsementRequestModel.model_validate(er)
+            er0 = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.secret == endorsement_code).one_or_none()
+            self.assertNotEqual(None, er0)
+            erm0 = EndorsementRequestModel.model_validate(er0)
+
+            self.assertEqual(0, erm0.point_value) # if this fails, you need to reset/reload the database
 
             accessor = EndorsementDBAccessor(session)
             endorser = accessor.get_user("591211")
             endorsee = accessor.get_user("1019756")
 
             code: EndorsementCodeModel = EndorsementCodeModel(
+                preflight=False,
                 endorser_id=str(endorser.id),
                 endorsement_code=endorsement_code,
                 comment="This is good",
@@ -220,7 +223,7 @@ class TestCreateEndorsement(unittest.TestCase):
                 code,
                 endorser,
                 endorsee,
-                erm,
+                erm0,
                 str(self.tapir_session_id),
 
                 client_host,
@@ -229,9 +232,14 @@ class TestCreateEndorsement(unittest.TestCase):
                 self.audit_timestamp,
                 tracking_cookie,
             )
-            self.assertTrue(business.can_endorse())
-            endorsement = business.endorse()
+            self.assertTrue(business.can_submit())
+            endorsement = business.submit_endorsement()
             self.assertNotEqual(None, endorsement)
+
+        with DatabaseSession() as session:
+            er1 = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.secret == endorsement_code).one_or_none()
+            erm1 = EndorsementRequestModel.model_validate(er1)
+            self.assertEqual(10, erm1.point_value)
 
 
 

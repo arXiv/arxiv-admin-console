@@ -34,10 +34,11 @@ class EndorsementRequestModel(BaseModel):
     subject_class: Optional[str] = None
     secret: Optional[str] = None
     flag_valid: Optional[bool] = None
-    flag_open: Optional[bool] = None
     issued_when: Optional[datetime] = None
-    flag_suspect: Optional[bool] = None
+    point_value: int = 0
 
+    flag_open: Optional[bool] = None
+    flag_suspect: Optional[bool] = None
     endorsee_username: Optional[str] = None
 
     @staticmethod
