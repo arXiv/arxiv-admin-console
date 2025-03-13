@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session #, joinedload
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname
+from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, TapirUser
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
 from .biz.endorsement_code import endorsement_code
@@ -86,6 +86,10 @@ async def list_endorsement_requests(
         flag_valid: Optional[bool] = Query(None),
         not_positive: Optional[bool] = Query(None, description="Not positive point value"),
         suspected: Optional[bool] = Query(None, description="Suspected user"),
+        secret_code: Optional[str] = Query(None, description="Endorsement request secret"),
+        endorsee_first_name: Optional[str] = Query(None, description="Endorsement request endorsee first_name"),
+        endorsee_last_name: Optional[str] = Query(None, description="Endorsement request endorsee last_name"),
+        endorsee_email: Optional[str] = Query(None, description="Endorsement request endorsee email"),
         current_user: ArxivUserClaims = Depends(get_current_user),
         db: Session = Depends(get_db),
 
@@ -127,6 +131,9 @@ async def list_endorsement_requests(
             t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
             query = query.filter(EndorsementRequest.issued_when.between(t_begin, t_end))
 
+    if secret_code is not None:
+        query = query.filter(EndorsementRequest.secret == secret_code)
+
     if not (current_user.is_admin or current_user.is_mod):
         query = query.filter(EndorsementRequest.endorsee_id == current_user.user_id)
 
@@ -148,6 +155,18 @@ async def list_endorsement_requests(
     if suspected is not None:
         query = query.join(Demographic, Demographic.user_id == EndorsementRequest.endorsee_id)
         query = query.filter(Demographic.flag_suspect == suspected)
+
+    if endorsee_first_name is not None:
+        query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
+            TapirUser.first_name.contains(endorsee_first_name))
+
+    if endorsee_last_name is not None:
+        query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
+            TapirUser.last_name.contains(endorsee_last_name))
+
+    if endorsee_email is not None:
+        query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
+            TapirUser.email == endorsee_email)
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)

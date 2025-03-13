@@ -91,6 +91,10 @@ const EndorsementRequestFilter = (props: any) => {
             <DateInput label="Start Date" source="start_date" />
             <DateInput label="End Date" source="end_date" />
             <BooleanInput label="Valid" source="flag_valid" defaultValue="true"/>
+
+            <TextInput label="First Name" source="endorsee_first_name" />
+            <TextInput label="Last Name" source="endorsee_last_name" />
+            <TextInput label="Email Address" source="endorsee_email" />
         </Filter>
     );
 };
@@ -119,11 +123,15 @@ export const EndorsementRequestList = () => {
                         <TextField source={"first_name"} />
                         {"  ("}
                         <TextField source={"username"} />
-                        {")"}
+                        {") <"}
+                        <TextField source={"email"} />
+                        {">"}
                     </ReferenceField>
 
                     <CategoryField label={"Category"} source="id" sourceCategory="archive" sourceClass="subject_class" />
                     <DateField source="issued_when" label={"Issued"}/>
+
+                    <TextField source={"secret"} />
 
                     <ReferenceField source="id" reference="endorsement_requests_audit" label={"Remote host"}>
                         <TextField source={"remote_host"} label={"Remote host"}/>
