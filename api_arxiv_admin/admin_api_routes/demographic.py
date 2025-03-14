@@ -1,20 +1,27 @@
 """arXiv paper display routes."""
+from enum import Enum
 
+from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Demographic
+from arxiv.db.models import Demographic, OrcidIds, AuthorIds
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime, date, timedelta
-from .models import CrossControlModel
-import re
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
+
+from . import get_db, is_any_user, gate_admin_user, get_current_user
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/demographics")
+router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/demographics")
+
+class UserVetoStatus(str, Enum):
+    ok = "ok"
+    no_endorse = "no-endorse"
+    no_upload = "no-upload"
+    no_replace = "no-replace"
+
 
 class DemographicModel(BaseModel):
     id: int # user_id: int #  = mapped_column(ForeignKey('tapir_users.user_id'), primary_key=True, server_default=FetchedValue())
@@ -40,13 +47,16 @@ class DemographicModel(BaseModel):
     flag_group_stat: int #  = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
     flag_group_eess: int #  = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
     flag_group_econ: int #  = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
-    veto_status: str # Mapped[Literal['ok', 'no-endorse', 'no-upload', 'no-replace']] = mapped_column(Enum('ok', 'no-endorse', 'no-upload', 'no-replace'), nullable=False, server_default=text("'ok'"))
+    veto_status: UserVetoStatus # Mapped[Literal['ok', 'no-endorse', 'no-upload', 'no-replace']] = mapped_column(Enum('ok', 'no-endorse', 'no-upload', 'no-replace'), nullable=False, server_default=text("'ok'"))
+
+    orcid: Optional[str] = None
+    author_id: Optional[str] = None
 
     class Config:
         from_attributes = True
 
     @staticmethod
-    def base_select(db: Session):
+    def base_select(db: Session) -> Query:
         return db.query(
             Demographic.user_id.label("id"),
             Demographic.country,
@@ -71,7 +81,16 @@ class DemographicModel(BaseModel):
             Demographic.flag_group_stat,
             Demographic.flag_group_eess,
             Demographic.flag_group_econ,
-            Demographic.veto_status)
+            Demographic.veto_status,
+            OrcidIds.orcid,
+            AuthorIds.author_id,
+        ).outerjoin(
+            OrcidIds,
+            OrcidIds.user_id == Demographic.user_id
+        ).outerjoin(
+            AuthorIds,
+            AuthorIds.user_id == Demographic.user_id
+        )
 
 
 @router.get('/')
@@ -82,8 +101,10 @@ async def list_demographics(
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
+        current_user: ArxivUserClaims = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> List[DemographicModel]:
+    gate_admin_user(current_user)
     query = DemographicModel.base_select(db)
 
     if id is not None:
@@ -119,10 +140,14 @@ async def list_demographics(
 
 @router.get("/{id:int}")
 def get_demographic(id:int,
+                    current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
                     session: Session = Depends(get_db)) -> DemographicModel:
     """Display a paper."""
+    if not current_user.is_admin and str(current_user.user_id) != str(id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized.")
+
     doc = DemographicModel.base_select(session).filter(Demographic.user_id == id).one_or_none()
     if not doc:
-        raise HTTPException(status_code=404, detail=f"Demographic not found for {id}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Demographic not found for {id}")
     return doc
 
