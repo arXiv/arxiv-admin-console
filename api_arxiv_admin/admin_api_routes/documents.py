@@ -1,11 +1,14 @@
 """arXiv paper display routes."""
+import urllib
+import json
+
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Document, Submission
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from arxiv.db.models import Document, Submission, Category, Metadata
+from sqlalchemy import func, and_, desc
+from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 # from .models import CrossControlModel
@@ -13,6 +16,7 @@ import re
 import time
 
 from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user
+from .helpers.mui_datagrid import MuiDataGridFilter
 
 logger = logging.getLogger(__name__)
 
@@ -33,19 +37,14 @@ class DocumentModel(BaseModel):
 
     last_submission_id: Optional[int] = None
 
+    abs_categories: Optional[str] = None
+
     class Config:
         from_attributes = True
 
     @staticmethod
     def base_select(db: Session):
-        # subquery = (
-        #     select(
-        #         Submission.document_id,
-        #         func.max(Submission.submission_id).label("last_submission_id")  # id refers to submission_id
-        #     )
-        #     .group_by(Submission.document_id)
-        #     .subquery()
-        # )
+        m1 = aliased(Metadata)
 
         return db.query(
             Document.document_id.label("id"),
@@ -87,7 +86,7 @@ class TimedCache:
 
 last_submission_cache = TimedCache()
 
-def populate_last_submission_id(session: Session, doc: DocumentModel) -> DocumentModel:
+def populate_remaining_fields(session: Session, doc: DocumentModel) -> DocumentModel:
     last_submission_id = last_submission_cache.get(doc.id)
     if last_submission_id is None:
         last_submission_id = (
@@ -101,6 +100,14 @@ def populate_last_submission_id(session: Session, doc: DocumentModel) -> Documen
 
     if last_submission_id != 0:
         doc.last_submission_id = last_submission_id
+
+    metadata = session.query(Metadata).filter(
+        and_(Metadata.document_id == doc.id,
+             Metadata.is_current == 1,
+             Metadata.is_withdrawn == 0)).order_by(desc(Metadata.metadata_id)).first()
+    if metadata:
+        doc.abs_categories = metadata.abs_categories
+
     return doc
 
 
@@ -112,6 +119,8 @@ async def list_documents(
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
+        submitter_id: Optional[str] = Query(None, description="Submitter ID"),
+        filter: Optional[str] = Query(None, description="MUI datagrid filter"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
@@ -123,6 +132,12 @@ async def list_documents(
     if _start < 0 or _end < _start:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid start or end index")
+
+    if submitter_id is not None:
+        query = query.filter(Document.submitter_id == submitter_id)
+
+    datagrid_filter = MuiDataGridFilter(filter) if filter is not None else None
+
     if id is None:
 
         t0 = datetime.now()
@@ -163,6 +178,17 @@ async def list_documents(
                 query = query.filter(Document.paper_id.like(paper_id + "%"))
             pass
 
+        if datagrid_filter:
+            field_name = datagrid_filter.field_name
+            if field_name == "id":
+                field_name = "document_id"
+            if field_name:
+                if hasattr(Document, field_name):
+                    field = getattr(Document, field_name)
+                    query = datagrid_filter.to_query(query, field)
+                else:
+                    logger.warning(f"{field_name} field not found on Document, skipping")
+
         for column in order_columns:
             if _order == "DESC":
                 query = query.order_by(column.desc())
@@ -173,7 +199,7 @@ async def list_documents(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result: List[DocumentModel] = [populate_last_submission_id(db, DocumentModel.model_validate(item)) for item in query.offset(_start).limit(_end - _start).all()]
+    result: List[DocumentModel] = [populate_remaining_fields(db, DocumentModel.model_validate(item)) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -186,7 +212,7 @@ def get_document(paper_id:str,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return populate_last_submission_id(session, DocumentModel.model_validate(doc))
+    return populate_remaining_fields(session, DocumentModel.model_validate(doc))
 
 @router.get("/{id:str}")
 def get_document(id:int,
@@ -196,5 +222,5 @@ def get_document(id:int,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return populate_last_submission_id(session, DocumentModel.model_validate(doc))
+    return populate_remaining_fields(session, DocumentModel.model_validate(doc))
 

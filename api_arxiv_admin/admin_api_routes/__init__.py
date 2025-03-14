@@ -102,3 +102,10 @@ def get_db():
     yield from db.get_session()
 
 
+def gate_admin_user(user: ArxivUserClaims):
+    if not user:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+
+    if not user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not admin")
+

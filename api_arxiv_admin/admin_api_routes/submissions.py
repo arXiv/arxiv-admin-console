@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text  # select, update, func, case, Select, distinct, exists, and_
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
+
+from .helpers.mui_datagrid import MuiDataGridFilter
 from .submission_categories import SubmissionCategoryModel
 import re
 
@@ -180,14 +182,7 @@ async def list_submissions(
         db: Session = Depends(get_db),
         current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[SubmissionModel]:
-    datagrid_filter = None
-    if filter:
-        try:
-            datagrid_filter = json.loads(urllib.parse.unquote(filter))
-            logger.debug(f"datagrid_filter={datagrid_filter}")
-        except Exception:
-            logger.warning(f"datagrid_filter={filter}")
-            pass
+    datagrid_filter = MuiDataGridFilter(filter) if filter else None
 
     query = SubmissionModel.base_select(db)
 
@@ -268,33 +263,15 @@ async def list_submissions(
                 query = query.filter(Submission.submit_time.between(t_begin, t_end))
 
         if datagrid_filter:
-            field_name = datagrid_filter.get("field")
+            field_name = datagrid_filter.field_name
             if field_name == "id":
                 field_name = "submission_id"
-            op_name = datagrid_filter.get("operator")
-            value = datagrid_filter.get("value")
-            if field_name and op_name and value and hasattr(Submission, field_name):
-                field = getattr(Submission, field_name)
-                match op_name:
-                    case "contains":
-                        query = query.filter(field.contains(value))
-                    case "doesNotContain":
-                        query = query.filter(field.not_contains(value))
-                    case "startsWith":
-                        query = query.filter(field.startswith(value))
-                    case "endsWith":
-                        query = query.filter(field.endswith(value))
-                    case "equals":
-                        query = query.filter(field == value)
-                    case "doesNotEqual":
-                        query = query.filter(field != value)
-                    case "is empty":
-                        query = query.filter(field == "")
-                    case "is not empty":
-                        query = query.filter(field != "")
-                    case "isAnyOf":
-                        pass
-
+            if field_name:
+                if hasattr(Submission, field_name):
+                    field = getattr(Submission, field_name)
+                    query = datagrid_filter.to_query(query, field)
+                else:
+                    logger.warning(f"{field_name} field not found on Submission, skipping")
 
     for column in order_columns:
         if _order == "DESC":

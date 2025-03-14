@@ -5,6 +5,7 @@ import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
+from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy import literal_column, func, and_  # case, Select, distinct, exists, alias,  select, update
 
@@ -12,14 +13,14 @@ from sqlalchemy.orm import Session # , joinedload
 
 from pydantic import BaseModel #, validator
 from arxiv.base import logging
-from arxiv.db.models import PaperOwner
+from arxiv.db.models import PaperOwner, PaperPw, Document
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user
+from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user
+from .biz.paper_owner_biz import generate_paper_pw
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/paper_owners")
-
+router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/paper_owners")
 
 class OwnershipModel(BaseModel):
     class Config:
@@ -86,6 +87,9 @@ async def list_ownerships(
         current_user: ArxivUserClaims = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
+
+    gate_admin_user(current_user)
+
     query = OwnershipModel.base_select(db)
 
     if id:
@@ -179,6 +183,7 @@ async def list_ownerships_for_user(
         current_user: ArxivUserClaims = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
+    gate_admin_user(current_user)
     query = OwnershipModel.base_select(db)
 
 
@@ -242,8 +247,12 @@ async def list_ownerships_for_user(
 
 
 @router.get('/{id:str}')
-async def get_ownership(id: str, db: Session = Depends(get_db)) -> OwnershipModel:
+async def get_ownership(id: str,
+                        current_user: ArxivUserClaims = Depends(get_current_user),
+                        db: Session = Depends(get_db)
+                        ) -> OwnershipModel:
     uid, did = to_ids(id)
+    gate_admin_user(current_user)
     if not uid or not did:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST)
     item = OwnershipModel.base_select(db).filter(and_(
@@ -261,6 +270,7 @@ async def update_ownership(
         id: str,
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db)) -> OwnershipModel:
+    gate_admin_user(current_user)
 
     if not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,)
@@ -289,6 +299,7 @@ async def create_ownership(
         request: Request,
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db)) -> OwnershipModel:
+    gate_admin_user(current_user)
     body = await request.json()
 
     item = PaperOwner(**body)
@@ -296,3 +307,55 @@ async def create_ownership(
     session.commit()
     session.refresh(item)
     return OwnershipModel.model_validate(item)
+
+
+paper_pw_router = APIRouter(prefix="/paper-pw")
+
+class PaperPwModel(BaseModel):
+    id: int
+    password_enc: str
+
+    class Config:
+        from_attributes = True
+
+    @staticmethod
+    def base_select(db: Session):
+        return db.query(
+            PaperPw.document_id.label("id"),
+            PaperPw.password_enc,
+        )
+
+@paper_pw_router.get('/{id:str}')
+async def get_paper_pw(id: str,
+                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       session: Session = Depends(get_db)) -> PaperPwModel:
+    if current_user is None:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED)
+
+    doc = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    if not current_user.is_admin:
+        owner = session.query(Document).filter(and_(
+            Document.document_id == id,
+            Document.submitter_id == current_user.user_id
+        )).one_or_none()
+        if not owner:
+            owner = session.query(PaperOwner).filter(and_(
+                PaperOwner.document_id == id,
+                PaperOwner.user_id == current_user.user_id)).all()
+        if not owner:
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not paper owner")
+
+    item = PaperPwModel.base_select(session).filter(PaperPw.document_id == id).one_or_none()
+    if not item:
+        new_password = generate_paper_pw()
+        item = PaperPw(document_id=id, password_storage=0, password_enc=new_password)
+        session.add(item)
+        try:
+            session.commit()
+        except IntegrityError:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Paper password already exists")
+
+    return PaperPwModel.model_validate(item)
