@@ -1,12 +1,9 @@
 """arXiv paper display routes."""
-import urllib
-import json
-
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Document, Submission, Category, Metadata
+from arxiv.db.models import Document, Submission, Category, Metadata, PaperOwner
 from sqlalchemy import func, and_, desc
 from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
@@ -15,7 +12,7 @@ from datetime import datetime, date, timedelta
 import re
 import time
 
-from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE, get_current_user
+from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .helpers.mui_datagrid import MuiDataGridFilter
 
 logger = logging.getLogger(__name__)
@@ -39,12 +36,13 @@ class DocumentModel(BaseModel):
 
     abs_categories: Optional[str] = None
 
+    author_ids: Optional[List[int]] = None
+
     class Config:
         from_attributes = True
 
     @staticmethod
     def base_select(db: Session):
-        m1 = aliased(Metadata)
 
         return db.query(
             Document.document_id.label("id"),
@@ -107,6 +105,9 @@ def populate_remaining_fields(session: Session, doc: DocumentModel) -> DocumentM
              Metadata.is_withdrawn == 0)).order_by(desc(Metadata.metadata_id)).first()
     if metadata:
         doc.abs_categories = metadata.abs_categories
+
+    owner: PaperOwner
+    doc.author_ids = [owner.user_id for owner in session.query(PaperOwner).filter(PaperOwner.document_id == doc.id).all()]
 
     return doc
 
@@ -211,8 +212,24 @@ def get_document(paper_id:str,
     query = DocumentModel.base_select(session).filter(Document.paper_id == paper_id)
     doc = query.one_or_none()
     if not doc:
-        raise HTTPException(status_code=404, detail="Paper not found")
+        raise HTTPException(status_code=404, detail=f"Paper {paper_id} not found")
     return populate_remaining_fields(session, DocumentModel.model_validate(doc))
+
+@router.get("/paper_id/{category:str}/{paper_id:str}")
+def get_old_style_document(
+        category: str,
+        paper_id:str,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(get_db)) -> DocumentModel:
+    """Display a paper."""
+    old_paper_id = f"{category}/{paper_id}"
+    query = DocumentModel.base_select(session).filter(Document.paper_id == old_paper_id)
+    doc = query.one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Paper {old_paper_id} not found")
+    return populate_remaining_fields(session, DocumentModel.model_validate(doc))
+
+
 
 @router.get("/{id:str}")
 def get_document(id:int,

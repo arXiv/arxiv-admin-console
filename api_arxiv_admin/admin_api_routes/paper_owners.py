@@ -17,6 +17,7 @@ from arxiv.db.models import PaperOwner, PaperPw, Document
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user
 from .biz.paper_owner_biz import generate_paper_pw
+from .localfile.submission_state import arxiv_is_pending
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +40,8 @@ class OwnershipModel(BaseModel):
     flag_auto: bool
 
     @staticmethod
-    def base_select(db: Session):
-        return db.query(
+    def base_select(session: Session):
+        return session.query(
             func.concat(
                 literal_column("'user_'"),
                 PaperOwner.user_id,
@@ -85,12 +86,12 @@ async def list_ownerships(
         id: Optional[List[str]] = Query(None,
                                         description="List of paper owner"),
         current_user: ArxivUserClaims = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        session: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
 
     gate_admin_user(current_user)
 
-    query = OwnershipModel.base_select(db)
+    query = OwnershipModel.base_select(session)
 
     if id:
         users = []
@@ -181,10 +182,10 @@ async def list_ownerships_for_user(
         flag_valid: Optional[bool] = Query(None),
         document_id: Optional[int] = Query(None),
         current_user: ArxivUserClaims = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        session: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
     gate_admin_user(current_user)
-    query = OwnershipModel.base_select(db)
+    query = OwnershipModel.base_select(session)
 
 
     if _start < 0 or _end < _start:
@@ -249,13 +250,13 @@ async def list_ownerships_for_user(
 @router.get('/{id:str}')
 async def get_ownership(id: str,
                         current_user: ArxivUserClaims = Depends(get_current_user),
-                        db: Session = Depends(get_db)
+                        session: Session = Depends(get_db)
                         ) -> OwnershipModel:
     uid, did = to_ids(id)
     gate_admin_user(current_user)
     if not uid or not did:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST)
-    item = OwnershipModel.base_select(db).filter(and_(
+    item = OwnershipModel.base_select(session).filter(and_(
         PaperOwner.user_id == uid,
         PaperOwner.document_id == did,
     )).one_or_none()
@@ -319,16 +320,15 @@ class PaperPwModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_select(db: Session):
-        return db.query(
+    def base_select(session: Session):
+        return session.query(
             PaperPw.document_id.label("id"),
             PaperPw.password_enc,
         )
 
-@paper_pw_router.get('/{id:str}')
-async def get_paper_pw(id: str,
-                       current_user: ArxivUserClaims = Depends(get_current_user),
-                       session: Session = Depends(get_db)) -> PaperPwModel:
+async def _get_paper_pw(id: str,
+                        current_user: ArxivUserClaims = Depends(get_current_user),
+                        session: Session = Depends(get_db)) -> PaperPwModel:
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED)
 
@@ -359,3 +359,105 @@ async def get_paper_pw(id: str,
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Paper password already exists")
 
     return PaperPwModel.model_validate(item)
+
+
+@paper_pw_router.get('/{id:str}')
+async def get_paper_pw(id: str,
+                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       session: Session = Depends(get_db)) -> PaperPwModel:
+    return await _get_paper_pw(id, current_user, session)
+
+
+@paper_pw_router.get('/paper/{arxiv_id:str}')
+async def get_paper_pw_from_arxiv_id(arxiv_id: str,
+                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       session: Session = Depends(get_db)) -> PaperPwModel:
+    doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper not found")
+    return await _get_paper_pw(doc.document_id, current_user, session)
+
+@paper_pw_router.get('/paper/{category:str}/{subject_class:str}')
+async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
+                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       session: Session = Depends(get_db)) -> PaperPwModel:
+    arxiv_id = f"{category}/{subject_class}"
+    doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper not found")
+    return await _get_paper_pw(doc.document_id, current_user, session)
+
+
+class PaperAuthRequest(BaseModel):
+    paper_id: str
+    password: str
+    user_id: str
+    verify_id: bool
+
+
+def arxiv_squash_id(paper_id: str) -> str | None:
+    """Normalize an arXiv paper ID to its standard format."""
+    paper_id = paper_id.strip()
+    if re.match(r"^([a-z-]*/\d{7}|\d{4}\.\d{4,5})$", paper_id):
+        return paper_id
+    match = re.match(r"^([a-z-]*)\.[A-Za-z]{2}/(\d{7})$", paper_id)
+    if match:
+        return f"{match.group(1)}/{match.group(2)}"
+    return None
+
+
+@router.put("/")
+def register_paper_owner(
+        response: Response,
+        body: PaperAuthRequest,
+        session: Session = Depends(get_db),
+        current_user: ArxivUserClaims = Depends(get_current_user),
+):
+    if current_user is None:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
+
+    if body.user_id != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only own the paper.")
+
+    if not body.verify_id:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="You must verify your contact information.")
+
+    squashed_id = arxiv_squash_id(body.paper_id)
+    if not squashed_id:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper ID '{body.paper_id}' is ill-formed.")
+
+    paper: Document | None = session.query(Document).filter(Document.paper_id == squashed_id).one_or_none()
+    if paper is None:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper ID '{body.paper_id}' is ill-formed.")
+
+    # This needs to review hard
+    is_author = body.user_id == paper.submitter_id
+    if (not is_author) and arxiv_is_pending(body.paper_id):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Non-authors cannot access pending papers.")
+
+    document_id = paper.document_id
+    paper_pw = session.query(PaperPw).filter(PaperPw.document_id == document_id).one_or_none()
+    if not paper_pw:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' does not have a password.")
+
+    if paper_pw.password_storage != 0:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
+
+    if body.password != paper_pw.password_enc:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Incorrect password.")
+
+    existing = session.query(PaperOwner).filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id == document_id).one_or_none()
+    if existing:
+        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT, detail=f"Paper owner '{body.paper_id}' already exists.")
+
+    paper_owner = PaperOwner(
+        user_id=body.user_id,
+        document_id=document_id,
+        added_by=current_user.user_id,
+        remote_addr=body.client.host,
+        flag_author=1 if is_author else 0,
+    )
+    session.add(paper_owner)
+    session.commit()
+    response.status_code = http_status.HTTP_201_CREATED
+    return
