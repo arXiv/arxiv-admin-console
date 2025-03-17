@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
 from fastapi.responses import Response
 
-from sqlalchemy import select, case, distinct, exists, and_
+from sqlalchemy import select, case, distinct, exists, and_, cast, LargeBinary
 from sqlalchemy.orm import Session, aliased
 
 from pydantic import BaseModel
@@ -96,9 +96,9 @@ class UserModel(UserBaseModel):
         return (db.query(
             TapirUser.user_id.label("id"),
             TapirUser.email,
-            TapirUser.first_name,
-            TapirUser.last_name,
-            TapirUser.suffix_name,
+            cast(TapirUser.first_name, LargeBinary).label("first_name"),
+            cast(TapirUser.last_name, LargeBinary).label("last_name"),
+            cast(TapirUser.suffix_name, LargeBinary).label("suffix_name"),
             nick_subquery.label("username"),
             TapirUser.email_bouncing,
             TapirUser.policy_class,
@@ -121,7 +121,7 @@ class UserModel(UserBaseModel):
             ).label("flag_is_mod"),
             # mod_subquery.label("moderator_id"),
             Demographic.country,
-            Demographic.affiliation,
+            cast(Demographic.affiliation, LargeBinary).label("affiliation"),
             Demographic.url,
             Demographic.type,
             Demographic.archive,
@@ -150,7 +150,18 @@ class UserModel(UserBaseModel):
     def is_admin(self) -> bool:
         return self.flag_edit_users or self.flag_edit_system
 
+
+    @staticmethod
+    def to_model(user: "UserModel") -> "UserModel":
+        row = user._asdict()
+        for field in ["first_name", "last_name", "suffix_name", "affiliation"]:
+            row[field] = row[field].decode("utf-8") if row[field] is not None else None
+        UserModel.model_validate(row)
     pass
+
+    @staticmethod
+    def one_user(db: Session, user_id: int) -> "UserModel":
+        return UserModel.to_model(UserModel.base_select(db).filter(TapirUser.user_id == user_id).first())
 
 
 class UserUpdateModel(UserBaseModel):
@@ -162,7 +173,7 @@ def get_one_user(user_id:int, db: Session = Depends(get_db)) -> UserModel:
     # @ignore-types
     user = UserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
     if user:
-        return UserModel.model_validate(user)
+        return UserModel.to_model(user)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
@@ -206,7 +217,7 @@ def list_user_by_username(response: Response,
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [UserModel.model_validate(user) for user in query.offset(_start).limit(_end - _start).all()]
+    result = [UserModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -223,7 +234,7 @@ def get_user_by_username(username: str,
     user = query.one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,)
-    return UserModel.model_validate(user)
+    return UserModel.to_model(user)
 
 
 @router.get("/")
@@ -361,7 +372,7 @@ async def list_users(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [UserModel.model_validate(user) for user in query.offset(_start).limit(_end - _start).all()]
+    result = [UserModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -371,7 +382,7 @@ async def update_user(request: Request,
                       user_update: UserUpdateModel,
                       session: Session = Depends(get_db)) -> UserModel:
     """Update user - by PUT"""
-    user = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
+    user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -403,7 +414,7 @@ async def update_user(request: Request,
 
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data
-    return UserModel.model_validate(user)
+    return UserModel.one_user(session, user.user_id)
 
 
 @router.post('/')
@@ -416,11 +427,11 @@ async def create_user(request: Request, session: Session = Depends(get_db)) -> U
         if key in user.__dict__:
             setattr(user, key, value)
     session.add(user)
-    return UserModel.model_validate(user)
+    return UserModel.one_user(session, user.user_id)
 
 
 @router.delete('/{user_id:int}')
-def delete_user(user_id: int, session: Session = Depends(get_db)) -> UserModel:
+def delete_user(response: Response, user_id: int, session: Session = Depends(get_db)):
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -428,4 +439,5 @@ def delete_user(user_id: int, session: Session = Depends(get_db)) -> UserModel:
 
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data
-    return UserModel.model_validate(user)
+    response.status_code = 204
+    return

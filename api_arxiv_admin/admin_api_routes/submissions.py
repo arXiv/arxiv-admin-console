@@ -8,7 +8,7 @@ from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Submission, SubmissionCategory
 from sqlalchemy.orm import Session
-from sqlalchemy import text  # select, update, func, case, Select, distinct, exists, and_
+from sqlalchemy import text, cast, LargeBinary  # select, update, func, case, Select, distinct, exists, and_
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 
@@ -120,7 +120,7 @@ class SubmissionModel(BaseModel):
             Submission.viewed,
             Submission.stage,
             Submission.submitter_id,
-            Submission.submitter_name,
+            cast(Submission.submitter_name, LargeBinary).label("submitter_name"),
             Submission.submitter_email,
             Submission.created,
             Submission.updated,
@@ -134,16 +134,16 @@ class SubmissionModel(BaseModel):
             Submission.source_flags,
             Submission.has_pilot_data,
             Submission.is_withdrawn,
-            Submission.title,
-            Submission.authors,
-            Submission.comments,
+            cast(Submission.title, LargeBinary).label("title"),
+            cast(Submission.authors, LargeBinary).label("authors"),
+            cast(Submission.comments, LargeBinary).label("comments"),
             Submission.proxy,
             Submission.report_num,
             Submission.msc_class,
             Submission.acm_class,
             Submission.journal_ref,
             Submission.doi,
-            Submission.abstract,
+            cast(Submission.abstract, LargeBinary).label("abstract"),
             Submission.license,
             Submission.version,
             Submission.type,
@@ -159,6 +159,17 @@ class SubmissionModel(BaseModel):
             Submission.is_locked,
             Submission.agreement_id
         )
+
+    @staticmethod
+    def to_model(sub: Submission, session: Session) -> "SubmissionModel":
+        row = sub._asdict()
+        for field in ["submitter_name", "title", "authors", "comments", "abstract"]:
+            row[field] = row[field].decode("utf-8") if row[field] else None
+        subm = SubmissionModel.model_validate(row)
+        subm.submission_categories = [SubmissionCategoryModel.model_validate(cat) for cat in
+                                      SubmissionCategoryModel.base_select(session).filter(
+                                      SubmissionCategory.submission_id == sub.id).all()]
+        return subm
 
 
 @router.get('/')
@@ -281,9 +292,7 @@ async def list_submissions(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [SubmissionModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
-    for sub in result:
-        sub.submission_categories = [SubmissionCategoryModel.model_validate(cat) for cat in SubmissionCategoryModel.base_select(db).filter(SubmissionCategory.submission_id == sub.id).all()]
+    result = [SubmissionModel.to_model(item, db) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 

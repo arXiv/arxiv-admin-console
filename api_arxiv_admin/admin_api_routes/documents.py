@@ -3,8 +3,8 @@ from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Document, Submission, Category, Metadata, PaperOwner
-from sqlalchemy import func, and_, desc
+from arxiv.db.models import Document, Submission, Category, Metadata, PaperOwner, Demographic
+from sqlalchemy import func, and_, desc, cast, LargeBinary
 from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -47,8 +47,8 @@ class DocumentModel(BaseModel):
         return db.query(
             Document.document_id.label("id"),
             Document.paper_id,
-            Document.title,
-            Document.authors,
+            cast(Document.title, LargeBinary).label("title"),
+            cast(Document.authors, LargeBinary).label("authors"),
             Document.submitter_email,
             Document.submitter_id,
             Document.dated,
@@ -107,7 +107,10 @@ def populate_remaining_fields(session: Session, doc: DocumentModel) -> DocumentM
         doc.abs_categories = metadata.abs_categories
 
     owner: PaperOwner
-    doc.author_ids = [owner.user_id for owner in session.query(PaperOwner).filter(PaperOwner.document_id == doc.id).all()]
+    doc.author_ids = [owner.user_id for owner in session.query(
+        PaperOwner).filter(PaperOwner.document_id == doc.id).join(Demographic, and_(
+        Demographic.user_id == PaperOwner.user_id,
+        Demographic.flag_proxy == 0)).all()]
 
     return doc
 

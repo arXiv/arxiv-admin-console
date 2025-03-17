@@ -295,20 +295,6 @@ async def update_ownership(
     return OwnershipModel.model_validate(item)
 
 
-@router.post('/')
-async def create_ownership(
-        request: Request,
-        current_user: ArxivUserClaims = Depends(get_current_user),
-        session: Session = Depends(get_db)) -> OwnershipModel:
-    gate_admin_user(current_user)
-    body = await request.json()
-
-    item = PaperOwner(**body)
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return OwnershipModel.model_validate(item)
-
 
 paper_pw_router = APIRouter(prefix="/paper-pw")
 
@@ -388,6 +374,21 @@ async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
     return await _get_paper_pw(doc.document_id, current_user, session)
 
 
+@router.post('/')
+async def create_ownership(
+        request: Request,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(get_db)) -> OwnershipModel:
+    gate_admin_user(current_user)
+    body = await request.json()
+
+    item = PaperOwner(**body)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return OwnershipModel.model_validate(item)
+
+
 class PaperAuthRequest(BaseModel):
     paper_id: str
     password: str
@@ -406,7 +407,8 @@ def arxiv_squash_id(paper_id: str) -> str | None:
     return None
 
 
-@router.put("/")
+
+@router.post("/authorize/")
 def register_paper_owner(
         response: Response,
         body: PaperAuthRequest,
@@ -443,7 +445,7 @@ def register_paper_owner(
     if paper_pw.password_storage != 0:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
 
-    if body.password != paper_pw.password_enc:
+    if body.password != paper_pw.password_enc and not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Incorrect password.")
 
     existing = session.query(PaperOwner).filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id == document_id).one_or_none()
