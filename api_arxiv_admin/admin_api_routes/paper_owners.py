@@ -1,9 +1,10 @@
 """arXiv ownership routes."""
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, UTC
 from typing import Optional, List, Tuple
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_hostname, get_client_host_name, get_client_host
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
 from sqlalchemy.exc import IntegrityError
 
@@ -15,7 +16,7 @@ from pydantic import BaseModel #, validator
 from arxiv.base import logging
 from arxiv.db.models import PaperOwner, PaperPw, Document
 
-from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user
+from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user, get_tracking_cookie
 from .biz.paper_owner_biz import generate_paper_pw
 from .localfile.submission_state import arxiv_is_pending
 
@@ -474,6 +475,9 @@ class PaperOwnershipUpdateRequest(BaseModel):
 async def update_authorship(
         body: PaperOwnershipUpdateRequest,
         session: Session = Depends(get_db),
+        remote_addr: Optional[str] = Depends(get_client_host),
+        remote_host: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
         current_user: ArxivUserClaims = Depends(get_current_user)  # Assumes user has an 'id' field
 ):
     if current_user is None:
@@ -482,13 +486,33 @@ async def update_authorship(
     if body.user_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
 
+    timestamp = datetime_to_epoch(None, datetime.now(UTC))
+
     for flag, doc_list in enumerate([body.not_authored, body.authored]):
         if doc_list:
-            stmt = (
-                update(PaperOwner)
-                .where(PaperOwner.user_id == body.user_id, PaperOwner.document_id.in_(doc_list))
-                .values(flag_author=flag)
-            )
-            session.execute(stmt)
+            if doc_list:
+                existing_docs = {
+                    po.document_id: po for po in session.query(PaperOwner)
+                    .filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id.in_(doc_list))
+                    .all()
+                }
 
+                for doc_id in doc_list:
+                    if doc_id in existing_docs:
+                        existing_docs[doc_id].flag_author = flag
+                    else:
+                        new_ownership = PaperOwner(
+                            document_id=doc_id,
+                            user_id=body.user_id,
+                            date=timestamp,
+                            added_by=current_user.user_id,
+                            remote_addr=remote_addr,
+                            remote_host=remote_host,
+                            tracking_cookie=tracking_cookie,
+                            valid=True,
+                            flag_author=flag,
+                            flag_auto=False,
+                        )
+                        session.add(new_ownership)
+    session.commit()
     return
