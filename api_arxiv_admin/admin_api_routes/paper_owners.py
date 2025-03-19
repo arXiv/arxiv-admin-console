@@ -7,7 +7,7 @@ from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
 from sqlalchemy.exc import IntegrityError
 
-from sqlalchemy import literal_column, func, and_  # case, Select, distinct, exists, alias,  select, update
+from sqlalchemy import literal_column, func, and_, update  # case, Select, distinct, exists, alias,  select, update
 
 from sqlalchemy.orm import Session # , joinedload
 
@@ -462,4 +462,33 @@ def register_paper_owner(
     session.add(paper_owner)
     session.commit()
     response.status_code = http_status.HTTP_201_CREATED
+    return
+
+
+class PaperOwnershipUpdateRequest(BaseModel):
+    user_id: str
+    authored: List[str] = []
+    not_authored: List[str] = []
+
+@router.post("/update-authorship")
+async def update_authorship(
+        body: PaperOwnershipUpdateRequest,
+        session: Session = Depends(get_db),
+        current_user: ArxivUserClaims = Depends(get_current_user)  # Assumes user has an 'id' field
+):
+    if current_user is None:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    if body.user_id != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
+
+    for flag, doc_list in enumerate([body.not_authored, body.authored]):
+        if doc_list:
+            stmt = (
+                update(PaperOwner)
+                .where(PaperOwner.user_id == body.user_id, PaperOwner.document_id.in_(doc_list))
+                .values(flag_author=flag)
+            )
+            session.execute(stmt)
+
     return

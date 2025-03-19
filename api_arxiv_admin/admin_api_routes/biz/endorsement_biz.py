@@ -10,8 +10,7 @@ from ..endorsement_requsets import EndorsementRequestModel
 from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, EndorsementOutcomeModel, EndorsementModel, \
     EndorserCapabilityType
 from ..public_users import PublicUserModel
-from ..user import UserModel
-
+from arxiv_bizlogic.bizmodels.user_model import UserModel
 
 # I don't know of the rational of this.
 # Someone needs to review this

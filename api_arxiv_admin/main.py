@@ -137,7 +137,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         CLASSIC_DB_URI = DB_URI,
         LATEXML_DB_URI = None
     )
-    from admin_api_routes.database import Database
+    from arxiv_bizlogic.database import Database
     database = Database(settings)
     database.set_to_global()
 

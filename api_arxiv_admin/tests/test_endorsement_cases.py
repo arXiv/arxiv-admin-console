@@ -382,7 +382,7 @@ class MockEndorsementAccessor(EndorsementAccessor):
             return None
         data = USER_PROTO.copy()
         data.update(user)
-        return UserModel.model_validate(data)
+        return UserModel.to_model(data)
 
 
     def tapir_audit_admin(self,
@@ -468,8 +468,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_good_endorsement_by_moderator(self):
         """Tests success endorsement by a moderator"""
-        endorser = UserModel.model_validate(get_user_data("cs-mod"))
-        endorsee = PublicUserModel.model_validate(get_user_data("cookie"))
+        endorser = UserModel.to_model(get_user_data("cs-mod"))
+        endorsee = PublicUserModel.to_model(get_user_data("cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -504,8 +504,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_bad_endorsement(self):
         """Tests a reject because of unrelated category"""
-        endorser = UserModel.model_validate(get_user_data("econ-mod"))
-        endorsee = PublicUserModel.model_validate(get_user_data("cookie"))
+        endorser = UserModel.to_model(get_user_data("econ-mod"))
+        endorsee = PublicUserModel.to_model(get_user_data("cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -538,8 +538,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_vetoed_user(self):
         """Endorsee is vetoed"""
-        endorser = UserModel.model_validate(get_user_data("veto"))
-        endorsee = PublicUserModel.model_validate(get_user_data("cookie"))
+        endorser = UserModel.to_model(get_user_data("veto"))
+        endorsee = PublicUserModel.to_model(get_user_data("cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -576,8 +576,8 @@ class TestEndorsementJudgement(unittest.TestCase):
         """Endorsee is a proxy submitter."""
         proxy_user = get_user_data("cs-mod")
         proxy_user["flag_proxy"] = True
-        endorser = UserModel.model_validate(proxy_user)
-        endorsee = PublicUserModel.model_validate(get_user_data("cookie"))
+        endorser = UserModel.to_model(proxy_user)
+        endorsee = PublicUserModel.to_model(get_user_data("cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -612,8 +612,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_non_definitive_category(self):
         """Reject by non-definitive category.  here cs.*"""
-        endorser = UserModel.model_validate(get_user_data("cs-mod"))
-        endorsee = PublicUserModel.model_validate(get_user_data("cookie"))
+        endorser = UserModel.to_model(get_user_data("cs-mod"))
+        endorsee = PublicUserModel.to_model(get_user_data("cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -648,8 +648,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_good_by_mod_ARXIVDEV_3461(self):
         """Accept because a mod said okay"""
-        endorser = UserModel.model_validate(get_user_data("econ-mod"))
-        endorsee = PublicUserModel.model_validate(get_user_data("cookie"))
+        endorser = UserModel.to_model(get_user_data("econ-mod"))
+        endorsee = PublicUserModel.to_model(get_user_data("cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -687,8 +687,8 @@ class TestEndorsementJudgement(unittest.TestCase):
     def test_bad_endorsement_endorsee_no_upload(self):
         """Tests the endorsee who has no-upload"""
 
-        endorser = UserModel.model_validate(get_user_data("user600"))
-        endorsee = PublicUserModel.model_validate(get_user_data("evil-cookie"))
+        endorser = UserModel.to_model(get_user_data("user600"))
+        endorsee = PublicUserModel.to_model(get_user_data("evil-cookie"))
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -723,8 +723,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_accept_enough_endorsements(self):
         """Accept because enough endorsements"""
-        endorser = UserModel.model_validate(get_user_data("user800"))  # Ordinary monster
-        endorsee = PublicUserModel.model_validate(get_user_data("user600"))  # Ordinary user
+        endorser = UserModel.to_model(get_user_data("user800"))  # Ordinary monster
+        endorsee = PublicUserModel.to_model(get_user_data("user600"))  # Ordinary user
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -759,8 +759,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_reject_not_enough_endorsements(self):
         """Reject because not enough endorsements"""
-        endorser = UserModel.model_validate(get_user_data("cookie"))  # Ordinary monster
-        endorsee = PublicUserModel.model_validate(get_user_data("user700"))  # Ordinary user
+        endorser = UserModel.to_model(get_user_data("cookie"))  # Ordinary monster
+        endorsee = PublicUserModel.to_model(get_user_data("user700"))  # Ordinary user
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -797,8 +797,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_accept_endorser_with_enough_papers(self):
         """Accept because the endorser has enough paper quota"""
-        endorser = UserModel.model_validate(get_user_data("user800"))  # Ordinary user
-        endorsee = PublicUserModel.model_validate(get_user_data("user700"))  # Ordinary user
+        endorser = UserModel.to_model(get_user_data("user800"))  # Ordinary user
+        endorsee = PublicUserModel.to_model(get_user_data("user700"))  # Ordinary user
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,
@@ -833,8 +833,8 @@ class TestEndorsementJudgement(unittest.TestCase):
 
     def test_reject_endorser_without_enough_papers(self):
         """Accept because the endorser has enough paper quota"""
-        endorser = UserModel.model_validate(get_user_data("user900"))  # Ordinary user
-        endorsee = PublicUserModel.model_validate(get_user_data("user700"))  # Ordinary user
+        endorser = UserModel.to_model(get_user_data("user900"))  # Ordinary user
+        endorsee = PublicUserModel.to_model(get_user_data("user700"))  # Ordinary user
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=True,

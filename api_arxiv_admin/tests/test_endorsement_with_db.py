@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime
 from typing import List
 
-from admin_api_routes.database import DatabaseSession
+from arxiv_bizlogic.database import DatabaseSession, Database
 from admin_api_routes.endorsement_requsets import EndorsementRequestModel
 
 from arxiv.db.models import EndorsementRequest, \
@@ -37,7 +37,6 @@ class TestReadOnlys(unittest.TestCase):
             CLASSIC_DB_URI = db_uri,
             LATEXML_DB_URI = None
         )
-        from admin_api_routes.database import Database
         database = Database(settings)
         database.set_to_global()
         from app_logging import setup_logger
@@ -171,7 +170,6 @@ class TestCreateEndorsement(unittest.TestCase):
             CLASSIC_DB_URI = db_uri,
             LATEXML_DB_URI = None
         )
-        from admin_api_routes.database import Database
         database = Database(settings)
         database.set_to_global()
         from app_logging import setup_logger

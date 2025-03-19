@@ -136,7 +136,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
         # @ignore-types
         user = UserModel.base_select(self.session).filter(TapirUser.user_id == int(id)).one_or_none()
         if user:
-            return UserModel.model_validate(user)
+            return UserModel.to_model(user)
         return None
 
     def tapir_audit_admin(self,
