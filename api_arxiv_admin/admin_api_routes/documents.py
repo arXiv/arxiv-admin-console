@@ -1,11 +1,12 @@
 """arXiv paper display routes."""
+from __future__ import annotations
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Document, Submission, Category, Metadata, PaperOwner, Demographic
+from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic
 from sqlalchemy import func, and_, desc, cast, LargeBinary
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 # from .models import CrossControlModel
@@ -20,6 +21,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents")
 
 yymm_re = re.compile(r"^\d{4}\.\d{0,5}")
+
+class TimedCache:
+    def __init__(self, expiration_seconds=60):
+        self.cache = {}
+        self.expiration_seconds = expiration_seconds
+
+    def set(self, key, value):
+        self.cache[key] = (value, time.time() + self.expiration_seconds)
+
+    def get(self, key):
+        # Check if the key exists and is not expired
+        if key in self.cache:
+            value, expiry = self.cache[key]
+            if time.time() < expiry:
+                return value
+            else:
+                # Remove expired key
+                del self.cache[key]
+        return None  # Return None if not found or expired
+
+    def __contains__(self, key):
+        return self.get(key) is not None
+
+    def clear(self):
+        self.cache.clear()
+
+last_submission_cache = TimedCache()
 
 class DocumentModel(BaseModel):
     id: int # document_id
@@ -56,63 +84,35 @@ class DocumentModel(BaseModel):
             Document.created,
         )
 
-
-class TimedCache:
-    def __init__(self, expiration_seconds=60):
-        self.cache = {}
-        self.expiration_seconds = expiration_seconds
-
-    def set(self, key, value):
-        self.cache[key] = (value, time.time() + self.expiration_seconds)
-
-    def get(self, key):
-        # Check if the key exists and is not expired
-        if key in self.cache:
-            value, expiry = self.cache[key]
-            if time.time() < expiry:
-                return value
-            else:
-                # Remove expired key
-                del self.cache[key]
-        return None  # Return None if not found or expired
-
-    def __contains__(self, key):
-        return self.get(key) is not None
-
-    def clear(self):
-        self.cache.clear()
-
-last_submission_cache = TimedCache()
-
-def populate_remaining_fields(session: Session, doc: DocumentModel) -> DocumentModel:
-    last_submission_id = last_submission_cache.get(doc.id)
-    if last_submission_id is None:
-        last_submission_id = (
-            session.query(func.max(Submission.submission_id))
-            .filter(Submission.document_id == doc.id)
-            .scalar()
-        )
+    def populate_remaining_fields(self, session: Session) -> DocumentModel:
+        last_submission_id = last_submission_cache.get(self.id)
         if last_submission_id is None:
-            last_submission_id = 0
-        last_submission_cache.set(doc.id, last_submission_id)
+            last_submission_id = (
+                session.query(func.max(Submission.submission_id))
+                .filter(Submission.document_id == self.id)
+                .scalar()
+            )
+            if last_submission_id is None:
+                last_submission_id = 0
+            last_submission_cache.set(self.id, last_submission_id)
 
-    if last_submission_id != 0:
-        doc.last_submission_id = last_submission_id
+        if last_submission_id != 0:
+            self.last_submission_id = last_submission_id
 
-    metadata = session.query(Metadata).filter(
-        and_(Metadata.document_id == doc.id,
-             Metadata.is_current == 1,
-             Metadata.is_withdrawn == 0)).order_by(desc(Metadata.metadata_id)).first()
-    if metadata:
-        doc.abs_categories = metadata.abs_categories
+        metadata = session.query(Metadata).filter(
+            and_(Metadata.document_id == self.id,
+                 Metadata.is_current == 1,
+                 Metadata.is_withdrawn == 0)).order_by(desc(Metadata.metadata_id)).first()
+        if metadata:
+            self.abs_categories = metadata.abs_categories
 
-    owner: PaperOwner
-    doc.author_ids = [owner.user_id for owner in session.query(
-        PaperOwner).filter(PaperOwner.document_id == doc.id).join(Demographic, and_(
-        Demographic.user_id == PaperOwner.user_id,
-        Demographic.flag_proxy == 0)).all()]
+        owner: PaperOwner
+        self.author_ids = [owner.user_id for owner in session.query(
+            PaperOwner).filter(PaperOwner.document_id == self.id).join(Demographic, and_(
+            Demographic.user_id == PaperOwner.user_id,
+            Demographic.flag_proxy == 0)).all()]
 
-    return doc
+        return self
 
 
 @router.get('/')
@@ -203,7 +203,7 @@ async def list_documents(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result: List[DocumentModel] = [populate_remaining_fields(db, DocumentModel.model_validate(item)) for item in query.offset(_start).limit(_end - _start).all()]
+    result: List[DocumentModel] = [DocumentModel.model_validate(item).populate_remaining_fields(db) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -216,7 +216,7 @@ def get_document(paper_id:str,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail=f"Paper {paper_id} not found")
-    return populate_remaining_fields(session, DocumentModel.model_validate(doc))
+    return DocumentModel.model_validate(doc).populate_remaining_fields(session)
 
 @router.get("/paper_id/{category:str}/{paper_id:str}")
 def get_old_style_document(
@@ -230,9 +230,7 @@ def get_old_style_document(
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail=f"Paper {old_paper_id} not found")
-    return populate_remaining_fields(session, DocumentModel.model_validate(doc))
-
-
+    return DocumentModel.model_validate(doc).populate_remaining_fields(session)
 
 @router.get("/{id:str}")
 def get_document(id:int,
@@ -242,5 +240,5 @@ def get_document(id:int,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return populate_remaining_fields(session, DocumentModel.model_validate(doc))
+    return DocumentModel.model_validate(doc).populate_remaining_fields(session)
 

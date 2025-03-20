@@ -20,6 +20,8 @@ from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_use
 from .biz.paper_owner_biz import generate_paper_pw
 from .localfile.submission_state import arxiv_is_pending
 
+from .documents import DocumentModel
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/paper_owners")
@@ -39,6 +41,8 @@ class OwnershipModel(BaseModel):
     valid: bool
     flag_author: bool
     flag_auto: bool
+
+    document: Optional[DocumentModel] = None
 
     @staticmethod
     def base_select(session: Session):
@@ -82,17 +86,18 @@ async def list_ownerships(
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         flag_valid: Optional[bool] = Query(None),
-        user_id: Optional[int] = Query(None),
+        user_id: Optional[str] = Query(None),
         document_id: Optional[int] = Query(None),
         id: Optional[List[str]] = Query(None,
                                         description="List of paper owner"),
+        with_document: Optional[bool] = Query(False, description="with document"),
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
-
-    gate_admin_user(current_user)
-
     query = OwnershipModel.base_select(session)
+
+    if str(user_id) != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Unauthorized")
 
     if id:
         users = []
@@ -155,6 +160,9 @@ async def list_ownerships(
 
         if flag_valid is not None:
             query = query.filter(PaperOwner.valid == flag_valid)
+        else:
+            if current_user and not current_user.is_admin:
+                query = query.filter(PaperOwner.valid == 1)
 
         for column in order_columns:
             if _order == "DESC":
@@ -165,6 +173,12 @@ async def list_ownerships(
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
     result = [OwnershipModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
+
+    if with_document:
+        doc_ids = [doc.document_id for doc in result]
+        docs = {d.id: d for d in [DocumentModel.model_validate(doc).populate_remaining_fields(session) for doc in DocumentModel.base_select(session).filter(Document.document_id.in_(doc_ids)).all()]}
+        for onwnership in result:
+            onwnership.document = docs.get(onwnership.document_id)
     return result
 
 
@@ -470,6 +484,18 @@ class PaperOwnershipUpdateRequest(BaseModel):
     user_id: str
     authored: List[str] = []
     not_authored: List[str] = []
+    valid: Optional[bool] = None    # Default is True when created
+    auto: Optional[bool] = None     # Default is False when created
+    timestamp: Optional[str] = None # ISO timestamp
+
+
+def parse_doc_id(doc_id: str) -> str | int:
+    if doc_id.startswith("user_"):
+        matched = ownership_id_re.match(doc_id)
+        if matched:
+            return int(matched.group(2))
+    return doc_id
+
 
 @router.post("/update-authorship")
 async def update_authorship(
@@ -486,33 +512,45 @@ async def update_authorship(
     if body.user_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
 
-    timestamp = datetime_to_epoch(None, datetime.now(UTC))
+    timestamp = datetime.fromisoformat(body.timestamp) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
+    auto = False if body.auto is None else body.auto
+    valid = True if body.valid is None else body.valid
 
-    for flag, doc_list in enumerate([body.not_authored, body.authored]):
-        if doc_list:
-            if doc_list:
-                existing_docs = {
-                    po.document_id: po for po in session.query(PaperOwner)
-                    .filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id.in_(doc_list))
-                    .all()
-                }
+    if valid == False and not current_user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not authorized.")
 
-                for doc_id in doc_list:
-                    if doc_id in existing_docs:
-                        existing_docs[doc_id].flag_author = flag
-                    else:
-                        new_ownership = PaperOwner(
-                            document_id=doc_id,
-                            user_id=body.user_id,
-                            date=timestamp,
-                            added_by=current_user.user_id,
-                            remote_addr=remote_addr,
-                            remote_host=remote_host,
-                            tracking_cookie=tracking_cookie,
-                            valid=True,
-                            flag_author=flag,
-                            flag_auto=False,
-                        )
-                        session.add(new_ownership)
+    for flag, doc__list in enumerate([body.not_authored, body.authored]):
+        if not doc__list:
+            continue
+        doc_ids = [parse_doc_id(doc) for doc in doc__list]
+
+        existing_docs = {
+            str(po.document_id): po for po in session.query(PaperOwner)
+            .filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id.in_(doc_ids))
+            .all()
+        }
+
+        for doc_id in doc_ids:
+            d_id = str(doc_id)
+            if d_id in existing_docs:
+                existing_docs[d_id].flag_author = flag
+                if body.auto is not None:
+                    existing_docs[d_id].flag_auto = body.auto
+                if body.valid is not None:
+                    existing_docs[d_id].flag_valid = body.valid
+            else:
+                new_ownership = PaperOwner(
+                    document_id=doc_id,
+                    user_id=body.user_id,
+                    date=timestamp,
+                    added_by=current_user.user_id,
+                    remote_addr=remote_addr,
+                    remote_host=remote_host,
+                    tracking_cookie=tracking_cookie,
+                    valid=valid,
+                    flag_author=flag,
+                    flag_auto=auto,
+                )
+                session.add(new_ownership)
     session.commit()
     return
