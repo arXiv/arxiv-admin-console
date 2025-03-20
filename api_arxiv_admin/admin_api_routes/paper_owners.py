@@ -18,6 +18,7 @@ from arxiv.db.models import PaperOwner, PaperPw, Document
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user, get_tracking_cookie
 from .biz.paper_owner_biz import generate_paper_pw
+from .helpers.mui_datagrid import MuiDataGridFilter
 from .localfile.submission_state import arxiv_is_pending
 
 from .documents import DocumentModel
@@ -88,6 +89,7 @@ async def list_ownerships(
         flag_valid: Optional[bool] = Query(None),
         user_id: Optional[str] = Query(None),
         document_id: Optional[int] = Query(None),
+        filter: Optional[str] = Query(None, description="MUI datagrid filter"),
         id: Optional[List[str]] = Query(None,
                                         description="List of paper owner"),
         with_document: Optional[bool] = Query(False, description="with document"),
@@ -98,6 +100,8 @@ async def list_ownerships(
 
     if str(user_id) != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+
+    datagrid_filter = MuiDataGridFilter(filter) if filter is not None else None
 
     if id:
         users = []
@@ -163,6 +167,20 @@ async def list_ownerships(
         else:
             if current_user and not current_user.is_admin:
                 query = query.filter(PaperOwner.valid == 1)
+
+        if datagrid_filter:
+            query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)
+            field_name = datagrid_filter.field_name
+            if field_name == "id":
+                field_name = "document_id"
+            if field_name:
+                if field_name.startswith("document."):
+                    doc_field_name = field_name.split(".")[1]
+                    if hasattr(Document, doc_field_name):
+                        field = getattr(Document, doc_field_name)
+                        query = datagrid_filter.to_query(query, field)
+                    else:
+                        logger.warning(f"{field_name} field not found on Document, skipping")
 
         for column in order_columns:
             if _order == "DESC":
