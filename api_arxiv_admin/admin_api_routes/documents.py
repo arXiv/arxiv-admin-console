@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic
-from sqlalchemy import func, and_, desc, cast, LargeBinary
+from sqlalchemy import func, and_, desc, cast, LargeBinary, Row
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -14,6 +14,7 @@ import re
 import time
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
+from .helpers.latex_helpers import convert_latex_accents
 from .helpers.mui_datagrid import MuiDataGridFilter
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,22 @@ class DocumentModel(BaseModel):
             Document.primary_subject_class,
             Document.created,
         )
+
+    @staticmethod
+    def to_model(session: Session, row: Row | dict | DocumentModel) -> DocumentModel:
+        if isinstance(row, Row):
+            row_data = row._asdict()
+            data = row_data.copy()
+            for field in ["title", "authors"]:
+                if field in data and isinstance(data[field], bytes):
+                    data[field] = convert_latex_accents(row_data[field].decode("utf-8", errors="replace"))
+        elif isinstance(row, dict):
+            data = row
+        else:
+            data = row.model_dump()
+        model_data = DocumentModel(**data)
+        return model_data.populate_remaining_fields(session)
+
 
     def populate_remaining_fields(self, session: Session) -> DocumentModel:
         last_submission_id = last_submission_cache.get(self.id)
@@ -203,7 +220,7 @@ async def list_documents(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result: List[DocumentModel] = [DocumentModel.model_validate(item).populate_remaining_fields(db) for item in query.offset(_start).limit(_end - _start).all()]
+    result: List[DocumentModel] = [DocumentModel.to_model(db, item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -216,7 +233,7 @@ def get_document(paper_id:str,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail=f"Paper {paper_id} not found")
-    return DocumentModel.model_validate(doc).populate_remaining_fields(session)
+    return DocumentModel.to_model(session, doc)
 
 @router.get("/paper_id/{category:str}/{paper_id:str}")
 def get_old_style_document(
@@ -230,7 +247,7 @@ def get_old_style_document(
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail=f"Paper {old_paper_id} not found")
-    return DocumentModel.model_validate(doc).populate_remaining_fields(session)
+    return DocumentModel.to_model(session, doc)
 
 @router.get("/{id:str}")
 def get_document(id:int,
@@ -240,5 +257,5 @@ def get_document(id:int,
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return DocumentModel.model_validate(doc).populate_remaining_fields(session)
+    return DocumentModel.to_model(session, doc)
 
