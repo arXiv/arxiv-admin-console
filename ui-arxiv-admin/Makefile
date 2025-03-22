@@ -106,3 +106,11 @@ local:
 		--security-opt seccomp=unconfined  \
 		--progress=plain \
 		--platform=linux/amd64 -t ${app_tag}:latest .
+
+#-#
+#-# Command: api
+#-#   gets the swagger specs (OpenAPI specs) from FastAPI endpoints
+api:
+	# cd account-app && npm install --save-dev openapi-typescript
+	npx openapi-typescript http://localhost:5100/aaa/openapi.json -o src/types/aaa-api.ts
+	npx openapi-typescript http://localhost:5100/admin-api/openapi.json -o src/types/admin-api.ts

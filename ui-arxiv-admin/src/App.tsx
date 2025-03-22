@@ -23,7 +23,7 @@ import {EndorsementCreate, EndorsementEdit, EndorsementList} from "./endorsement
 import {DocumentCreate, DocumentEdit, DocumentList, DocumentShow} from "./documents";
 import {CategoryList, CategoryCreate, CategoryEdit} from "./categories";
 import {ModeratorCreate, ModeratorEdit, ModeratorList} from "./moderators";
-import {OwnershipRequestEdit, OwnershipRequestList} from "./ownershipRequests";
+import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "./ownershipRequests";
 import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
 import {SubmissionCreate, SubmissionEdit, SubmissionList, SubmissionShow} from "./submissions";
 import {TapirSessionEdit, TapirSessionList} from "./tapirSessions";
@@ -31,6 +31,7 @@ import {MembershipInstitutionList} from "./membershipInstitutions";
 import {darkTheme, lightTheme} from "./navTheme";
 
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
+import Typography from "@mui/material/Typography";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -95,6 +96,7 @@ const AdminConsole: React.FC = () => {
 
                 theme={lightTheme}
                 darkTheme={darkTheme}
+
             >
                 <Resource
                     name="users"
@@ -170,7 +172,7 @@ const AdminConsole: React.FC = () => {
                     name="ownership_requests"
                     list={OwnershipRequestList}
                     edit={OwnershipRequestEdit}
-                    show={ShowGuesser}
+                    show={OwnershipRequestShow}
                     icon={OwnershipRequestIcon}
                     recordRepresentation="user_id"
                 />

@@ -13,7 +13,9 @@ import {
     Box,
     Typography,
     TablePagination,
-    Tooltip
+    Tooltip,
+    Toolbar,
+    Stack
 } from '@mui/material';
 
 import YesIcon from '@mui/icons-material/Check';
@@ -48,11 +50,30 @@ import {
     useGetOne, RadioButtonGroupInput,
     RecordContextProvider,
     ListContextProvider,
-    SourceContextProvider
+    SourceContextProvider,
+    ReferenceArrayField,
+    useList,
+    useGetList,
+    UseListOptions,
+    SaveButton
 } from 'react-admin';
+
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { addDays } from 'date-fns';
 import {json} from "node:stream/consumers";
+import CircularProgress from "@mui/material/CircularProgress";
+import Button from '@mui/material/Button';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+
+
+import {paths as adminApi} from "./types/admin-api";
+// type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
+type OwnershipRequestsRequest = adminApi['/v1/ownership_requests/']['post']['requestBody']['content']['application/json'];
+type OwnershipRequestsList = adminApi['/v1/ownership_requests/']['get']['responses']['200']['content']['application/json'];
+type OwnershipRequestType = adminApi['/v1/ownership_requests/{id}']['get']['responses']['200']['content']['application/json'];
+type OwnershipModel = adminApi['/v1/paper_owners/{id}']['get']['responses']['200']['content']['application/json'];
 
 type WorkflowStatusType = 'pending' | 'accepted' | 'rejected';
 
@@ -130,7 +151,9 @@ const OwnershipRequestFilter = (props: any) => {
 export const OwnershipRequestList = () => {
     const sorter: SortPayload = {field: 'ownershipRequest_id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
+
     return (
+        <>
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
             {isSmall ? (
                 <SimpleList
@@ -139,7 +162,7 @@ export const OwnershipRequestList = () => {
                     tertiaryText={record => record.email}
                 />
             ) : (
-                <Datagrid rowClick="edit" sort={sorter}>
+                <Datagrid sort={sorter}> rowClick="edit" isRowExpandable={true}
                     <NumberField source="id" label={"Request ID"}/>
                     <DateField source="date" label={"Date"}/>
                     <ReferenceField source="user_id" reference="users"
@@ -159,6 +182,7 @@ export const OwnershipRequestList = () => {
                 </Datagrid>
             )}
         </List>
+        </>
     );
 };
 
@@ -187,18 +211,6 @@ const OwnershipRequestTitle = () => {
     );
 };
 
-interface OwnershipModel {
-    document_id: number;
-    user_id: number;
-    date: string;
-    added_by: number;
-    remote_addr: string;
-    remote_host: string;
-    tracking_cookie: string;
-    valid: boolean;
-    flag_author: boolean;
-    flag_auto: boolean;
-}
 
 const PaperOwnerList: React.FC = () => {
     const record = useRecordContext<{
@@ -283,7 +295,7 @@ const PaperOwnerList: React.FC = () => {
                 {documents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((document, index) => (
                     <TableRow>
                         <TableCell>
-                            {paperOwners[index].flag_author ? <YesIcon /> : null}
+                            {paperOwners[index]?.flag_author ? <YesIcon /> : null}
                         </TableCell>
                         <TableCell>
                             <ReferenceField source="id" reference="documents" record={document} link="show">
@@ -429,28 +441,72 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({workflowStatus})
     );
 };
 
+const OwnershipRequestToolbar = ({ prevId, nextId }: { prevId: number | null; nextId: number | null }) => {
+    const navigate = useNavigate();
+
+    return (
+        <Toolbar>
+            {/* Default Save button */}
+            <SaveButton />
+            {/* Navigation buttons */}
+            <Stack direction="row" spacing={1} sx={{ ml: 2 }}>
+                <Button
+                    variant="outlined"
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => navigate(`/ownership_requests/${prevId}`)}
+                    disabled={!prevId}
+                >
+                    {prevId ?? ''}
+                </Button>
+                <Button
+                    variant="outlined"
+                    endIcon={<ArrowForwardIcon />}
+                    onClick={() => navigate(`/ownership_requests/${nextId}`)}
+                    disabled={!nextId}
+                >
+                    {nextId ?? ''}
+                </Button>
+            </Stack>
+        </Toolbar>
+    );
+};
 
 export const OwnershipRequestEdit = () => {
-    const dataProvider = useDataProvider();
+    // const dataProvider = useDataProvider();
     const [workflowStatus, setWorkflowStatus] = useState<'pending' | 'accepted' | 'rejected'>('pending'); // State to hold workflow_status
 
     const handleWorkflowStatusChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
         setWorkflowStatus(event.target.value as any);
     };
 
+    const { id } = useParams();
+
+    const [listOptions, setListOptions] = useState<UseListOptions>(
+        {
+            filter: {"workflow_status": "pending"},
+            sort: { field: 'id', order: 'ASC' }
+        }
+    );
+
+    const {data, isLoading, total, error,  } = useGetList<OwnershipRequestType>("ownership_requests", listOptions);
+
+    if (isLoading || !data) return (
+        <div>
+            <Typography>Getting Ownership Request</Typography>
+            <CircularProgress />
+        </div>
+    );
+
+    console.log(JSON.stringify(data));
+
+    const ids = data.map(record => record.id);
+    const currentIndex = ids.indexOf(Number(id));
+    const prevId = currentIndex > 0 ? ids[currentIndex - 1] : null;
+    const nextId = currentIndex < ids.length - 1 ? ids[currentIndex + 1] : null;
+
     return (
         <Edit title={<OwnershipRequestTitle />}>
-            <SimpleForm>
-                <RadioButtonGroupInput
-                    source="workflow_status"
-                    choices={[
-                        { id: 'accepted', name: 'Accept' },
-                        { id: 'rejected', name: 'Reject' },
-                        { id: 'pending', name: 'Pending' },
-                    ]}
-                    label="Workflow Status"
-                    onChange={handleWorkflowStatusChange}
-                />
+            <SimpleForm toolbar={<OwnershipRequestToolbar prevId={prevId} nextId={nextId} />}>
                 <Card >
                     <CardContent>
                         <Table>
@@ -487,6 +543,16 @@ export const OwnershipRequestEdit = () => {
                         <RequestedPaperList workflowStatus={workflowStatus} />
                     </CardContent>
                 </Card>
+                <RadioButtonGroupInput
+                    source="workflow_status"
+                    choices={[
+                        { id: 'accepted', name: 'Accept' },
+                        { id: 'rejected', name: 'Reject' },
+                        { id: 'pending', name: 'Pending' },
+                    ]}
+                    label="Workflow Status"
+                    onChange={handleWorkflowStatusChange}
+                />
             </SimpleForm>
             <PaperOwnerList />
         </Edit>
@@ -505,23 +571,33 @@ export const OwnershipRequestCreate = () => (
 );
 
 
-export const OwnershipRequestShow = () => (
-    <Show>
-        <SimpleShowLayout>
-            <TextField source="id" />
-            <ReferenceField source="endorsee_id" reference="users"
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
-                {", "}
-                <TextField source={"first_name"} />
-            </ReferenceField>
-            <TextField source="archive" />
-            <TextField source="subject_class" />
-            <BooleanField source="flag_valid" />
-            <DateField source="issued_when" />
-            <NumberField source="point_value" />
-            <BooleanField source="flag_suspect" />
-            <TextField source="arXiv_categories" />
-        </SimpleShowLayout>
-    </Show>
-);
+export const OwnershipRequestShow = () => {
+    const record = useRecordContext();
+    return (
+        <Show>
+        <Card>
+            <CardHeader title={<>
+            {"Ownership Request: "}
+                <TextField source="id"/>
+            </>}
+            />
+            <CardContent>
+                <ReferenceField source="endorsement_request_id" reference="endorsement_requests"/>
+                <TextField source="workflow_status"/>
+                <Box>
+                    <TextField source="id"/>
+                    <ReferenceField source="user_id" reference="users"
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <TextField source={"last_name"}/>
+                        {", "}
+                        <TextField source={"first_name"}/>
+                    </ReferenceField>
+                    <DateField source="date"/>
+                </Box>
+                <ReferenceArrayField source="document_ids" reference="documents">
+                    <TextField source="id"/>
+                </ReferenceArrayField>
+            </CardContent>
+        </Card>
+    </Show>)
+}

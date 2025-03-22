@@ -217,15 +217,14 @@ async def list_ownerships_for_user(
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
-    gate_admin_user(current_user)
+    # gate_admin_user(current_user)
     query = OwnershipModel.base_select(session)
-
 
     if _start < 0 or _end < _start:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                             detail="Invalid start or end index")
 
-    if not current_user.is_admin or user_id != current_user.user_id:
+    if (not current_user.is_admin) and (user_id != current_user.user_id):
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
                             detail="Not authorized")
 
