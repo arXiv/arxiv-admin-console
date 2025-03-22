@@ -131,6 +131,7 @@ def list_ownership_requests(
         start_date: Optional[datetime.date] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime.date] = Query(None, description="End date for filtering"),
         id: Optional[List[int]] = Query(None, description="List of ownership request IDs to filter by"),
+        current_id: Optional[int] = Query(None, description="Current ID - index position - for navigation"),
         user_id: Optional[int] = Query(None),
         endorsement_request_id: Optional[int] = Query(None),
         workflow_status: Optional[Literal['pending', 'accepted', 'rejected']] = Query(None),
@@ -138,6 +139,8 @@ def list_ownership_requests(
         current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[OwnershipRequestModel]:
     query = OwnershipRequestModel.base_query(session)
+    order_columns = []
+
     if id is not None:
         query = query.filter(OwnershipRequest.request_id.in_(id))
         _start = None
@@ -175,6 +178,43 @@ def list_ownership_requests(
 
         if endorsement_request_id is not None:
             query = query.filter(OwnershipRequest.endorsement_request_id == endorsement_request_id)
+
+        if current_id is not None:
+            # This is used to navigate
+            _order = "ASC"
+            _sort = "request_id"
+            prev_req = (
+                session.query(OwnershipRequest)
+                .filter(OwnershipRequest.request_id < current_id)
+                .order_by(OwnershipRequest.request_id.desc())
+                .first()
+            )
+
+            next_req = (
+                session.query(OwnershipRequest)
+                .filter(OwnershipRequest.request_id > current_id)
+                .order_by(OwnershipRequest.request_id.asc())
+                .first()
+            )
+            query = query.filter(OwnershipRequest.request_id.between(prev_req.request_id, next_req.request_id))
+
+        if _sort:
+            keys = _sort.split(",")
+            for key in keys:
+                if key == "id":
+                    key = "request_id"
+                try:
+                    order_column = getattr(OwnershipRequest, key)
+                    order_columns.append(order_column)
+                except AttributeError:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                        detail="Invalid start or end index")
+
+    for column in order_columns:
+        if _order == "DESC":
+            query = query.order_by(column.desc())
+        else:
+            query = query.order_by(column.asc())
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
