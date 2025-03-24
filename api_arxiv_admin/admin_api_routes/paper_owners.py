@@ -4,6 +4,7 @@ from typing import Optional, List, Tuple
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.bizmodels.user_model import UserModel
 from arxiv_bizlogic.fastapi_helpers import get_hostname, get_client_host_name, get_client_host
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
 from sqlalchemy.exc import IntegrityError
@@ -449,13 +450,15 @@ def register_paper_owner(
         response: Response,
         body: PaperAuthRequest,
         session: Session = Depends(get_db),
+        remote_addr: str = Depends(get_client_host),
+        remote_host: str = Depends(get_client_host_name),
         current_user: ArxivUserClaims = Depends(get_current_user),
 ):
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
 
     if body.user_id != current_user.user_id and not current_user.is_admin:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only own the paper.")
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only own the paper as your own.")
 
     if not body.verify_id:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="You must verify your contact information.")
@@ -469,31 +472,37 @@ def register_paper_owner(
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper ID '{body.paper_id}' is ill-formed.")
 
     # This needs to review hard
-    is_author = body.user_id == paper.submitter_id
-    if (not is_author) and arxiv_is_pending(body.paper_id):
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Non-authors cannot access pending papers.")
+    is_auto = body.user_id == paper.submitter_id
 
     document_id = paper.document_id
-    paper_pw = session.query(PaperPw).filter(PaperPw.document_id == document_id).one_or_none()
-    if not paper_pw:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' does not have a password.")
 
-    if paper_pw.password_storage != 0:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
+    if not current_user.is_admin:
+        paper_pw = session.query(PaperPw).filter(PaperPw.document_id == document_id).one_or_none()
+        if not paper_pw:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' does not have a password.")
 
-    if body.password != paper_pw.password_enc and not current_user.is_admin:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Incorrect password.")
+        if paper_pw.password_storage != 0:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
+
+        if body.password != paper_pw.password_enc and not current_user.is_admin:  # the 2nd part is redundant, I know.
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Incorrect password.")
+
+    user = UserModel.one_user(session, body.user_id)
 
     existing = session.query(PaperOwner).filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id == document_id).one_or_none()
     if existing:
-        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT, detail=f"Paper owner '{body.paper_id}' already exists.")
+        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT, detail=f"You, {user.username} have the ownership of '{body.paper_id}'.")
 
     paper_owner = PaperOwner(
         user_id=body.user_id,
         document_id=document_id,
         added_by=current_user.user_id,
-        remote_addr=body.client.host,
-        flag_author=1 if is_author else 0,
+        remote_addr=remote_addr,
+        remote_host=remote_host,
+        valid = True,
+        flag_author=True,
+        flag_auto=1 if is_auto else 0,
+        tracking_cookie = None if user is None else user.tracking_cookie,
     )
     session.add(paper_owner)
     session.commit()
