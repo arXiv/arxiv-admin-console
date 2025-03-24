@@ -4,15 +4,22 @@ import {RuntimeProps} from "./RuntimeContext";
 import {getRemainingTimeInSeconds} from "./helpers/timeDiff";
 
 function getCookie(name: string): string | null {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    if (!match) return null;
+
+    const rawValue = decodeURIComponent(match[1].replace(/^"|"$/g, ''));
+    return rawValue.replace(/\\(\d{3})/g, (_m, oct) => String.fromCharCode(parseInt(oct, 8)));
+}
+
+/*
+function getCookie(name: string): string | null {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()!.split(';').shift()!.replace(/\\(\d{3})/g, (_match, octalCode) => String.fromCharCode(parseInt(octalCode, 8)))!;
     return null;
 }
-
-/*
-
  */
+
 const retryFetch = async (url: string, options: RequestInit, retries = 3, backoff = 1000): Promise<Response> => {
     for (let i = 0; i < retries; i++) {
         try {
@@ -94,10 +101,15 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
             }
             return Promise.reject();
         }
-        else if (status === 403 || status === undefined) {
+        else if (status === 403) {
             console.log("auth: checkError 403");
             // await fetch(`${runtimeProps.AAA_URL}/logouf`, {method: 'GET', credentials: 'include'});
             return Promise.reject();
+        }
+        else if (status === undefined) {
+            console.log("auth: checkError undefined");
+            // await fetch(`${runtimeProps.AAA_URL}/logouf`, {method: 'GET', credentials: 'include'});
+            return Promise.resolve();
         }
         console.log(`auth: good - checkError status=${status} `);
         return Promise.resolve();
@@ -120,7 +132,9 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
             localStorage.setItem('arxiv_session_token', arxiv_token);
             return Promise.resolve();
         }
+        console.log(`checkAuth: no cookie for token "${runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME}"="${token}" arxiv_token "${runtimeProps.ARXIV_COOKIE_NAME}"="${arxiv_token}" `);
 
+        console.log(JSON.stringify(document.cookie));
         return Promise.reject();
     },
 
