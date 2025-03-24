@@ -3,6 +3,7 @@ import json
 import urllib
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
 from typing import Optional, List
 from arxiv.base import logging
@@ -164,7 +165,7 @@ class SubmissionModel(BaseModel):
     def to_model(sub: Submission, session: Session) -> "SubmissionModel":
         row = sub._asdict()
         for field in ["submitter_name", "title", "authors", "comments", "abstract"]:
-            row[field] = row[field].decode("utf-8") if row[field] else None
+            row[field] = convert_latex_accents(row[field].decode("utf-8")) if row[field] else None
         subm = SubmissionModel.model_validate(row)
         subm.submission_categories = [SubmissionCategoryModel.model_validate(cat) for cat in
                                       SubmissionCategoryModel.base_select(session).filter(

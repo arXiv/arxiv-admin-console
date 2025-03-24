@@ -13,8 +13,9 @@ from datetime import datetime, date, timedelta
 import re
 import time
 
+from arxiv_bizlogic.latex_helpers import convert_latex_accents
+
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
-from .helpers.latex_helpers import convert_latex_accents
 from .helpers.mui_datagrid import MuiDataGridFilter
 
 logger = logging.getLogger(__name__)
