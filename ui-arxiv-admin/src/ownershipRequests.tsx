@@ -483,6 +483,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments }: { id: string, nameFr
     const [workflowStatus, setWorkflowStatus] = useState<'pending' | 'accepted' | 'rejected'>('pending'); // State to hold workflow_status
 
     const handleWorkflowStatusChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+
         setWorkflowStatus(event.target.value as any);
     };
 
@@ -508,8 +509,8 @@ const OwnershipRequestEditContent = ({ id, nameFragments }: { id: string, nameFr
 
 
     return (
-        <Edit title={<OwnershipRequestTitle />}>
-            <SimpleForm toolbar={<OwnershipRequestToolbar prevId={prevId} nextId={nextId} />}>
+        <Edit title={<OwnershipRequestTitle />} redirect={false}>
+            <SimpleForm toolbar={<OwnershipRequestToolbar prevId={prevId} nextId={nextId}  />}>
                 <Card >
                     <CardContent>
                         <Table>

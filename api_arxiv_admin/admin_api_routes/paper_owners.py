@@ -66,8 +66,12 @@ class OwnershipModel(BaseModel):
             PaperOwner.flag_auto,
         )
 
+# to deal with combo primary key - what a pain
 ownership_id_re = re.compile(r"user_(\d+)-doc_(\d+)")
 
+def ownership_combo_key(user_id: int, document_id: int):
+    """Make the combo primary key -matches with the select above"""
+    return f"user_{user_id}-doc_{document_id}"
 
 def to_ids(one_id: str) -> Tuple[Optional[int], Optional[int]]:
     matched = ownership_id_re.match(one_id)

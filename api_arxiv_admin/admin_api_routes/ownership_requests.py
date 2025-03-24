@@ -6,10 +6,13 @@ from enum import Enum
 from typing import Optional, Literal, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.bizmodels.user_model import UserModel
+from arxiv_bizlogic.fastapi_helpers import get_client_host_name
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
+from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.orm import Session
-from sqlalchemy import insert, Row
+from sqlalchemy import insert, Row, and_
 from pydantic import BaseModel
 
 from arxiv.base import logging
@@ -19,7 +22,7 @@ from arxiv.db.models import OwnershipRequest, t_arXiv_ownership_requests_papers,
 from . import get_db, is_any_user, get_current_user, datetime_to_epoch, VERY_OLDE, get_client_host, get_tapir_session, \
     TapirSessionData
 from .documents import DocumentModel
-
+from .paper_owners import ownership_combo_key
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +69,7 @@ class OwnershipRequestModel(BaseModel):
 
 
     @classmethod
-    def from_record(cls, record: Row, session: Session) -> OwnershipRequestModel:
+    def to_model(cls, record: Row, session: Session) -> OwnershipRequestModel:
         data: OwnershipRequestModel = cls.model_validate(record)
         populate_document_ids(data, record, session)
         return data
@@ -93,13 +96,14 @@ class UpdateOwnershipRequestModel(BaseModel):
 
         revisit: This field is checked to determine if the action is to revisit the ownership request. If present, the function updates the ownership request status to "pending".
     """
+    date: Optional[datetime.datetime] = None
+    document_ids: Optional[List[int]] = None
+    endorsement_request_id: Optional[int] = None
     make_owner: bool = False
     is_author: bool = False
-    endorsement_request_id: Optional[int] = None
     # Use arXiv IDs or document IDs but not both
     arxiv_ids: Optional[List[str]] = None  # paper ids, not document ids
-    document_ids: Optional[List[int]] = None
-    remote_addr: Optional[str] = None
+    workflow_status: WorkflowStatus = WorkflowStatus.pending
 
 
 class PaperOwnershipDecisionModel(BaseModel):
@@ -123,7 +127,7 @@ def populate_document_ids(data: OwnershipRequestModel, record: Row, session: Ses
 @router.get("/")
 def list_ownership_requests(
         response: Response,
-        _sort: Optional[str] = Query("last_name,first_name", description="sort by"),
+        _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
@@ -218,7 +222,7 @@ def list_ownership_requests(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [OwnershipRequestModel.from_record(item, session) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [OwnershipRequestModel.to_model(item, session) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
@@ -234,7 +238,7 @@ async def get_ownership_request(
     oreq = query.one_or_none()
     if oreq is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return OwnershipRequestModel.from_record(oreq, session)
+    return OwnershipRequestModel.to_model(oreq, session)
 
 
 
@@ -324,86 +328,238 @@ async def create_ownership_request(
     if refreshed_req is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unexpected error")
     session.commit()
-    return OwnershipRequestModel.from_record(refreshed_req, session)
+    return OwnershipRequestModel.to_model(refreshed_req, session)
 
 
 @router.put("/{id:int}")
 async def update_ownership_request(
         id: int,
         request: Request,
-        ownership_request: UpdateOwnershipRequestModel,
         current_user: ArxivUserClaims = Depends(get_current_user),
         current_tapir_session: TapirSessionData = Depends(get_tapir_session),
+        remote_addr: str = Depends(get_client_host),
+        remote_host: str = Depends(get_client_host_name),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Update ownership request.
 
+$nickname=$auth->get_nickname_of($user_id);
+$policy_class=$auth->conn->select_scalar("SELECT name FROM tapir_policy_classes WHERE class_id=$user->policy_class");
 
-   $auth->conn->begin();
 
-   $sql="INSERT INTO arXiv_ownership_requests (user_id,workflow_status,endorsement_request_id) VALUES ($auth->user_id,'pending',$_endorsement_request_id)";
-   $auth->conn->query($sql);
-
-   $sql="INSERT INTO arXiv_ownership_requests_audit (request_id,remote_addr,remote_host,session_id,tracking_cookie,date) VALUES (LAST_INSERT_ID(),'$_remote_addr','$_remote_host','$_session_id','$_tracking_cookie',{$auth->timestamp})";
-   $auth->conn->query($sql);
-
-   foreach($documents as $document_id) {
-      $sql="INSERT INTO arXiv_ownership_requests_papers (request_id,document_id) VALUES (LAST_INSERT_ID(),$document_id)";
-      $auth->conn->query($sql);
+if ($_SERVER["REQUEST_METHOD"]=="POST") {
+   if ($_POST["reject"]) {
+      $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='rejected' WHERE request_id=$request->request_id");
+      include "ownership-rejected-screen.php";
+      exit();
    }
 
-   $request_id=$auth->conn->select_scalar("SELECT LAST_INSERT_ID()");
-   $auth->conn->commit();
+   if ($_POST["revisit"]) {
+      $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='pending' WHERE request_id=$request->request_id");
+      $request->workflow_status="pending";
+   } else {
 
+      $flag_author=$_POST["is_author"] ? 1:0;
+      $n_papers=$_POST["n_papers"];
+      $document_ids=array();
+      $approved_count=0;
+      for ($i=0;$i<$n_papers;$i++) {
+         if ($_POST["approve_$i"]) {
+            $approved_count++;
+            array_push($document_ids,addslashes($_POST["document_id_$i"]));
+         }
+      }
+
+      if($approved_count==0) {
+         if($bulk_mode) {
+            include "ownership-bulk-none-approved-screen.php";
+            exit();
+         }
+
+         $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='accepted' WHERE request_id=$request->request_id");
+         include "ownership-none-approved-screen.php";
+         exit();
+      }
+
+      $auth->conn->begin();
+
+      $id_list="(".join(",",$document_ids).")";
+      $already_owns=$auth->conn->select_keys_and_values("SELECT document_id,1 FROM arXiv_paper_owners
+                                                   WHERE user_id=$user->user_id
+                                                   AND document_id IN $id_list FOR UPDATE");
+
+      if(count($already_owns) == count($document_ids)) {
+         include "ownership-all-owned-screen.php";
+         exit();
+      }
+
+      $paper_ids=$auth->conn->select_keys_and_values("SELECT document_id,paper_id FROM arXiv_documents
+                                                      WHERE document_id IN $id_list");
+
+      $paper_list=array();
+      $owned_list=array();
+
+      for($i=0;$i<$n_papers;$i++) {
+        if ($_POST["approve_$i"]) {
+           $_document_id=addslashes($_POST["document_id_$i"]);
+           $paper_id=$paper_ids[$_document_id];
+           if($already_owns[$_document_id]) {
+              array_push($owned_list,$paper_id);
+           } else {
+              $_remote_addr=addslashes($_SERVER["REMOTE_ADDR"]);
+              $_remote_host=addslashes($_SERVER["REMOTE_HOST"]);
+              $_tracking_cookie=addslashes($_COOKIE["M4_TRACKING_COOKIE_NAME"]);
+              array_push($paper_list,$paper_id);
+              $auth->conn->query("INSERT INTO arXiv_paper_owners (document_id,user_id,date,added_by,remote_addr,remote_host,tracking_cookie,valid,flag_author,flag_auto) VALUES ($_document_id,$user_id,$auth->timestamp,$auth->user_id,'$_remote_addr','$_remote_host','$_tracking_cookie',1,$flag_author,0)");
+              tapir_audit_admin($user_id,"add-paper-owner-2",$_document_id);
+           }
+         }
+      }
+
+      if(!$bulk_mode) {
+         $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='accepted' WHERE request_id=$request->request_id");
+      }
+
+      $auth->conn->commit();
+      include "ownership-granted-screen.php";
+      exit();
+   }
+}
     """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update ownership requests.")
 
-    document = DocumentModel.base_select(session).filter(Document.document_id == id).one_or_none()
-    if document is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    req_id = id
+    body = await request.json()
+    workflow_status = body.get("workflow_status")
+    if workflow_status is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is required.")
 
-    user_id = ownership_request.user_id if ownership_request.user_id else current_user.user_id
+    document_ids = body.get("document_ids")
+    if document_ids is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document ids is required.")
 
-    # ownerships = [OwnershipModel.model_validate(paper) for paper in OwnershipModel.base_select(session).filter(PaperOwner.document_id.in_(ownership_request.document_ids)).filter(PaperOwner.user_id == user_id).all()]
-    # ids = [ownerhip.id for ownerhip in ownerships]
+    ownership_request = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id==req_id).one_or_none()
+    if ownership_request is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Ownership request id %s does not exist." % req_id)
 
-    request_date = datetime.date.today()
-    #     request_id: Mapped[intpk]
-    #     user_id: Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
-    #     endorsement_request_id: Mapped[Optional[int]] = mapped_column(ForeignKey('arXiv_endorsement_requests.request_id'), index=True)
-    #     workflow_status: Mapped[Literal['pending', 'accepted', 'rejected']] = mapped_column(Enum('pending', 'accepted', 'rejected'), nullable=False, server_default=FetchedValue())
-    req = OwnershipRequest(
-        user_id = user_id,
-        endorsement_request_id = ownership_request.endorsement_request_id,
-        workflow_status = 'pending'
-    )
-    session.add(req)
-    session.flush()
-    session.refresh(req)
+    for document_id in document_ids:
+        document = session.query(Document).filter(Document.document_id == document_id).one_or_none()
+        if document is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document id %s does not exist." % document_id)
 
-    #    $sql="INSERT INTO arXiv_ownership_requests_audit (request_id,remote_addr,remote_host,session_id,tracking_cookie,date) VALUES (LAST_INSERT_ID(),'$_remote_addr','$_remote_host','$_session_id','$_tracking_cookie',{$auth->timestamp})";
+    user_id = body.get("user_id")
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User id is required.")
 
-    audit = OwnershipRequestsAudit(
-        request_id = req.request_id,
-        session_id = int(current_tapir_session.session_id),
-        remote_addr = ownership_request.remote_addr,
-        remote_host = "",
-        tracking_cookie = "",
-        date = datetime_to_epoch(None, request_date)
-    )
-    session.add(audit)
-    session.flush()
-    session.refresh(audit)
+    if workflow_status in ["rejected", "pending"]:
+        #  $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='rejected' WHERE request_id=$request->request_id");
+        ownership_request.workflow_status = workflow_status
+        return OwnershipRequestModel.to_model(ownership_request, session)
 
-    for doc_id in ownership_request.document_ids:
-        # $sql = "INSERT INTO arXiv_ownership_requests_papers (request_id,document_id) VALUES (LAST_INSERT_ID(),$document_id)";
-        a_o_r_p = t_arXiv_ownership_requests_papers(
-            request_id = req.request_id,
-            document_id = doc_id,
-        )
-        session.add(a_o_r_p)
+    # Accepted
 
-    session.commit()
+    judgements = {document_id: body.get(f"flag_author_doc_{document_id}", False) for document_id in document_ids }
+    accepted_documents = [document_id for document_id, yes in judgements.items() if yes]
 
-    return OwnershipRequestModel.from_record(req, session)
+    if not accepted_documents:
+        #       if($approved_count==0) {
+        #          if($bulk_mode) {
+        #             include "ownership-bulk-none-approved-screen.php";
+        #             exit();
+        #          }
+        #
+        #          $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='accepted' WHERE request_id=$request->request_id");
+        #          include "ownership-none-approved-screen.php";
+        #          exit();
+        #       }
+        #
+        # If none accepted, this makes no sense. Think of this as NOP and do nothing.
+        return OwnershipRequestModel.to_model(ownership_request, session)
+
+    #       $id_list="(".join(",",$document_ids).")";
+    #       $already_owns=$auth->conn->select_keys_and_values("SELECT document_id,1 FROM arXiv_paper_owners
+    #                                                    WHERE user_id=$user->user_id
+    #                                                    AND document_id IN $id_list FOR UPDATE");
+    #
+    #       if(count($already_owns) == count($document_ids)) {
+    #          include "ownership-all-owned-screen.php";
+    #          exit();
+    #       }
+    # I think this is wrong. You need to be able to update the individual paper owner state but this counts the
+    # existing records regardless of flag change.
+    # You need to go through individual owner/not-owner and update accordingly.
+
+    #         if ($_POST["approve_$i"]) {
+    #            $_document_id=addslashes($_POST["document_id_$i"]);
+    #            $paper_id=$paper_ids[$_document_id];
+    #            if($already_owns[$_document_id]) {
+    #               array_push($owned_list,$paper_id);
+    #            } else {
+    #               $_remote_addr=addslashes($_SERVER["REMOTE_ADDR"]);
+    #               $_remote_host=addslashes($_SERVER["REMOTE_HOST"]);
+    #               $_tracking_cookie=addslashes($_COOKIE["M4_TRACKING_COOKIE_NAME"]);
+    #               array_push($paper_list,$paper_id);
+    #               $auth->conn->query("INSERT INTO arXiv_paper_owners (document_id,user_id,date,added_by,remote_addr,remote_host,tracking_cookie,valid,flag_author,flag_auto) VALUES ($_document_id,$user_id,$auth->timestamp,$auth->user_id,'$_remote_addr','$_remote_host','$_tracking_cookie',1,$flag_author,0)");
+    #               tapir_audit_admin($user_id,"add-paper-owner-2",$_document_id);
+
+    existing_records: List[PaperOwner] = session.query(PaperOwner).filter(and_(PaperOwner.document_id.in_(document_ids),
+                                                                               PaperOwner.user_id == user_id)).all()
+
+    owners_record = {ownership_combo_key(existing_record.user_id, existing_record.document_id): existing_record for existing_record in existing_records}
+    requester = UserModel.one_user(session, user_id)
+    date = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
+
+    try:
+        for document_id, judgement in judgements.items():
+            paper_owner_r = owners_record.get(ownership_combo_key(user_id, document_id))
+            if paper_owner_r is None:
+                paper_owner_r = PaperOwner(
+                    document_id = document_id,
+                    user_id = user_id,
+                    date = date,
+                    added_by = current_user.user_id,
+                    remote_addr = remote_addr,
+                    remote_host = remote_host,
+                    tracking_cookie = requester.tracking_cookie,
+                    valid = True,
+                    flag_author = judgement,
+                    flag_auto = False
+                )
+                session.add(paper_owner_r)
+            else:
+                paper_owner_r.date = date
+                # paper_owner_r.added_by = current_user.user_id
+                paper_owner_r.valid = True
+                paper_owner_r.flag_author = judgement
+                paper_owner_r.flag_auto = False
+                pass
+
+        audit: OwnershipRequestsAudit | None = session.query(OwnershipRequestsAudit).filter(OwnershipRequestsAudit.request_id == req_id).one_or_none()
+        if audit is None:
+            audit = OwnershipRequestsAudit(
+                request_id = req_id,
+                session_id = int(current_tapir_session.session_id),
+                remote_addr = remote_addr,
+                remote_host = remote_host,
+                tracking_cookie = requester.tracking_cookie,
+                date = date
+            )
+            session.add(audit)
+        else:
+            # ??? The judgement has been made but the status is still penning. Rather than burf, update the
+            # audit to match with this judgement
+            audit.session_id = int(current_tapir_session.session_id)
+            audit.remote_addr = remote_addr
+            audit.remote_host = remote_host
+            audit.tracking_cookie = requester.tracking_cookie
+            audit.date = date
+
+        session.commit()
+        return OwnershipRequestModel.to_model(OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == req_id).one(), session)
+
+    except IntegrityError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The database operation failed due to integrity error. " + str(exc)) from exc
 
 
 @router.post('/{request_id:int}/documents/')
@@ -434,7 +590,7 @@ async def create_paper_ownership_decision(
     user_id = ownership_request.user_id
     admin_id = current_user.user_id
 
-    current_request: OwnershipRequestModel = OwnershipRequestModel.from_record(None, ownership_request)
+    current_request: OwnershipRequestModel = OwnershipRequestModel.to_model(None, ownership_request)
     docs = set(current_request.document_ids)
     decided_docs = set(decision.accepted_document_ids) | set(decision.rejected_document_ids)
     if docs != decided_docs:
@@ -469,4 +625,4 @@ async def create_paper_ownership_decision(
 
     session.commit()
     session.refresh(ownership_request)
-    return OwnershipRequestModel.from_record(ownership_request, session)
+    return OwnershipRequestModel.to_model(ownership_request, session)
