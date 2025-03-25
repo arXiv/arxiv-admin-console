@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import time
@@ -15,6 +14,9 @@ from fastapi.responses import Response, RedirectResponse, JSONResponse
 
 import sqlalchemy
 from sqlalchemy.engine import ExecutionContext
+from asgi_correlation_id import CorrelationIdMiddleware
+from asgi_correlation_id.middleware import is_valid_uuid4
+from uuid import uuid4
 
 from arxiv.base.globals import get_application_config
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -192,7 +194,17 @@ def create_app(*args, **kwargs) -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
     )
+
+    app.add_middleware(
+        CorrelationIdMiddleware,
+        header_name='X-Request-ID',
+        update_request_header=True,
+        generator=lambda: uuid4().hex,
+        validator=is_valid_uuid4,
+        transformer=lambda a: a,
+        )
 
     # app.add_middleware(LogMiddleware)
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")

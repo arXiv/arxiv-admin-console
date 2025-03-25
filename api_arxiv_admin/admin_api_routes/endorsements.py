@@ -193,7 +193,7 @@ async def _endorse(
     proto_endorsee = PublicUserModel.base_select(session).filter(TapirUser.user_id == endorsement_request.endorsee_id).one_or_none()
     if proto_endorsee is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses not found")
-    endorsee = PublicUserModel.to_model(proto_endorsee)
+    endorsee = PublicUserModel.model_validate(proto_endorsee)
 
     accessor = EndorsementDBAccessor(session)
 

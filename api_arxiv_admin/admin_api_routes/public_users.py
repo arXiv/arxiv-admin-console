@@ -111,7 +111,7 @@ def get_one_public_user(user_id:int, db: Session = Depends(get_db)) -> PublicUse
     # @ignore-types
     user = PublicUserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
     if user:
-        return PublicUserModel.to_model(user)
+        return PublicUserModel.model_validate(user)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
