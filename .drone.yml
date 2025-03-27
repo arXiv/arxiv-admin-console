@@ -1,0 +1,116 @@
+kind: pipeline
+type: kubernetes
+name: build-docker-images
+
+node:
+  environment: gcp
+
+environment:
+  ARTIFACT_REPO: arxiv-keycloak
+
+services:
+- name: docker
+  image: docker:dind
+  privileged: true
+  volumes:
+  - name: docker-socket
+    path: /var/run
+  - name: docker-cache
+    path: /var/lib/docker
+
+
+steps:
+  - name: hello
+    image: alpine
+    commands:
+      - set
+      - echo FOO=bar >> envvars
+      - ls
+    volumes:
+      - name: docker-socket
+        path: /var/run
+    when:
+      changeset:
+        includes:
+          - cicd/docker
+
+  # This build only succeeds after you bootstrap the arxiv-builder container
+  # You can do so by `make builder` in cicd/docker
+  - name: build
+    image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:8df2b8904211be4936218812515a87f8a3f0fed8
+    privileged: true
+    environment:
+      GIT_SHA: ${DRONE_COMMIT_SHA}
+      PLUGIN_JSON_KEY:
+        from_secret: drone_runner_sa_key
+    volumes:
+      - name: docker-socket
+        path: /var/run
+    commands:
+      - python3 /arxiv/setup_sa.py
+      - . ./envvars && python3 /arxiv/docker_builder.py admin-api api_arxiv_admin/ --repo $DRONE_REPO_NAME --gitsha $GIT_SHA -f api_arxiv_admin/Dockerfile
+      - . ./envvars && python3 /arxiv/docker_builder.py admin-ui ui-arxiv-admin/ --repo $DRONE_REPO_NAME --gitsha $GIT_SHA -f ui-arxiv-admin/Dockerfile
+    depends_on:
+      - hello
+
+  - name: failure
+    image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:e7a4be9
+    privileged: true
+    environment:
+      SLACK_WEBHOOK_URL:
+        from_secret: slack_webhook
+    commands:
+      # - python3 /arxiv/slacker.py
+      - echo bummer
+    depends_on:
+      - build
+    when:
+      status:
+        - failure
+
+  - name: success
+    image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:e7a4be9
+    privileged: true
+    settings:
+      slack_webhook_url:
+        from_secret: slack_webhook
+    commands:
+      - echo SUCCESS
+
+    depends_on:
+      - build
+    when:
+      status:
+        - success
+
+volumes:
+  - name: docker-cache
+    persistentVolumeClaim:
+      claimName: docker-cache-pvc
+  - name: docker-socket
+    host:
+      path: /var/run
+
+trigger:
+  event:
+    - push
+---
+# Pipeline for CentOS 9
+kind: pipeline
+type: exec
+name: centos-9-deploy
+
+node:
+  environment: centos9
+depends_on:
+  - build-docker-images
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: hello
+    commands:
+      - sh ./config.sh /opt_arxiv/devops/build/centos9.json
+
