@@ -109,8 +109,25 @@ platform:
   os: linux
   arch: amd64
 
-steps:
-  - name: hello
-    commands:
-      - sh ./config.sh /opt_arxiv/devops/build/centos9.json
+---
+# Pipeline for CentOS 9
+kind: pipeline
+type: exec
+name: centos-9-deploy
 
+node:
+  environment: centos9
+depends_on:
+  - build-docker-images
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: refresh dockers
+    commands:
+      - cd /opt_arxiv/bomb-range
+      - docker compose down
+      - docker compose pull --quiet
+      - docker compose up -d
