@@ -109,21 +109,6 @@ platform:
   os: linux
   arch: amd64
 
----
-# Pipeline for CentOS 9
-kind: pipeline
-type: exec
-name: centos-9-deploy
-
-node:
-  environment: centos9
-depends_on:
-  - build-docker-images
-
-platform:
-  os: linux
-  arch: amd64
-
 steps:
   - name: refresh dockers
     commands:
