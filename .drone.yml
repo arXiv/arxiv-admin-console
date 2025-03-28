@@ -37,7 +37,7 @@ steps:
   # This build only succeeds after you bootstrap the arxiv-builder container
   # You can do so by `make builder` in cicd/docker
   - name: build
-    image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:8df2b8904211be4936218812515a87f8a3f0fed8
+    image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:1575e2fe2c54556229df469ed4cc237bc9ce130f
     privileged: true
     environment:
       GIT_SHA: ${DRONE_COMMIT_SHA}
@@ -113,6 +113,6 @@ steps:
   - name: refresh dockers
     commands:
       - cd /opt_arxiv/bomb-range
-      - docker compose down
-      - docker compose pull --quiet
-      - docker compose up -d
+      - make down
+      - make up
+      
