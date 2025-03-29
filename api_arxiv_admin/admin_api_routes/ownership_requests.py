@@ -46,6 +46,7 @@ class OwnershipRequestModel(BaseModel):
     date: Optional[datetime.datetime] = None
     document_ids: Optional[List[int]] = None
     paper_ids: Optional[List[str]] = None
+    date: Optional[datetime.datetime] = None
 
     @classmethod
     def base_query_0(cls, session: Session) -> Query:
@@ -155,7 +156,7 @@ def list_ownership_requests(
         if preset is not None or start_date is not None or end_date is not None:
             t0 = datetime.datetime.now(datetime.UTC)
             if preset is not None:
-                matched = re.search(r"last_(\d+)_days", preset)
+                matched = re.search(r"last_(\d+)_day(s){0,1}", preset)
                 if matched:
                     t_begin = datetime_to_epoch(None, t0 - datetime.timedelta(days=int(matched.group(1))))
                     t_end = datetime_to_epoch(None, t0)
@@ -207,12 +208,21 @@ def list_ownership_requests(
             for key in keys:
                 if key == "id":
                     key = "request_id"
-                try:
-                    order_column = getattr(OwnershipRequest, key)
-                    order_columns.append(order_column)
-                except AttributeError:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                        detail="Invalid start or end index")
+
+                if key == "date":
+                    try:
+                        order_column = getattr(OwnershipRequestsAudit, key)
+                        order_columns.append(order_column)
+                    except AttributeError:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail="Invalid start or end index")
+                else:
+                    try:
+                        order_column = getattr(OwnershipRequest, key)
+                        order_columns.append(order_column)
+                    except AttributeError:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail="Invalid start or end index")
 
     for column in order_columns:
         if _order == "DESC":

@@ -149,45 +149,29 @@ const OwnershipRequestFilter = (props: any) => {
     );
 };
 
-
 export const OwnershipRequestList = () => {
-    const sorter: SortPayload = {field: 'ownershipRequest_id', order: 'ASC'};
-    const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
-
     return (
-        <>
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
-            {isSmall ? (
-                <SimpleList
-                    primaryText={record => record.name}
-                    secondaryText={record => record.ownershipRequestname}
-                    tertiaryText={record => record.email}
-                />
-            ) : (
-                <Datagrid sort={sorter}> rowClick="edit" isRowExpandable={true}
-                    <NumberField source="id" label={"Request ID"}/>
-                    <DateField source="date" label={"Date"}/>
-                    <ReferenceField source="user_id" reference="users"
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
-                    </ReferenceField>
-                    <ReferenceField source="endorsement_request_id" reference="endorsement_requests" label={"Endorsement Request"}>
+            <Datagrid sort={{field: 'id', order: 'ASC'}}> rowClick="edit"
+                <NumberField source="id" label={"Req ID"}/>
+                <DateField source="date" label={"Date"}/>
+                <ReferenceField source="user_id" reference="users"
+                                link={(record, reference) => `/${reference}/${record.id}`} >
+                    <TextField source={"last_name"} />
+                    {", "}
+                    <TextField source={"first_name"} />
+                </ReferenceField>
+                <ReferenceField source="endorsement_request_id" reference="endorsement_requests" label={"Endorsement Request"}>
 
-                    </ReferenceField>
-                    <TextField source="workflow_status" label={"Status"}/>
-                    <ReferenceField source="id" reference="ownership_requests_audit" label={"Remote host"}>
-                        <TextField source={"remote_host"} defaultValue={"Unknown"}/>
-                    </ReferenceField>
-
-                </Datagrid>
-            )}
+                </ReferenceField>
+                <TextField source="workflow_status" label={"Status"}/>
+                <ReferenceField source="ownershipRequest_id" reference="ownership_requests_audit" label={"Remote host"}>
+                    <TextField source={"remote_host"} defaultValue={"Unknown"}/>
+                </ReferenceField>
+            </Datagrid>
         </List>
-        </>
     );
 };
-
 
 const OwnershipRequestTitle = () => {
     const record = useRecordContext();
