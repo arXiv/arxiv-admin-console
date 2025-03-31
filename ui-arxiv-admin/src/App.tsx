@@ -133,9 +133,9 @@ const AdminConsole: React.FC = () => {
                     list={EndorsementRequestList}
                     show={EndorsementRequestShow}
                     icon={RequestIcon}
-                    recordRepresentation="name"
                     edit={EndorsementRequestEdit}
                     create={EndorsementRequestCreate}
+                    recordRepresentation="id"
                 />
 
                 <Resource
@@ -143,9 +143,9 @@ const AdminConsole: React.FC = () => {
                     list={DocumentList}
                     show={DocumentShow}
                     icon={DocumentIcon}
-                    recordRepresentation="name"
                     edit={DocumentEdit}
                     create={DocumentCreate}
+                    recordRepresentation="id"
                 />
 
                 <Resource
@@ -153,9 +153,9 @@ const AdminConsole: React.FC = () => {
                     list={CategoryList}
                     show={ShowGuesser}
                     icon={CategoryIcon}
-                    recordRepresentation="name"
                     edit={CategoryEdit}
                     create={CategoryCreate}
+                    recordRepresentation="id"
                 />
 
                 <Resource
@@ -163,18 +163,17 @@ const AdminConsole: React.FC = () => {
                     list={ModeratorList}
                     show={ShowGuesser}
                     icon={ModeratorIcon}
-                    recordRepresentation="archive"
                     edit={ModeratorEdit}
                     create={ModeratorCreate}
+                    recordRepresentation="id"
                 />
 
                 <Resource
                     name="ownership_requests"
                     list={OwnershipRequestList}
                     edit={OwnershipRequestEdit}
-                    show={OwnershipRequestShow}
                     icon={OwnershipRequestIcon}
-                    recordRepresentation="user_id"
+                    recordRepresentation="id"
                 />
 
                 <Resource
@@ -183,7 +182,7 @@ const AdminConsole: React.FC = () => {
                     edit={SubmissionEdit}
                     show={SubmissionShow}
                     icon={SubmissionIcon}
-                    recordRepresentation="submission_id"
+                    recordRepresentation="id"
                 />
 
                 <Resource
@@ -192,7 +191,6 @@ const AdminConsole: React.FC = () => {
                     edit={TapirSessionEdit}
                     show={ShowGuesser}
                     icon={TapirSessionIcon}
-                    recordRepresentation="submission_id"
                 />
 
                 <Resource

@@ -80,6 +80,7 @@ async def list_endorsement_requests(
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
+        id: Optional[List[int]] = Query(None, description="List of endorsement request IDs to filter by"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
@@ -90,83 +91,119 @@ async def list_endorsement_requests(
         endorsee_first_name: Optional[str] = Query(None, description="Endorsement request endorsee first_name"),
         endorsee_last_name: Optional[str] = Query(None, description="Endorsement request endorsee last_name"),
         endorsee_email: Optional[str] = Query(None, description="Endorsement request endorsee email"),
+        current_id: Optional[int] = Query(None, description="Current ID - index position - for navigation"),
         current_user: ArxivUserClaims = Depends(get_current_user),
-        db: Session = Depends(get_db),
+        session: Session = Depends(get_db),
 
     ) -> List[EndorsementRequestModel]:
 
-    query = EndorsementRequestModel.base_select(db)
+    query = EndorsementRequestModel.base_select(session)
 
     if _start < 0 or _end < _start:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid start or end index")
 
     order_columns = []
-    if _sort:
-        keys = _sort.split(",")
-        for key in keys:
-            if key == "id":
-                key = "request_id"
-            try:
-                order_column = getattr(EndorsementRequest, key)
-                order_columns.append(order_column)
-            except AttributeError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="Invalid start or end index")
 
-    t0 = datetime.now()
-
-    if preset is not None:
-        matched = re.search(r"last_(\d+)_days", preset)
-        if matched:
-            t_begin = datetime_to_epoch(None, t0 - timedelta(days=int(matched.group(1))))
-            t_end = datetime_to_epoch(None, t0)
-            query = query.filter(EndorsementRequest.issued_when.between(t_begin, t_end))
-        else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Invalid preset format")
+    if id is not None:
+        query = query.filter(EndorsementRequest.request_id.in_(id))
+        _start = None
+        _end = None
+        if not current_user.is_admin:
+            query = query.filter(EndorsementRequest.endorsee_id == current_user.user_id)
+        pass
     else:
-        if start_date or end_date:
-            t_begin = datetime_to_epoch(start_date, VERY_OLDE)
-            t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
-            query = query.filter(EndorsementRequest.issued_when.between(t_begin, t_end))
+        t0 = datetime.now()
 
-    if secret_code is not None:
-        query = query.filter(EndorsementRequest.secret == secret_code)
+        if preset is not None:
+            matched = re.search(r"last_(\d+)_day", preset)
+            if matched:
+                t_begin = datetime_to_epoch(None, t0 - timedelta(days=int(matched.group(1))))
+                t_end = datetime_to_epoch(None, t0)
+                query = query.filter(EndorsementRequest.issued_when.between(t_begin, t_end))
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Invalid preset format")
+        else:
+            if start_date or end_date:
+                t_begin = datetime_to_epoch(start_date, VERY_OLDE)
+                t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
+                query = query.filter(EndorsementRequest.issued_when.between(t_begin, t_end))
 
-    if not (current_user.is_admin or current_user.is_mod):
-        query = query.filter(EndorsementRequest.endorsee_id == current_user.user_id)
+        if secret_code is not None:
+            query = query.filter(EndorsementRequest.secret == secret_code)
 
-    if flag_valid is not None:
-        query = query.filter(EndorsementRequest.flag_valid == flag_valid)
+        if not (current_user.is_admin or current_user.is_mod):
+            query = query.filter(EndorsementRequest.endorsee_id == current_user.user_id)
+
+        if flag_valid is not None:
+            query = query.filter(EndorsementRequest.flag_valid == flag_valid)
+
+        if not_positive is not None:
+            if not_positive:
+                query = query.filter(EndorsementRequest.point_value <= 0)
+            else:
+                query = query.filter(EndorsementRequest.point_value > 0)
+
+        if suspected is not None:
+            query = query.join(Demographic, Demographic.user_id == EndorsementRequest.endorsee_id)
+            query = query.filter(Demographic.flag_suspect == suspected)
+
+        if endorsee_first_name is not None:
+            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
+                TapirUser.first_name.contains(endorsee_first_name))
+
+        if endorsee_last_name is not None:
+            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
+                TapirUser.last_name.contains(endorsee_last_name))
+
+        if endorsee_email is not None:
+            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
+                TapirUser.email == endorsee_email)
+
+        if current_id is not None:
+            # This is used to navigate
+            _order = "ASC"
+            _sort = "request_id"
+            prev_req = (
+                session.query(EndorsementRequest)
+                .filter(EndorsementRequest.request_id < current_id)
+                .order_by(EndorsementRequest.request_id.desc())
+                .first()
+            )
+
+            next_req = (
+                session.query(EndorsementRequest)
+                .filter(EndorsementRequest.request_id > current_id)
+                .order_by(EndorsementRequest.request_id.asc())
+                .first()
+            )
+            prev_req_id = current_id
+            next_req_id = current_id
+            if prev_req:
+                prev_req_id = prev_req.request_id
+            if next_req:
+                next_req_id = next_req.request_id
+            query = query.filter(EndorsementRequest.request_id.between(prev_req_id, next_req_id))
+
+        if _sort:
+            keys = _sort.split(",")
+            for key in keys:
+                if key == "id":
+                    key = "request_id"
+                try:
+                    order_column = getattr(EndorsementRequest, key)
+                    order_columns.append(order_column)
+                except AttributeError:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                        detail="Invalid start or end index")
+
 
     for column in order_columns:
         if _order == "DESC":
             query = query.order_by(column.desc())
         else:
             query = query.order_by(column.asc())
-
-    if not_positive is not None:
-        if not_positive:
-            query = query.filter(EndorsementRequest.point_value <= 0)
-        else:
-            query = query.filter(EndorsementRequest.point_value > 0)
-
-    if suspected is not None:
-        query = query.join(Demographic, Demographic.user_id == EndorsementRequest.endorsee_id)
-        query = query.filter(Demographic.flag_suspect == suspected)
-
-    if endorsee_first_name is not None:
-        query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
-            TapirUser.first_name.contains(endorsee_first_name))
-
-    if endorsee_last_name is not None:
-        query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
-            TapirUser.last_name.contains(endorsee_last_name))
-
-    if endorsee_email is not None:
-        query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
-            TapirUser.email == endorsee_email)
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)

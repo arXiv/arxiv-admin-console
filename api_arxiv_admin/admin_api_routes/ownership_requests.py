@@ -4,6 +4,7 @@ import re
 import datetime
 from enum import Enum
 from typing import Optional, Literal, List
+import hashlib
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.bizmodels.user_model import UserModel
@@ -201,7 +202,13 @@ def list_ownership_requests(
                 .order_by(OwnershipRequest.request_id.asc())
                 .first()
             )
-            query = query.filter(OwnershipRequest.request_id.between(prev_req.request_id, next_req.request_id))
+            prev_req_id = current_id
+            next_req_id = current_id
+            if prev_req:
+                prev_req_id = prev_req.request_id
+            if next_req:
+                next_req_id = next_req.request_id
+            query = query.filter(OwnershipRequest.request_id.between(prev_req_id, next_req_id))
 
         if _sort:
             keys = _sort.split(",")
@@ -434,7 +441,19 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
       exit();
    }
 }
+
+{"id":62648,
+  "user_id":1129053,
+  "endorsement_request_id":null,
+  "workflow_status":"accepted",
+  "date":"2025-03-29T04:00:00Z",
+  "document_ids":[2123367,2123675,2125897,2130529,2134610,2612674,2618378],
+  "paper_ids":["2208.04373","2208.04681","2208.06903","2208.11535","2209.00613"]
+  "selected_documents":[2125897,2123675,2130529]}
     """
+    if not current_tapir_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tapir session is missing")
+
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update ownership requests.")
 
@@ -453,10 +472,19 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Ownership request id %s does not exist." % req_id)
 
+    non_existing_documents = []
+    existing_documents = []
     for document_id in document_ids:
         document = session.query(Document).filter(Document.document_id == document_id).one_or_none()
         if document is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document id %s does not exist." % document_id)
+            non_existing_documents.append(document_id)
+            # raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document id %s does not exist." % document_id)
+        else:
+            existing_documents.append(document_id)
+
+    if non_existing_documents:
+        logger.warning(f"Docs don't exist - {non_existing_documents!r}")
+        document_ids = existing_documents
 
     user_id = body.get("user_id")
     if user_id is None:
@@ -469,8 +497,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
 
     # Accepted
 
-    judgements = {document_id: body.get(f"flag_author_doc_{document_id}", False) for document_id in document_ids }
-    accepted_documents = [document_id for document_id, yes in judgements.items() if yes]
+    accepted_documents = body.get("selected_documents")
 
     if not accepted_documents:
         #       if($approved_count==0) {
@@ -513,6 +540,8 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     #               $auth->conn->query("INSERT INTO arXiv_paper_owners (document_id,user_id,date,added_by,remote_addr,remote_host,tracking_cookie,valid,flag_author,flag_auto) VALUES ($_document_id,$user_id,$auth->timestamp,$auth->user_id,'$_remote_addr','$_remote_host','$_tracking_cookie',1,$flag_author,0)");
     #               tapir_audit_admin($user_id,"add-paper-owner-2",$_document_id);
 
+    judgements = {document_id: document_id in accepted_documents for document_id in document_ids }
+
     existing_records: List[PaperOwner] = session.query(PaperOwner).filter(and_(PaperOwner.document_id.in_(document_ids),
                                                                                PaperOwner.user_id == user_id)).all()
 
@@ -524,6 +553,19 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         for document_id, judgement in judgements.items():
             paper_owner_r = owners_record.get(ownership_combo_key(user_id, document_id))
             if paper_owner_r is None:
+                tracking_cookie = requester.tracking_cookie
+                if len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
+                    # ntai: 2025-03-30
+                    # When the tracking cookie is longer than the column size (32), adding tracking cookie
+                    # to the record fails as it is too long.
+                    # There are two options - one is to chop it, or hash it. I chose to hash it since the original
+                    # value cannot match anyway, and by hashing it, it has a chance to match it to the original
+                    # value.
+                    # The root cause is that the tapir_users' tracking_cookie has 255, and somehow, PaperOwner
+                    # does not follow the original design, which is a mistake.
+                    # I checked the database and 110+k tapir_users has the tracking cookie longer than 32 and thus,
+                    # I don't understand how this hase been working.
+                    tracking_cookie = hashlib.md5(tracking_cookie.encode()).hexdigest()
                 paper_owner_r = PaperOwner(
                     document_id = document_id,
                     user_id = user_id,
@@ -531,7 +573,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
                     added_by = current_user.user_id,
                     remote_addr = remote_addr,
                     remote_host = remote_host,
-                    tracking_cookie = requester.tracking_cookie,
+                    tracking_cookie = tracking_cookie,
                     valid = True,
                     flag_author = judgement,
                     flag_auto = False
