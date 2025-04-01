@@ -161,6 +161,8 @@ async def list_documents(
     datagrid_filter = MuiDataGridFilter(filter) if filter is not None else None
 
     if id is None:
+        _start = 0
+        _end = len(id)
 
         t0 = datetime.now()
         order_columns = []
@@ -221,6 +223,10 @@ async def list_documents(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
     result: List[DocumentModel] = [DocumentModel.to_model(db, item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 

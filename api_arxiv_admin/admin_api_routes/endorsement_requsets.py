@@ -99,16 +99,12 @@ async def list_endorsement_requests(
 
     query = EndorsementRequestModel.base_select(session)
 
-    if _start < 0 or _end < _start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid start or end index")
-
     order_columns = []
 
     if id is not None:
         query = query.filter(EndorsementRequest.request_id.in_(id))
-        _start = None
-        _end = None
+        _start = 0
+        _end = len(id)
         if not current_user.is_admin:
             query = query.filter(EndorsementRequest.endorsee_id == current_user.user_id)
         pass
@@ -207,6 +203,11 @@ async def list_endorsement_requests(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+
+    if _end is None:
+        _end = 100
     result = [EndorsementRequestModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 

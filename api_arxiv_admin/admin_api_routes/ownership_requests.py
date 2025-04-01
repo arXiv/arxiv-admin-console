@@ -149,8 +149,8 @@ def list_ownership_requests(
 
     if id is not None:
         query = query.filter(OwnershipRequest.request_id.in_(id))
-        _start = None
-        _end = None
+        _start = 0
+        _end = len(id)
         if not current_user.is_admin:
             query = query.filter(OwnershipRequest.user_id == current_user.user_id)
     else:
@@ -239,6 +239,11 @@ def list_ownership_requests(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+
+    if _end is None:
+        _end = 100
     result = [OwnershipRequestModel.to_model(item, session) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 

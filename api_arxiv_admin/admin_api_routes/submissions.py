@@ -195,13 +195,7 @@ async def list_submissions(
         current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[SubmissionModel]:
     datagrid_filter = MuiDataGridFilter(filter) if filter else None
-
     query = SubmissionModel.base_select(db)
-
-    if _start < 0 or _end < _start:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid start or end index")
-
     t0 = datetime.now()
 
     order_columns = []
@@ -218,6 +212,8 @@ async def list_submissions(
                                     detail="Invalid start or end index")
 
     if id is not None:
+        _start = 0
+        _end = len(id)
         query = query.filter(Submission.submission_id.in_(id))
         if not current_user.is_admin:
             query = query.filter(Submission.submitter_id == current_user.user_id)
@@ -293,6 +289,10 @@ async def list_submissions(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
     result = [SubmissionModel.to_model(item, db) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 

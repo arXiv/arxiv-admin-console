@@ -109,6 +109,8 @@ async def list_ownerships(
     datagrid_filter = MuiDataGridFilter(filter) if filter is not None else None
 
     if id:
+        _start = 0
+        _end = len(id)
         users = []
         docs = []
         for one_id in id:
@@ -195,6 +197,10 @@ async def list_ownerships(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
     result = [OwnershipModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
 
     if with_document:
@@ -225,10 +231,6 @@ async def list_ownerships_for_user(
     # gate_admin_user(current_user)
     query = OwnershipModel.base_select(session)
 
-    if _start < 0 or _end < _start:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid start or end index")
-
     if (not current_user.is_admin) and (user_id != current_user.user_id):
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
                             detail="Not authorized")
@@ -240,18 +242,6 @@ async def list_ownerships_for_user(
     t0 = datetime.now()
 
     order_columns = []
-    if _sort:
-        keys = _sort.split(",")
-        for key in keys:
-            if key == "id":
-                # keys.append("user_id") -> This is for single user so makes no sense to sort
-                keys.append("document_id")
-            try:
-                order_column = getattr(PaperOwner, key)
-                order_columns.append(order_column)
-            except AttributeError:
-                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
-                                    detail="Invalid start or end index")
 
     if preset is not None:
         matched = re.search(r"last_(\d+)_days", preset)
@@ -271,6 +261,19 @@ async def list_ownerships_for_user(
     if flag_valid is not None:
         query = query.filter(PaperOwner.valid == flag_valid)
 
+    if _sort:
+        keys = _sort.split(",")
+        for key in keys:
+            if key == "id":
+                # keys.append("user_id") -> This is for single user so makes no sense to sort
+                keys.append("document_id")
+            try:
+                order_column = getattr(PaperOwner, key)
+                order_columns.append(order_column)
+            except AttributeError:
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                    detail="Invalid start or end index")
+
     for column in order_columns:
         if _order == "DESC":
             query = query.order_by(column.desc())
@@ -279,6 +282,10 @@ async def list_ownerships_for_user(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
     result = [OwnershipModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
