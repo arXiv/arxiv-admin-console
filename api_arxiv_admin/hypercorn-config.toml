@@ -1,2 +1,3 @@
 keep_alive_timeout=120
-log_level="info"
+log_level="warning"
+access_log_format = ""

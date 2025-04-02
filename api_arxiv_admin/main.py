@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 # from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import Response, RedirectResponse, JSONResponse
+from asgi_logger import AccessLoggerMiddleware
 
 import sqlalchemy
 from sqlalchemy.engine import ExecutionContext
@@ -90,21 +91,22 @@ SQLALCHMEY_MAPPING = {
 
 origins = [
     "http://localhost",
-    "http://localhost/",
     "http://localhost:5000",
     "http://localhost:5000/",
     "http://localhost:5000/admin-console",
     "http://localhost:5000/admin-console/",
-    "http://localhost:5100",
-    "http://localhost:5100/",
-    "http://localhost:5100/admin-console",
-    "http://localhost:5100/admin-console/",
-    "https://dev3.arxiv.org",
-    "https://dev3.arxiv.org/",
+    "https://arxiv.org",
+    "https://arxiv.org/",
     "https://dev.arxiv.org",
     "https://dev.arxiv.org/",
-    "https://arxiv.org",
-    "https://arxiv.org/"
+    "https://dev3.arxiv.org",
+    "https://dev3.arxiv.org/",
+    "https://dev9.arxiv.org",
+    "https://dev9.arxiv.org/",
+    "https://web40.arxiv.org",
+    "https://web40.arxiv.org/",
+    "https://web41.arxiv.org",
+    "https://web41.arxiv.org/",
 ]
 
 class LogMiddleware(BaseHTTPMiddleware):
@@ -205,6 +207,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         validator=is_valid_uuid4,
         transformer=lambda a: a,
         )
+
+    app.add_middleware(AccessLoggerMiddleware)
 
     # app.add_middleware(LogMiddleware)
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")

@@ -30,4 +30,4 @@ COPY admin_api_routes /opt/arxiv/admin_api_routes
 ENV WORKERS 4
 ENV SQLALCHEMY_TRACK_MODIFICATIONS False
 EXPOSE $PORT
-CMD  $VIRTUAL_ENV/bin/hypercorn --config hypercorn-config.toml --bind 0.0.0.0:$PORT --log-config app-logging.conf --workers $WORKERS "main:create_app()"
+CMD  $VIRTUAL_ENV/bin/hypercorn --config hypercorn-config.toml --bind 0.0.0.0:$PORT --workers $WORKERS "main:create_app()"

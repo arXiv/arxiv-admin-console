@@ -9,6 +9,9 @@ def setup_logger():
                                          rename_fields={'levelname': 'level', 'asctime': 'timestamp'})
     logHandler.setFormatter(formatter)
     logger = logging.getLogger()
+    logger.handlers.clear()
     logger.addHandler(logHandler)
     logger.setLevel(logging.DEBUG)
     logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    logging.getLogger("hypercorn.access").handlers.clear()
+    logging.getLogger("hypercorn.access").propagate = False
