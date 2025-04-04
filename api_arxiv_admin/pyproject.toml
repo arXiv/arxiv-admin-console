@@ -11,7 +11,7 @@ package-mode = false
 python = ">=3.11,<4.0"
 pydantic = { version = "^2.10.0" }
 fastapi = "^0.115"
-arxiv-base = {git = "https://github.com/arXiv/arxiv-base.git", rev = "489fc90c55605abde2b189216832237270af8e48"}
+arxiv-base = {git = "https://github.com/arXiv/arxiv-base.git", rev = "cdc6fcb271ac79ae44c741c7e664447e86849546"}
 pymysql = "^1.1.0"
 ruamel-yaml = "^0.18.6"
 python-json-logger = "^2.0.7"
