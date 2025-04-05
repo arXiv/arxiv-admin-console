@@ -26,6 +26,12 @@ steps:
       - set
       - echo FOO=bar >> envvars
       - ls
+      - git fetch origin $DRONE_COMMIT_BEFORE
+      - echo "Comparing $DRONE_COMMIT_BEFORE → $DRONE_COMMIT_SHA"
+      - git diff --name-only $DRONE_COMMIT_BEFORE $DRONE_COMMIT_SHA > changed_files.txt
+      - cat changed_files.txt
+      - grep -q '^api_arxiv_admin/' changed_files.txt && touch .run-api_arxiv_admin || echo "No changes in api_arxiv_admin"
+      - grep -q '^ui-arxiv-admin/' changed_files.txt && touch .run-ui-arxiv-admin || echo "No changes in ui-arxiv-admin"
     volumes:
       - name: docker-socket
         path: /var/run
@@ -46,13 +52,9 @@ steps:
         path: /var/run
     commands:
       - python3 /arxiv/setup_sa.py
-      - . ./envvars && python3 /arxiv/docker_builder.py admin-api api_arxiv_admin/ --repo $DRONE_REPO_NAME --gitsha $GIT_SHA -f api_arxiv_admin/Dockerfile
+      - if [ -f .run-api_arxiv_admin ]; then . ./envvars && python3 /arxiv/docker_builder.py admin-api api_arxiv_admin/ --repo $DRONE_REPO_NAME --gitsha $GIT_SHA -f api_arxiv_admin/Dockerfile ; fi
     depends_on:
       - hello
-    when:
-      changeset:
-        includes:
-          - api_arxiv_admin/**
 
   - name: build-ui
     image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:1575e2fe2c54556229df469ed4cc237bc9ce130f
@@ -66,13 +68,9 @@ steps:
         path: /var/run
     commands:
       - python3 /arxiv/setup_sa.py
-      - . ./envvars && python3 /arxiv/docker_builder.py admin-ui ui-arxiv-admin/ --repo $DRONE_REPO_NAME --gitsha $GIT_SHA -f ui-arxiv-admin/Dockerfile
+      - if [ -f .run-ui-arxiv-admin ]; then . ./envvars && python3 /arxiv/docker_builder.py admin-ui ui-arxiv-admin/ --repo $DRONE_REPO_NAME --gitsha $GIT_SHA -f ui-arxiv-admin/Dockerfile ; fi
     depends_on:
       - hello
-    when:
-      changeset:
-        includes:
-          - ui-arxiv-admin/**
 
   - name: failure
     image: gcr.io/arxiv-stage/arxiv-devops/arxiv-builder:e7a4be9
