@@ -21,7 +21,7 @@ services:
 
 steps:
   - name: hello
-    image: alpine
+    image: alpine/git
     commands:
       - set
       - echo FOO=bar >> envvars

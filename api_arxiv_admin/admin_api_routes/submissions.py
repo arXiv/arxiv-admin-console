@@ -1,6 +1,4 @@
 """arXiv paper display routes."""
-import json
-import urllib
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.latex_helpers import convert_latex_accents

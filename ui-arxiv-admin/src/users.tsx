@@ -39,6 +39,8 @@ import CategoryField from "./bits/CategoryField";
 import PersonNameField from "./bits/PersonNameField";
 import CareereStatusField from "./bits/CareereStatusField";
 import LastLoginField from "./bits/LastLoginField";
+import Typography from "@mui/material/Typography";
+import PaperOwnersList from "./bits/PaperOwnersList";
 
 const UserFilter = (props: any) => (
     <Filter {...props}>
@@ -291,124 +293,138 @@ function UserEndorsements() {
 
 
 export const UserEdit = () => {
-    /*
-    const record = useRecordContext();
-    const redirect = useRedirect();
-
-
-    const previousRecordId = currentIndex > 0 ? ids[currentIndex - 1] : null;
-    const nextRecordId = currentIndex < ids.length - 1 ? ids[currentIndex + 1] : null;
-
-    const goToPrevious = () => {
-        if (previousRecordId) {
-            redirect('edit', 'users', previousRecordId);
-        }
-    };
-
-    const goToNext = () => {
-        if (nextRecordId) {
-            redirect('edit', 'users', nextRecordId);
-        }
-    };
-    <Box display="flex" justifyContent="space-between" mt={2}>
-                <IconButtonWithTooltip onClick={goToPrevious} disabled={currentIndex <= 0} label="Prev"/>
-                <Button onClick={goToNext} disabled={currentIndex >= (ids.length - 1) }>Next</Button>
-            </Box>
-     */
-
     return (
     <Edit title={<UserTitle />}>
-        <SimpleForm>
-
+        <SimpleForm >
             <Grid container>
-                <Grid item xs={6}>
-                    <Table>
+                <Grid item xs={6} >
+                    <Table size="small">
                         <TableRow>
                             <TableCell>
-                                email
+                                username / email
                             </TableCell>
                             <TableCell>
-                                <TextInput source="email" />
-                                <BooleanInput source="flag_email_verified" label={"Email verified"} />
-                                <BooleanInput source="email_bouncing" label={"Email bouncing"} />
+                                <TextField source="username"/>
+                            </TableCell>
+
+                            <TableCell>
+                                <TextInput source="email" helperText={false} />
                             </TableCell>
                         </TableRow>
+                        <TableRow>
+                            <TableCell>
+                            </TableCell>
+                            <TableCell>
+                                <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} />
+                            </TableCell>
+                            <TableCell>
+                                <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} />
+                            </TableCell>
+                        </TableRow>
+
                         <TableRow>
                             <TableCell>
                                 name
                             </TableCell>
                             <TableCell>
-                                <TextInput source="first_name" />
-                                <TextInput source="last_name" />
+                                <TextInput source="first_name" helperText={false} />
+                            </TableCell>
+                                <TableCell>
+                                <TextInput source="last_name" helperText={false}  />
                             </TableCell>
                         </TableRow>
+                    </Table>
+                    <Table size="small">
                         <TableRow>
+                            <TableCell />
                             <TableCell>
-                                User name
+                                <SelectInput source="policy_class" choices={policyClassChoices} helperText={false} />
                             </TableCell>
                             <TableCell>
-                                <TextField source="username" />
+                            <Grid item xs={3} >
+                                <Typography component={"span"} >Moderator
+                                    <BooleanField source="flag_is_mod" label={"Moderator"}  />
+                                </Typography>
+                            </Grid>
+                            </TableCell>
+
+                        </TableRow>
+
+                        <TableRow>
+                            <TableCell>
+                                Status
+                            </TableCell>
+                            <TableCell>
+                                <Grid container>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_veto_status" label={"Veto status"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_proxy" label={"Proxy"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_suspect" label={"Suspect"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_xml" label={"XML"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_group_test" label={"Test"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_approved" label={"Approved"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_allow_tex_produced" label={"Allow Tex"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_deleted" label={"Deleted"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_banned" label={"Suspended"} helperText={false} />
+                                    </Grid>
+
+                                </Grid>
                             </TableCell>
                         </TableRow>
 
                         <TableRow>
                             <TableCell>
-                                Permissions
+                                Administration
                             </TableCell>
                             <TableCell>
                                 <Grid container>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_veto_status" label={"Veto status"}/>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_edit_users" label={"Edit Users"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_edit_users" label={"Edit Users"}/>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_edit_system" label={"Edit System"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_edit_system" label={"Edit System"}/>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_internal" label={"Internal"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_banned" label={"Suspended"}/>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_approved" label={"Approved"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_proxy" label={"Proxy"}/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_suspect" label={"Suspect"}/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_xml" label={"XML"}/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_group_test" label={"Test"}/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_internal"/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_approved"/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_deleted"/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_allow_tex_produced"/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanInput source="flag_can_lock"/>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <BooleanField source="flag_is_mod"/>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_can_lock" label={"Can Lock"} helperText={false} />
                                     </Grid>
                                 </Grid>
-                                <SelectInput source="policy_class" choices={policyClassChoices} />
                             </TableCell>
+
                         </TableRow>
+
                     </Table>
                 </Grid>
 
                 <Grid item xs={6}>
                     <UserDemographic />
+                    <Grid item xs={12}>
+                        <PaperOwnersList />
+                    </Grid>
                 </Grid>
+
+
             </Grid>
             <Grid container >
                 <Grid item xs={12}>
