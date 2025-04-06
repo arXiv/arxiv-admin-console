@@ -106,7 +106,7 @@ postgres = []
 type = "git"
 url = "https://github.com/arXiv/arxiv-keycloak.git"
 reference = "master"
-resolved_reference = "bfbe83947c96be9d280a549105217a2764900fe9"
+resolved_reference = "063a811bf041e194d8506e4ecd324cdf3c82b4e6"
 subdirectory = "bizlogic"
 
 [[package]]

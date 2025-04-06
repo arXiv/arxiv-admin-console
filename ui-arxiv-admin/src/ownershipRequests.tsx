@@ -558,7 +558,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                 const ownershipPromises = documents.map(async (doc) => {
                     const fake_id = `user_${user_id}-doc_${doc.id}`;
                     try {
-                        const response = await dataProvider.getOne<PaperOwnerType>('paper_owners', { id: fake_id });
+                        const response = await dataProvider.getOne<PaperOwnerType>('paper_owners_user_doc', { id: fake_id });
                         const data = {...response.data,
                             user_id: user_id,
                             document_id: doc.id,

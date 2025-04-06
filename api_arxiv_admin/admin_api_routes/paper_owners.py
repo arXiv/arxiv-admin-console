@@ -145,14 +145,15 @@ async def list_ownerships(
             keys = _sort.split(",")
             for key in keys:
                 if key == "id":
-                    keys.append("user_id")
-                    keys.append("document_id")
-                try:
-                    order_column = getattr(PaperOwner, key)
-                    order_columns.append(order_column)
-                except AttributeError:
-                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
-                                        detail="Invalid start or end index")
+                    order_columns.append(getattr(PaperOwner, "user_id"))
+                    order_columns.append(getattr(PaperOwner, "document_id"))
+                else:
+                    try:
+                        order_column = getattr(PaperOwner, key)
+                        order_columns.append(order_column)
+                    except AttributeError:
+                        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                            detail="Invalid start or end index")
 
         if preset is not None:
             matched = re.search(r"last_(\d+)_days", preset)

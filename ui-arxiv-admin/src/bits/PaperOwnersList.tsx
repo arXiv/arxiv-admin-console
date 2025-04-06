@@ -23,7 +23,7 @@ const PaperOwnersList : React.FC = ()  => {
             sort={{ field: 'id', order: 'DESC' }}
             exporter={false}
         >
-            <Datagrid rowClick="edit">
+            <Datagrid rowClick="edit" >
                 <ReferenceField reference={"documents"} source={"document_id"}>
                     <TextField source="paper_id" />
                 </ReferenceField>
