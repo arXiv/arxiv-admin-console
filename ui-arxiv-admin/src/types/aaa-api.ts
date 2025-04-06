@@ -265,6 +265,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/email/verified/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Email Verified Status Current User
+         * @description Is the email verified for this usea?
+         */
+        get: operations["get_email_verified_status_current_user_account_email_verified__get"];
+        /**
+         * Set Email Verified Status
+         * @description Set the email verified status
+         */
+        put: operations["set_email_verified_status_account_email_verified__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/email/{user_id}/verified/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Email Verified Status
+         * @description Is the email verified for this usea?
+         */
+        get: operations["get_email_verified_status_account_email__user_id__verified__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/email/": {
         parameters: {
             query?: never;
@@ -376,6 +420,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/keycloak/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Audit Event
+         * @description Receives Keycloak audit events and updates the state.
+         */
+        post: operations["audit_event_keycloak_audit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -432,7 +496,7 @@ export interface components {
             affiliation?: string | null;
             default_category?: components["schemas"]["CategoryIdModel"] | null;
             /** Groups */
-            groups?: string[] | null;
+            groups?: components["schemas"]["CategoryGroup"][] | null;
             /** Url */
             url?: string | null;
             /** Joined Date */
@@ -442,6 +506,7 @@ export interface components {
             career_status?: components["schemas"]["CAREER_STATUS"] | null;
             /** Tracking Cookie */
             tracking_cookie?: string | null;
+            veto_status?: components["schemas"]["VetoStatusEnum"] | null;
             /** Id */
             id: string;
             /** Email Verified */
@@ -474,7 +539,7 @@ export interface components {
             affiliation?: string | null;
             default_category?: components["schemas"]["CategoryIdModel"] | null;
             /** Groups */
-            groups?: string[] | null;
+            groups?: components["schemas"]["CategoryGroup"][] | null;
             /** Url */
             url?: string | null;
             /** Joined Date */
@@ -484,6 +549,7 @@ export interface components {
             career_status?: components["schemas"]["CAREER_STATUS"] | null;
             /** Tracking Cookie */
             tracking_cookie?: string | null;
+            veto_status?: components["schemas"]["VetoStatusEnum"] | null;
             /** Password */
             password: string;
             /** Origin Ip */
@@ -510,6 +576,11 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * CategoryGroup
+         * @enum {string}
+         */
+        CategoryGroup: "grp_physics" | "grp_math" | "grp_cs" | "grp_q-bio" | "grp_q-fin" | "grp_q-stat" | "grp_q-econ" | "grp_eess" | "grp_nlin" | "grp_test";
         /** CategoryIdModel */
         CategoryIdModel: {
             /** Archive */
@@ -541,6 +612,13 @@ export interface components {
             email: string;
             /** New Email */
             new_email: string;
+        };
+        /** EmailVerifiedStatus */
+        EmailVerifiedStatus: {
+            /** User Id */
+            user_id: string;
+            /** Result */
+            result: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -589,6 +667,11 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * VetoStatusEnum
+         * @enum {string}
+         */
+        VetoStatusEnum: "ok" | "no-endorse" | "no-upload" | "no-replace";
         /** WellKnownServices */
         WellKnownServices: {
             /** Arxiv Base Url */
@@ -1027,6 +1110,90 @@ export interface operations {
             };
         };
     };
+    get_email_verified_status_current_user_account_email_verified__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerifiedStatus"];
+                };
+            };
+        };
+    };
+    set_email_verified_status_account_email_verified__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerifiedStatus"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerifiedStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_email_verified_status_account_email__user_id__verified__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerifiedStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     change_email_account_email__put: {
         parameters: {
             query?: never;
@@ -1049,6 +1216,51 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description Old and new email are the same */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Not logged in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden - not allowed to change this email */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Old email does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description The email already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1056,6 +1268,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Error while updating Keycloak */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -1210,6 +1431,41 @@ export interface operations {
             };
         };
     };
+    audit_event_keycloak_audit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     root__get: {
         parameters: {
             query?: never;
@@ -1245,7 +1501,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

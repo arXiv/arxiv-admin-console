@@ -22,13 +22,13 @@ const PaperOwnersList : React.FC = ()  => {
             filter={{ user_id: record.id}}
             sort={{ field: 'id', order: 'DESC' }}
             exporter={false}
-            searchable={false}
         >
             <Datagrid rowClick="edit">
-                <ReferenceField reference={"documents"} source={"document_id"} >
+                <ReferenceField reference={"documents"} source={"document_id"}>
                     <TextField source="paper_id" />
                 </ReferenceField>
-                <ReferenceField reference={"documents"} source={"document_id"} >
+                <ReferenceField reference={"documents"} source={"document_id"}
+                                link={(record, reference) => `https://arxiv.org/pdf/${record.paper_id}`}>
                     <TextField source="title" />
                 </ReferenceField>
                 <TextField source="date" />

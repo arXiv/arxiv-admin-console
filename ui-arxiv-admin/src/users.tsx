@@ -239,6 +239,12 @@ function UserDemographic() {
                 <CareereStatusField source="type" />
             </TableCell>
         </TableRow>
+        <TableRow>
+            <TableCell>ORCID</TableCell>
+            <TableCell>
+                <TextField source="orcid" />
+            </TableCell>
+        </TableRow>
     </Table>);
 }
 
@@ -357,19 +363,23 @@ export const UserEdit = () => {
                             <TableCell>
                                 <Grid container>
                                     <Grid item xs={4}>
+                                        <BooleanInput source="flag_suspect" label={"Suspect"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
                                         <BooleanInput source="flag_veto_status" label={"Veto status"} helperText={false} />
                                     </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_banned" label={"Suspended"} helperText={false} />
+                                    </Grid>
+                                    <Grid item xs={4}>
+                                        <BooleanInput source="flag_deleted" label={"Deleted"} helperText={false} />
+                                    </Grid>
+
                                     <Grid item xs={4}>
                                         <BooleanInput source="flag_proxy" label={"Proxy"} helperText={false} />
                                     </Grid>
                                     <Grid item xs={4}>
-                                        <BooleanInput source="flag_suspect" label={"Suspect"} helperText={false} />
-                                    </Grid>
-                                    <Grid item xs={4}>
                                         <BooleanInput source="flag_xml" label={"XML"} helperText={false} />
-                                    </Grid>
-                                    <Grid item xs={4}>
-                                        <BooleanInput source="flag_group_test" label={"Test"} helperText={false} />
                                     </Grid>
                                     <Grid item xs={4}>
                                         <BooleanInput source="flag_approved" label={"Approved"} helperText={false} />
@@ -378,10 +388,7 @@ export const UserEdit = () => {
                                         <BooleanInput source="flag_allow_tex_produced" label={"Allow Tex"} helperText={false} />
                                     </Grid>
                                     <Grid item xs={4}>
-                                        <BooleanInput source="flag_deleted" label={"Deleted"} helperText={false} />
-                                    </Grid>
-                                    <Grid item xs={4}>
-                                        <BooleanInput source="flag_banned" label={"Suspended"} helperText={false} />
+                                        <BooleanInput source="flag_group_test" label={"Test"} helperText={false} />
                                     </Grid>
 
                                 </Grid>
@@ -394,19 +401,16 @@ export const UserEdit = () => {
                             </TableCell>
                             <TableCell>
                                 <Grid container>
-                                    <Grid item xs={4}>
-                                        <BooleanInput source="flag_edit_users" label={"Edit Users"} helperText={false} />
+                                    <Grid item xs={6}>
+                                        <BooleanInput source="flag_edit_users" label={"Admin"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={4}>
-                                        <BooleanInput source="flag_edit_system" label={"Edit System"} helperText={false} />
+                                    <Grid item xs={6}>
+                                        <BooleanInput source="flag_edit_system" label={"System"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid item xs={6}>
                                         <BooleanInput source="flag_internal" label={"Internal"} helperText={false} />
                                     </Grid>
-                                    <Grid item xs={4}>
-                                        <BooleanInput source="flag_approved" label={"Approved"} helperText={false} />
-                                    </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid item xs={6}>
                                         <BooleanInput source="flag_can_lock" label={"Can Lock"} helperText={false} />
                                     </Grid>
                                 </Grid>
