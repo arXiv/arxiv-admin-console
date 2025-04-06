@@ -24,14 +24,16 @@ const PaperOwnersList : React.FC = ()  => {
             exporter={false}
         >
             <Datagrid rowClick="edit" >
-                <ReferenceField reference={"documents"} source={"document_id"}>
+                <ReferenceField reference={"documents"} source={"document_id"} label={"arXiv ID"}>
                     <TextField source="paper_id" />
                 </ReferenceField>
-                <ReferenceField reference={"documents"} source={"document_id"}
+                <ReferenceField reference={"documents"} source={"document_id"} label={"Title"}
                                 link={(record, reference) => `https://arxiv.org/pdf/${record.paper_id}`}>
                     <TextField source="title" />
                 </ReferenceField>
-                <TextField source="date" />
+                <ReferenceField reference={"documents"} source={"document_id"} label={"Dated"} link={false}>
+                    <DateField source="dated" />
+                </ReferenceField>
             </Datagrid>
         </List>
     );

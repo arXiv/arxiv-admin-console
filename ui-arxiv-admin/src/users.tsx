@@ -41,6 +41,7 @@ import CareereStatusField from "./bits/CareereStatusField";
 import LastLoginField from "./bits/LastLoginField";
 import Typography from "@mui/material/Typography";
 import PaperOwnersList from "./bits/PaperOwnersList";
+import {AdminAuditList} from "./bits/TapirAdminLogs";
 
 const UserFilter = (props: any) => (
     <Filter {...props}>
@@ -419,6 +420,7 @@ export const UserEdit = () => {
                         </TableRow>
 
                     </Table>
+                    <AdminAuditList />
                 </Grid>
 
                 <Grid item xs={6}>

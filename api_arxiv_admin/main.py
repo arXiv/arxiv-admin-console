@@ -43,6 +43,7 @@ from admin_api_routes.user import router as user_router
 from admin_api_routes.tapir_sessions import router as tapir_session_router
 from admin_api_routes.member_institutions import router as member_institution_router
 from admin_api_routes.countries import router as countries_router
+from admin_api_routes.tapir_admin_audit import router as tapir_admin_audit_router
 
 from admin_api_routes.frontend import router as frontend_router
 from admin_api_routes.helpers.session_cookie_middleware import SessionCookieMiddleware
@@ -238,6 +239,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(submission_categories_router, prefix="/v1")
     app.include_router(countries_router, prefix="/v1")
     app.include_router(public_users_router, prefix="/v1")
+    app.include_router(tapir_admin_audit_router, prefix="/v1")
 
 
     @app.middleware("http")

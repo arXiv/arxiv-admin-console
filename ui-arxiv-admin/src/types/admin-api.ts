@@ -1293,6 +1293,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tapir_admin_audit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tapir Admin Audit */
+        get: operations["list_tapir_admin_audit_v1_tapir_admin_audit__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tapir_admin_audit/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tapir Admin Audit */
+        get: operations["get_tapir_admin_audit_v1_tapir_admin_audit__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2035,6 +2069,38 @@ export interface components {
             name: string;
             /** Group */
             group: string;
+        };
+        /**
+         * TapirAdminActionEnum
+         * @enum {string}
+         */
+        TapirAdminActionEnum: "unknown" | "add_paper_owner" | "add_paper_owner_2" | "make_moderator" | "unmake_moderator" | "arXiv_change_status" | "arXiv_make_author" | "arXiv_make_nonauthor" | "arXiv_change_paper_pw" | "endorsed_by_suspect" | "got_negative_endorsement";
+        /** TapirAdminAuditModel */
+        TapirAdminAuditModel: {
+            /** Id */
+            id: number;
+            /**
+             * Log Date
+             * Format: date-time
+             */
+            log_date: string;
+            /** Session Id */
+            session_id: string;
+            /** Ip Addr */
+            ip_addr: string;
+            /** Remove Host */
+            remove_host: string;
+            /** Admin User */
+            admin_user: string;
+            /** Affected User */
+            affected_user: string;
+            /** Tracking Cookie */
+            tracking_cookie: string;
+            action: components["schemas"]["TapirAdminActionEnum"];
+            /** Data */
+            data: string;
+            /** Comments */
+            comments: string;
         };
         /** TapirSessionModel */
         TapirSessionModel: {
@@ -2988,6 +3054,8 @@ export interface operations {
                 first_name?: string | null;
                 flag_edit_users?: boolean | null;
                 flag_email_verified?: boolean | null;
+                flag_proxy?: boolean | null;
+                flag_veto?: boolean | null;
                 email_bouncing?: boolean | null;
                 clue?: string | null;
                 suspect?: boolean | null;
@@ -5328,6 +5396,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicUserModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tapir_admin_audit_v1_tapir_admin_audit__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description List of user IDs to filter by */
+                id?: number[] | null;
+                /** @description Admin User id */
+                admin_user_id?: number | null;
+                /** @description affected_user */
+                affected_user?: number | null;
+                /** @description Start date for filtering */
+                start_date?: string | null;
+                /** @description End date for filtering */
+                end_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TapirAdminAuditModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tapir_admin_audit_v1_tapir_admin_audit__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TapirAdminAuditModel"];
                 };
             };
             /** @description Validation Error */
