@@ -205,6 +205,7 @@ const AdminConsole: React.FC = () => {
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>
                 <Resource name="paper_owners"/>
+                <Resource name="paper_owners_user_doc"/>
                 <Resource name="demographics"/>
                 <Resource name="admin_logs"/>
                 <Resource name="submission_categories"/>

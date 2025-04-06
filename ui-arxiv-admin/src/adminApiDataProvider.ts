@@ -75,7 +75,7 @@ class adminApiDataProvider implements DataProvider {
             console.log("endorsees -> users");
             return this.dataProvider.getList<T>("users", params);
         }
-        else if (resource === 'paper_owners') {
+        else if (resource === 'paper_owners_user_doc') {
             const { user_id } = params.filter;
             const url = `${this.api}/paper_owners/user/${user_id}`;
             try {
