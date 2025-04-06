@@ -145,6 +145,7 @@ async def list_ownerships(
             keys = _sort.split(",")
             for key in keys:
                 if key == "id":
+                    # Sort with both user/doc ids
                     order_columns.append(getattr(PaperOwner, "user_id"))
                     order_columns.append(getattr(PaperOwner, "document_id"))
                 else:
