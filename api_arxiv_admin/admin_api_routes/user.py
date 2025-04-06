@@ -1,15 +1,13 @@
 """arXiv user routes."""
 from http.client import HTTPException
 from typing import Optional, List
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
 from fastapi.responses import Response
 
-from sqlalchemy import select, case, distinct, exists, and_, cast, LargeBinary
+from sqlalchemy import select, distinct, and_
 from sqlalchemy.orm import Session, aliased
-
-from pydantic import BaseModel
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
                              t_arXiv_black_email, Category)
@@ -109,6 +107,8 @@ async def list_users(
         first_name: Optional[str] = Query(None),
         flag_edit_users: Optional[bool] = Query(None),
         flag_email_verified: Optional[bool] = Query(None),
+        flag_proxy: Optional[bool] = Query(None),
+        flag_veto: Optional[bool] = Query(None),
         email_bouncing: Optional[bool] = Query(None),
         clue: Optional[str] = Query(None),
         suspect: Optional[bool] = Query(None),
@@ -189,6 +189,20 @@ async def list_users(
 
         if flag_email_verified is not None:
             query = query.filter(TapirUser.flag_email_verified == flag_email_verified)
+
+        if flag_veto is not None:
+            dgfx2 = aliased(Demographic)
+            query = query.join(dgfx2, dgfx2.user_id == TapirUser.user_id)
+            query = query.filter(dgfx2.flag_suspect == suspect)
+            if flag_veto:
+                query = query.filter(dgfx2.veto_status != "ok")
+            else:
+                query = query.filter(dgfx2.veto_status == "ok")
+
+        if flag_proxy is not None:
+            dgfx3 = aliased(Demographic)
+            query = query.join(dgfx3, dgfx3.user_id == TapirUser.user_id)
+            query = query.filter(dgfx3.flag_proxy == flag_proxy)
 
         if email_bouncing is not None:
             query = query.filter(TapirUser.email_bouncing == email_bouncing)
