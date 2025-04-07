@@ -350,7 +350,7 @@ export const UserEdit = () => {
                             <TableCell>
                             <Grid item xs={3} >
                                 <Typography component={"span"} >Moderator
-                                    <BooleanField source="flag_is_mod" label={"Moderator"} options={{size: "small"}} />
+                                    <BooleanField source="flag_is_mod" label={"Moderator"} />
                                 </Typography>
                             </Grid>
                             </TableCell>
