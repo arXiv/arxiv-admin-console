@@ -47,7 +47,7 @@ class TapirAdminActionEnum(str, Enum):
 class TapirAdminAuditModel(BaseModel):
     id: int  # entry id - thank god it has a p-key
     log_date: datetime.datetime
-    session_id: Optional[str]
+    session_id: Optional[int]
     ip_addr: str
     remote_host: str
     admin_user: Optional[int]
