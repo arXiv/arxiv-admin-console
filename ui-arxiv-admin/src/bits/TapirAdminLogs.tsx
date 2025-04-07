@@ -96,7 +96,7 @@ export const AdminAuditList = () => {
         <List
             resource="tapir_admin_audit"
             title="Paper Ownership"
-            perPage={10}
+            perPage={5}
             filter={{ affected_user: record.id}}
             sort={{ field: 'id', order: 'DESC' }}
             exporter={false}

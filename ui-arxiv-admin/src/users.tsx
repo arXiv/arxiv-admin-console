@@ -30,7 +30,8 @@ import {
     SelectInput,
     DateInput,
     RecordContextProvider,
-    useDataProvider, IconButtonWithTooltip, useListContext, useRedirect
+    useDataProvider, IconButtonWithTooltip, useListContext, useRedirect,
+    ResourceContextProvider
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -420,13 +421,17 @@ export const UserEdit = () => {
                         </TableRow>
 
                     </Table>
-                    <AdminAuditList />
+                    <ResourceContextProvider value="tapir_admin_audit">
+                        <AdminAuditList />
+                    </ResourceContextProvider>
                 </Grid>
 
                 <Grid item xs={6}>
                     <UserDemographic />
                     <Grid item xs={12}>
-                        <PaperOwnersList />
+                        <ResourceContextProvider value="paper_owners">
+                            <PaperOwnersList />
+                        </ResourceContextProvider>
                     </Grid>
                 </Grid>
 
