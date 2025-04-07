@@ -287,17 +287,15 @@ function UserEndorsements() {
     }
 
     return (
-        <Grid container>
-            <Grid size={{xs: 12}} >
-                <Grid size={{xs: 2}}>Endorsed for</Grid>
-                {
-                    endorsements.map((endorsement, _index) => (
-                        <Grid size={{xs: 2}}>
-                            <Endorsement endorsement={endorsement} />
-                        </Grid>
+        <Grid container size={{xs: 12}}>
+            <Grid size={{xs: 2}}>Endorsed for</Grid>
+            {
+                endorsements.map((endorsement, _index) => (
+                    <Grid size={{xs: 2}}>
+                        <Endorsement endorsement={endorsement} />
+                    </Grid>
                 ))
             }
-            </Grid>
         </Grid>
     );
 }
@@ -436,10 +434,8 @@ export const UserEdit = () => {
 
 
             </Grid>
-            <Grid container >
-                <Grid size={{xs: 12}}>
-                    <UserEndorsements />
-                </Grid>
+            <Grid size={{xs: 12}}>
+                <UserEndorsements />
             </Grid>
         </SimpleForm>
     </Edit>

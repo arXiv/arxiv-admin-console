@@ -8,6 +8,7 @@ import {
     useListController, ListContextProvider, Pagination, ReferenceField
 } from "react-admin";
 import { paths as adminApi } from '../types/admin-api';
+import UserNameField from './UserNameField';
 
 type UserModel = adminApi['/v1/users/{user_id}']['get']['responses']['200']['content']['application/json'];
 type TapirAdminAuditModel = adminApi['/v1/tapir_admin_audit/{id}']['get']['responses']['200']['content']['application/json'];
@@ -164,15 +165,14 @@ export const AdminAuditList: React.FC = () => {
 
     return (
         <ListContextProvider value={controllerProps}>
-            <Datagrid rowClick="show">
+            <Datagrid rowClick="show" empty={<p><b>No audits for this user</b></p>}>
                 <DateField source="log_date" />
                 <ReferenceField reference={"users"} source={"admin_user"} >
-                    <TextField source={"first_name"} />
-                    {" "}
-                    <TextField source={"last_name"} />
-                    {" ("} <TextField source={"username"} /> {")"}
+                    <UserNameField />
                 </ReferenceField>
-                <TextField source="affected_user" />
+                <ReferenceField reference={"users"} source={"affected_user"} >
+                    <UserNameField />
+                </ReferenceField>
                 <AdminActionDescriptionField />
             </Datagrid>
             <Pagination />

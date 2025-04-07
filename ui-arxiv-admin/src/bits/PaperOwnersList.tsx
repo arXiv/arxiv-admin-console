@@ -27,7 +27,7 @@ const PaperOwnersList: React.FC = () => {
 
     return (
         <ListContextProvider value={controllerProps}>
-            <Datagrid rowClick="edit">
+            <Datagrid rowClick="edit" empty={<p><b>User owns none of papers</b></p>}>
                 <ReferenceField reference="documents" source="document_id" label="arXiv ID">
                     <TextField source="paper_id" />
                 </ReferenceField>
