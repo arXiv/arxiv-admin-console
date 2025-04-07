@@ -5,12 +5,13 @@ import {
     TextField,
     DateField,
     useGetOne,
-    useListController, ListContextProvider, Pagination
+    useListController, ListContextProvider, Pagination, ReferenceField
 } from "react-admin";
 import { paths as adminApi } from '../types/admin-api';
 
 type UserModel = adminApi['/v1/users/{user_id}']['get']['responses']['200']['content']['application/json'];
 type TapirAdminAuditModel = adminApi['/v1/tapir_admin_audit/{id}']['get']['responses']['200']['content']['application/json'];
+type TapirAdminAuditAction = TapirAdminAuditModel['action'];
 
 
 const paperLink = (docId: string, paperId: string) =>
@@ -32,27 +33,27 @@ export const AdminActionDescriptionField = () => {
 
     if (loadingAdmin || loadingAffected) return <span>Loading...</span>;
 
-    const admin = userLink(adminUser, record.admin_user);
-    const affected = userLink(affectedUser, record.affected_user);
+    const admin = record.admin_user ? userLink(adminUser, String(record.admin_user)) : "";
+    const affected = userLink(affectedUser, String(record.affected_user));
 
-    const { action, data } = record;
+    const { action , data } = record;
 
     let html: string;
 
-    switch (action) {
-        case "add_paper_owner":
+    switch (action as TapirAdminAuditAction) {
+        case "add-paper-owner":
             html = `${admin} made ${affected} an owner of paper ${paperLink(data, data)}`;
             break;
-        case "add_paper_owner_2":
+        case "add-paper-owner-2":
             html = `${admin} made ${affected} an owner of paper ${paperLink(data, data)} through the process-ownership screen`;
             break;
-        case "make_moderator":
+        case "make-moderator":
             html = `${admin} made ${affected} a moderator of ${data}`;
             break;
-        case "unmake_moderator":
+        case "unmake-moderator":
             html = `${admin} revoked ${affected} being moderator of ${data}`;
             break;
-        case "arXiv_change_status": {
+        case "arXiv-change-status": {
             const match = data.match(/^([^ ]*) -> ([^ ]*)$/);
             if (match) {
                 const [, oldStatus, newStatus] = match;
@@ -62,33 +63,83 @@ export const AdminActionDescriptionField = () => {
             }
             break;
         }
-        case "arXiv_make_author":
+        case "arXiv-make-author":
             html = `${admin} made ${affected} an author of ${paperLink(data, data)}`;
             break;
-        case "arXiv_make_nonauthor":
+        case "arXiv-make-nonauthor":
             html = `${admin} made ${affected} a nonauthor of ${paperLink(data, data)}`;
             break;
-        case "arXiv_change_paper_pw":
+        case "arXiv-change-paper-pw":
             html = `${admin} changed the paper password for ${paperLink(data, data)} which was submitted by ${affected}`;
             break;
-        case "endorsed_by_suspect":
+        case "endorsed-by-suspect":
             try {
                 const [endorserId, _category, endorsementId] = data.split(" ");
                 html = `Automated action: ${affected} was flagged because they <a href="/auth/admin/generic-detail.php?tapir_y=endorsements&tapir_id=${endorsementId}">was endorsed</a> by user ${endorserId} who is also a suspect.`;
             } catch {
-                html = "Malformed data in endorsement record.";
+                html = "Malformed data in endorsement record. " + data;
             }
             break;
-        case "got_negative_endorsement":
+        case "got-negative-endorsement":
             try {
                 const [endorserId, _category, endorsementId] = data.split(" ");
                 html = `Automated action: ${affected} was flagged because they got a <a href="/auth/admin/generic-detail.php?tapir_y=endorsements&tapir_id=${endorsementId}">negative endorsement</a> from user ${endorserId}.`;
             } catch {
-                html = "Malformed data in negative endorsement record.";
+                html = "Malformed data in negative endorsement record. " + data;
             }
             break;
+
+        case "flip-flag":
+            try {
+                const [flag_name, value] = data.split("=");
+                html = `${admin} set ${flag_name} to ${value}.`;
+            } catch {
+                html = "Malformed data in flip-flag data. " + data;
+            }
+            break;
+
+        case "become-user":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "suspend-user":
+            html = `Action: ${action} : data ${data}`;
+            break
+
+        case "unsuspend-user":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "change-email":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "revoke-paper-owner":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "change-paper-pw":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "change-password":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "arXiv-revoke-paper-owner":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "arXiv-unrevoke-paper-owner":
+            html = `Action: ${action} : data ${data}`;
+            break;
+
+        case "add-comment":
+            html = `Comment: ${record.comment}`;
+            break;
+
         default:
-            html = `Unknown action: ${action}`;
+            html = `Unknown action: ${action} : data ${data}`;
     }
 
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
@@ -115,7 +166,12 @@ export const AdminAuditList: React.FC = () => {
         <ListContextProvider value={controllerProps}>
             <Datagrid rowClick="show">
                 <DateField source="log_date" />
-                <TextField source="admin_user" />
+                <ReferenceField reference={"users"} source={"admin_user"} >
+                    <TextField source={"first_name"} />
+                    {" "}
+                    <TextField source={"last_name"} />
+                    {" ("} <TextField source={"username"} /> {")"}
+                </ReferenceField>
                 <TextField source="affected_user" />
                 <AdminActionDescriptionField />
             </Datagrid>

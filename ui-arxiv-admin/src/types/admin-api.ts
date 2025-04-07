@@ -2074,7 +2074,7 @@ export interface components {
          * TapirAdminActionEnum
          * @enum {string}
          */
-        TapirAdminActionEnum: "unknown" | "add_paper_owner" | "add_paper_owner_2" | "make_moderator" | "unmake_moderator" | "arXiv_change_status" | "arXiv_make_author" | "arXiv_make_nonauthor" | "arXiv_change_paper_pw" | "endorsed_by_suspect" | "got_negative_endorsement";
+        TapirAdminActionEnum: "unknown" | "flip-flag" | "become-user" | "suspend-user" | "unsuspend-user" | "make-moderator" | "unmake-moderator" | "change-email" | "add-paper-owner" | "revoke-paper-owner" | "change-paper-pw" | "change-password" | "arXiv-change-status" | "arXiv-make-nonauthor" | "arXiv-make-author" | "add-paper-owner-2" | "arXiv-revoke-paper-owner" | "arXiv-unrevoke-paper-owner" | "arXiv-change-paper-pw" | "endorsed-by-suspect" | "got-negative-endorsement" | "add-comment";
         /** TapirAdminAuditModel */
         TapirAdminAuditModel: {
             /** Id */
@@ -2085,22 +2085,22 @@ export interface components {
              */
             log_date: string;
             /** Session Id */
-            session_id: string;
+            session_id: number | null;
             /** Ip Addr */
             ip_addr: string;
-            /** Remove Host */
-            remove_host: string;
+            /** Remote Host */
+            remote_host: string;
             /** Admin User */
-            admin_user: string;
+            admin_user: number | null;
             /** Affected User */
-            affected_user: string;
+            affected_user: number;
             /** Tracking Cookie */
             tracking_cookie: string;
             action: components["schemas"]["TapirAdminActionEnum"];
             /** Data */
             data: string;
-            /** Comments */
-            comments: string;
+            /** Comment */
+            comment: string;
         };
         /** TapirSessionModel */
         TapirSessionModel: {
@@ -5421,7 +5421,7 @@ export interface operations {
                 /** @description List of user IDs to filter by */
                 id?: number[] | null;
                 /** @description Admin User id */
-                admin_user_id?: number | null;
+                admin_user?: number | null;
                 /** @description affected_user */
                 affected_user?: number | null;
                 /** @description Start date for filtering */
