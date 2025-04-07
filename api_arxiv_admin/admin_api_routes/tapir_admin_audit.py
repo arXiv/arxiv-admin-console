@@ -84,7 +84,7 @@ async def list_tapir_admin_audit(
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
-        admin_user_id: Optional[int] = Query(None, description="Admin User id"),
+        admin_user: Optional[int] = Query(None, description="Admin User id"),
         affected_user: Optional[int] = Query(None, description="affected_user"),
         start_date: Optional[datetime.date] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime.date] = Query(None, description="End date for filtering"),
@@ -115,8 +115,8 @@ async def list_tapir_admin_audit(
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                         detail="Invalid start or end index")
 
-        if admin_user_id:
-            query = query.filter(TapirAdminAudit.admin_user == admin_user_id)
+        if admin_user:
+            query = query.filter(TapirAdminAudit.admin_user == admin_user)
 
         if affected_user:
             query = query.filter(TapirAdminAudit.affected_user == affected_user)

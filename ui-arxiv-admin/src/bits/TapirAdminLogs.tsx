@@ -97,7 +97,7 @@ export const AdminAuditList = () => {
             resource="tapir_admin_audit"
             title="Paper Ownership"
             perPage={10}
-            filter={{ user_id: record.id}}
+            filter={{ affected_user: record.id}}
             sort={{ field: 'id', order: 'DESC' }}
             exporter={false}
             empty={<b><p>No admin audit records found</p></b>}
