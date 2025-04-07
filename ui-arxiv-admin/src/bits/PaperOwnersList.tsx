@@ -1,41 +1,50 @@
 import {
-    List,
+    useListController,
+    ListContextProvider,
     Datagrid,
     TextField,
     DateField,
-    useGetIdentity,
-    RaRecord,
     useRecordContext,
-    ReferenceField
+    ReferenceField,
+    Pagination,
 } from 'react-admin';
-import {stringify} from "node:querystring";
+import React from 'react';
 
-const PaperOwnersList : React.FC = ()  => {
+const PaperOwnersList: React.FC = () => {
     const record = useRecordContext();
-    console.log("paper owner list "  + JSON.stringify(record))
     if (!record) return null;
+
+    const controllerProps = useListController({
+        resource: 'paper_owners',
+        filter: { user_id: record.id },
+        sort: { field: 'id', order: 'DESC' },
+        perPage: 10,
+        disableSyncWithLocation: true,
+    });
+
+    if (controllerProps.isLoading) return null;
+    if (controllerProps.error) return <p>Error loading paper ownership data.</p>;
+
     return (
-        <List
-            resource="paper_owners"
-            title="Paper Ownership"
-            perPage={10}
-            filter={{ user_id: record.id}}
-            sort={{ field: 'id', order: 'DESC' }}
-            exporter={false}
-        >
-            <Datagrid rowClick="edit" >
-                <ReferenceField reference={"documents"} source={"document_id"} label={"arXiv ID"}>
+        <ListContextProvider value={controllerProps}>
+            <Datagrid rowClick="edit">
+                <ReferenceField reference="documents" source="document_id" label="arXiv ID">
                     <TextField source="paper_id" />
                 </ReferenceField>
-                <ReferenceField reference={"documents"} source={"document_id"} label={"Title"}
-                                link={(record, reference) => `https://arxiv.org/pdf/${record.paper_id}`}>
+                <ReferenceField
+                    reference="documents"
+                    source="document_id"
+                    label="Title"
+                    link={(record, reference) => `https://arxiv.org/pdf/${record.paper_id}`}
+                >
                     <TextField source="title" />
                 </ReferenceField>
-                <ReferenceField reference={"documents"} source={"document_id"} label={"Dated"} link={false}>
+                <ReferenceField reference="documents" source="document_id" label="Dated" link={false}>
                     <DateField source="dated" />
                 </ReferenceField>
             </Datagrid>
-        </List>
+            <Pagination />
+        </ListContextProvider>
     );
 };
 

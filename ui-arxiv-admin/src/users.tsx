@@ -1,13 +1,16 @@
 import {
     useMediaQuery,
-    ToggleButton,
-    ToggleButtonGroup,
-    Grid,
-    Table,
-    TableRow,
-    TableCell,
-    TableHead, Box, Button
 } from '@mui/material';
+
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Grid from '@mui/material/Grid2';
+import Table from '@mui/material/Table';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+
+
 import {
     List,
     SimpleList,
@@ -17,7 +20,6 @@ import {
     BooleanField,
     SortPayload,
     useRecordContext,
-    useEditContext,
     Edit,
     SimpleForm,
     TextInput,
@@ -30,8 +32,7 @@ import {
     SelectInput,
     DateInput,
     RecordContextProvider,
-    useDataProvider, IconButtonWithTooltip, useListContext, useRedirect,
-    ResourceContextProvider
+    useDataProvider,
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -275,28 +276,30 @@ function UserEndorsements() {
     function Endorsement(props: any) {
         return (
                 <RecordContextProvider value={props.endorsement} >
-                    <Grid item>
+                    <Grid>
                         <ReferenceField source="id" reference="endorsements" label={""}
                                         link={(record, reference) => `/${reference}/${record.id}`}>
                             <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class"/>
                         </ReferenceField>
-
                     </Grid>
                 </RecordContextProvider>
         );
     }
 
     return (
-        <Grid container item xs={12}>
-            <Grid item xs={2}>Endorsed for</Grid>
-            {
-                endorsements.map((endorsement, index) => (
-                    <Grid item xs={2}>
-                        <Endorsement endorsement={endorsement} />
-                    </Grid>
+        <Grid container>
+            <Grid size={{xs: 12}} >
+                <Grid size={{xs: 2}}>Endorsed for</Grid>
+                {
+                    endorsements.map((endorsement, _index) => (
+                        <Grid size={{xs: 2}}>
+                            <Endorsement endorsement={endorsement} />
+                        </Grid>
                 ))
             }
-        </Grid>);
+            </Grid>
+        </Grid>
+    );
 }
 
 
@@ -305,7 +308,7 @@ export const UserEdit = () => {
     <Edit title={<UserTitle />}>
         <SimpleForm >
             <Grid container>
-                <Grid item xs={6} >
+                <Grid size={{xs: 6}} >
                     <Table size="small">
                         <TableRow>
                             <TableCell>
@@ -349,7 +352,7 @@ export const UserEdit = () => {
                                 <SelectInput source="policy_class" choices={policyClassChoices} helperText={false} />
                             </TableCell>
                             <TableCell>
-                            <Grid item xs={3} >
+                            <Grid size={{xs: 3}} >
                                 <Typography component={"span"} >Moderator
                                     <BooleanField source="flag_is_mod" label={"Moderator"} />
                                 </Typography>
@@ -364,32 +367,32 @@ export const UserEdit = () => {
                             </TableCell>
                             <TableCell>
                                 <Grid container>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_suspect" label={"Suspect"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_veto_status" label={"Veto status"} helperText={false} options={{size: "small"}}  />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_banned" label={"Suspended"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_deleted" label={"Deleted"} helperText={false} options={{size: "small"}} />
                                     </Grid>
 
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_proxy" label={"Proxy"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_xml" label={"XML"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_approved" label={"Approved"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_allow_tex_produced" label={"Allow Tex"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={4}>
+                                    <Grid size={{xs: 4}}>
                                         <BooleanInput source="flag_group_test" label={"Test"} helperText={false} options={{size: "small"}} />
                                     </Grid>
 
@@ -403,16 +406,16 @@ export const UserEdit = () => {
                             </TableCell>
                             <TableCell>
                                 <Grid container>
-                                    <Grid item xs={6}>
+                                    <Grid size={{xs: 6}}>
                                         <BooleanInput source="flag_edit_users" label={"Admin"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={6}>
+                                    <Grid size={{xs: 6}}>
                                         <BooleanInput source="flag_edit_system" label={"System"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={6}>
+                                    <Grid size={{xs: 6}}>
                                         <BooleanInput source="flag_internal" label={"Internal"} helperText={false} options={{size: "small"}} />
                                     </Grid>
-                                    <Grid item xs={6}>
+                                    <Grid size={{xs: 6}}>
                                         <BooleanInput source="flag_can_lock" label={"Can Lock"} helperText={false} options={{size: "small"}} />
                                     </Grid>
                                 </Grid>
@@ -421,24 +424,20 @@ export const UserEdit = () => {
                         </TableRow>
 
                     </Table>
-                    <ResourceContextProvider value="tapir_admin_audit">
-                        <AdminAuditList />
-                    </ResourceContextProvider>
+                    <AdminAuditList />
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid size={{xs: 6}}>
                     <UserDemographic />
-                    <Grid item xs={12}>
-                        <ResourceContextProvider value="paper_owners">
-                            <PaperOwnersList />
-                        </ResourceContextProvider>
+                    <Grid size={{xs: 12}}>
+                        <PaperOwnersList />
                     </Grid>
                 </Grid>
 
 
             </Grid>
             <Grid container >
-                <Grid item xs={12}>
+                <Grid size={{xs: 12}}>
                     <UserEndorsements />
                 </Grid>
             </Grid>

@@ -1,5 +1,12 @@
 import React from "react";
-import { useRecordContext, Datagrid, List, TextField, DateField, useGetOne } from "react-admin";
+import {
+    useRecordContext,
+    Datagrid,
+    TextField,
+    DateField,
+    useGetOne,
+    useListController, ListContextProvider, Pagination
+} from "react-admin";
 import { paths as adminApi } from '../types/admin-api';
 
 type UserModel = adminApi['/v1/users/{user_id}']['get']['responses']['200']['content']['application/json'];
@@ -74,7 +81,7 @@ export const AdminActionDescriptionField = () => {
             break;
         case "got_negative_endorsement":
             try {
-                const [endorserId, category, endorsementId] = data.split(" ");
+                const [endorserId, _category, endorsementId] = data.split(" ");
                 html = `Automated action: ${affected} was flagged because they got a <a href="/auth/admin/generic-detail.php?tapir_y=endorsements&tapir_id=${endorsementId}">negative endorsement</a> from user ${endorserId}.`;
             } catch {
                 html = "Malformed data in negative endorsement record.";
@@ -88,27 +95,31 @@ export const AdminActionDescriptionField = () => {
 };
 
 
-export const AdminAuditList = () => {
+
+export const AdminAuditList: React.FC = () => {
     const record = useRecordContext();
     if (!record) return null;
 
+    const controllerProps = useListController({
+        resource: 'tapir_admin_audit',
+        filter: { affected_user: record.id },
+        sort: { field: 'id', order: 'DESC' },
+        perPage: 5,
+        disableSyncWithLocation: true,
+    });
+
+    if (controllerProps.isLoading) return null;
+    if (controllerProps.error) return <p>Error loading audit records.</p>;
+
     return (
-        <List
-            resource="tapir_admin_audit"
-            title="Paper Ownership"
-            perPage={5}
-            filter={{ affected_user: record.id}}
-            sort={{ field: 'id', order: 'DESC' }}
-            exporter={false}
-            empty={<b><p>No admin audit records found</p></b>}
-        >
+        <ListContextProvider value={controllerProps}>
             <Datagrid rowClick="show">
                 <DateField source="log_date" />
                 <TextField source="admin_user" />
                 <TextField source="affected_user" />
                 <AdminActionDescriptionField />
             </Datagrid>
-        </List>
+            <Pagination />
+        </ListContextProvider>
     );
-}
-
+};
