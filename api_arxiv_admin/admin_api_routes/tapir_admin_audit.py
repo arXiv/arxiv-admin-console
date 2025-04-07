@@ -19,28 +19,39 @@ router = APIRouter(prefix="/tapir_admin_audit")
 
 class TapirAdminActionEnum(str, Enum):
     unknown = "unknown"
-    add_paper_owner = "add_paper_owner"
-    add_paper_owner_2 = "add_paper_owner_2"
-    make_moderator = "make_moderator"
-    unmake_moderator = "unmake_moderator"
-    arXiv_change_status = "arXiv_change_status"
-    arXiv_make_author = "arXiv_make_author"
-    arXiv_make_nonauthor = "arXiv_make_nonauthor"
-    arXiv_change_paper_pw = "arXiv_change_paper_pw"
-    endorsed_by_suspect = "endorsed_by_suspect"
-    got_negative_endorsement = "got_negative_endorsement"
+    flip_flag = "flip-flag"
+    become_user = "become-user"
+    suspend_user = "suspend-user"
+    unsuspend_user = "unsuspend-user"
+    make_moderator = "make-moderator"
+    unmake_moderator = "unmake-moderator"
+    change_email = "change-email"
+    add_paper_owner = "add-paper-owner"
+    revoke_paper_owner = "revoke-paper-owner"
+    change_paper_pw = "change-paper-pw"
+    change_password = "change-password"
+    arxiv_change_status = "arXiv-change-status"
+    arxiv_make_nonauthor = "arXiv-make-nonauthor"
+    arxiv_make_author = "arXiv-make-author"
+    add_paper_owner_2 = "add-paper-owner-2"
+    arxiv_revoke_paper_owner = "arXiv-revoke-paper-owner"
+    arxiv_unrevoke_paper_owner = "arXiv-unrevoke-paper-owner"
+    arxiv_change_paper_pw = "arXiv-change-paper-pw"
+    endorsed_by_suspect = "endorsed-by-suspect"
+    got_negative_endorsement = "got-negative-endorsement"
+    add_comment = "add-comment"
     pass
 
 
 
 class TapirAdminAuditModel(BaseModel):
-    id: int  # entry id - thank got it has a p-key
+    id: int  # entry id - thank god it has a p-key
     log_date: datetime.datetime
-    session_id: str
+    session_id: Optional[str]
     ip_addr: str
     remote_host: str
-    admin_user: str
-    affected_user: str
+    admin_user: Optional[int]
+    affected_user: int
     tracking_cookie: str
     action: TapirAdminActionEnum
     data: str
