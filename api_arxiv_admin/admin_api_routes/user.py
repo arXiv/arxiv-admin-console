@@ -176,7 +176,9 @@ async def list_users(
                 query = query.filter(~TapirUser.user_id.in_(subquery))
 
         if username:
-            query = query.filter(TapirUser.tapir_nicknames.contains(username))
+            nick1 = aliased(TapirNickname)
+            query = query.join(nick1, nick1.user_id == TapirUser.user_id)
+            query = query.filter(nick1.nickname.like(username + "%"))
 
         if first_name:
             query = query.filter(TapirUser.first_name.contains(first_name))
