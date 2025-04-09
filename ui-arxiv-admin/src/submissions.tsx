@@ -70,7 +70,9 @@ const SubmissionFilter = (props: any) => {
 
     return (
         <Filter {...props}>
-            <NumberInput label="Submission ID" source="id" alwaysOn />
+            <NumberInput label="Submission ID" source="id" alwaysOn sx={{width:'8rem'}} />
+            <NumberInput label="Start ID" source="start_submission_id" alwaysOn value={6000000} sx={{width:'8rem'}} />
+            <NumberInput label="End ID" source="end_submission_id" alwaysOn sx={{width:'8rem'}} />
             <SelectArrayInput
                 label="Status"
                 source="submission_status"
@@ -114,7 +116,7 @@ export const SubmissionList = () => {
             ) : (
                 <Datagrid rowClick="edit" sort={sorter}>
                     <TextField source="id" label="Submission ID"  textAlign="right" />
-                    <CategoriesField source="submission_categories" />
+                    <DateField source={"created"} />
                     <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                     link={(record, reference) => `/${reference}/${record.id}/show`} >
                         <TextField source={"last_name"} />

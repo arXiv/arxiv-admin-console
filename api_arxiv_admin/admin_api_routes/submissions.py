@@ -189,6 +189,8 @@ async def list_submissions(
         document_id: Optional[int] = Query(None, description="Document ID"),
         submitter_id: Optional[int] = Query(None, description="Submitter ID"),
         filter: Optional[str] = Query(None, description="MUI DataGrid Filter"),
+        start_submission_id: Optional[int] = Query(None, description="Start Submission ID"),
+        end_submission_id: Optional[int] = Query(None, description="End Submission ID"),
         db: Session = Depends(get_db),
         current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[SubmissionModel]:
@@ -216,6 +218,14 @@ async def list_submissions(
         if not current_user.is_admin:
             query = query.filter(Submission.submitter_id == current_user.user_id)
     else:
+        if start_submission_id is not None:
+            if end_submission_id is not None:
+                query = query.filter(Submission.submission_id.between(start_submission_id, end_submission_id))
+            else:
+                query = query.filter(Submission.submission_id >= start_submission_id)
+        elif end_submission_id is not None:
+            query = query.filter(Submission.submission_id <= end_submission_id)
+
         if submission_status is not None:
             if isinstance(submission_status, list):
                 query = query.filter(Submission.status.in_(submission_status))
