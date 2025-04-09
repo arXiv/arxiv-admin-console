@@ -280,7 +280,7 @@ function UserEndorsements() {
                     <Grid>
                         <ReferenceField source="id" reference="endorsements" label={""}
                                         link={(record, reference) => `/${reference}/${record.id}`}>
-                            <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class"/>
+                            <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
                         </ReferenceField>
                     </Grid>
                 </RecordContextProvider>
