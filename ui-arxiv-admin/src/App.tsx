@@ -151,7 +151,6 @@ const AdminConsole: React.FC = () => {
                 <Resource
                     name="categories"
                     list={CategoryList}
-                    show={ShowGuesser}
                     icon={CategoryIcon}
                     edit={CategoryEdit}
                     create={CategoryCreate}
@@ -185,23 +184,8 @@ const AdminConsole: React.FC = () => {
                     recordRepresentation="id"
                 />
 
-                <Resource
-                    name="tapir_sessions"
-                    list={TapirSessionList}
-                    edit={TapirSessionEdit}
-                    show={ShowGuesser}
-                    icon={TapirSessionIcon}
-                />
-
-                <Resource
-                    name="membership_institutions"
-                    list={MembershipInstitutionList}
-                    edit={EditGuesser}
-                    show={ShowGuesser}
-                    icon={MembershipInstitutionIcon}
-                    recordRepresentation="id"
-                />
-
+                <Resource name="tapir_sessions" />
+                <Resource name="membership_institutions" />
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>
                 <Resource name="paper_owners"/>

@@ -147,13 +147,13 @@ async def get_category(
 @router.get('/{id:str}')
 async def get_category(id: str, db: Session = Depends(get_db)) -> CategoryModel:
     [archive, subject_class] = id.split(".")
-    item = db.query(Category).filter(
+    item = CategoryModel.base_query(db).filter(
         and_(
             Category.archive == archive,
-            Category.subject_class == subject_class)).all()
-    if item:
-        return CategoryModel.model_validate(item[0])
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No such category {archive}/{subject_class}")
+            Category.subject_class == subject_class)).one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No such category {archive}/{subject_class}")
+    return CategoryModel.model_validate(item)
 
 
 @router.put('/{id:str}')

@@ -19,7 +19,7 @@ import {
     DateField,
     ReferenceField,
     NumberField,
-    DateInput, useListContext, SelectInput
+    DateInput, useListContext, SelectInput, EditButton
 } from 'react-admin';
 
 import { addDays } from 'date-fns';
@@ -58,6 +58,14 @@ const CategoryFilter = (props: any) => {
 };
 
 
+const yesNoDefaultChoices = [
+    { id: 'y', name: 'Yes' },
+    { id: 'n', name: 'No' },
+    { id: 'd', name: 'Default' },
+];
+
+
+
 export const CategoryList = () => {
     const sorter: SortPayload = {field: 'archive', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
@@ -70,11 +78,12 @@ export const CategoryList = () => {
                     tertiaryText={record => record.category_name}
                 />
             ) : (
-                <Datagrid rowClick="show" sort={sorter}>
+                <Datagrid rowClick={false}  sort={sorter} >
                     <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive" label={"Category"} />
                     <TextField source="category_name" />
                     <BooleanField source="active" FalseIcon={null}/>
                     <BooleanField source="definitive" FalseIcon={null}/>
+                    <EditButton />
                 </Datagrid>
             )}
         </List>
@@ -90,6 +99,20 @@ const CategoryTitle = () => {
 export const CategoryEdit = () => (
     <Edit title={<CategoryTitle />}>
         <SimpleForm>
+            <TextInput source="archive" />
+            <TextInput source="subject_class" />
+
+            <BooleanField source="definitive" FalseIcon={null}/>
+            <BooleanField source="active" FalseIcon={null}/>
+            <TextInput source="category_name" />
+
+            <SelectInput source="endorse_all" label="Endorse All" choices={yesNoDefaultChoices} />
+            <SelectInput source="endorse_email" label="Endorse Email" choices={yesNoDefaultChoices} />
+
+            <NumberInput source="papers_to_endorse" />
+            <TextInput source="endorsement_domain" />
+
+
         </SimpleForm>
     </Edit>
 );
