@@ -93,7 +93,7 @@ export const CategoryList = () => {
 
 const CategoryTitle = () => {
     const record = useRecordContext();
-    return <span>Category {record ? `"${record.last_name}, ${record.first_name}" - ${record.email}` : ''}</span>;
+    return <span>Category {record ? `"${record.archive}.${record.subject_class || '*'}" - ${record.category_name}` : ''}</span>;
 };
 
 export const CategoryEdit = () => (
