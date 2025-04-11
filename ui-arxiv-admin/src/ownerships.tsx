@@ -25,6 +25,7 @@ import {
 import { addDays } from 'date-fns';
 
 import React from "react";
+import Typography from "@mui/material/Typography";
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
@@ -97,34 +98,29 @@ export const OwnershipList = () => {
                     tertiaryText={record => record.email}
                 />
             ) : (
-                <Datagrid rowClick="show" sort={sorter}>
-                    <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
+                <Datagrid rowClick="edit" sort={sorter}>
+                    <ReferenceField reference={"documents"} source={"document_id"} >
+                        <TextField source={"id"} />
+                    </ReferenceField>
+
+                    <ReferenceField reference={"users"} source={"user_id"} >
+                        <TextField source={"first_name"} /> {" "}
                         <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
                     </ReferenceField>
 
-                    <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
+                    <DateField source={"date"} />
+
+                    <ReferenceField reference={"users"} source={"added_by"} >
+                        <TextField source={"first_name"} /> {" "}
                         <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
                     </ReferenceField>
 
-                    <TextField source="archive" />
+                    <TextField source={"remote_addr"} />
+                    <TextField source={"remote_host"} />
 
-                    <TextField source="subject_class" />
-                    <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null} />
-
-                    <TextField source="type" />
-                    <NumberField source="point_value" label={"Point"} />
-                    <DateField source="issued_when" label={"Issued"} />
-
-                    <ReferenceField source="request_id" reference="ownership_requests" label={"Request"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        Show
-                    </ReferenceField>
+                    <BooleanField source={"valid"} />
+                    <BooleanField source={"flag_author"} />
+                    <BooleanField source={"flag_auto"} />
                 </Datagrid>
             )}
         </List>
@@ -134,38 +130,42 @@ export const OwnershipList = () => {
 
 const OwnershipTitle = () => {
     const record = useRecordContext();
-    return <span>Ownership {record ? `"${record.last_name}, ${record.first_name}" - ${record.email}` : ''}</span>;
+    return <span>Ownership {record ? `"${record.document_id}` : ''}</span>;
 };
 
 export const OwnershipEdit = () => (
     <Edit title={<OwnershipTitle />}>
         <SimpleForm>
-            <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
+            <ReferenceField source="user_id" reference="users" label={"Owner"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
                 <TextField source={"last_name"} />
                 {", "}
                 <TextField source={"first_name"} />
             </ReferenceField>
 
-            <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
+            <ReferenceField source="added_by" reference="users" label={"Endorser"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
                 <TextField source={"last_name"} />
                 {", "}
                 <TextField source={"first_name"} />
             </ReferenceField>
 
-            <TextInput source="archive" />
-
-            <TextInput source="subject_class" />
-            <BooleanInput source="flag_valid" label={"Valid"} />
-
-            <TextInput source="type" />
-            <NumberInput source="point_value" label={"Point"} />
-            <DateInput source="issued_when" label={"Issued"} />
-
-            <ReferenceField source="request_id" reference="ownership_request" label={"Request"}
+            <DateField source="date" />
+            <ReferenceField source="document_id" reference="documents" label={"Paper"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
+                <TextField source={"paper_id"} /> {" Title: "}
+                <TextField source={"title"} />{" Authors: "}
+                <TextField source={"authors"} />{"  "}
+
             </ReferenceField>
+
+            <BooleanInput source="valid" label={"Valid"} />
+
+            <Typography>Author: </Typography>
+            <BooleanField source="flag_author" label={"Author"} />
+            <Typography>Auto: </Typography>
+            <BooleanField source="flag_auto" label={"Auto"} />
+
         </SimpleForm>
     </Edit>
 );

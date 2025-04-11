@@ -161,9 +161,6 @@ async def list_documents(
     datagrid_filter = MuiDataGridFilter(filter) if filter is not None else None
 
     if id is None:
-        _start = 0
-        _end = len(id)
-
         t0 = datetime.now()
         order_columns = []
         if _sort:
@@ -219,6 +216,8 @@ async def list_documents(
             else:
                 query = query.order_by(column.asc())
     else:
+        _start = 0
+        _end = len(id)
         query = query.filter(Document.document_id.in_(id))
 
     count = query.count()

@@ -32,6 +32,7 @@ import {darkTheme, lightTheme} from "./navTheme";
 
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
 import Typography from "@mui/material/Typography";
+import {OwnershipCreate, OwnershipEdit, OwnershipList} from "./ownerships";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -184,11 +185,26 @@ const AdminConsole: React.FC = () => {
                     recordRepresentation="id"
                 />
 
+                {
+                    /*
+                <Resource
+                    name="paper_owners"
+                    list={OwnershipList}
+                    edit={OwnershipEdit}
+                    create={OwnershipCreate}
+                    recordRepresentation="id"
+
+                />
+                     */
+                }
+
+                <Resource name="paper_owners" />
+
                 <Resource name="tapir_sessions" />
                 <Resource name="membership_institutions" />
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>
-                <Resource name="paper_owners"/>
+
                 <Resource name="paper_owners_user_doc"/>
                 <Resource name="demographics"/>
                 <Resource name="admin_logs"/>
