@@ -29,15 +29,16 @@ import {
 
 import LinkIcon from '@mui/icons-material/Link';
 
-
 import { addDays } from 'date-fns';
 
-import React, {useState} from "react";
+import React, {useContext, useState} from "react";
 import SubmissionStateField, {submissionStatusOptions} from "./bits/SubmissionStateField";
 import {AdminLogs} from "./AdminLogs";
 import CategoryInputField from "./bits/CategoryInputField";
 import SubmissionCategoriesField, {CategoriesField, CategoryList} from "./bits/SubmissionCategoriesField";
 import IsOkField from "./bits/IsOkField";
+import {RuntimeContext} from "./RuntimeContext";
+import ArxivCheckSubmissionLink from "./bits/ArxivCheckSubmissionLink";
 
 const presetOptions = [
     { id: 'last_1_day', name: 'Last 1 Day' },
@@ -115,7 +116,8 @@ export const SubmissionList = () => {
                 />
             ) : (
                 <Datagrid rowClick="edit" sort={sorter}>
-                    <TextField source="id" label="Submission ID"  textAlign="right" />
+                    <ArxivCheckSubmissionLink />
+                    <TextField source="id" label="ID"  textAlign="right" />
                     <DateField source={"created"} />
                     <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                     link={(record, reference) => `/${reference}/${record.id}/show`} >

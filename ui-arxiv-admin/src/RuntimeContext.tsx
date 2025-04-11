@@ -2,14 +2,30 @@ import React, { createContext, useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import {Box} from '@mui/material';
 
+export interface ArxiURLs
+{
+    CheckSubmissionLink: string;
+}
+
+/*
+https://www.npmjs.com/package/uri-templates
+ */
+const arXivURLs: ArxiURLs = {
+    CheckSubmissionLink: '{+arxivCheck}/#/q/submitted/{submissionId}'
+}
+
+
 export interface RuntimeProps
 {
-    AAA_URL: string,
-    ADMIN_API_BACKEND_URL: string,
-    ADMIN_APP_ROOT: string,
-    ARXIV_COOKIE_NAME: string,
-    TAPIR_COOKIE_NAME: string,
-    ARXIV_KEYCLOAK_COOKIE_NAME: string,
+    AAA_URL: string;
+    ADMIN_API_BACKEND_URL: string;
+    ADMIN_APP_ROOT: string;
+    ARXIV_COOKIE_NAME: string;
+    TAPIR_COOKIE_NAME: string;
+    ARXIV_KEYCLOAK_COOKIE_NAME: string;
+    ARXIV_CHECK: string;
+    URLS: ArxiURLs;
+    updateEnv: (key: string, value: string) => void;
 }
 
 const defaultRuntimeProps : RuntimeProps = {
@@ -19,6 +35,9 @@ const defaultRuntimeProps : RuntimeProps = {
     ARXIV_COOKIE_NAME: "arxiv_oidc_session",
     TAPIR_COOKIE_NAME: "tapir_session",
     ARXIV_KEYCLOAK_COOKIE_NAME: "arxiv_keycloak_token",
+    ARXIV_CHECK: "https://check.dev.arxiv.org",
+    URLS: arXivURLs,
+    updateEnv: (key, value) => { },
 };
 
 export const RuntimeContext = createContext<RuntimeProps>(defaultRuntimeProps);
@@ -36,7 +55,13 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         setRuntimeEnv(newEnv);
     }
 
+    const updateRuntimeProps = (key: string, value: string) => {
+        updateRuntimeEnv({[key]: value});
+    }
+
     useEffect(() => {
+        updateRuntimeEnv({updateEnv: updateRuntimeProps});
+
         const fetchRuntimeEnvironment = async () => {
             try {
                 let baseUrl = window.location.protocol + "//" + window.location.hostname;
