@@ -1,10 +1,8 @@
-import { Link } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import {RuntimeContext} from "../RuntimeContext";
 import {useContext} from "react";
 import UriTemplate from 'uri-templates';
 import {useRecordContext} from "react-admin";
-
 
 const ArxivCheckSubmissionLink = () => {
     const record = useRecordContext();
@@ -17,9 +15,15 @@ const ArxivCheckSubmissionLink = () => {
         submissionId: record.id,
     });
 
-    console.log(url);
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        // Use a named window instead of "_blank" to reuse the tab
+        const windowName = "arxiv-check";
+        window.open(url, windowName, "noopener,noreferrer");
+    };
+
     return (
-        <a href={url} target="_blank" rel="noopener noreferrer">
+        <a href={url} onClick={handleClick}>
             <CheckIcon />
         </a>
     );
