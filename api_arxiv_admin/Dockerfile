@@ -26,7 +26,7 @@ RUN $VIRTUAL_ENV/bin/poetry install --no-ansi
 RUN $VIRTUAL_ENV/bin/pip install hypercorn
 RUN $VIRTUAL_ENV/bin/pip uninstall -y poetry
 
-COPY admin_api_routes /opt/arxiv/admin_api_routes
+COPY arxiv_admin_api /opt/arxiv/arxiv_admin_api
 ENV WORKERS 4
 ENV SQLALCHEMY_TRACK_MODIFICATIONS False
 EXPOSE $PORT

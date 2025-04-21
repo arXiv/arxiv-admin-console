@@ -5,14 +5,14 @@ from datetime import datetime
 from typing import List
 
 from arxiv_bizlogic.database import DatabaseSession, Database
-from admin_api_routes.endorsement_requsets import EndorsementRequestModel
+from arxiv_admin_api.endorsement_requsets import EndorsementRequestModel
 
 from arxiv.db.models import EndorsementRequest, \
     TapirUser  # Category, EndorsementDomain, QuestionableCategory, Endorsement,
 
-from admin_api_routes.biz.endorsement_biz import EndorsementBusiness, EndorsementWithEndorser
-from admin_api_routes.biz.endorsement_io import EndorsementDBAccessor
-from admin_api_routes.endorsements import EndorsementCodeModel
+from arxiv_admin_api.biz.endorsement_biz import EndorsementBusiness, EndorsementWithEndorser
+from arxiv_admin_api.biz.endorsement_io import EndorsementDBAccessor
+from arxiv_admin_api.endorsements import EndorsementCodeModel
 
 HOST = "127.0.0.1"
 DB_PORT = 21601

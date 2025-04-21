@@ -18,7 +18,7 @@ import jwcrypto.jwt
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv.auth.legacy.cookies import unpack as legacy_cookie_unpack
 
-from admin_api_routes.helpers.user_session import UserSession, TapirSessionData
+from arxiv_admin_api.helpers.user_session import UserSession, TapirSessionData
 
 logger = logging.getLogger(__name__)
 
@@ -143,12 +143,12 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
 
                     except jwcrypto.jwt.JWTInvalidClaimFormat:
                         logger.warning(f"Chowed cookie '{session_cookie}'")
-                        from admin_api_routes import BadCookie
+                        from arxiv_admin_api import BadCookie
                         raise BadCookie()
 
                     except jwt.DecodeError:
                         logger.warning(f"Chowed cookie '{session_cookie}'")
-                        from admin_api_routes import BadCookie
+                        from arxiv_admin_api import BadCookie
                         raise BadCookie()
 
                     except Exception as exc:

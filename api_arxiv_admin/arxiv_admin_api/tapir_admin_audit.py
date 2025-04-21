@@ -13,7 +13,7 @@ from arxiv.db.models import TapirAdminAudit
 
 from sqlalchemy.orm import Session
 
-from admin_api_routes import gate_admin_user
+from arxiv_admin_api import gate_admin_user
 
 router = APIRouter(prefix="/tapir_admin_audit")
 

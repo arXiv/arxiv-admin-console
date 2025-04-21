@@ -4,7 +4,7 @@ import json
 import urllib.parse
 from sqlalchemy.orm import Query, MappedColumn
 
-from admin_api_routes import datetime_to_epoch
+from arxiv_admin_api import datetime_to_epoch
 
 logger = logging.getLogger(__name__)
 

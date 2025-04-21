@@ -22,34 +22,34 @@ from uuid import uuid4
 from arxiv.base.globals import get_application_config
 from arxiv.auth.user_claims import ArxivUserClaims
 
-from admin_api_routes import AccessTokenExpired, LoginRequired, BadCookie, get_current_user, get_session_cookie
-# from admin_api_routes.authentication import router as auth_router
-from admin_api_routes.admin_logs import router as admin_log_router
-from admin_api_routes.categories import router as categories_router
-from admin_api_routes.email_template import router as email_template_router
-from admin_api_routes.endorsement_requsets import router as endorsement_request_router
-from admin_api_routes.endorsement_requsets_audit import router as endorsement_request_audit_router
-from admin_api_routes.endorsements import router as endorsement_router
-from admin_api_routes.demographic import router as demographic_router
-from admin_api_routes.documents import router as document_router
-from admin_api_routes.metadata import router as metadata_router
-from admin_api_routes.moderators import router as moderator_router
-from admin_api_routes.ownership_requests import router as ownership_request_router
-from admin_api_routes.ownership_requests_audit import router as ownership_request_audit_router
-from admin_api_routes.paper_owners import router as paper_owner_router, paper_pw_router
-from admin_api_routes.submissions import router as submission_router, meta_router as submission_meta_router
-from admin_api_routes.submission_categories import router as submission_categories_router
-from admin_api_routes.user import router as user_router
-from admin_api_routes.tapir_sessions import router as tapir_session_router
-from admin_api_routes.member_institutions import router as member_institution_router
-from admin_api_routes.countries import router as countries_router
-from admin_api_routes.tapir_admin_audit import router as tapir_admin_audit_router
+from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_current_user, get_session_cookie
+# from arxiv_admin_api.authentication import router as auth_router
+from arxiv_admin_api.admin_logs import router as admin_log_router
+from arxiv_admin_api.categories import router as categories_router
+from arxiv_admin_api.email_template import router as email_template_router
+from arxiv_admin_api.endorsement_requsets import router as endorsement_request_router
+from arxiv_admin_api.endorsement_requsets_audit import router as endorsement_request_audit_router
+from arxiv_admin_api.endorsements import router as endorsement_router
+from arxiv_admin_api.demographic import router as demographic_router
+from arxiv_admin_api.documents import router as document_router
+from arxiv_admin_api.metadata import router as metadata_router
+from arxiv_admin_api.moderators import router as moderator_router
+from arxiv_admin_api.ownership_requests import router as ownership_request_router
+from arxiv_admin_api.ownership_requests_audit import router as ownership_request_audit_router
+from arxiv_admin_api.paper_owners import router as paper_owner_router, paper_pw_router
+from arxiv_admin_api.submissions import router as submission_router, meta_router as submission_meta_router
+from arxiv_admin_api.submission_categories import router as submission_categories_router
+from arxiv_admin_api.user import router as user_router
+from arxiv_admin_api.tapir_sessions import router as tapir_session_router
+from arxiv_admin_api.member_institutions import router as member_institution_router
+from arxiv_admin_api.countries import router as countries_router
+from arxiv_admin_api.tapir_admin_audit import router as tapir_admin_audit_router
 
-from admin_api_routes.frontend import router as frontend_router
-from admin_api_routes.helpers.session_cookie_middleware import SessionCookieMiddleware
-from admin_api_routes.helpers.user_session import UserSession
+from arxiv_admin_api.frontend import router as frontend_router
+from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
+from arxiv_admin_api.helpers.user_session import UserSession
 
-from admin_api_routes.public_users import router as public_users_router
+from arxiv_admin_api.public_users import router as public_users_router
 
 from arxiv.base.logging import getLogger
 

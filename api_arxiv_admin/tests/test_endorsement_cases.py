@@ -3,13 +3,13 @@ from datetime import datetime
 from typing import Optional, List, Tuple
 
 from arxiv.db.models import Category, EndorsementDomain, QuestionableCategory, Endorsement
-from admin_api_routes.biz.endorsement_biz import EndorsementAccessor, EndorsementBusiness, EndorsementWithEndorser, \
+from arxiv_admin_api.biz.endorsement_biz import EndorsementAccessor, EndorsementBusiness, EndorsementWithEndorser, \
     PaperProps
-from admin_api_routes.dao.endorsement_model import EndorsementModel
-from admin_api_routes.endorsement_requsets import EndorsementRequestModel
-from admin_api_routes.endorsements import EndorsementCodeModel
-from admin_api_routes.public_users import PublicUserModel
-from admin_api_routes.user import UserModel
+from arxiv_admin_api.dao.endorsement_model import EndorsementModel
+from arxiv_admin_api.endorsement_requsets import EndorsementRequestModel
+from arxiv_admin_api.endorsements import EndorsementCodeModel
+from arxiv_admin_api.public_users import PublicUserModel
+from arxiv_admin_api.user import UserModel
 
 USER_PROTO = {
     "id": "",
