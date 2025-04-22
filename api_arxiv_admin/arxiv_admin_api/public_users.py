@@ -141,7 +141,7 @@ def get_one_public_user_with_query(
 
     if user:
         # @ignore-types
-        public_user = PublicUserModel.to_model(user)
+        public_user = PublicUserModel.model_validate(user)
         if current_user is None or (not current_user.is_admin):
             # You'd be able to get email only when you query email
             public_user.email = email

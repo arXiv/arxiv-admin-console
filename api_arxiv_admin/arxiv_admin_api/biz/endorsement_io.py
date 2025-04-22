@@ -69,7 +69,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
                 QuestionableCategory.archive == archive,
                 QuestionableCategory.subject_class == subject_class,
             )
-        ).scalar()
+        ).all()
 
     def get_papers_by_user(self, user_id: str, domain: str, window: [datetime | None], require_author: bool = True) -> List[PaperProps]:
         query = (

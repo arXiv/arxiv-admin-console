@@ -1,3 +1,4 @@
+import os
 import subprocess
 import time
 import unittest
@@ -20,14 +21,16 @@ DB_USER = "arxiv"
 DB_PASSWORD = "arxiv_password"
 MAX_RETRIES = 10
 RETRY_DELAY = 2
-DOCKER_COMPOSE_ARGS = ["docker", "compose", "-f", "../tests/docker-compose-for-test.yaml",
-                       "--env-file=../tests/test-env"]
+DOCKER_COMPOSE_ARGS = ["docker", "compose", "-f", "./tests/docker-compose-for-test.yaml",
+                       "--env-file=./tests/test-env"]
+repo_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 
 class TestReadOnlys(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # docker compose -f ./docker-compose-for-test.yaml --env-file=./test-env  up
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"])
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"], cwd=repo_root_dir)
 
         from tests.restore_mysql import wait_for_mysql
         wait_for_mysql(HOST, DB_PORT, DB_USER, DB_PASSWORD, "arXiv", MAX_RETRIES, RETRY_DELAY)
@@ -54,7 +57,7 @@ class TestReadOnlys(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """This method runs once after all test methods in the class."""
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"])
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"], cwd=repo_root_dir)
 
     def test_see_papers(self):
         with DatabaseSession() as session:
@@ -92,7 +95,7 @@ class TestReadOnlys(unittest.TestCase):
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
             count = 0
-            for archive in ["cs"]:
+            for archive in ["astro-ph"]:
                 for user_id in user_ids:
                     if accessor.is_moderator(user_id[0], archive=archive):
                         count += 1
@@ -108,7 +111,7 @@ class TestReadOnlys(unittest.TestCase):
     def test_get_domain_info(self):
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
-            for archive, subject_class, expect in [("cs", "AI", True), ("cs", None, False), ("econ", None, True)]:
+            for archive, subject_class, expect in [("cs", "AI", True), ("cs", '', False), ("econ", '', True)]:
                 cat = accessor.get_category(archive, subject_class)
                 self.assertNotEqual(None, cat)
                 domain = accessor.get_domain_info(cat)
@@ -160,7 +163,7 @@ class TestCreateEndorsement(unittest.TestCase):
 
         # docker compose -f ./docker-compose-for-test.yaml --env-file=./test-env  up
         self.tapir_session_id = 100
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"])
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"], cwd=repo_root_dir)
 
         from tests.restore_mysql import wait_for_mysql
         wait_for_mysql(HOST, DB_PORT, DB_USER, DB_PASSWORD, "arXiv", MAX_RETRIES, RETRY_DELAY)
@@ -186,7 +189,7 @@ class TestCreateEndorsement(unittest.TestCase):
 
 
     def tearDown(self):
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"])
+        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"], cwd=repo_root_dir)
 
     def test_create_endorsement(self):
         client_host = "127.0.0.1"
