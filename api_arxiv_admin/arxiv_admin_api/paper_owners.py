@@ -478,7 +478,7 @@ def register_paper_owner(
 
     paper: Document | None = session.query(Document).filter(Document.paper_id == squashed_id).one_or_none()
     if paper is None:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper ID '{body.paper_id}' is ill-formed.")
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper with ID '{body.paper_id}' does not exist.")
 
     # This needs to review hard
     is_auto = body.user_id == paper.submitter_id
@@ -494,7 +494,7 @@ def register_paper_owner(
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
 
         if body.password != paper_pw.password_enc and not current_user.is_admin:  # the 2nd part is redundant, I know.
-            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Incorrect password.")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST , detail=f"Incorrect paper password for {body.paper_id}. Please provide correct paper password")
 
     user = UserModel.one_user(session, body.user_id)
 
@@ -593,3 +593,22 @@ async def update_authorship(
                 session.add(new_ownership)
     session.commit()
     return
+
+
+@paper_pw_router.put("/renew/{document_id:str}",
+                     description="Give the paper a new password",)
+def renew_paper_password(
+        document_id: int,
+        current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(get_db)) -> PaperPwModel:
+    """Change Paper Password"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Only admins can change passwords")
+
+    item: PaperPwModel | None = PaperPwModel.base_select(session).filter(PaperPw.document_id == document_id).one_or_none()
+    if not item:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper owner not created yet")
+    item.password_enc = generate_paper_pw()
+    data = PaperPwModel.model_validate(item)
+    session.commit()
+    return data

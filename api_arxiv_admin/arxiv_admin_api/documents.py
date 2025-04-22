@@ -238,7 +238,7 @@ def get_document(paper_id:str,
     query = DocumentModel.base_select(session).filter(Document.paper_id == paper_id)
     doc = query.one_or_none()
     if not doc:
-        raise HTTPException(status_code=404, detail=f"Paper {paper_id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Paper {paper_id} not found")
     return DocumentModel.to_model(session, doc)
 
 @router.get("/paper_id/{category:str}/{paper_id:str}")
@@ -252,7 +252,7 @@ def get_old_style_document(
     query = DocumentModel.base_select(session).filter(Document.paper_id == old_paper_id)
     doc = query.one_or_none()
     if not doc:
-        raise HTTPException(status_code=404, detail=f"Paper {old_paper_id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Paper {old_paper_id} not found")
     return DocumentModel.to_model(session, doc)
 
 @router.get("/{id:str}")
@@ -262,6 +262,5 @@ def get_document(id:int,
     query = DocumentModel.base_select(session).filter(Document.document_id == id)
     doc = query.one_or_none()
     if not doc:
-        raise HTTPException(status_code=404, detail="Paper not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paper not found")
     return DocumentModel.to_model(session, doc)
-
