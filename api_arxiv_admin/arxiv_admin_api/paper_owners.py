@@ -440,6 +440,7 @@ class PaperAuthRequest(BaseModel):
     password: str
     user_id: str
     verify_id: bool
+    is_author: bool
 
 
 def arxiv_squash_id(paper_id: str) -> str | None:
@@ -509,7 +510,7 @@ def register_paper_owner(
         remote_addr=remote_addr,
         remote_host=remote_host,
         valid = True,
-        flag_author=True,
+        flag_author=body.is_author,
         flag_auto=1 if is_auto else 0,
         tracking_cookie = None if user is None else user.tracking_cookie,
     )
