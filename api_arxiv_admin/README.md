@@ -63,6 +63,8 @@
     site-src/code=/need-paper-password-head.php.m4:    $r=$auth->conn->query_raw($sql);
     site-src/code=/need-paper-password-head.php.m4:       $r=$auth->conn->query("SELECT title FROM arXiv_documents WHERE paper_id='$_paper_id'");
 
+# Endorsement request
+
     site-src/code=/need-endorsement-head.php.m4:$r=$auth->conn->query("SELECT nickname FROM tapir_nicknames WHERE user_id=$_user_id AND flag_primary=1");
     site-src/code=/need-endorsement-head.php.m4:   $auth->conn->query_raw("INSERT INTO arXiv_endorsement_requests (endorsee_id,archive,subject_class,secret,flag_valid,issued_when) VALUES ($_user_id,'$_archive','$_subject_class','$secret',1,$_issued_when)");
     site-src/code=/need-endorsement-head.php.m4:   } else $auth->conn->query("INSERT INTO arXiv_endorsement_requests_audit (request_id,remote_addr,remote_host,tracking_cookie,session_id) VALUES (LAST_INSERT_ID(),'$_remote_addr','$_remote_host','$_tracking_cookie',$_session_id)");
