@@ -33,6 +33,8 @@ import {darkTheme, lightTheme} from "./navTheme";
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
 import Typography from "@mui/material/Typography";
 import {OwnershipCreate, OwnershipEdit, OwnershipList} from "./ownerships";
+import {AdminConsoleLayout} from "./bits/AdminConsoleLayout";
+
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -98,6 +100,7 @@ const AdminConsole: React.FC = () => {
                 theme={lightTheme}
                 darkTheme={darkTheme}
 
+                layout={AdminConsoleLayout}
             >
                 <Resource
                     name="users"
