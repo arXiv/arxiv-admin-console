@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session # , joinedload
 
 from pydantic import BaseModel #, validator
 from arxiv.base import logging
-from arxiv.db.models import PaperOwner, PaperPw, Document
+from arxiv.db.models import PaperOwner, PaperPw, Document, DocumentCategory
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user, get_tracking_cookie
 from .biz.paper_owner_biz import generate_paper_pw
@@ -188,8 +188,17 @@ async def list_ownerships(
                     if hasattr(Document, doc_field_name):
                         field = getattr(Document, doc_field_name)
                         query = datagrid_filter.to_query(query, field)
+                    elif doc_field_name == "abs_categories":
+                        value = datagrid_filter.value
+                        if value:
+                            query = (
+                                query.join(DocumentCategory, Document.document_id == DocumentCategory.document_id)
+                                .filter(DocumentCategory.category.contains(value))
+                            )
                     else:
                         logger.warning(f"{field_name} field not found on Document, skipping")
+                elif field_name == "date":
+                    query = datagrid_filter.to_query(query, getattr(Document, "dated"))
 
         for column in order_columns:
             if _order == "DESC":

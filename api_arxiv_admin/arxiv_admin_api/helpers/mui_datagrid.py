@@ -23,6 +23,10 @@ class MuiDataGridFilter:
     def field_name(self) -> str | None:
         return self.datagrid_filter.get("field")
 
+    @property
+    def value(self) -> str | None:
+        return self.datagrid_filter.get("value")
+
     def to_query(self, query: Query, field: MappedColumn) -> Query:
         op_name = self.datagrid_filter.get("operator")
         value = self.datagrid_filter.get("value")
