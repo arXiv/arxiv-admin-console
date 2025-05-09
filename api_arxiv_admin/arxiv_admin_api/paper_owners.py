@@ -1,15 +1,20 @@
 """arXiv ownership routes."""
+import base64
+import json
+import time
 from datetime import timedelta, datetime, date, UTC
+from hashlib import sha256
 from typing import Optional, List, Tuple
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.bizmodels.user_model import UserModel
-from arxiv_bizlogic.fastapi_helpers import get_hostname, get_client_host_name, get_client_host
+from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 
-from sqlalchemy import literal_column, func, and_, update  # case, Select, distinct, exists, alias,  select, update
+from sqlalchemy import literal_column, func, and_  # , update, case, Select, distinct, exists, alias,  select, update
 
 from sqlalchemy.orm import Session # , joinedload
 
@@ -603,6 +608,29 @@ async def update_authorship(
                 session.add(new_ownership)
     session.commit()
     return
+
+
+@router.get("/pwc_link", response_class=RedirectResponse)
+def pwc_link(request: Request,
+             current_user: ArxivUserClaims = Depends(get_current_user)):
+    pwc_secret = request.app.extra['PWC_SECRET']
+    arxiv_user_secret = request.app.extra['PWC_ARXIV_USER_SECRET'] # "pwc_arxiv_user_id_2020"
+    person_id = sha256(f"{arxiv_user_secret}{current_user.user_id}".encode()).hexdigest()
+
+    assertion = {
+        "arxiv_id": current_user.document.paper_id,
+        "person_id": person_id,
+        "__timeout__": int(time.time()) + 600,
+        "__user_ip__": request.client.host
+    }
+    json_encoded = json.dumps(assertion, separators=(",", ":"))
+    b64_assertion = base64.urlsafe_b64encode(json_encoded.encode()).decode().rstrip("=")
+    digest = sha256(f"{b64_assertion}{pwc_secret}".encode()).hexdigest()
+
+    redirect_url = f"https://paperswithcode.com/integrations/arxiv/?assertion={b64_assertion}&digest={digest}"
+    return RedirectResponse(url=redirect_url, status_code=307)
+
+
 
 
 @paper_pw_router.put("/renew/{document_id:str}",

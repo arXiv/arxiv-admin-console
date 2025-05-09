@@ -44,6 +44,7 @@ from arxiv_admin_api.tapir_sessions import router as tapir_session_router
 from arxiv_admin_api.member_institutions import router as member_institution_router
 from arxiv_admin_api.countries import router as countries_router
 from arxiv_admin_api.tapir_admin_audit import router as tapir_admin_audit_router
+from arxiv_admin_api.taxonomy import router as taxonomy_router
 
 from arxiv_admin_api.frontend import router as frontend_router
 from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
@@ -173,6 +174,9 @@ def create_app(*args, **kwargs) -> FastAPI:
                 "CLASSIC_COOKIE_NAME": "tapir_session"
             }.get(key)
 
+    pwc_secret = get_application_config().get('PWC_SECRET', "not-very-secret")
+    pwc_arxiv_user_secret = get_application_config().get('PWC_ARXIV_USER_SECRET', "not-very-secret")
+
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
         arxiv_db_engine=database.engine,
@@ -186,6 +190,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         TRACKING_COOKIE_NAME=TRACKING_COOKIE_NAME,
         DATABASE=database,
         user_session=UserSession(),
+        PWC_SECRET=pwc_secret,
+        PWC_ARXIV_USER_SECRET=pwc_arxiv_user_secret
     )
 
     if ADMIN_APP_URL not in origins:
@@ -240,6 +246,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(countries_router, prefix="/v1")
     app.include_router(public_users_router, prefix="/v1")
     app.include_router(tapir_admin_audit_router, prefix="/v1")
+    app.include_router(taxonomy_router, prefix="/v1")
 
 
     @app.middleware("http")
