@@ -3,8 +3,11 @@ from http.client import HTTPException
 from typing import Optional, List
 from datetime import date, timedelta
 
+from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_current_user
 from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
 from fastapi.responses import Response
+from pydantic import BaseModel
 
 from sqlalchemy import select, distinct, and_
 from sqlalchemy.orm import Session, aliased
@@ -13,9 +16,11 @@ from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demog
                              t_arXiv_black_email, Category)
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 
-from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch
+from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
+from .biz.document_biz import document_summary
 
-router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/users")
+router = APIRouter(prefix="/users")
+
 
 
 class UserUpdateModel(UserModel):
@@ -23,7 +28,10 @@ class UserUpdateModel(UserModel):
 
 
 @router.get("/{user_id:int}")
-def get_one_user(user_id:int, db: Session = Depends(get_db)) -> UserModel:
+def get_one_user(user_id:int,
+                 current_user: ArxivUserClaims = Depends(get_current_user),
+                 db: Session = Depends(get_db)) -> UserModel:
+    check_authnz(None, current_user, str(user_id))
     # @ignore-types
     user = UserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
     if user:
@@ -38,15 +46,17 @@ def list_user_by_username(response: Response,
                           _start: Optional[int] = Query(0, alias="_start"),
                           _end: Optional[int] = Query(100, alias="_end"),
                           id: Optional[List[str]] = Query(None, description="List of user IDs to filter by"),
-                          db: Session = Depends(get_db)
+                          db: Session = Depends(get_db),
+                          _is_admin: bool = Depends(is_admin_user),
                           ) -> List[UserModel]:
     """
     List users by username
     """
     query = UserModel.base_select(db)
-    if _start < 0 or _end < _start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid start or end index")
+    if _start and _end:
+        if _start < 0 or _end < _start:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Invalid start or end index")
 
     order_columns = []
     if _sort:
@@ -77,8 +87,9 @@ def list_user_by_username(response: Response,
 
 @router.get("/username/{username:str}")
 def get_user_by_username(username: str,
-                          db: Session = Depends(get_db)
-                          ) -> UserModel:
+                         db: Session = Depends(get_db),
+                         _is_admin: bool = Depends(is_admin_user),
+                         ) -> UserModel:
     """
     List users by username
     """
@@ -116,7 +127,8 @@ async def list_users(
         end_joined_date: Optional[date] = Query(None, description="End date for filtering"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         q: Optional[str] = Query(None, description="Query string"),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _is_admin: bool = Depends(is_admin_user),
 ) -> List[UserModel]:
     """
     List users
@@ -252,8 +264,10 @@ async def list_users(
 async def update_user(request: Request,
                       user_id: int,
                       user_update: UserUpdateModel,
+                      current_user: ArxivUserClaims = Depends(get_current_user),
                       session: Session = Depends(get_db)) -> UserModel:
     """Update user - by PUT"""
+    check_authnz(None, current_user, user_id)
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -290,7 +304,9 @@ async def update_user(request: Request,
 
 
 @router.post('/')
-async def create_user(request: Request, session: Session = Depends(get_db)) -> UserModel:
+async def create_user(request: Request,
+                      _is_admin: bool = Depends(is_admin_user),
+                      session: Session = Depends(get_db)) -> UserModel:
     """Creates a new user - by POST"""
     body = await request.json()
 
@@ -303,7 +319,11 @@ async def create_user(request: Request, session: Session = Depends(get_db)) -> U
 
 
 @router.delete('/{user_id:int}')
-def delete_user(response: Response, user_id: int, session: Session = Depends(get_db)):
+def delete_user(response: Response,
+                user_id: int,
+                current_user: ArxivUserClaims = Depends(get_current_user),
+                session: Session = Depends(get_db)):
+    check_authnz(None, current_user, user_id)
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -313,3 +333,23 @@ def delete_user(response: Response, user_id: int, session: Session = Depends(get
     session.refresh(user)  # Refresh the instance with the updated data
     response.status_code = 204
     return
+
+
+class UserDocumentSummary(BaseModel):
+    submitted_count: int
+    owns_count: int
+    authored_count: int
+    class Config:
+        from_attributes = True
+
+
+@router.get("/{user_id:int}/document-summary")
+def get_user_document_summary(user_id:int,
+                              current_user: ArxivUserClaims = Depends(get_current_user),
+                              db: Session = Depends(get_db)) -> UserDocumentSummary:
+    check_authnz(None, current_user, user_id)
+    # @ignore-types
+    user = UserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return UserDocumentSummary.model_validate(document_summary(db, str(user_id)))

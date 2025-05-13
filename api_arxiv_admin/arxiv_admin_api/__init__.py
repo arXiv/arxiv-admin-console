@@ -3,6 +3,7 @@ from http.client import HTTPException
 from fastapi import Request, HTTPException, status as http_status
 import os
 
+# This is used by others. Don't remove
 from arxiv_bizlogic.fastapi_helpers import (
     is_any_user, is_admin_user, get_current_user, get_db, get_hostname,
     get_client_host_name, get_client_host, datetime_to_epoch, VERY_OLDE)
@@ -46,3 +47,20 @@ def gate_admin_user(user: ArxivUserClaims):
     if not user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not admin")
 
+
+def is_authenticated(_token: None, current_user: ArxivUserClaims | None) -> bool:
+    return current_user is not None
+
+def is_authorized(_token: None, current_user: ArxivUserClaims | None, user_id: str) -> bool:
+    return (current_user is not None) and (current_user.is_admin or (str(current_user.user_id) == str(user_id)))
+
+
+def check_authnz(_token: None, current_user: ArxivUserClaims | None, user_id: str | int):
+    """
+    Sugar to do both authentication and authorization check
+    """
+    if not is_authenticated(None, current_user):
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+
+    if not is_authorized(None, current_user, str(user_id)):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Unauthorized")

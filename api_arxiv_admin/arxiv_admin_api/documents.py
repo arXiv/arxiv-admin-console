@@ -17,6 +17,7 @@ from arxiv_bizlogic.latex_helpers import convert_latex_accents
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .helpers.mui_datagrid import MuiDataGridFilter
+from .metadata import MetadataModel
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,13 @@ class DocumentModel(BaseModel):
             Demographic.flag_proxy == 0)).all()]
 
         return self
+
+    def current_version(self, session: Session) -> Optional[MetadataModel]:
+        """Get the current version of the document"""
+        metadata = session.query(Metadata).filter(Metadata.document_id == self.id).order_by(desc(Metadata.version)).first()
+        if not metadata:
+            return None
+        return MetadataModel.model_validate(metadata)
 
 
 @router.get('/')
