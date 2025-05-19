@@ -1,12 +1,12 @@
 """arXiv user routes."""
-from http.client import HTTPException
 from typing import Optional, List
 from datetime import date, timedelta
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_current_user
-from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
+from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
+from fastapi.exceptions import HTTPException
 from pydantic import BaseModel
 
 from sqlalchemy import select, distinct, and_
@@ -22,7 +22,6 @@ from .biz.document_biz import document_summary
 router = APIRouter(prefix="/users")
 
 
-
 class UserUpdateModel(UserModel):
     pass
 
@@ -33,9 +32,9 @@ def get_one_user(user_id:int,
                  db: Session = Depends(get_db)) -> UserModel:
     check_authnz(None, current_user, str(user_id))
     # @ignore-types
-    user = UserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
+    user = UserModel.one_user(db, str(user_id))
     if user:
-        return UserModel.to_model(user)
+        return user
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
@@ -52,11 +51,14 @@ def list_user_by_username(response: Response,
     """
     List users by username
     """
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = _start + 100
     query = UserModel.base_select(db)
-    if _start and _end:
-        if _start < 0 or _end < _start:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Invalid start or end index")
+    if _start < 0 or _end < _start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid start or end index")
 
     order_columns = []
     if _sort:

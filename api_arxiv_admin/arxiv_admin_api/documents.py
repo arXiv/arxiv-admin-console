@@ -1,5 +1,8 @@
 """arXiv paper display routes."""
 from __future__ import annotations
+
+from enum import Enum
+
 from arxiv.auth.user_claims import ArxivUserClaims
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
@@ -14,6 +17,7 @@ import re
 import time
 
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
+from starlette.responses import RedirectResponse
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .helpers.mui_datagrid import MuiDataGridFilter
@@ -272,3 +276,25 @@ def get_document(id:int,
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paper not found")
     return DocumentModel.to_model(session, doc)
+
+
+class DocumentUserAction(str, Enum):
+    replace = "replace"
+    withdraw = "withdraw"
+    cross = "cross"
+    jref = "jref"
+    pwc_code = "pwc_code"
+
+@router.get("/user-action/{id}/{action}")
+def redirect_to_user_document_action(
+        id:str,
+        action: DocumentUserAction,
+        _current_user: ArxivUserClaims = Depends(get_current_user),
+        session: Session = Depends(get_db)) -> RedirectResponse:
+    doc = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+    if action not in list(DocumentUserAction):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Action {action} is invalid. Must be one of {list(DocumentUserAction)}")
+    url = f"/user/{id}/{action}"
+    return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
