@@ -296,5 +296,5 @@ def redirect_to_user_document_action(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
     if action not in list(DocumentUserAction):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Action {action} is invalid. Must be one of {list(DocumentUserAction)}")
-    url = f"/user/{id}/{action}"
+    url = f"/user/{id}/{action.value}"
     return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
