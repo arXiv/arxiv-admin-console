@@ -352,23 +352,39 @@ class EndorsementBusiness:
     def endorser_acceptable(self) -> bool:
         return self.endorser_capability == EndorserCapabilityType.credited
 
+    @property
+    def endorser_n_papers(self) -> Optional[int]:
+        return self.outcome.endorser_n_papers
+
+    @endorser_n_papers.setter
+    def endorser_n_papers(self, n_papers: int):
+        self.outcome.endorser_n_papers = n_papers
+
 
     def reject(self, reason: str, public_reason: bool = False,
                endorser_capability: EndorserCapabilityType = EndorserCapabilityType.uncredited,
-               request_acceptable: bool = False) -> bool:
+               request_acceptable: bool = False,
+               endorser_n_papers: Optional[int] = None
+               ) -> bool:
         self.endorser_capability = endorser_capability
         self.request_acceptable = request_acceptable
         self.public_reason = public_reason
         self.reason = reason
+        if endorser_n_papers:
+            self.endorser_n_papers = endorser_n_papers
         return self.endorser_acceptable and self.request_acceptable
 
     def accept(self, reason: str, public_reason: bool = True,
                endorser_capability: EndorserCapabilityType = EndorserCapabilityType.credited,
-               request_acceptable: bool = True) -> bool:
+               request_acceptable: bool = True,
+               endorser_n_papers: Optional[int] = None
+               ) -> bool:
         self.endorser_capability = endorser_capability
         self.request_acceptable = request_acceptable
         self.public_reason = public_reason
         self.reason = reason
+        if endorser_n_papers:
+            self.endorser_n_papers = endorser_n_papers
         return self.endorser_acceptable and self.request_acceptable
 
 
@@ -530,20 +546,24 @@ class EndorsementBusiness:
         if len(authored_papers) >= N_papers:
             # This also makes very little sense.
             titles = [paper.title for paper in authored_papers[:N_papers]]
-            return self.accept(f"Endorser is author of: {', '.join(titles)}.")
+            return self.accept(f"Endorser is author of: {', '.join(titles)}.", endorser_n_papers=N_papers)
 
         if len(papers) >= N_papers:
             # This also makes very little sense.
             titles = [paper.title for paper in not_authored_papers]
-            return self.reject(f"Not Author of: {', '.join(titles)}.", public_reason=True, request_acceptable=True)
+            return self.reject(f"Not Author of: {', '.join(titles)}.",
+                               endorser_n_papers=N_papers,
+                               public_reason=True,
+                               request_acceptable=True)
 
         category = pretty_category(self.canon_archive, self.canon_subject_class)
         reason = f"User must be the registered author of {N_papers} registered papers to endorse for {category}"
         reason = reason + f" but has only {len(authored_papers)} in the 3mo-5yr window"
-        if len(papers) > len(authored_papers):
-            reason += f" (user is non-author of {len(papers) - len(authored_papers)})"
+        non_author_n_papers = len(papers) > len(authored_papers)
+        if non_author_n_papers:
+            reason += f" (user is non-author of {non_author_n_papers})"
         reason = reason + "."
-        return self.reject(reason, request_acceptable=True)
+        return self.reject(reason, public_reason=True, request_acceptable=True, endorser_n_papers=non_author_n_papers)
 
     def submit_endorsement(self) -> EndorsementModel | None:
         result = self.accessor.arxiv_endorse(self)

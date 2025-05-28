@@ -80,6 +80,7 @@ class EndorsementOutcomeModel(BaseModel):
     accepted: bool            # Endorsee has the endorsement accepted
     request_acceptable: bool  # Endorsee can accept ths endorsementa
     endorser_capability: EndorserCapabilityType   # Endorser's capability for submitting
+    endorser_n_papers: Optional[int] = None  # number of credible papers
     reason: str
     endorsement_request: EndorsementRequestModel
     endorsee: Optional[PublicUserModel]
