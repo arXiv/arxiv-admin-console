@@ -44,6 +44,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/impersonate/{user_id: str}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Impersonate
+         * @description Handles user impersonation by administrators to access and act on behalf of another user.
+         *     This involves retrieving user information from the database and Keycloak,
+         *     generating appropriate claims, managing cookies, and performing necessary Keycloak
+         *     impersonation API calls.
+         *
+         *     :param request: The incoming HTTP request.
+         *     :type request: Request
+         *     :param user_id: The user ID of the target user to impersonate.
+         *     :type user_id: str
+         *     :param session: Database session dependency used for fetching user data.
+         *     :type session: sqlalchemy.orm.Session
+         *     :param client_ip: Client IP address retrieved from the request.
+         *     :type client_ip: str
+         *     :param current_user: Current authenticated user making the impersonation request. This
+         *         parameter can be None, indicating that the user is not authenticated.
+         *     :type current_user: Optional[ArxivUserClaims]
+         *     :return: A Response object which includes cookies for the impersonated session and redirects
+         *         to a target URL if impersonation was successful.
+         *     :rtype: Response
+         */
+        post: operations["impersonate_impersonate__user_id__str__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/refresh": {
         parameters: {
             query?: never;
@@ -108,8 +146,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Logout */
-        post: operations["logout_logout_callback_post"];
+        /** Logout Callback */
+        post: operations["logout_callback_logout_callback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -140,8 +178,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Token Names */
-        get: operations["get_token_names_well_known_get"];
+        /** Get Well Known Services */
+        get: operations["get_well_known_services_well_known_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -289,7 +327,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/email/{user_id}/verified/": {
+    "/account/email/verified/{user_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -300,7 +338,7 @@ export interface paths {
          * Get Email Verified Status
          * @description Is the email verified for this usea?
          */
-        get: operations["get_email_verified_status_account_email__user_id__verified__get"];
+        get: operations["get_email_verified_status_account_email_verified__user_id___get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -363,6 +401,83 @@ export interface paths {
          * @description Reset user password
          */
         post: operations["reset_user_password_account_password_reset__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/identifier/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User Profile With Query */
+        get: operations["get_user_profile_with_query_account_identifier__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/orcid/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upsert Orcid
+         * @description Update ORCID
+         */
+        put: operations["upsert_orcid_account_orcid__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/author_id/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upsert Author Id
+         * @description Update AUTHOR_ID
+         */
+        put: operations["upsert_author_id_account_author_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/status/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update User Status
+         * @description Update User flags
+         */
+        put: operations["update_user_status_account_status__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -440,6 +555,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/keycloak/user/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Kc User
+         * @description Get the user's data from Keycloak
+         */
+        get: operations["get_kc_user_keycloak_user__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -457,7 +592,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/states": {
+    "/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -465,7 +600,7 @@ export interface paths {
             cookie?: never;
         };
         /** Health Check */
-        get: operations["health_check_states_get"];
+        get: operations["health_check_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -478,6 +613,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccountIdentifierModel
+         * @description Mapping ot the identifiers that can point to a user
+         */
+        AccountIdentifierModel: {
+            /** User Id */
+            user_id: string | null;
+            /** Email */
+            email: string | null;
+            /** Username */
+            username: string | null;
+            /** Orcid */
+            orcid?: string | null;
+            /** Author Id */
+            author_id?: string | null;
+        };
         /** AccountInfoModel */
         AccountInfoModel: {
             /** Username */
@@ -513,6 +664,12 @@ export interface components {
             email_verified?: boolean | null;
             /** Scopes */
             scopes?: string[] | null;
+            /** Author Id */
+            author_id?: string | null;
+            /** Orcid Id */
+            orcid_id?: string | null;
+            /** Orcid Authenticated */
+            orcid_authenticated?: boolean | null;
         };
         /** AccountRegistrationError */
         AccountRegistrationError: {
@@ -566,6 +723,13 @@ export interface components {
              */
             keycloak_migration: boolean;
         };
+        /** AuthorIdUpdateModel */
+        AuthorIdUpdateModel: {
+            /** User Id */
+            user_id: string;
+            /** Author Id */
+            author_id?: string | null;
+        };
         /**
          * CAREER_STATUS
          * @enum {string}
@@ -588,15 +752,6 @@ export interface components {
             /** Subject Class */
             subject_class: string;
         };
-        /** ChangePasswordModel */
-        ChangePasswordModel: {
-            /** User Id */
-            user_id: string;
-            /** Old Password */
-            old_password: string;
-            /** New Password */
-            new_password: string;
-        };
         /** EmailModel */
         EmailModel: {
             /** User Id */
@@ -617,18 +772,38 @@ export interface components {
         EmailVerifiedStatus: {
             /** User Id */
             user_id: string;
-            /** Result */
-            result: boolean;
+            /** Email Verified */
+            email_verified: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** OrcidUpdateModel */
+        OrcidUpdateModel: {
+            /** User Id */
+            user_id: string;
+            /** Orcid */
+            orcid?: string | null;
+            /** Orcid Auth */
+            orcid_auth?: string | null;
+            /** Authenticated */
+            authenticated: boolean;
+        };
         /** PasswordResetRequest */
         PasswordResetRequest: {
             /** Username Or Email */
             username_or_email: string;
+        };
+        /** PasswordUpdateModel */
+        PasswordUpdateModel: {
+            /** User Id */
+            user_id: string;
+            /** Old Password */
+            old_password: string;
+            /** New Password */
+            new_password: string;
         };
         /**
          * RefreshedTokens
@@ -657,6 +832,17 @@ export interface components {
             classic: string | null;
             /** Session */
             session: string;
+            /** Refresh */
+            refresh: string;
+        };
+        /** UserStatusModel */
+        UserStatusModel: {
+            /** User Id */
+            user_id: string;
+            /** Deleted */
+            deleted: boolean | null;
+            /** Banned */
+            banned: boolean | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -740,6 +926,37 @@ export interface operations {
             };
         };
     };
+    impersonate_impersonate__user_id__str__post: {
+        parameters: {
+            query: {
+                user_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     refresh_token_refresh_get: {
         parameters: {
             query?: never;
@@ -773,7 +990,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
+            /** @description Tokens successfully refreshed */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -781,6 +998,22 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RefreshedTokens"];
                 };
+            };
+            /** @description Redirect to login if refresh token is missing */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshedTokens"];
+                };
+            };
+            /** @description Unauthorized if session or refresh token is invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -833,7 +1066,7 @@ export interface operations {
             };
         };
     };
-    logout_logout_callback_post: {
+    logout_callback_logout_callback_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -873,7 +1106,7 @@ export interface operations {
             };
         };
     };
-    get_token_names_well_known_get: {
+    get_well_known_services_well_known_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1030,15 +1263,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountInfoModel"] | components["schemas"]["AccountRegistrationError"];
-                };
-            };
             /** @description Successfully created account */
             201: {
                 headers: {
@@ -1163,7 +1387,7 @@ export interface operations {
             };
         };
     };
-    get_email_verified_status_account_email__user_id__verified__get: {
+    get_email_verified_status_account_email_verified__user_id___get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1216,12 +1440,15 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Old and new email are the same */
+            /** @description Old and new email are the same. Or bad new email address */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
+                    /** @example {
+                     *       "detail": "Old and new email are the same"
+                     *     } */
                     "application/json": unknown;
                 };
             };
@@ -1231,6 +1458,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /** @example {
+                     *       "detail": "Not authorized to change this email"
+                     *     } */
                     "application/json": unknown;
                 };
             };
@@ -1240,6 +1470,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /** @example {
+                     *       "detail": "Not authorized to change this email"
+                     *     } */
                     "application/json": unknown;
                 };
             };
@@ -1249,6 +1482,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /** @example {
+                     *       "detail": "Old email does not exist"
+                     *     } */
                     "application/json": unknown;
                 };
             };
@@ -1258,6 +1494,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /** @example {
+                     *       "detail": "The requested email is already used by other user."
+                     *     } */
                     "application/json": unknown;
                 };
             };
@@ -1276,6 +1515,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    /** @example {
+                     *       "detail": "Could not update Keycloak"
+                     *     } */
                     "application/json": unknown;
                 };
             };
@@ -1290,7 +1532,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ChangePasswordModel"];
+                "application/json": components["schemas"]["PasswordUpdateModel"];
             };
         };
         responses: {
@@ -1343,6 +1585,249 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_profile_with_query_account_identifier__get: {
+        parameters: {
+            query?: {
+                /** @description User ID */
+                user_id?: string | null;
+                /** @description Email */
+                email?: string | null;
+                /** @description Logi name */
+                username?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountIdentifierModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upsert_orcid_account_orcid__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrcidUpdateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Not logged in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Not authenticated"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden - not allowed to change the ORCID data */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Not authorized to set the ORCID data"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Error while updating Keycloak */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Could not update Keycloak"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    upsert_author_id_account_author_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorIdUpdateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Not logged in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Not authenticated"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden - not allowed to change the AUTHOR_ID data */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Not authorized to set the AUTHOR_ID data"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Error while updating Keycloak */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Could not update Keycloak"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    update_user_status_account_status__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserStatusModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Not logged in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Not authenticated"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden - not allowed to change the ORCID data */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Not authorized to set the ORCID data"
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Error while updating Keycloak */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Could not update Keycloak"
+                     *     } */
+                    "application/json": unknown;
                 };
             };
         };
@@ -1466,6 +1951,37 @@ export interface operations {
             };
         };
     };
+    get_kc_user_keycloak_user__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     root__get: {
         parameters: {
             query?: never;
@@ -1486,7 +2002,7 @@ export interface operations {
             };
         };
     };
-    health_check_states_get: {
+    health_check_status_get: {
         parameters: {
             query?: never;
             header?: never;

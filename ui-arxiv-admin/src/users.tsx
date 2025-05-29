@@ -9,6 +9,7 @@ import Table from '@mui/material/Table';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
+import Box from '@mui/material/Box';
 
 
 import {
@@ -33,10 +34,12 @@ import {
     DateInput,
     RecordContextProvider,
     useDataProvider,
+    SaveButton,
+    DeleteButton, Toolbar, useNotify,
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import CategoryField from "./bits/CategoryField";
 import PersonNameField from "./bits/PersonNameField";
 import CareereStatusField from "./bits/CareereStatusField";
@@ -44,6 +47,12 @@ import LastLoginField from "./bits/LastLoginField";
 import Typography from "@mui/material/Typography";
 import PaperOwnersList from "./bits/PaperOwnersList";
 import {AdminAuditList} from "./bits/TapirAdminLogs";
+import Button from '@mui/material/Button';
+import LoginIcon from '@mui/icons-material/Login';
+import {RuntimeContext} from "./RuntimeContext"; // for "Become This User"
+
+
+
 
 const UserFilter = (props: any) => (
     <Filter {...props}>
@@ -302,10 +311,73 @@ function UserEndorsements() {
 }
 
 
+const UserEditToolbar = () => {
+    const notify = useNotify();
+    const record = useRecordContext();
+    const runtimeProps = useContext(RuntimeContext);
+
+
+    const handleMasquerade = async () => {
+        if (!record?.id) return;
+
+        console.log( "aaa: " + runtimeProps.AAA_URL);
+
+        try {
+            const response = await fetch(`${runtimeProps.AAA_URL}/impersonate/${record.id}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // send cookies if needed
+            });
+
+            if ([301, 302, 303, 307, 308].includes(response.status)) {
+                const location = response.headers.get('Location');
+                if (location) {
+                    window.location.href = location;
+                    return;
+                }
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Request failed');
+            }
+
+            notify('Switched to user session', { type: 'info' });
+            window.location.href = '/'; // Or wherever you want to redirect
+        } catch (error: unknown) {
+            let message = 'Unknown error';
+            if (error instanceof Error) {
+                message = error.message;
+            }
+            notify(`Masquerade failed: ${message}`, { type: 'error' });
+        }
+    };
+
+    return (
+        <Toolbar sx={{gap: 1}}>
+            <SaveButton />
+            <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<LoginIcon />}
+                onClick={handleMasquerade}
+                sx={{ ml: 2 }}
+            >
+                Become This User
+            </Button>
+            <Box sx={{ flexGrow: 1 }} />
+            <DeleteButton />
+        </Toolbar>
+    );
+};
+
+
 export const UserEdit = () => {
     return (
     <Edit title={<UserTitle />}>
-        <SimpleForm >
+        <SimpleForm toolbar={<UserEditToolbar />}>
             <Grid container>
                 <Grid size={{xs: 6}} >
                     <Table size="small">
