@@ -23,7 +23,7 @@ export const AdminConsoleAppBar = () => {
             }
             else {
                 const terms = userSearch.trim().split(" ");
-                criteria = (terms.length > 1) ? {first_name: terms[0], last_name: terms[1]} : {first_name: terms[0], last_name: terms[1]}
+                criteria = (terms.length > 1) ? {first_name: terms[0], last_name: terms[1]} : {last_name: terms[0]}
             }
             const filter = encodeURIComponent(JSON.stringify(criteria));
             navigate(`/users?filter=${filter}`);
