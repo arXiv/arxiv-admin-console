@@ -50,8 +50,7 @@ import {AdminAuditList} from "./bits/TapirAdminLogs";
 import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
 import {RuntimeContext} from "./RuntimeContext"; // for "Become This User"
-
-
+import { useLocation, useNavigate } from 'react-router-dom';
 
 
 const UserFilter = (props: any) => (
@@ -89,6 +88,7 @@ export const UserList = () => {
             mod: false,
         }
     );
+
     const handleToggle = (event: React.MouseEvent<HTMLElement>) => {
         const column = event.currentTarget.getAttribute('value');
         if (column) {
@@ -99,6 +99,46 @@ export const UserList = () => {
             }));
         }
     };
+
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const filterParam = searchParams.get('filter');
+
+        if (filterParam) {
+            try {
+                const parsedFilters = JSON.parse(decodeURIComponent(filterParam));
+
+                // Create new filter object with only email, first_name, and last_name
+                const newFilters: any = {};
+
+                if (parsedFilters.email) {
+                    newFilters.email = parsedFilters.email;
+                }
+                if (parsedFilters.first_name) {
+                    newFilters.first_name = parsedFilters.first_name;
+                }
+                if (parsedFilters.last_name) {
+                    newFilters.last_name = parsedFilters.last_name;
+                }
+
+                // Only update if we have relevant filters
+                if (Object.keys(newFilters).length > 0) {
+                    // Create new URL with only the relevant filters
+                    const newFilterParam = encodeURIComponent(JSON.stringify(newFilters));
+                    const newUrl = `${location.pathname}?filter=${newFilterParam}`;
+
+                    // Replace current URL without triggering a page reload
+                    navigate(newUrl, { replace: true });
+                }
+            } catch (error) {
+                console.error('Error parsing URL filters:', error);
+            }
+        }
+    }, [location.search, navigate, location.pathname]);
+
 
     return (
         <div>
