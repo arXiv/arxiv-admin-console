@@ -42,7 +42,8 @@ async def list_endorsements(
         flag_valid: Optional[bool] = Query(None),
         endorsee_id: Optional[int] = Query(None),
         endorser_id: Optional[int] = Query(None),
-        by_suspects: Optional[bool] = Query(None),
+        by_suspect: Optional[bool] = Query(None),
+        positive_endorsement: Optional[bool] = Query(None),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         request_id: Optional[int] = Query(None),
         current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
@@ -106,9 +107,15 @@ async def list_endorsements(
             elif isinstance(type, list):
                 query = query.filter(Endorsement.type.in_(type))
 
-        if by_suspects is not None:
+        if positive_endorsement is not None:
+            if positive_endorsement:
+                query = query.filter(Endorsement.point_value > 0)
+            else:
+                query = query.filter(Endorsement.point_value <= 0)
+
+        if by_suspect is not None:
             query = query.join(Demographic, Endorsement.endorser_id == Demographic.user_id)
-            query = query.filter(Demographic.flag_suspect == by_suspects)
+            query = query.filter(Demographic.flag_suspect == by_suspect)
             pass
 
         for column in order_columns:

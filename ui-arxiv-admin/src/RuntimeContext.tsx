@@ -5,13 +5,15 @@ import {Box} from '@mui/material';
 export interface ArxiURLs
 {
     CheckSubmissionLink: string;
+    JiraLink: string;
 }
 
 /*
 https://www.npmjs.com/package/uri-templates
  */
 const arXivURLs: ArxiURLs = {
-    CheckSubmissionLink: '{+arxivCheck}/#/q/submitted/{submissionId}'
+    CheckSubmissionLink: '{+arxivCheck}/#/q/submitted/{submissionId}',
+    JiraLink: '{+jira}/browse/{issueKey}',
 }
 
 

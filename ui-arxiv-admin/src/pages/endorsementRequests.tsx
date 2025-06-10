@@ -80,7 +80,7 @@ const EndorsementRequestFilter = (props: any) => {
 
     return (
         <Filter {...props}>
-            <BooleanInput label="Open" source="not_positive" alwaysOn/>
+            <BooleanInput label="Closed" source="positive" alwaysOn/>
             <SelectInput
                 label="Preset Date Range"
                 source="preset"
@@ -105,7 +105,7 @@ export const EndorsementRequestList = () => {
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <List filters={<EndorsementRequestFilter />}
-              filterDefaultValues={{not_positive: true}}
+              filterDefaultValues={{positive: false}}
               sort={{field: 'id', order: 'DESC'}}>
             {isSmall ? (
                 <SimpleList

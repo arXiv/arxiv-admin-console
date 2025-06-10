@@ -3754,8 +3754,8 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 flag_valid?: boolean | null;
-                /** @description Not positive point value */
-                not_positive?: boolean | null;
+                /** @description positive point value */
+                positive?: boolean | null;
                 /** @description Suspected user */
                 suspected?: boolean | null;
                 /** @description Endorsement request secret */

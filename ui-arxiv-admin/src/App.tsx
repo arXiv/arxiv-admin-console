@@ -35,6 +35,11 @@ import Typography from "@mui/material/Typography";
 import {OwnershipCreate, OwnershipEdit, OwnershipList} from "./pages/ownerships";
 import {AdminConsoleLayout} from "./bits/AdminConsoleLayout";
 
+// Import the new sliding panel components
+import { SlidingPanelProvider } from './SlidingPanelContext';
+import { SlidingPanel } from './components/SlidingPanel';
+import { PanelToggleButton } from './components/PanelToggleButton';
+import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -90,150 +95,131 @@ const AdminConsole: React.FC = () => {
 
     return (
         <PingBackend>
-            <Admin
-                authProvider={authProvider}
-                dataProvider={dataProvider}
-                dashboard={Dashboard}
+            <PersistentDrawerLayout>
+                <Admin
+                    authProvider={authProvider}
+                    dataProvider={dataProvider}
+                    dashboard={Dashboard}
 
-                loginPage={(<RedirectComponent to={`${runtimeProps.AAA_URL}/login?next=${runtimeProps.ADMIN_APP_ROOT}`}/>)}
+                    loginPage={(<RedirectComponent to={`${runtimeProps.AAA_URL}/login?next=${runtimeProps.ADMIN_APP_ROOT}`}/>)}
 
-                theme={lightTheme}
-                darkTheme={darkTheme}
+                    theme={lightTheme}
+                    darkTheme={darkTheme}
 
-                layout={AdminConsoleLayout}
-            >
-                <Resource
-                    name="users"
-                    list={UserList}
-                    show={ShowGuesser}
-                    icon={UserIcon}
-                    recordRepresentation="name"
-                    edit={UserEdit}
-                    create={UserCreate}
-                />
+                    layout={AdminConsoleLayout}
+                >
+                    {/* Your existing resources */}
+                    <Resource
+                        name="users"
+                        list={UserList}
+                        show={ShowGuesser}
+                        icon={UserIcon}
+                        recordRepresentation="name"
+                        edit={UserEdit}
+                        create={UserCreate}
+                    />
 
-                <Resource
-                    name="email_templates"
-                    list={TemplateList}
-                    show={ShowGuesser}
-                    icon={EmailIcon}
-                    recordRepresentation="short_name"
-                    edit={TemplateEdit}
-                    create={TemplateCreate}
-                />
+                    <Resource
+                        name="email_templates"
+                        list={TemplateList}
+                        show={ShowGuesser}
+                        icon={EmailIcon}
+                        recordRepresentation="short_name"
+                        edit={TemplateEdit}
+                        create={TemplateCreate}
+                    />
 
-                <Resource
-                    name="endorsements"
-                    list={EndorsementList}
-                    show={ShowGuesser}
-                    icon={EndorsedEcon}
-                    recordRepresentation="name"
-                    edit={EndorsementEdit}
-                    create={EndorsementCreate}
-                />
+                    <Resource
+                        name="endorsements"
+                        list={EndorsementList}
+                        show={ShowGuesser}
+                        icon={EndorsedEcon}
+                        recordRepresentation="name"
+                        edit={EndorsementEdit}
+                        create={EndorsementCreate}
+                    />
 
-                <Resource
-                    name="endorsement_requests"
-                    list={EndorsementRequestList}
-                    show={EndorsementRequestShow}
-                    icon={RequestIcon}
-                    edit={EndorsementRequestEdit}
-                    create={EndorsementRequestCreate}
-                    recordRepresentation="id"
-                />
+                    <Resource
+                        name="endorsement_requests"
+                        list={EndorsementRequestList}
+                        show={EndorsementRequestShow}
+                        icon={RequestIcon}
+                        edit={EndorsementRequestEdit}
+                        create={EndorsementRequestCreate}
+                        recordRepresentation="id"
+                    />
 
-                <Resource
-                    name="documents"
-                    list={DocumentList}
-                    show={DocumentShow}
-                    icon={DocumentIcon}
-                    edit={DocumentEdit}
-                    create={DocumentCreate}
-                    recordRepresentation="id"
-                />
+                    <Resource
+                        name="documents"
+                        list={DocumentList}
+                        show={DocumentShow}
+                        icon={DocumentIcon}
+                        edit={DocumentEdit}
+                        create={DocumentCreate}
+                        recordRepresentation="id"
+                    />
 
-                <Resource
-                    name="categories"
-                    list={CategoryList}
-                    icon={CategoryIcon}
-                    edit={CategoryEdit}
-                    create={CategoryCreate}
-                    recordRepresentation="id"
-                />
+                    <Resource
+                        name="categories"
+                        list={CategoryList}
+                        icon={CategoryIcon}
+                        edit={CategoryEdit}
+                        create={CategoryCreate}
+                        recordRepresentation="id"
+                    />
 
-                <Resource
-                    name="moderators"
-                    list={ModeratorList}
-                    show={ShowGuesser}
-                    icon={ModeratorIcon}
-                    edit={ModeratorEdit}
-                    create={ModeratorCreate}
-                    recordRepresentation="id"
-                />
+                    <Resource
+                        name="moderators"
+                        list={ModeratorList}
+                        show={ShowGuesser}
+                        icon={ModeratorIcon}
+                        edit={ModeratorEdit}
+                        create={ModeratorCreate}
+                        recordRepresentation="id"
+                    />
 
-                <Resource
-                    name="ownership_requests"
-                    list={OwnershipRequestList}
-                    edit={OwnershipRequestEdit}
-                    icon={OwnershipRequestIcon}
-                    recordRepresentation="id"
-                />
+                    <Resource
+                        name="ownership_requests"
+                        list={OwnershipRequestList}
+                        edit={OwnershipRequestEdit}
+                        icon={OwnershipRequestIcon}
+                        recordRepresentation="id"
+                    />
 
-                <Resource
-                    name="submissions"
-                    list={SubmissionList}
-                    edit={SubmissionEdit}
-                    show={SubmissionShow}
-                    icon={SubmissionIcon}
-                    recordRepresentation="id"
-                />
+                    <Resource
+                        name="submissions"
+                        list={SubmissionList}
+                        edit={SubmissionEdit}
+                        show={SubmissionShow}
+                        icon={SubmissionIcon}
+                        recordRepresentation="id"
+                    />
 
-                {
-                    /*
-                <Resource
-                    name="paper_owners"
-                    list={OwnershipList}
-                    edit={OwnershipEdit}
-                    create={OwnershipCreate}
-                    recordRepresentation="id"
+                    <Resource name="paper_owners" />
+                    <Resource name="tapir_sessions" />
+                    <Resource name="membership_institutions" />
+                    <Resource name="endorsement_requests_audit"/>
+                    <Resource name="ownership_requests_audit"/>
+                    <Resource name="paper_owners_user_doc"/>
+                    <Resource name="demographics"/>
+                    <Resource name="admin_logs"/>
+                    <Resource name="submission_categories"/>
+                    <Resource name="tapir_admin_audit"/>
+                </Admin>
 
-                />
-                     */
-                }
-
-                <Resource name="paper_owners" />
-
-                <Resource name="tapir_sessions" />
-                <Resource name="membership_institutions" />
-                <Resource name="endorsement_requests_audit"/>
-                <Resource name="ownership_requests_audit"/>
-
-                <Resource name="paper_owners_user_doc"/>
-                <Resource name="demographics"/>
-                <Resource name="admin_logs"/>
-                <Resource name="submission_categories"/>
-                <Resource name="tapir_admin_audit"/>
-
-            </Admin>
+                {/* Add the persistent sliding panel */}
+                <SlidingPanel />
+            </PersistentDrawerLayout>
         </PingBackend>
     )
 }
 
-/*
-                <Resource
-                    name="membership_institutions"
-                    list={MembershipInstitutionList}
-                    show={ShowGuesser}
-                    icon={MembershipInstitutionIcon}
-                    recordRepresentation="id"
-                />
-
- */
-
 const App = () => {
     return (
         <RuntimeContextProvider>
-            <AdminConsole />
+            <SlidingPanelProvider>
+                <AdminConsole />
+            </SlidingPanelProvider>
         </RuntimeContextProvider>
     );
 }

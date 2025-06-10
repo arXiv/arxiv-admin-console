@@ -2,13 +2,16 @@ import React from 'react';
 import {
     AppBar as RaAppBar,
     TitlePortal,
-    useDataProvider
+    useDataProvider,
+    UserMenu,
 } from 'react-admin';
 import TextField from '@mui/material/TextField';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {PanelToggleButton} from "../components/PanelToggleButton";
+
 
 export const AdminConsoleAppBar = () => {
     const [userSearch, setUserSearch] = useState('');
@@ -117,7 +120,9 @@ export const AdminConsoleAppBar = () => {
                         onKeyDown={handleDocSearch}
                         sx={{maxWidth: "300px"}}
                     />
+
             </Toolbar>
+            <PanelToggleButton />
         </RaAppBar>
     );
 };
