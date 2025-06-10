@@ -63,8 +63,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useFormContext } from 'react-hook-form';
 
-import {paths as adminApi} from "./types/admin-api";
-import HighlightText from "./bits/HighlightText";
+import {paths as adminApi} from "../types/admin-api";
+import HighlightText from "../bits/HighlightText";
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
 // type OwnershipRequestsRequest = adminApi['/v1/ownership_requests/']['post']['requestBody']['content']['application/json'];
 // type OwnershipRequestsList = adminApi['/v1/ownership_requests/']['get']['responses']['200']['content']['application/json'];

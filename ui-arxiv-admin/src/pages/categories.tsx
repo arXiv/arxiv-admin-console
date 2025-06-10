@@ -25,7 +25,7 @@ import {
 import { addDays } from 'date-fns';
 
 import React from "react";
-import CategoryField from "./bits/CategoryField";
+import CategoryField from "../bits/CategoryField";
 
 /*
     archive: Mapped[str] = mapped_column(ForeignKey('arXiv_archives.archive_id'), primary_key=True, nullable=False, server_default=FetchedValue())

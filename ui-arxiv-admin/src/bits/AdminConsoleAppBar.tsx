@@ -47,10 +47,11 @@ export const AdminConsoleAppBar = () => {
 
     return (
         <RaAppBar>
-            <Toolbar sx={{ display: 'flex', alignItems: 'center', width: '100%', mx: 1 }}>
+            <Toolbar sx={{ display: 'flex', alignItems: 'center', width: '100%', mx: 1 , minHeight: '48px !important',}}>
                 <TitlePortal />
                     <Box sx={{flexGrow: 1 }} />
                     <TextField
+                        variant="outlined"
                         size="small"
                         placeholder="Search user..."
                         value={userSearch}
@@ -62,6 +63,7 @@ export const AdminConsoleAppBar = () => {
 
                     <TextField
                         size="small"
+                        variant="outlined"
                         placeholder="Search subs/docs..."
                         value={docSearch}
                         onChange={(e) => setDocSearch(e.target.value)}

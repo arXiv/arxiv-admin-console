@@ -25,7 +25,7 @@ import {
 import { addDays } from 'date-fns';
 
 import React from "react";
-import CategoryField from "./bits/CategoryField";
+import CategoryField from "../bits/CategoryField";
 /*
     id: str
     user_id: int

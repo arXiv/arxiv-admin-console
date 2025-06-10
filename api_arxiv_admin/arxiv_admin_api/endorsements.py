@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session #, joinedload
 from sqlalchemy.exc import IntegrityError
 
 from arxiv.base import logging
-from arxiv.db.models import Endorsement, EndorsementRequest, TapirUser
+from arxiv.db.models import Endorsement, EndorsementRequest, TapirUser, Demographic
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client_host, \
     get_tracking_cookie, get_client_host_name, is_any_user, get_tapir_session
@@ -42,6 +42,7 @@ async def list_endorsements(
         flag_valid: Optional[bool] = Query(None),
         endorsee_id: Optional[int] = Query(None),
         endorser_id: Optional[int] = Query(None),
+        by_suspects: Optional[bool] = Query(None),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         request_id: Optional[int] = Query(None),
         current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
@@ -104,6 +105,11 @@ async def list_endorsements(
                 query = query.filter(Endorsement.type == type)
             elif isinstance(type, list):
                 query = query.filter(Endorsement.type.in_(type))
+
+        if by_suspects is not None:
+            query = query.join(Demographic, Endorsement.endorser_id == Demographic.user_id)
+            query = query.filter(Demographic.flag_suspect == by_suspects)
+            pass
 
         for column in order_columns:
             if _order == "DESC":

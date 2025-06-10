@@ -13,26 +13,26 @@ import SubmissionIcon from '@mui/icons-material/Draw';
 import TapirSessionIcon from '@mui/icons-material/ConfirmationNumberSharp';
 import MembershipInstitutionIcon from '@mui/icons-material/School';
 
-import {TemplateCreate, TemplateList, TemplateEdit} from './templates';
+import {TemplateCreate, TemplateList, TemplateEdit} from './pages/templates';
 import { UserList, UserEdit, UserCreate } from './users';
-import {EndorsementRequestList, EndorsementRequestCreate, EndorsementRequestEdit, EndorsementRequestShow} from './endorsementRequests';
-import { Dashboard } from './Dashboard';
+import {EndorsementRequestList, EndorsementRequestCreate, EndorsementRequestEdit, EndorsementRequestShow} from './pages/endorsementRequests';
+import { Dashboard } from './pages/Dashboard';
 import {createAuthProvider} from './authProvider';
 import adminApiDataProvider from './adminApiDataProvider';
-import {EndorsementCreate, EndorsementEdit, EndorsementList} from "./endorsements";
-import {DocumentCreate, DocumentEdit, DocumentList, DocumentShow} from "./documents";
-import {CategoryList, CategoryCreate, CategoryEdit} from "./categories";
-import {ModeratorCreate, ModeratorEdit, ModeratorList} from "./moderators";
-import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "./ownershipRequests";
+import {EndorsementCreate, EndorsementEdit, EndorsementList} from "./pages/endorsements";
+import {DocumentCreate, DocumentEdit, DocumentList, DocumentShow} from "./pages/documents";
+import {CategoryList, CategoryCreate, CategoryEdit} from "./pages/categories";
+import {ModeratorCreate, ModeratorEdit, ModeratorList} from "./pages/moderators";
+import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "./pages/ownershipRequests";
 import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
-import {SubmissionCreate, SubmissionEdit, SubmissionList, SubmissionShow} from "./submissions";
-import {TapirSessionEdit, TapirSessionList} from "./tapirSessions";
-import {MembershipInstitutionList} from "./membershipInstitutions";
+import {SubmissionCreate, SubmissionEdit, SubmissionList, SubmissionShow} from "./pages/submissions";
+import {TapirSessionEdit, TapirSessionList} from "./pages/tapirSessions";
+import {MembershipInstitutionList} from "./pages/membershipInstitutions";
 import {darkTheme, lightTheme} from "./navTheme";
 
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
 import Typography from "@mui/material/Typography";
-import {OwnershipCreate, OwnershipEdit, OwnershipList} from "./ownerships";
+import {OwnershipCreate, OwnershipEdit, OwnershipList} from "./pages/ownerships";
 import {AdminConsoleLayout} from "./bits/AdminConsoleLayout";
 
 

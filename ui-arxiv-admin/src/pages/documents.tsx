@@ -28,8 +28,8 @@ import { addDays } from 'date-fns';
 
 import React from "react";
 import CircularProgress from "@mui/material/CircularProgress";
-import CategoryField from "./bits/CategoryField";
-import SubmissionCategoriesField from "./bits/SubmissionCategoriesField";
+import CategoryField from "../bits/CategoryField";
+import SubmissionCategoriesField from "../bits/SubmissionCategoriesField";
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())

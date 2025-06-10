@@ -25,7 +25,7 @@ import {
 import { addDays } from 'date-fns';
 
 import React from "react";
-import CategoryField from "./bits/CategoryField";
+import CategoryField from "../bits/CategoryField";
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())

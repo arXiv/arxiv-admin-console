@@ -29,10 +29,10 @@ import {
     SimpleShowLayout, useGetOne, RecordContextProvider, Identifier,
 } from 'react-admin';
 
-import CategoryField from "./bits/CategoryField";
+import CategoryField from "../bits/CategoryField";
 
 import { addDays } from 'date-fns';
-import PointValueBooleanField from "./bits/PointValueBooleanField";
+import PointValueBooleanField from "../bits/PointValueBooleanField";
 
 interface Category {
     id: string;
