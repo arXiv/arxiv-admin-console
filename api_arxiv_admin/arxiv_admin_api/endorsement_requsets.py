@@ -142,7 +142,6 @@ async def list_endorsement_requests(
                 query = query.filter(EndorsementRequest.point_value <= 0)
 
         if suspected is not None:
-            query = query.join(Demographic, Demographic.user_id == EndorsementRequest.endorsee_id)
             query = query.filter(Demographic.flag_suspect == suspected)
 
         if endorsee_first_name is not None:

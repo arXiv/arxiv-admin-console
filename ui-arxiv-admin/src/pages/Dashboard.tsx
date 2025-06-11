@@ -3,7 +3,6 @@ import {Link} from 'react-router-dom';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
-import Grid2 from '@mui/material/Grid2';
 import Button from '@mui/material/Button';
 import {useDataProvider} from "react-admin";
 import Typography from "@mui/material/Typography";
@@ -40,16 +39,18 @@ const ResourceSummary: React.FC<SummaryProps> = ({resource, title, filter, link}
     }, [filter, dataProvider, resource]);
 
     return (
-        <Grid2 container spacing={2}>
-            <Grid2 sx={{xs: 3}}>
+        <Box sx={{flexGrow: 1, flex: 1}} >
+            <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'center' }}>
+            <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle1">{title}</Typography>
-            </Grid2>
-            <Grid2 sx={{xs: 3}}>
+            </Box>
+            <Box sx={{ width: "5em" }}>
                 <Link to={link} style={{textDecoration: 'none'}}>
                     <Typography variant="h6">{count}</Typography>
                 </Link>
-            </Grid2>
-        </Grid2>
+            </Box>
+        </Box>
+        </Box>
     );
 };
 
@@ -72,11 +73,11 @@ const ResourceDateRangeSummary: React.FC<DateRangeSummaryProps> = ({resource, ti
 
 export const Dashboard = () => {
     return (
-        <Grid2 container sx={{my: 2, gap: 2}}>
-            <Grid2 container sx={{xs: 5, gap: 2}} flexDirection={"column"}>
+        <Box sx={{ my: 2, display: 'flex', gap: 2 }}>
+            <Box sx={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Card>
-                    <CardHeader  title="Endorsement Request"/>
-                    <CardContent sx={{xs: 12, ml: 2}}>
+                    <CardHeader title="Endorsement Request"/>
+                    <CardContent sx={{ ml: 2 }}>
                         <ResourceDateRangeSummary
                             resource={"endorsement_requests"} days={1} title={"Today"}
                             link={`/endorsement_requests?displayedFilters={}&filter={"positive"%3Afalse%2C"preset"%3A"1"}&order=DESC&page=1&perPage=25`}/>
@@ -89,7 +90,12 @@ export const Dashboard = () => {
                 <Card>
                     <CardHeader title="Endorsements"/>
                     <CardContent>
-                        <Grid2 sx={{xs: 12, ml: 2}}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gridTemplateRows: 'repeat(3, 1fr)',
+                            height: '100%'
+                        }}>
                             <ResourceSummary
                                 resource={"endorsements"}
                                 title={"Negative"}
@@ -97,7 +103,8 @@ export const Dashboard = () => {
                                 link={`/endorsements?displayedFilters={}&filter={"positive_endorsement"%3Afalse}&order=DESC&page=1&perPage=2`}
                             />
 
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Box />
+
                             <ResourceSummary
                                 resource={"endorsements"}
                                 title={"Today"}
@@ -107,96 +114,95 @@ export const Dashboard = () => {
 
                             <ResourceSummary
                                 resource={"endorsements"}
-                                title={"flagged"}
+                                title={"Flagged Today"}
                                 filter={{preset: "last_1_days", by_suspect: true}}
                                 link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_1_days"%2C"by_suspect"%3Atrue}&order=DESC&page=1&perPage=2`}
                             />
-                            </Box>
 
                             <ResourceSummary
                                 resource={"endorsements"}
                                 title={"Last 7 days"}
                                 filter={{preset: "last_7_days"}}
-                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_1_days"}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_7_days"}&order=DESC&page=1&perPage=2`}
                             />
 
                             <ResourceSummary
                                 resource={"endorsements"}
-                                title={"Last 7 days - flagged"}
+                                title={"Flagged (7 days)"}
                                 filter={{preset: "last_7_days", by_suspect: true}}
-                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_1_days"%2C"by_suspect"%3Atrue}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_7_days"%2C"by_suspect"%3Atrue}&order=DESC&page=1&perPage=2`}
                             />
-                        </Grid2>
+                        </div>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader title="Ownership request"/>
                     <CardContent>
-                        <Grid2 sx={{xs: 12, ml: 2}}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gridTemplateRows: 'repeat(3, 1fr)',
+                            height: '100%'
+                        }}>
                             <ResourceSummary resource={"ownership_requests"} title={"Pending"}
                                              filter={{"workflow_status": "pending"}}
                                              link={`/ownership_requests?displayedFilters={}&filter={"workflow_status"%3A"pending"}&order=ASC&page=1&perPage=25&sort=id`}
                             />
-                        </Grid2>
-                        <Grid2 sx={{xs: 12, ml: 2}}>
-                            <Grid2 sx={{xs: 12}}>
-                                <Typography variant="body1" color="textSecondary">Last week</Typography>
-                                <Grid2 sx={{xs: 12, ml: 2}}>
-                                    <ResourceSummary
-                                        resource={"ownership_requests"} title={"Accepted"}
-                                        filter={{
-                                            "workflow_status": "accepted",
-                                            "preset": "last_1_days",
-                                        }}
-                                        link={`/ownership_requests?displayedFilters={}&filter={"workflow_status"%3A"accepted"%2C"preset"%3A"last_7_days"}&order=ASC&page=1&perPage=25&sort=id`}
-                                    />
-                                    <ResourceSummary
-                                        resource={"ownership_requests"} title={"Rejected"}
-                                        filter={{
-                                            "workflow_status": "rejected",
-                                            "preset": "last_7_days"
-                                        }}
-                                        link={`/ownership_requests?displayedFilters={}&filter={"workflow_status"%3A"rejected"%2C"preset"%3A"last_7_days"}&order=ASC&page=1&perPage=25&sort=id`}
-                                    />
-                                </Grid2>
-                            </Grid2>
-                        </Grid2>
+                            <Box />
+                            <Typography variant="body1" color="textSecondary" sx={{mt: 1}}>Last week</Typography>
+                            <Box />
+
+                            <ResourceSummary
+                                resource={"ownership_requests"} title={"Accepted"}
+                                filter={{
+                                    "workflow_status": "accepted",
+                                    "preset": "last_1_days",
+                                }}
+                                link={`/ownership_requests?displayedFilters={}&filter={"workflow_status"%3A"accepted"%2C"preset"%3A"last_7_days"}&order=ASC&page=1&perPage=25&sort=id`}
+                            />
+                            <ResourceSummary
+                                resource={"ownership_requests"} title={"Rejected"}
+                                filter={{
+                                    "workflow_status": "rejected",
+                                    "preset": "last_7_days"
+                                }}
+                                link={`/ownership_requests?displayedFilters={}&filter={"workflow_status"%3A"rejected"%2C"preset"%3A"last_7_days"}&order=ASC&page=1&perPage=25&sort=id`}
+                            />
+                        </div>
+
                     </CardContent>
                 </Card>
-            </Grid2>
-            <Grid2 sx={{xs: 5}}>
+            </Box>
+            <Box sx={{ width: '50%' }}>
                 <Card>
                     <CardHeader title="Users"/>
                     <CardContent>
-                        <Grid2 container spacing={2}>
-                            <Grid2 sx={{xs: 12}}>
-                                <Grid2 sx={{xs: 12}}>
-                                    <Button component={Link}
-                                            to={{pathname: '/users', search: '?filter={"flag_edit_users":true}'}}>
-                                        Administrators
-                                    </Button>
-                                    <Button component={Link}
-                                            to={{pathname: '/users', search: '?filter={"flag_is_mod":true}'}}>
-                                        Moderators
-                                    </Button>
-                                    <Button component={Link}
-                                            to={{pathname: '/users', search: '?filter={"suspect":true}'}}>
-                                        Suspect Users
-                                    </Button>
-                                </Grid2>
-                                <Grid2 sx={{xs: 12}}>
-                                    <Button component={Link}
-                                            to={{pathname: '/users', search: '?filter={"is_non_academic":true}'}}>
-                                        Non academic emails for last 90 days
-                                    </Button>
-                                </Grid2>
-                            </Grid2>
-                        </Grid2>
+                        <Box>
+                            <Box>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"flag_edit_users":true}'}}>
+                                    Administrators
+                                </Button>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"flag_is_mod":true}'}}>
+                                    Moderators
+                                </Button>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"suspect":true}'}}>
+                                    Suspect Users
+                                </Button>
+                            </Box>
+                            <Box>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"is_non_academic":true}'}}>
+                                    Non academic emails for last 90 days
+                                </Button>
+                            </Box>
+                        </Box>
                     </CardContent>
                 </Card>
-            </Grid2>
-
-        </Grid2>
+            </Box>
+        </Box>
     );
 }

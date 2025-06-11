@@ -52,35 +52,18 @@ const presetOptions = [
     { id: 'last_28_days', name: 'Last 28 Days' },
 ];
 
-const calculatePresetDates = (preset: string) => {
-    const today = new Date();
-    switch (preset) {
-        case 'last_1_day':
-            return { startDate: addDays(today, -1), endDate: today };
-        case 'last_7_days':
-            return { startDate: addDays(today, -7), endDate: today };
-        case 'last_28_days':
-            return { startDate: addDays(today, -28), endDate: today };
-        default:
-            return { startDate: null, endDate: null };
-    }
-};
-
-
 const EndorsementRequestFilter = (props: any) => {
     const { setFilters, filterValues } = useListContext();
     const handlePresetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const { startDate, endDate } = calculatePresetDates(event.target.value);
+        const preset = event.target.value;
         setFilters({
             ...filterValues,
-            startDate: startDate ? startDate.toISOString().split('T')[0] : '',
-            endDate: endDate ? endDate.toISOString().split('T')[0] : '',
+            preset: preset,
         });
     };
 
     return (
         <Filter {...props}>
-            <BooleanInput label="Closed" source="positive" alwaysOn/>
             <SelectInput
                 label="Preset Date Range"
                 source="preset"
@@ -88,9 +71,11 @@ const EndorsementRequestFilter = (props: any) => {
                 onChange={(event) => handlePresetChange(event as React.ChangeEvent<HTMLSelectElement>)}
                 alwaysOn
             />
+            <BooleanInput label="Closed" source="positive" />
             <DateInput label="Start Date" source="start_date" />
             <DateInput label="End Date" source="end_date" />
             <BooleanInput label="Valid" source="flag_valid" defaultValue="true"/>
+            <BooleanInput label="Suspect" source="suspected" defaultValue="false"/>
 
             <TextInput label="First Name" source="endorsee_first_name" />
             <TextInput label="Last Name" source="endorsee_last_name" />
