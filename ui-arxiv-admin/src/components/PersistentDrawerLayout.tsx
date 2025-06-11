@@ -4,10 +4,11 @@ import { useSlidingPanel } from '../SlidingPanelContext';
 
 interface PersistentDrawerLayoutProps {
     children: ReactNode;
+    panel?: React.ReactNode;
 }
 
 
-export const PersistentDrawerLayout: React.FC<PersistentDrawerLayoutProps> = ({ children }) => {
+export const PersistentDrawerLayout: React.FC<PersistentDrawerLayoutProps> = ({ children, panel }) => {
     const { isPanelOpen } = useSlidingPanel();
 
     return (
@@ -24,11 +25,12 @@ export const PersistentDrawerLayout: React.FC<PersistentDrawerLayoutProps> = ({ 
                     flexGrow: 1,
                     transition: 'margin 0.3s ease',
                     marginRight: isPanelOpen ? '320px' : '0px', // Push content left when drawer opens
-                    width: isPanelOpen ? 'calc(100% - 320px)' : '100%',
+                    width: isPanelOpen ? 'calc(100vw - 320px)' : '100%',
                     overflow: 'hidden', // Prevent horizontal scroll
                 }}
             >
                 {children}
+                {panel}
             </Box>
         </Box>
     );

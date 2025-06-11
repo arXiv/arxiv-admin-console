@@ -189,35 +189,6 @@ export const Dashboard = () => {
                     </CardContent>
                 </Card>
             </Box>
-            <Box sx={{ width: '50%' }}>
-                <Card>
-                    <CardHeader title="Users"/>
-                    <CardContent>
-                        <Box>
-                            <Box>
-                                <Button component={Link}
-                                        to={{pathname: '/users', search: '?filter={"flag_edit_users":true}'}}>
-                                    Administrators
-                                </Button>
-                                <Button component={Link}
-                                        to={{pathname: '/users', search: '?filter={"flag_is_mod":true}'}}>
-                                    Moderators
-                                </Button>
-                                <Button component={Link}
-                                        to={{pathname: '/users', search: '?filter={"suspect":true}'}}>
-                                    Suspect Users
-                                </Button>
-                            </Box>
-                            <Box>
-                                <Button component={Link}
-                                        to={{pathname: '/users', search: '?filter={"is_non_academic":true}'}}>
-                                    Non academic emails for last 90 days
-                                </Button>
-                            </Box>
-                        </Box>
-                    </CardContent>
-                </Card>
-            </Box>
         </Box>
     );
 }

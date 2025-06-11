@@ -21,6 +21,7 @@ import {
     Info as InfoIcon,
     Launch as LaunchIcon,
     Check as CheckIcon,
+    QuestionMark as SuspectIcon,
 } from '@mui/icons-material';
 import { useSlidingPanel } from '../SlidingPanelContext';
 import {RuntimeContext} from "../RuntimeContext";
@@ -34,8 +35,11 @@ interface LinkItem {
     action?: string; // For special actions like opening devtools
 }
 
+interface LinkPanelProps {
+    onNavigate: (path: string) => void;
+}
 
-export const SlidingPanel: React.FC = () => {
+export const LinkPanel: React.FC<LinkPanelProps> = ({ onNavigate }) => {
     const { isPanelOpen, closePanel } = useSlidingPanel();
     const runtimeProps = useContext(RuntimeContext);
 
@@ -50,41 +54,60 @@ export const SlidingPanel: React.FC = () => {
         },
         {
             title: 'Dashboard',
-            url: '/admin-console/#/',
+            url: '/',
             icon: <DashboardIcon />,
             description: 'Admin dashboard'
         },
         {
             title: 'Jira',
-            url: 'https://your-docs-url.com',
+            url: 'https://arxiv-org.atlassian.net/jira/servicedesk/projects/AH/issues',
             icon: <HelpIcon />,
-            description: 'System documentation',
+            description: 'Jira Service Desk',
             external: true
         },
         {
-            title: 'Settings',
-            url: '/#/settings',
-            icon: <SettingsIcon />,
-            description: 'Application settings'
+            title: 'Suspect',
+            url: '/users?displayedFilters=%7B%22suspect%22%3Atrue%7D&filter=%7B%22suspect%22%3Atrue%7D&order=ASC&page=1&perPage=10&sort=id',
+            icon: <SuspectIcon />,
+            description: 'Suspected Users',
         },
-        {
-            title: 'Support',
-            url: 'https://your-support-url.com',
-            icon: <InfoIcon />,
-            description: 'Get help and support',
-            external: true
-        }
-    ];
 
+    ];
+/*
+
+                            <Box>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"flag_edit_users":true}'}}>
+                                    Administrators
+                                </Button>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"flag_is_mod":true}'}}>
+                                    Moderators
+                                </Button>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"suspect":true}'}}>
+                                    Suspect Users
+                                </Button>
+                            </Box>
+                            <Box>
+                                <Button component={Link}
+                                        to={{pathname: '/users', search: '?filter={"is_non_academic":true}'}}>
+                                    Non academic emails for last 90 days
+                                </Button>
+                            </Box>
+                        </Box>
+                    </CardContent>
+                </Card>
+            </Box>
+
+ */
 
     const handleLinkClick = (item: LinkItem) => {
         if (item.external) {
             window.open(item.url, '_blank', 'noopener,noreferrer');
         } else {
-            window.location.href = item.url;
+            onNavigate(item.url);
         }
-        // Don't close panel for persistent drawer
-        // closePanel();
     };
 
     return (
@@ -104,7 +127,7 @@ export const SlidingPanel: React.FC = () => {
                         top: 64, // Standard React Admin appbar height
                         height: 'calc(100vh - 64px)', // Full height minus appbar
                         borderLeft: '1px solid rgba(0, 0, 0, 0.12)', // Add border for separation
-                        zIndex: 1050, // Below appbar but above content
+                        // zIndex: 1050, // Below appbar but above content
                     },
                 }}
             >
@@ -148,9 +171,9 @@ export const SlidingPanel: React.FC = () => {
                         position: 'fixed',
                         top: 64,
                         left: 0,
-                        right: 320, // Width of the drawer
+                        right: "320px", // Width of the drawer
                         bottom: 0,
-                        zIndex: 1000,
+                        // zIndex: 1000,
                         pointerEvents: 'none', // Allow clicks to pass through
                     }}
                 />
