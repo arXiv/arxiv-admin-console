@@ -84,7 +84,7 @@ async def list_endorsements(
             query = query.filter(Endorsement.request_id == request_id)
 
         if preset is not None:
-            matched = re.search(r"last_(\d+)_days", preset)
+            matched = re.search(r"last_(\d+)_day", preset)
             if matched:
                 t_begin = datetime_to_epoch(None, t0 - timedelta(days=int(matched.group(1))))
                 t_end = datetime_to_epoch(None, t0)

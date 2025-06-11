@@ -7,10 +7,11 @@ import Button from '@mui/material/Button';
 import {useDataProvider} from "react-admin";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import { BoxProps } from '@mui/material/Box';
 
 // import { useNavigate } from 'react-router-dom';
 
-interface SummaryProps {
+interface SummaryProps extends Omit<BoxProps, 'title'> {
     resource: string;
     title: string;
     filter: object; // { preset: dateRange, _start: null, _end: null }
@@ -18,7 +19,14 @@ interface SummaryProps {
 }
 
 
-const ResourceSummary: React.FC<SummaryProps> = ({resource, title, filter, link}) => {
+const ResourceSummary: React.FC<SummaryProps> = ({
+    resource,
+    title,
+    filter,
+    link,
+    sx,
+    ...boxProps // rest of Box props
+}) => {
     const [count, setCount] = useState<number | string>('Loading...');
     const dataProvider = useDataProvider();
 
@@ -39,17 +47,24 @@ const ResourceSummary: React.FC<SummaryProps> = ({resource, title, filter, link}
     }, [filter, dataProvider, resource]);
 
     return (
-        <Box sx={{flexGrow: 1, flex: 1}} >
+        <Box 
+            sx={{ 
+                flexGrow: 1, 
+                flex: 1,
+                ...sx 
+            }}
+            {...boxProps}
+        >
             <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'center' }}>
-            <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1">{title}</Typography>
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle1">{title}</Typography>
+                </Box>
+                <Box sx={{ width: "5em" }}>
+                    <Link to={link} style={{textDecoration: 'none'}}>
+                        <Typography variant="h6">{count}</Typography>
+                    </Link>
+                </Box>
             </Box>
-            <Box sx={{ width: "5em" }}>
-                <Link to={link} style={{textDecoration: 'none'}}>
-                    <Typography variant="h6">{count}</Typography>
-                </Link>
-            </Box>
-        </Box>
         </Box>
     );
 };
@@ -80,10 +95,10 @@ export const Dashboard = () => {
                     <CardContent sx={{ ml: 2 }}>
                         <ResourceDateRangeSummary
                             resource={"endorsement_requests"} days={1} title={"Today"}
-                            link={`/endorsement_requests?displayedFilters={}&filter={"positive"%3Afalse%2C"preset"%3A"1"}&order=DESC&page=1&perPage=25`}/>
+                            link={`/endorsement_requests?displayedFilters={}&filter={"positive"%3Afalse%2C"preset"%3A"last_1_day"}&order=DESC&page=1&perPage=25`}/>
                         <ResourceDateRangeSummary
                             resource={"endorsement_requests"} days={7} title={"Last 7 days"}
-                            link={`/endorsement_requests?displayedFilters={}&filter={"positive"%3Afalse%2C"preset"%3A"7"}&order=DESC&page=1&perPage=25`}/>
+                            link={`/endorsement_requests?displayedFilters={}&filter={"positive"%3Afalse%2C"preset"%3A"last_7_days"}&order=DESC&page=1&perPage=25`}/>
                     </CardContent>
                 </Card>
 
@@ -100,7 +115,7 @@ export const Dashboard = () => {
                                 resource={"endorsements"}
                                 title={"Negative"}
                                 filter={{positive_endorsement: false}}
-                                link={`/endorsements?displayedFilters={}&filter={"positive_endorsement"%3Afalse}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters={}&filter={"positive_endorsement"%3Afalse}&order=DESC&page=1&perPage=10`}
                             />
 
                             <Box />
@@ -109,28 +124,28 @@ export const Dashboard = () => {
                                 resource={"endorsements"}
                                 title={"Today"}
                                 filter={{preset: "last_1_days"}}
-                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_1_days"}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_1_day"}&order=DESC&page=1&perPage=10`}
                             />
 
                             <ResourceSummary
                                 resource={"endorsements"}
                                 title={"Flagged Today"}
                                 filter={{preset: "last_1_days", by_suspect: true}}
-                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_1_days"%2C"by_suspect"%3Atrue}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters=%7B%22by_suspct%22%3Atrue%7D&filter=%7B%22preset%22%3A%22last_1_day%22%2C%22by_suspct%22%3Atrue%7D&order=ASC&page=1&perPage=10&sort=id`}
                             />
 
                             <ResourceSummary
                                 resource={"endorsements"}
                                 title={"Last 7 days"}
                                 filter={{preset: "last_7_days"}}
-                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_7_days"}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters=%5B%5D&filter=%7B"preset"%3A"last_7_days"%7D&order=ASC&page=1&perPage=10&sort=id`}
                             />
 
                             <ResourceSummary
                                 resource={"endorsements"}
                                 title={"Flagged (7 days)"}
                                 filter={{preset: "last_7_days", by_suspect: true}}
-                                link={`/endorsements?displayedFilters={}&filter={"preset"%3A"last_7_days"%2C"by_suspect"%3Atrue}&order=DESC&page=1&perPage=2`}
+                                link={`/endorsements?displayedFilters=%7B"by_suspct"%3Atrue%7D&filter=%7B"preset"%3A"last_7_days"%2C"by_suspct"%3Atrue%7D&order=ASC&page=1&perPage=10&sort=id`}
                             />
                         </div>
                     </CardContent>
