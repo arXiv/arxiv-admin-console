@@ -22,9 +22,11 @@ import {
     Launch as LaunchIcon,
     Check as CheckIcon,
     QuestionMark as SuspectIcon,
+    StopCircle as OnHoldIcon
 } from '@mui/icons-material';
 import { useSlidingPanel } from '../SlidingPanelContext';
 import {RuntimeContext} from "../RuntimeContext";
+import OwnershipRequestIcon from "@mui/icons-material/Star";
 
 interface LinkItem {
     title: string;
@@ -66,12 +68,24 @@ export const LinkPanel: React.FC<LinkPanelProps> = ({ onNavigate }) => {
             external: true
         },
         {
+            title: 'Oh Hold',
+            url: '/submissions?displayedFilters=%5B%5D&filter=%7B%22submission_status%22%3A%5B2%5D%7D&order=ASC&page=1&perPage=10&sort=id',
+            icon: <OnHoldIcon />,
+            description: 'On Hold Submissions',
+        },
+        {
             title: 'Suspect',
             url: '/users?displayedFilters=%7B%22suspect%22%3Atrue%7D&filter=%7B%22suspect%22%3Atrue%7D&order=ASC&page=1&perPage=10&sort=id',
             icon: <SuspectIcon />,
             description: 'Suspected Users',
         },
 
+        {
+            title: 'Ownership Requests',
+            url: '/ownership_requests?displayedFilters={}&filter={%22workflow_status%22%3A%22pending%22}&order=ASC&page=1&perPage=25&sort=id',
+            icon: <OwnershipRequestIcon />,
+            description: 'Pending Ownership Requests',
+        },
     ];
 /*
 

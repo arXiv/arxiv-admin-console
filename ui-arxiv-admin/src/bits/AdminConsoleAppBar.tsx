@@ -24,7 +24,10 @@ export const AdminConsoleAppBar = () => {
         const searchTerm = userSearch.trim().replace(/\s+/g, ' '); // Remove extra spaces/tabs
 
         if (e.key === 'Enter' && searchTerm) {
-            if (searchTerm.includes('@')) {
+            if (searchTerm.endsWith('@')) {
+                criteria = {username: searchTerm.substring(0, searchTerm.length - 1)}
+            }
+            else if (searchTerm.includes('@')) {
                 criteria = {email: searchTerm}
             }
             else {
