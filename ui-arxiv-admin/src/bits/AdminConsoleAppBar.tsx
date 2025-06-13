@@ -110,7 +110,7 @@ export const AdminConsoleAppBar = () => {
                         onChange={(e) => setUserSearch(e.target.value)}
                         onKeyDown={handleUserSearch}
                         helperText={null}
-                        sx={{maxWidth: "300px", mr: 1}}
+                        sx={{maxWidth: "200px", mr: 1}}
                     />
 
                     <TextField
@@ -121,7 +121,7 @@ export const AdminConsoleAppBar = () => {
                         onChange={(e) => setDocSearch(e.target.value)}
                         helperText={null}
                         onKeyDown={handleDocSearch}
-                        sx={{maxWidth: "300px"}}
+                        sx={{maxWidth: "200px"}}
                     />
 
             </Toolbar>
