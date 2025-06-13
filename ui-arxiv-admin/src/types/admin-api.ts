@@ -760,6 +760,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ownership_requests/navigate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Navigate */
+        get: operations["navigate_v1_ownership_requests_navigate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ownership_requests/{request_id}/documents/": {
         parameters: {
             query?: never;
@@ -1830,6 +1847,8 @@ export interface components {
             /** Request Acceptable */
             request_acceptable: boolean;
             endorser_capability: components["schemas"]["EndorserCapabilityType"];
+            /** Endorser N Papers */
+            endorser_n_papers?: number | null;
             /** Reason */
             reason: string;
             endorsement_request: components["schemas"]["EndorsementRequestModel"];
@@ -2069,6 +2088,69 @@ export interface components {
             /** Document Ids */
             document_ids?: number[] | null;
             /** Paper Ids */
+            paper_ids?: string[] | null;
+        };
+        /** OwnershipRequestNavi */
+        OwnershipRequestNavi: {
+            /** First Request Id */
+            first_request_id: number | null;
+            /** Prev Request Ids */
+            prev_request_ids: number[];
+            /** Next Request Ids */
+            next_request_ids: number[];
+            /** Last Request Id */
+            last_request_id: number | null;
+        };
+        /**
+         * OwnershipRequestSubmit
+         * @example {
+         *       "document_ids": [
+         *         2123367,
+         *         2123675,
+         *         2125897,
+         *         2130529,
+         *         2134610,
+         *         2612674,
+         *         2618378
+         *       ],
+         *       "paper_ids": [
+         *         "2208.04373",
+         *         "2208.04681",
+         *         "2208.06903",
+         *         "2208.11535",
+         *         "2209.00613"
+         *       ],
+         *       "selected_documents": [
+         *         2125897,
+         *         2123675,
+         *         2130529
+         *       ],
+         *       "user_id": 1129053,
+         *       "workflow_status": "accepted"
+         *     }
+         */
+        OwnershipRequestSubmit: {
+            /**
+             * User Id
+             * @description The ID of the user associated with the ownership request.
+             */
+            user_id: number;
+            /** @description The status of the workflow ('pending', 'accepted', 'rejected'). */
+            workflow_status: components["schemas"]["WorkflowStatus"];
+            /**
+             * Document Ids
+             * @description List of IDs of the documents involved in the ownership request.
+             */
+            document_ids: number[];
+            /**
+             * Selected Documents
+             * @description Optional list of document IDs that were selected for approval.
+             */
+            selected_documents?: number[] | null;
+            /**
+             * Paper Ids
+             * @description Optional list of paper IDs associated with the ownership request.
+             */
             paper_ids?: string[] | null;
         };
         /** OwnershipRequestsAuditModel */
@@ -3569,6 +3651,8 @@ export interface operations {
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
                 endorser_id?: number | null;
+                by_suspect?: boolean | null;
+                positive_endorsement?: boolean | null;
                 /** @description List of user IDs to filter by */
                 id?: number[] | null;
                 request_id?: number | null;
@@ -4531,7 +4615,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnershipRequestSubmit"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4540,6 +4628,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnershipRequestModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    navigate_v1_ownership_requests_navigate_get: {
+        parameters: {
+            query: {
+                id: number;
+                /** @description Workflow status */
+                workflow?: components["schemas"]["WorkflowStatus"] | null;
+                /** @description Number of prev/next IDs */
+                count?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipRequestNavi"];
                 };
             };
             /** @description Validation Error */

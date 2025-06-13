@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useContext} from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -39,18 +39,16 @@ import {
     ReferenceInput,
     Create,
     Filter,
-    BooleanInput,
     DateInput,
     SelectInput,
     useListContext,
     ReferenceField,
     Show,
-    useGetOne, RadioButtonGroupInput,
-    RecordContextProvider,
+    useGetOne,
     ReferenceArrayField,
     useGetList,
     UseListOptions,
-    SaveButton, useSaveContext,
+    SaveButton, useSaveContext, useEditContext,
 } from 'react-admin';
 
 
@@ -65,6 +63,8 @@ import { useFormContext } from 'react-hook-form';
 
 import {paths as adminApi} from "../types/admin-api";
 import HighlightText from "../bits/HighlightText";
+import {RuntimeContext} from "../RuntimeContext";
+
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
 // type OwnershipRequestsRequest = adminApi['/v1/ownership_requests/']['post']['requestBody']['content']['application/json'];
 // type OwnershipRequestsList = adminApi['/v1/ownership_requests/']['get']['responses']['200']['content']['application/json'];
@@ -72,6 +72,7 @@ type OwnershipRequestType = adminApi['/v1/ownership_requests/{id}']['get']['resp
 type PaperOwnerType = adminApi['/v1/paper_owners/{id}']['get']['responses']['200']['content']['application/json'];
 type DocumentType = adminApi['/v1/documents/{id}']['get']['responses']['200']['content']['application/json'];
 type DocumentIdType = DocumentType['id'];
+type OwnershipRequestNavi = adminApi['/v1/ownership_requests/navigate']['get']['responses']['200']['content']['application/json'];
 
 type WorkflowStatusType = 'pending' | 'accepted' | 'rejected';
 
@@ -91,13 +92,13 @@ const calculatePresetDates = (preset: string) => {
     const today = new Date();
     switch (preset) {
         case 'last_1_day':
-            return { startDate: addDays(today, -1), endDate: today };
+            return { preset: preset };
         case 'last_7_days':
-            return { startDate: addDays(today, -7), endDate: today };
+            return { preset: preset };
         case 'last_28_days':
-            return { startDate: addDays(today, -28), endDate: today };
+            return { preset: preset };
         default:
-            return { startDate: null, endDate: null };
+            return { startDate: null, endDate: null, preset: null};
     }
 };
 
@@ -106,20 +107,18 @@ const OwnershipRequestFilter = (props: any) => {
     const { setFilters, filterValues } = useListContext();
 
     const handleWorkflowStatusChoice = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const { startDate, endDate } = calculatePresetDates(event.target.value);
+        const value = event.target.value;
         setFilters({
             ...filterValues,
-            startDate: startDate ? startDate.toISOString().split('T')[0] : '',
-            endDate: endDate ? endDate.toISOString().split('T')[0] : '',
+            workflow_status: value,
         });
     };
 
     const handlePresetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const { startDate, endDate } = calculatePresetDates(event.target.value);
+        const preset = calculatePresetDates(event.target.value);
         setFilters({
             ...filterValues,
-            startDate: startDate ? startDate.toISOString().split('T')[0] : '',
-            endDate: endDate ? endDate.toISOString().split('T')[0] : '',
+            preset: preset,
         });
     };
 
@@ -422,18 +421,23 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
     );
 };
 
-const OwnershipRequestSaveButton = ({ disabled }: { disabled: boolean }) => {
+const OwnershipRequestSaveButton = ({ disabled, nextId }: { disabled: boolean, nextId: number | null }) => {
     const { save, saving } = useSaveContext();
     const { handleSubmit } = useFormContext();
+    const navigate = useNavigate();
 
-    const onSubmit = handleSubmit((values) => {
+    const onSubmit = handleSubmit(async (values) => {
         if (save) {
-            save(values); // safe and validated
+            await save(values);
+            if (nextId) {
+                navigate(`/ownership_requests/${nextId}`);
+            }
         }
     });
 
     return (
         <Button
+            data-testid="ownership-request-save-button"
             onClick={onSubmit}
             disabled={disabled || saving}
             startIcon={<SaveIcon />}
@@ -446,14 +450,52 @@ const OwnershipRequestSaveButton = ({ disabled }: { disabled: boolean }) => {
 
 const OwnershipRequestToolbar = ({ prevId, nextId, ok }: { prevId: number | null; nextId: number | null; ok:boolean }) => {
     const navigate = useNavigate();
+    
+    useEffect(() => {
+
+        const handleKeyPress = (event: KeyboardEvent) => {
+            // Save on Enter
+            if (event.key === 'Enter' && !event.ctrlKey && !event.shiftKey) {
+                const saveButton = document.querySelector('[data-testid="ownership-request-save-button"]');
+                if (saveButton instanceof HTMLElement) {
+                    saveButton.click();
+                }
+            }
+            
+            // Previous with Ctrl+Left
+            if (event.ctrlKey && event.key === 'ArrowLeft') {
+                const prevButton = document.querySelector('[data-testid="ownership-request-prev-button"]');
+                if (prevButton instanceof HTMLElement) {
+                    prevButton.click();
+                }
+            }
+            
+            // Next with Ctrl+Right
+            if (event.ctrlKey && event.key === 'ArrowRight') {
+                const nextButton = document.querySelector('[data-testid="ownership-request-next-button"]');
+                if (nextButton instanceof HTMLElement) {
+                    nextButton.click();
+                }
+            }
+        };
+
+        // Add event listener
+        document.addEventListener('keydown', handleKeyPress);
+
+        // Cleanup
+        return () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
+    }, []);
 
     return (
         <Toolbar>
             {/* Default Save button */}
-            <OwnershipRequestSaveButton disabled={!ok}  />
+            <OwnershipRequestSaveButton disabled={!ok} nextId={nextId} />
             {/* Navigation buttons */}
             <Stack direction="row" spacing={1} sx={{ ml: 2 }}>
                 <Button
+                    data-testid="ownership-request-prev-button"
                     variant="outlined"
                     startIcon={<ArrowBackIcon />}
                     onClick={() => navigate(`/ownership_requests/${prevId}`)}
@@ -462,6 +504,7 @@ const OwnershipRequestToolbar = ({ prevId, nextId, ok }: { prevId: number | null
                     {prevId ?? ''}
                 </Button>
                 <Button
+                    data-testid="ownership-request-next-button"
                     variant="outlined"
                     endIcon={<ArrowForwardIcon />}
                     onClick={() => navigate(`/ownership_requests/${nextId}`)}
@@ -508,6 +551,7 @@ const WorkflowStatusSelection = (
 
 
 const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { id: string, nameFragments: string[], ownershipRequest: OwnershipRequestType }) => {
+    const runtimeProps = useContext(RuntimeContext);
     const dataProvider = useDataProvider();
     const [workflowStatus, setWorkflowStatus] = useState<'pending' | 'accepted' | 'rejected'>('pending'); // State to hold workflow_status
 /*
@@ -517,16 +561,21 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
 
  */
 
+
+    const [documents, setDocuments] = useState<DocumentType[]>([]);
+    const [selectedDocuments, setSelectedDocuments] = useState<DocumentIdType[]>([]);
+    const [isMentioned, setIsMentioned] = useState<boolean>(false);
+
+/*
     const [listOptions, setListOptions] = useState<UseListOptions>(
         {
             filter: {workflow_status: "pending", current_id: id},
         }
     );
-
-    const [documents, setDocuments] = useState<DocumentType[]>([]);
-    const [selectedDocuments, setSelectedDocuments] = useState<DocumentIdType[]>([]);
-
     const {data, isLoading } = useGetList<OwnershipRequestType>("ownership_requests", listOptions);
+
+ */
+    const [navigation, setNavigation] = useState<OwnershipRequestNavi | null>(null);
 
     useEffect(() => {
         const fetchDocuments = async () => {
@@ -544,6 +593,16 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
 
                 /* setSelectedDocuments([]); */
                 setDocuments(successfulDocuments);
+                if (nameFragments.length > 0) {
+                    const mentioned = successfulDocuments.filter(doc =>
+                        nameFragments.filter((nf) => doc.authors?.includes(nf)).length > 0
+                    );
+                    if (mentioned.length > 0) {
+                        setSelectedDocuments(mentioned.map(doc => doc.id));
+                        setIsMentioned(true);
+                        setWorkflowStatus("accepted");
+                    }
+                }
             }
         };
         fetchDocuments();
@@ -591,7 +650,12 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
 
     useEffect(() => {
         const validDocs = paperOwners.filter((paperOwner: PaperOwnerType) => paperOwner.valid);
-        setSelectedDocuments(validDocs.map((doc) => doc.document_id));
+        const mergedSelection = [...new Set([
+            ...validDocs.map((doc) => doc.document_id),
+            ...selectedDocuments
+        ])];
+
+        setSelectedDocuments(mergedSelection);
     }, [paperOwners]);
 
     const selectionChanged = (newSelection: DocumentIdType[]) => {
@@ -612,6 +676,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
         setWorkflowStatus("rejected");
     }
 
+/*
     if (isLoading || !data) return (
         <div>
             <Typography>Getting Ownership Request</Typography>
@@ -619,16 +684,39 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
         </div>
     );
 
-    const ids = data.map(record => record.id);
-    const currentIndex = ids.indexOf(Number(id));
-    const prevId = currentIndex > 0 ? ids[currentIndex - 1] : null;
-    const nextId = currentIndex < ids.length - 1 ? ids[currentIndex + 1] : null;
+ */
 
-    const ok_to_save = workflowStatus === 'rejected' || (workflowStatus === 'accepted' && selectedDocuments.length > 0);
+    useEffect(() => {
+        async function fetchNavigation() {
+            if (id) {
+                try {
+                    const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + `/ownership_requests/navigate?id=${id}`);
+                    if (response.ok) {
+                        const navi: OwnershipRequestNavi = await response.json();
+                        setNavigation(navi);
+                        console.log("navi: " + JSON.stringify(navi))
+                    }
+                }
+                catch (error) {
+                    console.log(error);
+                }
+            }
+        }
+
+        fetchNavigation();
+    }, [id]);
+
+
+    // const ids = data.map(record => record.id);
+
+    const prevId = navigation?.prev_request_ids ? navigation?.prev_request_ids[0] : null;
+    const nextId = navigation?.next_request_ids ? navigation?.next_request_ids[0] : null;
+
+    const ok_to_save = workflowStatus === 'rejected' || (workflowStatus === 'accepted' && selectedDocuments.length > 0) || isMentioned;
 
     return (
         <Edit title={<OwnershipRequestTitle />} redirect={false}>
-            <SimpleForm toolbar={<OwnershipRequestToolbar prevId={prevId} nextId={nextId} ok={ok_to_save} />}
+            <SimpleForm toolbar={<OwnershipRequestToolbar prevId={prevId} nextId={nextId} ok={ok_to_save}/>}
 
             >
                 <Card >
@@ -712,7 +800,7 @@ export const OwnershipRequestCreate = () => (
 
 
 export const OwnershipRequestShow = () => {
-    const record = useRecordContext();
+    // const record = useRecordContext();
     return (
         <Show>
         <Card>

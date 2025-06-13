@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.orm import Session
 from sqlalchemy import insert, Row, and_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from arxiv.base import logging
 from arxiv.db.models import OwnershipRequest, t_arXiv_ownership_requests_papers, PaperOwner, OwnershipRequestsAudit, \
@@ -58,7 +58,7 @@ class OwnershipRequestModel(BaseModel):
             OwnershipRequest.workflow_status)
 
     @classmethod
-    def base_query(cls, session: Session) -> Query:
+    def base_query_with_audit(cls, session: Session) -> Query:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
@@ -66,15 +66,29 @@ class OwnershipRequestModel(BaseModel):
             OwnershipRequest.workflow_status,
             OwnershipRequestsAudit.date
             ).join(
-                OwnershipRequestsAudit, OwnershipRequest.request_id == OwnershipRequestsAudit.request_id
+                OwnershipRequestsAudit,
+                OwnershipRequest.request_id == OwnershipRequestsAudit.request_id,
+                isouter=True
             )
 
 
     @classmethod
-    def to_model(cls, record: Row, session: Session) -> OwnershipRequestModel:
-        data: OwnershipRequestModel = cls.model_validate(record)
-        populate_document_ids(data, record, session)
-        return data
+    def to_model(cls, record: Row | OwnershipRequest, session: Session) -> OwnershipRequestModel:
+        if isinstance(record, Row):
+            data = record._asdict()
+        elif isinstance(record, OwnershipRequest):
+            data = record.__dict__.copy()
+            data["id"] = data["request_id"]
+            del data["request_id"]
+            audit = session.query(OwnershipRequestsAudit.date).filter(OwnershipRequestsAudit.request_id == data["id"]).one_or_none()
+            if audit:
+                data["date"] = audit.date
+        else:
+            raise TypeError(f"Unsupported record type: {type(record)}")
+
+        validated_data: OwnershipRequestModel = cls.model_validate(data)
+        populate_document_ids(validated_data, session)
+        return validated_data
 
 
 class CreateOwnershipRequestModel(BaseModel):
@@ -114,7 +128,37 @@ class PaperOwnershipDecisionModel(BaseModel):
     accepted_document_ids: List[int]
 
 
-def populate_document_ids(data: OwnershipRequestModel, record: Row, session: Session):
+class OwnershipRequestSubmit(BaseModel):
+    user_id: int = Field(..., description="The ID of the user associated with the ownership request.")
+    workflow_status: WorkflowStatus = Field(..., description="The status of the workflow ('pending', 'accepted', 'rejected').")
+    document_ids: List[int] = Field(..., description="List of IDs of the documents involved in the ownership request.")
+    selected_documents: Optional[List[int]] = Field(
+        None, description="Optional list of document IDs that were selected for approval."
+    )
+    paper_ids: Optional[List[str]] = Field(
+        None, description="Optional list of paper IDs associated with the ownership request."
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": 1129053,
+                "workflow_status": "accepted",
+                "document_ids": [2123367, 2123675, 2125897, 2130529, 2134610, 2612674, 2618378],
+                "selected_documents": [2125897, 2123675, 2130529],
+                "paper_ids": ["2208.04373", "2208.04681", "2208.06903", "2208.11535", "2209.00613"]
+            }
+        }
+
+
+class OwnershipRequestNavi(BaseModel):
+    first_request_id: Optional[int]
+    prev_request_ids: List[int]
+    next_request_ids: List[int]
+    last_request_id: Optional[int]
+
+
+def populate_document_ids(data: OwnershipRequestModel, session: Session):
     data.document_ids = [
         requested.document_id for requested in session.query(
             t_arXiv_ownership_requests_papers.c.document_id
@@ -144,7 +188,7 @@ def list_ownership_requests(
         session: Session = Depends(get_db),
         current_user: ArxivUserClaims = Depends(get_current_user),
     ) -> List[OwnershipRequestModel]:
-    query = OwnershipRequestModel.base_query(session)
+    query = OwnershipRequestModel.base_query_with_audit(session)
     order_columns = []
 
     if id is not None:
@@ -254,13 +298,51 @@ async def get_ownership_request(
         current_user: ArxivUserClaims = Depends(get_current_user),
         session: Session = Depends(get_db),
     ) ->OwnershipRequestModel:
-    query = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == id)
+    query = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == id)
     if not current_user.is_admin:
         query = query.filter(OwnershipRequest.user_id == current_user.user_id)
     oreq = query.one_or_none()
     if oreq is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return OwnershipRequestModel.to_model(oreq, session)
+
+
+@router.get("/navigate")
+async def navigate(
+        id: int,
+        workflow: Optional[WorkflowStatus] = Query(default="pending", description="Workflow status" ),
+        count: Optional[int] = Query(default=2, description="Number of prev/next IDs" ),
+        session: Session = Depends(get_db),
+    ) -> OwnershipRequestNavi:
+    if workflow is None:
+        workflow = WorkflowStatus.pending.value
+
+    first_pending = session.query(OwnershipRequest) \
+        .filter(OwnershipRequest.workflow_status == workflow) \
+        .order_by(OwnershipRequest.request_id.asc()) \
+        .first()
+
+    last_pending = session.query(OwnershipRequest) \
+        .filter(OwnershipRequest.workflow_status == workflow) \
+        .order_by(OwnershipRequest.request_id.desc()) \
+        .first()
+
+    next_pending = session.query(OwnershipRequest) \
+        .filter(and_(OwnershipRequest.request_id > id, OwnershipRequest.workflow_status == workflow)) \
+        .order_by(OwnershipRequest.request_id.asc()) \
+        .limit(count).all()
+
+    prev_pending = session.query(OwnershipRequest) \
+        .filter(and_(OwnershipRequest.request_id < id, OwnershipRequest.workflow_status == workflow)) \
+        .order_by(OwnershipRequest.request_id.desc()) \
+        .limit(count).all()
+
+    return OwnershipRequestNavi(
+        first_request_id=first_pending.request_id if first_pending else None,
+        last_request_id=last_pending.request_id if last_pending else None,
+        next_request_ids=[req0.request_id for req0 in next_pending],
+        prev_request_ids=[req1.request_id for req1 in reversed(prev_pending)],
+    )
 
 
 
@@ -346,7 +428,7 @@ async def create_ownership_request(
         session.execute(stmt)
 
     session.flush()
-    refreshed_req = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == req.request_id).one_or_none()
+    refreshed_req = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == req.request_id).one_or_none()
     if refreshed_req is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unexpected error")
     session.commit()
@@ -357,6 +439,7 @@ async def create_ownership_request(
 async def update_ownership_request(
         id: int,
         request: Request,
+        payload: OwnershipRequestSubmit,
         current_user: ArxivUserClaims = Depends(get_current_user),
         current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         remote_addr: str = Depends(get_client_host),
@@ -463,16 +546,16 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update ownership requests.")
 
     req_id = id
-    body = await request.json()
-    workflow_status = body.get("workflow_status")
+    # body = await request.json()
+    workflow_status = payload.workflow_status
     if workflow_status is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is required.")
 
-    document_ids = body.get("document_ids")
+    document_ids = payload.document_ids
     if document_ids is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document ids is required.")
 
-    ownership_request = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id==req_id).one_or_none()
+    ownership_request: OwnershipRequest | None = session.query(OwnershipRequest).filter(OwnershipRequest.request_id == req_id).one_or_none()
     if ownership_request is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Ownership request id %s does not exist." % req_id)
@@ -491,7 +574,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         logger.warning(f"Docs don't exist - {non_existing_documents!r}")
         document_ids = existing_documents
 
-    user_id = body.get("user_id")
+    user_id = payload.user_id
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User id is required.")
 
@@ -502,7 +585,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
 
     # Accepted
 
-    accepted_documents = body.get("selected_documents")
+    accepted_documents = payload.selected_documents
 
     if not accepted_documents:
         #       if($approved_count==0) {
@@ -553,6 +636,8 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     owners_record = {ownership_combo_key(existing_record.user_id, existing_record.document_id): existing_record for existing_record in existing_records}
     requester = UserModel.one_user(session, user_id)
     date = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
+
+    ownership_request.workflow_status = workflow_status
 
     try:
         for document_id, judgement in judgements.items():
@@ -613,7 +698,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
             audit.date = date
 
         session.commit()
-        return OwnershipRequestModel.to_model(OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == req_id).one(), session)
+        return OwnershipRequestModel.to_model(OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == req_id).one(), session)
 
     except IntegrityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The database operation failed due to integrity error. " + str(exc)) from exc
@@ -633,7 +718,7 @@ async def create_paper_ownership_decision(
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-    ownership_request = OwnershipRequestModel.base_query(session).filter(OwnershipRequest.request_id == request_id).one_or_none()
+    ownership_request = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == request_id).one_or_none()
 
     if ownership_request is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ownership request not found")
