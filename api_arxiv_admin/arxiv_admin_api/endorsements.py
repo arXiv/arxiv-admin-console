@@ -4,6 +4,7 @@ from typing import Optional, List
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
 # from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
@@ -17,7 +18,7 @@ from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, get_client
     get_tracking_cookie, get_client_host_name, is_any_user, get_tapir_session
 from .biz.endorsement_biz import EndorsementBusiness
 from .biz.endorsement_io import EndorsementDBAccessor
-from .endorsement_requsets import EndorsementRequestModel
+from .endorsement_requests import EndorsementRequestModel
 from .helpers.user_session import TapirSessionData
 from .public_users import PublicUserModel
 from .user import UserModel
@@ -46,7 +47,7 @@ async def list_endorsements(
         positive_endorsement: Optional[bool] = Query(None),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         request_id: Optional[int] = Query(None),
-        current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
+        current_user: Optional[ArxivUserClaims] = Depends(get_authn),
         db: Session = Depends(get_db)
     ) -> List[EndorsementModel]:
     query = EndorsementModel.base_select(db)
@@ -133,7 +134,7 @@ async def list_endorsements(
 
 @router.get('/{id:int}')
 async def get_endorsement(id: int,
-                          current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
+                          current_user: Optional[ArxivUserClaims] = Depends(get_authn),
                           db: Session = Depends(get_db)) -> EndorsementModel:
     item = EndorsementModel.base_select(db).filter(Endorsement.endorsement_id == id).all()
     if item:
@@ -145,7 +146,7 @@ async def get_endorsement(id: int,
 async def update_endorsement(
         request: Request,
         id: int,
-        current_user: Optional[ArxivUserClaims] = Depends(get_current_user),
+        current_user: Optional[ArxivUserClaims] = Depends(get_authn),
         session: Session = Depends(get_db)) -> EndorsementModel:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to update endorsements.")
@@ -168,7 +169,7 @@ async def update_endorsement(
 @router.post('/', description="Create a new endorsement by admin")
 async def create_endorsement(
         request: Request,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> EndorsementModel:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to create endorsements.")
@@ -283,7 +284,7 @@ async def endorse(
         request: Request,
         response: Response,
         endorsement_code: EndorsementCodeModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db),
         current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         tracking_cookie: str | None = Depends(get_tracking_cookie),

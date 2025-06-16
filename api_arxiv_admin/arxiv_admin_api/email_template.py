@@ -1,6 +1,7 @@
 """Provides integration for the external user interface."""
 import datetime
 
+from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session, aliased
@@ -163,7 +164,7 @@ async def update_template(request: Request,
 
 @router.post('/')
 async def create_email_template(request: Request,
-                                user: ArxivUserClaims = Depends(get_current_user),
+                                user: ArxivUserClaims = Depends(get_authn),
                                 session: Session = Depends(get_db)) -> EmailTemplateModel:
     body = await request.json()
 
@@ -185,7 +186,7 @@ async def create_email_template(request: Request,
 
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_email_template(id: int,
-                                user: ArxivUserClaims = Depends(get_current_user),
+                                user: ArxivUserClaims = Depends(get_authn),
                                 db: Session = Depends(get_db)) -> None:
     item = db.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if item is None:

@@ -9,7 +9,7 @@ import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.bizmodels.user_model import UserModel
-from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host
+from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host, get_authn
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
@@ -103,7 +103,7 @@ async def list_ownerships(
         id: Optional[List[str]] = Query(None,
                                         description="List of paper owner"),
         with_document: Optional[bool] = Query(False, description="with document"),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
     query = OwnershipModel.base_select(session)
@@ -241,7 +241,7 @@ async def list_ownerships_for_user(
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         flag_valid: Optional[bool] = Query(None),
         document_id: Optional[int] = Query(None),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)
     ) -> List[OwnershipModel]:
     # gate_admin_user(current_user)
@@ -309,7 +309,7 @@ async def list_ownerships_for_user(
 
 @router.get('/{id:str}')
 async def get_ownership(id: str,
-                        current_user: ArxivUserClaims = Depends(get_current_user),
+                        current_user: ArxivUserClaims = Depends(get_authn),
                         session: Session = Depends(get_db)
                         ) -> OwnershipModel:
     uid, did = to_ids(id)
@@ -329,7 +329,7 @@ async def get_ownership(id: str,
 async def update_ownership(
         request: Request,
         id: str,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> OwnershipModel:
     gate_admin_user(current_user)
 
@@ -373,7 +373,7 @@ class PaperPwModel(BaseModel):
         )
 
 async def _get_paper_pw(id: str,
-                        current_user: ArxivUserClaims = Depends(get_current_user),
+                        current_user: ArxivUserClaims = Depends(get_authn),
                         session: Session = Depends(get_db)) -> PaperPwModel:
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED)
@@ -409,14 +409,14 @@ async def _get_paper_pw(id: str,
 
 @paper_pw_router.get('/{id:str}')
 async def get_paper_pw(id: str,
-                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       current_user: ArxivUserClaims = Depends(get_authn),
                        session: Session = Depends(get_db)) -> PaperPwModel:
     return await _get_paper_pw(id, current_user, session)
 
 
 @paper_pw_router.get('/paper/{arxiv_id:str}')
 async def get_paper_pw_from_arxiv_id(arxiv_id: str,
-                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       current_user: ArxivUserClaims = Depends(get_authn),
                        session: Session = Depends(get_db)) -> PaperPwModel:
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
     if not doc:
@@ -425,7 +425,7 @@ async def get_paper_pw_from_arxiv_id(arxiv_id: str,
 
 @paper_pw_router.get('/paper/{category:str}/{subject_class:str}')
 async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
-                       current_user: ArxivUserClaims = Depends(get_current_user),
+                       current_user: ArxivUserClaims = Depends(get_authn),
                        session: Session = Depends(get_db)) -> PaperPwModel:
     arxiv_id = f"{category}/{subject_class}"
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
@@ -437,7 +437,7 @@ async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
 @router.post('/')
 async def create_ownership(
         request: Request,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> OwnershipModel:
     gate_admin_user(current_user)
     body = await request.json()
@@ -476,7 +476,7 @@ def register_paper_owner(
         session: Session = Depends(get_db),
         remote_addr: str = Depends(get_client_host),
         remote_host: str = Depends(get_client_host_name),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
 ):
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
@@ -558,7 +558,7 @@ async def update_authorship(
         remote_addr: Optional[str] = Depends(get_client_host),
         remote_host: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
-        current_user: ArxivUserClaims = Depends(get_current_user)  # Assumes user has an 'id' field
+        current_user: ArxivUserClaims = Depends(get_authn)  # Assumes user has an 'id' field
 ):
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -637,7 +637,7 @@ def pwc_link(request: Request,
                      description="Give the paper a new password",)
 def renew_paper_password(
         document_id: int,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> PaperPwModel:
     """Change Paper Password"""
     if not current_user.is_admin:

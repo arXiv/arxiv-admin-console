@@ -9,7 +9,7 @@ from arxiv.base import logging
 from arxiv.db.models import Endorsement
 
 from ..categories import CategoryModel
-from ..endorsement_requsets import EndorsementRequestModel
+from ..endorsement_requests import EndorsementRequestModel
 from ..public_users import PublicUserModel
 
 logger = logging.getLogger(__name__)

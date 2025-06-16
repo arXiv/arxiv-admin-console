@@ -8,7 +8,7 @@ import hashlib
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.bizmodels.user_model import UserModel
-from arxiv_bizlogic.fastapi_helpers import get_client_host_name
+from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from sqlalchemy.exc import IntegrityError
 
@@ -186,7 +186,7 @@ def list_ownership_requests(
         endorsement_request_id: Optional[int] = Query(None),
         workflow_status: Optional[Literal['pending', 'accepted', 'rejected']] = Query(None),
         session: Session = Depends(get_db),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
     ) -> List[OwnershipRequestModel]:
     query = OwnershipRequestModel.base_query_with_audit(session)
     order_columns = []
@@ -295,7 +295,7 @@ def list_ownership_requests(
 @router.get("/{id:int}")
 async def get_ownership_request(
         id: int,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db),
     ) ->OwnershipRequestModel:
     query = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == id)
@@ -350,7 +350,7 @@ async def navigate(
 async def create_ownership_request(
         request: Request,
         ownership_request: CreateOwnershipRequestModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Create ownership request.
@@ -440,7 +440,7 @@ async def update_ownership_request(
         id: int,
         request: Request,
         payload: OwnershipRequestSubmit,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         remote_addr: str = Depends(get_client_host),
         remote_host: str = Depends(get_client_host_name),
@@ -709,7 +709,7 @@ async def create_paper_ownership_decision(
         request: Request,
         request_id: int,
         decision: PaperOwnershipDecisionModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         remote_addr: str = Depends(get_client_host),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Ownership creation

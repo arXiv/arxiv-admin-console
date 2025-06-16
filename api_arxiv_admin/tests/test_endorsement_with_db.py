@@ -1,19 +1,17 @@
 import os
-import subprocess
-import time
 import unittest
 from datetime import datetime
-from typing import List
 
-from arxiv_bizlogic.database import DatabaseSession, Database
-from arxiv_admin_api.endorsement_requsets import EndorsementRequestModel
+from arxiv_bizlogic.database import DatabaseSession
+from arxiv_admin_api.endorsement_requests import EndorsementRequestModel
 
 from arxiv.db.models import EndorsementRequest, \
     TapirUser  # Category, EndorsementDomain, QuestionableCategory, Endorsement,
 
-from arxiv_admin_api.biz.endorsement_biz import EndorsementBusiness, EndorsementWithEndorser
+from arxiv_admin_api.biz.endorsement_biz import EndorsementBusiness
 from arxiv_admin_api.biz.endorsement_io import EndorsementDBAccessor
 from arxiv_admin_api.endorsements import EndorsementCodeModel
+from tests.scaffolding import setup_db_fixture, teardown_db_fixture
 
 HOST = "127.0.0.1"
 DB_PORT = 21601
@@ -28,38 +26,14 @@ repo_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(
 
 class TestReadOnlys(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
-        # docker compose -f ./docker-compose-for-test.yaml --env-file=./test-env  up
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"], cwd=repo_root_dir)
-
-        from tests.restore_mysql import wait_for_mysql
-        wait_for_mysql(HOST, DB_PORT, DB_USER, DB_PASSWORD, "arXiv", MAX_RETRIES, RETRY_DELAY)
-        db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(DB_USER, DB_PASSWORD, HOST, DB_PORT, "arXiv")
-        from arxiv.config import Settings
-        settings = Settings(
-            CLASSIC_DB_URI = db_uri,
-            LATEXML_DB_URI = None
-        )
-        database = Database(settings)
-        database.set_to_global()
-        from app_logging import setup_logger
-        setup_logger()
-        for _ in range(10):
-            try:
-                with DatabaseSession() as session:
-                    users = session.query(TapirUser).all()
-                    if len(users) > 0:
-                        break
-            except Exception:
-                time.sleep(5)
-                continue
+    def setUpClass(cls) -> None:
+        setup_db_fixture()
 
     @classmethod
-    def tearDownClass(cls):
-        """This method runs once after all test methods in the class."""
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"], cwd=repo_root_dir)
+    def tearDownClass(cls) -> None:
+        teardown_db_fixture()
 
-    def test_see_papers(self):
+    def test_see_papers(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
@@ -73,7 +47,7 @@ class TestReadOnlys(unittest.TestCase):
                     count = count + len(papers)
             self.assertTrue(count)
 
-    def test_academic_email(self):
+    def test_academic_email(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             answer, reason = accessor.is_academic_email("")
@@ -90,7 +64,7 @@ class TestReadOnlys(unittest.TestCase):
             # We may want to reconsider this...
             self.assertFalse(answer)
 
-    def test_is_moderator(self):
+    def test_is_moderator(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
@@ -101,14 +75,14 @@ class TestReadOnlys(unittest.TestCase):
                         count += 1
             self.assertEqual(2, count)
 
-    def test_get_category(self):
+    def test_get_category(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             for archive, subject_class, expect in [("cs", "AI", True), ("cs", "XX", False), ("econ", None, True)]:
                 cat = accessor.get_category(archive, subject_class)
                 self.assertEqual(cat if expect else None, cat)
 
-    def test_get_domain_info(self):
+    def test_get_domain_info(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             for archive, subject_class, expect in [("cs", "AI", True), ("cs", '', False), ("econ", '', True)]:
@@ -118,7 +92,7 @@ class TestReadOnlys(unittest.TestCase):
                 self.assertNotEqual(None, domain)
                 self.assertEqual(archive, domain.endorsement_domain)
 
-    def test_get_endorsements(self):
+    def test_get_endorsements(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
@@ -131,7 +105,7 @@ class TestReadOnlys(unittest.TestCase):
             self.assertEqual(2, count)
 
 
-    def test_get_questionable_categories(self):
+    def test_get_questionable_categories(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             count = 0
@@ -142,7 +116,7 @@ class TestReadOnlys(unittest.TestCase):
             self.assertEqual(2, count)
 
 
-    def test_get_papers_by_user(self):
+    def test_get_papers_by_user(self) -> None:
         with DatabaseSession() as session:
             accessor = EndorsementDBAccessor(session)
             user_ids = session.query(TapirUser.user_id).all()
@@ -158,40 +132,15 @@ class TestReadOnlys(unittest.TestCase):
 
 class TestCreateEndorsement(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.audit_timestamp = datetime.fromisoformat("2025-01-01T00:00:00Z")  # Using now makes it
-
-        # docker compose -f ./docker-compose-for-test.yaml --env-file=./test-env  up
         self.tapir_session_id = 100
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"], cwd=repo_root_dir)
+        setup_db_fixture()
 
-        from tests.restore_mysql import wait_for_mysql
-        wait_for_mysql(HOST, DB_PORT, DB_USER, DB_PASSWORD, "arXiv", MAX_RETRIES, RETRY_DELAY)
-        db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(DB_USER, DB_PASSWORD, HOST, DB_PORT, "arXiv")
-        from arxiv.config import Settings
-        settings = Settings(
-            CLASSIC_DB_URI = db_uri,
-            LATEXML_DB_URI = None
-        )
-        database = Database(settings)
-        database.set_to_global()
-        from app_logging import setup_logger
-        setup_logger()
-        for _ in range(10):
-            try:
-                with DatabaseSession() as session:
-                    users = session.query(TapirUser).all()
-                    if len(users) > 0:
-                        break
-            except Exception:
-                time.sleep(5)
-                continue
+    def tearDown(self) -> None:
+        teardown_db_fixture()
 
-
-    def tearDown(self):
-        subprocess.run(DOCKER_COMPOSE_ARGS + ["down"], cwd=repo_root_dir)
-
-    def test_create_endorsement(self):
+    def test_create_endorsement(self) -> None:
         client_host = "127.0.0.1"
         client_host_name = "no-place-like@home.biz"
         tracking_cookie = "I-ate-them-all"

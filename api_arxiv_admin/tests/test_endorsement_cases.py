@@ -6,7 +6,7 @@ from arxiv.db.models import Category, EndorsementDomain, QuestionableCategory, E
 from arxiv_admin_api.biz.endorsement_biz import EndorsementAccessor, EndorsementBusiness, EndorsementWithEndorser, \
     PaperProps
 from arxiv_admin_api.dao.endorsement_model import EndorsementModel
-from arxiv_admin_api.endorsement_requsets import EndorsementRequestModel
+from arxiv_admin_api.endorsement_requests import EndorsementRequestModel
 from arxiv_admin_api.endorsements import EndorsementCodeModel
 from arxiv_admin_api.public_users import PublicUserModel
 from arxiv_admin_api.user import UserModel

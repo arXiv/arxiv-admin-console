@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import date, timedelta
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_current_user
+from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn
 from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
@@ -28,7 +28,7 @@ class UserUpdateModel(UserModel):
 
 @router.get("/{user_id:int}")
 def get_one_user(user_id:int,
-                 current_user: ArxivUserClaims = Depends(get_current_user),
+                 current_user: ArxivUserClaims = Depends(get_authn),
                  db: Session = Depends(get_db)) -> UserModel:
     check_authnz(None, current_user, str(user_id))
     # @ignore-types
@@ -266,7 +266,7 @@ async def list_users(
 async def update_user(request: Request,
                       user_id: int,
                       user_update: UserUpdateModel,
-                      current_user: ArxivUserClaims = Depends(get_current_user),
+                      current_user: ArxivUserClaims = Depends(get_authn),
                       session: Session = Depends(get_db)) -> UserModel:
     """Update user - by PUT"""
     check_authnz(None, current_user, user_id)
@@ -323,7 +323,7 @@ async def create_user(request: Request,
 @router.delete('/{user_id:int}')
 def delete_user(response: Response,
                 user_id: int,
-                current_user: ArxivUserClaims = Depends(get_current_user),
+                current_user: ArxivUserClaims = Depends(get_authn),
                 session: Session = Depends(get_db)):
     check_authnz(None, current_user, user_id)
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
@@ -347,7 +347,7 @@ class UserDocumentSummary(BaseModel):
 
 @router.get("/{user_id:int}/document-summary")
 def get_user_document_summary(user_id:int,
-                              current_user: ArxivUserClaims = Depends(get_current_user),
+                              current_user: ArxivUserClaims = Depends(get_authn),
                               db: Session = Depends(get_db)) -> UserDocumentSummary:
     check_authnz(None, current_user, user_id)
     # @ignore-types

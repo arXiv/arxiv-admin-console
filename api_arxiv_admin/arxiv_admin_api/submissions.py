@@ -1,6 +1,7 @@
 """arXiv paper display routes."""
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_authn
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
 from typing import Optional, List
@@ -192,7 +193,7 @@ async def list_submissions(
         start_submission_id: Optional[int] = Query(None, description="Start Submission ID"),
         end_submission_id: Optional[int] = Query(None, description="End Submission ID"),
         db: Session = Depends(get_db),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
     ) -> List[SubmissionModel]:
     datagrid_filter = MuiDataGridFilter(filter) if filter else None
     query = SubmissionModel.base_select(db)
@@ -308,7 +309,7 @@ async def list_submissions(
 @router.get("/paper/{paper_id:str}")
 async def get_submission_by_paper_id(
         paper_id:str,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> SubmissionModel:
     """Display a paper."""
     if not current_user:
@@ -322,7 +323,7 @@ async def get_submission_by_paper_id(
 @router.get("/{id:int}")
 async def get_submission(
         id: int,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> SubmissionModel:
     """Display a paper."""
     if not current_user:

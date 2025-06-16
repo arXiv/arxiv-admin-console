@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 
-def wait_for_mysql(host, port, user, password, database, max_retries, retry_delay):
+def wait_for_mysql(host: str, port: int, user: str, password: str, database: str, max_retries: int, retry_delay: int) -> bool:
     for _ in range(max_retries):
         try:
             conn = pymysql.connect(
@@ -22,11 +22,11 @@ def wait_for_mysql(host, port, user, password, database, max_retries, retry_dela
     return False
 
 
-def execute_sql_file(sql_file, host, port, user, password, database):
+def execute_sql_file(sql_file, host, port, user, password, database) -> None:
     try:
         conn = pymysql.connect(
             host=host,
-            port=port,
+            port=int(port),
             user=user,
             password=password,
             database=database

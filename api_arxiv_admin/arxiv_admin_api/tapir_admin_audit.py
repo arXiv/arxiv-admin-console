@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_db, get_current_user
+from arxiv_bizlogic.fastapi_helpers import get_db, get_current_user, get_authn
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Query
 
 
@@ -89,7 +89,7 @@ async def list_tapir_admin_audit(
         start_date: Optional[datetime.date] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime.date] = Query(None, description="End date for filtering"),
         session: Session = Depends(get_db),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
 ) -> List[TapirAdminAuditModel]:
     gate_admin_user(current_user)
     query = TapirAdminAuditModel.base_select(session)
@@ -130,7 +130,7 @@ async def list_tapir_admin_audit(
 async def get_tapir_admin_audit(
         id: int,
         session: Session = Depends(get_db),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
 ) -> TapirAdminAuditModel:
     gate_admin_user(current_user)
     query = TapirAdminAuditModel.base_query(session)

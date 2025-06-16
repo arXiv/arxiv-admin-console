@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, aliased
 from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNickname, QuestionableCategory,)
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from ..endorsement_requsets import EndorsementRequestModel
+from ..endorsement_requests import EndorsementRequestModel
 from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, EndorsementOutcomeModel, EndorsementModel, \
     EndorserCapabilityType
 from ..public_users import PublicUserModel

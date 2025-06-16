@@ -4,6 +4,7 @@ from http.client import HTTPException
 from typing import Optional
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
 
 from sqlalchemy import select, case, exists
@@ -120,7 +121,7 @@ def get_one_public_user_with_query(
         user_id: str = Query(None),
         email: str = Query(None),
         username: str = Query(None),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         db: Session = Depends(get_db)) -> PublicUserModel:
     count = reduce(lambda t, s: t + (1 if s else 0), [user_id, email, username], 0)
     if count == 0:

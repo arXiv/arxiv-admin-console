@@ -4,6 +4,7 @@ from datetime import timedelta, datetime, date
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
 from sqlalchemy import select, update, func, case, Select, distinct, exists, and_
@@ -119,7 +120,7 @@ async def list_admin_logs(
 @router.get('/{id:int}')
 async def get_admin_log(id: int,
                         _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-                        current_user: ArxivUserClaims = Depends(get_current_user),
+                        current_user: ArxivUserClaims = Depends(get_authn),
                         db: Session = Depends(get_db)) -> AdminLogModel:
     item: AdminLog = AdminLogModel.base_select(db).filter(AdminLog.id == id).one_or_none()
     if not item:
@@ -175,7 +176,7 @@ async def create_admin_log(
 async def delete_admin_log(
         id: int,
         _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> Response:
 
     item: AdminLog = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()

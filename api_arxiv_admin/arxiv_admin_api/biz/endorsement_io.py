@@ -42,7 +42,8 @@ class EndorsementDBAccessor(EndorsementAccessor):
             pass
         return bool(query.scalar())
 
-    def get_category(self, archive: str, subject_class: str) -> Category | None:
+    def get_category(self, archive: str, subject_class: str | None) -> Category | None:
+        subject_class = subject_class if subject_class else ""
         return self.session.query(Category).filter(
             and_(
                 Category.archive == archive,

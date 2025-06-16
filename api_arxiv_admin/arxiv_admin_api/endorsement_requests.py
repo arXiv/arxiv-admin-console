@@ -5,6 +5,7 @@ from sqlite3 import IntegrityError
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
 from sqlalchemy import case # select, update, func, Select, distinct, exists, and_, or_
@@ -92,7 +93,7 @@ async def list_endorsement_requests(
         endorsee_last_name: Optional[str] = Query(None, description="Endorsement request endorsee last_name"),
         endorsee_email: Optional[str] = Query(None, description="Endorsement request endorsee email"),
         current_id: Optional[int] = Query(None, description="Current ID - index position - for navigation"),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db),
 
     ) -> List[EndorsementRequestModel]:
@@ -213,7 +214,7 @@ async def list_endorsement_requests(
 
 @router.get('/{id:int}')
 async def get_endorsement_request(id: int,
-                                  current_user: ArxivUserClaims = Depends(get_current_user),
+                                  current_user: ArxivUserClaims = Depends(get_authn),
                                   db: Session = Depends(get_db)) -> EndorsementRequestModel:
     item: EndorsementRequest = EndorsementRequestModel.base_select(db).filter(EndorsementRequest.request_id == id).one_or_none()
     if not item:
@@ -228,7 +229,7 @@ async def get_endorsement_request(id: int,
 async def update_endorsement_request(
         id: int,
         body: EndorsementRequestModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> EndorsementRequestModel:
 
     item: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
@@ -263,7 +264,7 @@ async def update_endorsement_request(
 async def create_endorsement_request(
         respones: Response,
         body: EndorsementRequestRequestModel,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> EndorsementRequestModel:
     endorsee_id = body.endorsee_id
     if endorsee_id is None:
@@ -313,7 +314,7 @@ async def create_endorsement_request(
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_endorsement_request(
         id: int,
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> Response:
     if not current_user.is_admin:
         return Response(status_code=status.HTTP_403_FORBIDDEN)
@@ -329,7 +330,7 @@ async def delete_endorsement_request(
 @router.get('/code')
 async def get_endorsement_request_by_secret(
         secret: str = Query(None, description="Find an endorsement request by code"),
-        current_user: ArxivUserClaims = Depends(get_current_user),
+        current_user: ArxivUserClaims = Depends(get_authn),
         db: Session = Depends(get_db)
 ) -> EndorsementRequestModel:
     if not current_user:

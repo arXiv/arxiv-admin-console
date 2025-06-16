@@ -27,8 +27,8 @@ from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_cu
 from arxiv_admin_api.admin_logs import router as admin_log_router
 from arxiv_admin_api.categories import router as categories_router
 from arxiv_admin_api.email_template import router as email_template_router
-from arxiv_admin_api.endorsement_requsets import router as endorsement_request_router
-from arxiv_admin_api.endorsement_requsets_audit import router as endorsement_request_audit_router
+from arxiv_admin_api.endorsement_requests import router as endorsement_request_router
+from arxiv_admin_api.endorsement_requests_audit import router as endorsement_request_audit_router
 from arxiv_admin_api.endorsements import router as endorsement_router
 from arxiv_admin_api.demographic import router as demographic_router
 from arxiv_admin_api.documents import router as document_router
@@ -97,6 +97,8 @@ origins = [
     "http://localhost:5000/",
     "http://localhost:5000/admin-console",
     "http://localhost:5000/admin-console/",
+    "http://localhost:5222",
+    "http://localhost:5222/",
     "https://arxiv.org",
     "https://arxiv.org/",
     "https://dev.arxiv.org",
