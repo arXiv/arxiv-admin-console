@@ -10,6 +10,7 @@ from arxiv_bizlogic.fastapi_helpers import datetime_to_epoch
 from dotenv import load_dotenv
 from dotenv.main import DotEnv
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session as SASession
 
 ADMIN_API_TEST_DIR = Path(__file__).parent
 
@@ -20,7 +21,7 @@ import pytest
 import logging
 
 from time import sleep
-from typing import IO, Dict, Iterable, Iterator, Mapping, Optional, Tuple, Union
+from typing import IO, Dict, Iterable, Iterator, Mapping, Optional, Tuple, Union, Generator
 
 from fastapi.testclient import TestClient
 from arxiv_admin_api.main import create_app
@@ -328,3 +329,18 @@ def arxiv_db(setup_db_fixture):
     """Fixture to set up and tear down the database."""
     yield
     teardown_db_fixture()
+
+
+@pytest.fixture(scope="function")
+def db_session() -> Generator[SASession, None, None]:
+    """
+    Fixture to provide a database session.
+
+    This fixture creates a new database session for each test function,
+    which ensures test isolation.
+
+    Returns:
+        SQLAlchemy Session: A session connected to the test database
+    """
+    with DatabaseSession() as session:
+        yield session

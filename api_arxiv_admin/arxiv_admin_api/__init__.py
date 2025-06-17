@@ -1,12 +1,12 @@
 """Things used for API implementation"""
 from http.client import HTTPException
-from fastapi import Request, HTTPException, status as http_status
+from fastapi import Request, HTTPException, status as http_status, Depends
 import os
 
 # This is used by others. Don't remove
 from arxiv_bizlogic.fastapi_helpers import (
     is_any_user, is_admin_user, get_current_user, get_db, get_hostname,
-    get_client_host_name, get_client_host, datetime_to_epoch, VERY_OLDE)
+    get_client_host_name, get_client_host, datetime_to_epoch, VERY_OLDE, get_authn_or_none)
 from .helpers.session_cookie_middleware import TapirSessionData
 from .models import *
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -31,7 +31,20 @@ async def get_session_cookie(request: Request) -> str | None:
     return request.cookies.get(session_cookie_key)
 
 
-def get_tapir_session(request: Request) -> TapirSessionData | None:
+def get_tapir_session(request: Request,
+                      current_user: ArxivUserClaims | None = Depends(get_authn_or_none)
+                      ) -> TapirSessionData | None:
+    if current_user:
+        ts_data = TapirSessionData(
+            session_id=str(current_user.tapir_session_id or ""),
+            user_id=current_user.user_id or "",
+            client_ip=current_user.client_ip4v,
+            session_created=current_user.issued_at,
+            session_exp=current_user.expires_at,
+            privilege=str(current_user.classic_capability_code)
+        )
+        return ts_data
+
     return request.state.tapir_session
 
 

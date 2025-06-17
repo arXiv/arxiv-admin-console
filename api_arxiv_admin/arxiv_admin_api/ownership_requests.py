@@ -351,7 +351,7 @@ async def create_ownership_request(
         request: Request,
         ownership_request: CreateOwnershipRequestModel,
         current_user: ArxivUserClaims = Depends(get_authn),
-        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
+        current_tapir_session: TapirSessionData | None = Depends(get_tapir_session),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Create ownership request.
    $auth->conn->begin();
@@ -407,9 +407,11 @@ async def create_ownership_request(
 
     #    $sql="INSERT INTO arXiv_ownership_requests_audit (request_id,remote_addr,remote_host,session_id,tracking_cookie,date) VALUES (LAST_INSERT_ID(),'$_remote_addr','$_remote_host','$_session_id','$_tracking_cookie',{$auth->timestamp})";
 
+    tsid = current_tapir_session.session_id if current_tapir_session else current_user.tapir_session_id
+
     audit = OwnershipRequestsAudit(
         request_id = req.request_id,
-        session_id = int(current_tapir_session.session_id),
+        session_id = int(tsid),
         remote_addr = ownership_request.remote_addr,
         remote_host = "",
         tracking_cookie = "",
