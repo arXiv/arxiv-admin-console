@@ -31,7 +31,6 @@ import {
 
 import CategoryField from "../bits/CategoryField";
 
-import { addDays } from 'date-fns';
 import PointValueBooleanField from "../bits/PointValueBooleanField";
 
 interface Category {
