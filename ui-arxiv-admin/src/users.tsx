@@ -1,4 +1,5 @@
 import {
+    Divider,
     useMediaQuery,
 } from '@mui/material';
 
@@ -10,6 +11,7 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
 
 
 import {
@@ -415,26 +417,55 @@ const UserEditToolbar = () => {
 
 
 export const UserEdit = () => {
+    const switchProps = {
+        '& .MuiSwitch-root': {
+            transform: 'scale(0.7)', // smaller than small
+        },
+        flex: 4,
+        size: "small",
+    };
+
+    const statusInputs = [
+        [
+            {source: "flag_banned", label: "Suspended"},
+            {source: "flag_deleted", label: "Deleted"},
+            {source: "flag_suspect", label: "Suspect"},
+        ],
+        [
+            {source: "flag_approved", label: "Approved"},
+            {source: "flag_veto_status", label: "Veto status"},
+            {source: "flag_proxy", label: "Proxy"},
+            ],
+        [
+            {source: "flag_xml", label: "XML"},
+            {source: "flag_allow_tex_produced", label: "Allow Tex"},
+            null,
+        ]
+    ];
+
+    const adminInputs = [
+        [
+            {source: "flag_edit_users", label: "Edit Users"},
+            {source: "flag_edit_system", label: "Edit System"},
+            {source: "flag_group_test", label: "Test"},
+        ],
+        [
+            {source: "flag_internal", label: "Internal"},
+            {source: "flag_can_lock", label: "Can Lock"},
+            null,
+        ],
+    ];
+
+
     return (
-    <Edit title={<UserTitle />}>
+    <Edit title={<UserTitle />} actions={false}>
         <SimpleForm toolbar={<UserEditToolbar />}>
             <Grid container>
                 <Grid size={{xs: 6}} >
                     <Table size="small">
                         <TableRow>
                             <TableCell>
-                                username / email
-                            </TableCell>
-                            <TableCell>
-                                <TextField source="username"/>
-                            </TableCell>
-
-                            <TableCell>
                                 <TextInput source="email" helperText={false} />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>
                             </TableCell>
                             <TableCell>
                                 <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} />
@@ -443,19 +474,31 @@ export const UserEdit = () => {
                                 <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}} />
                             </TableCell>
                         </TableRow>
+                    </Table>
 
+                    <Table size="small">
                         <TableRow>
-                            <TableCell>
-                                name
-                            </TableCell>
                             <TableCell>
                                 <TextInput source="first_name" helperText={false} />
                             </TableCell>
-                                <TableCell>
+                            <TableCell>
                                 <TextInput source="last_name" helperText={false}  />
+                            </TableCell>
+                            <TableCell>
+                                <TextInput source="suffix_name" helperText={false}  />
                             </TableCell>
                         </TableRow>
                     </Table>
+
+                    <Table size="small">
+                        <TableRow>
+                            <TableCell>
+                                <Typography component={"span"} >Login: </Typography>
+                                <TextField source="username" fontFamily={"monospace"} />
+                            </TableCell>
+                        </TableRow>
+                    </Table>
+
                     <Table size="small">
                         <TableRow>
                             <TableCell />
@@ -471,70 +514,54 @@ export const UserEdit = () => {
                             </TableCell>
 
                         </TableRow>
-
-                        <TableRow>
-                            <TableCell>
-                                Status
-                            </TableCell>
-                            <TableCell>
-                                <Grid container>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_suspect" label={"Suspect"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_veto_status" label={"Veto status"} helperText={false} options={{size: "small"}}  />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_banned" label={"Suspended"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_deleted" label={"Deleted"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_proxy" label={"Proxy"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_xml" label={"XML"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_approved" label={"Approved"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_allow_tex_produced" label={"Allow Tex"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 4}}>
-                                        <BooleanInput source="flag_group_test" label={"Test"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-
-                                </Grid>
-                            </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                            <TableCell>
-                                Administration
-                            </TableCell>
-                            <TableCell>
-                                <Grid container>
-                                    <Grid size={{xs: 6}}>
-                                        <BooleanInput source="flag_edit_users" label={"Admin"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 6}}>
-                                        <BooleanInput source="flag_edit_system" label={"System"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 6}}>
-                                        <BooleanInput source="flag_internal" label={"Internal"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                    <Grid size={{xs: 6}}>
-                                        <BooleanInput source="flag_can_lock" label={"Can Lock"} helperText={false} options={{size: "small"}} />
-                                    </Grid>
-                                </Grid>
-                            </TableCell>
-
-                        </TableRow>
-
                     </Table>
+
+                    <Table size="small">
+                        {
+                            statusInputs.map((inputs) => (
+                                <TableRow>
+                                    {
+                                        inputs.map((input) => (
+                                            <TableCell>
+                                                {
+                                                    input === null ? null :
+                                                        (<BooleanInput source={input.source}label={input.label}
+                                                                       helperText={false} sx={switchProps} size="small" />)
+
+                                                }
+                                            </TableCell>
+
+                                        ))
+                                    }
+                                </TableRow>
+                            ))
+                        }
+
+                        {
+                            adminInputs.map((inputs) => (
+                                <TableRow>
+                                    {
+                                        inputs.map((input) => (
+                                            <TableCell>
+                                                {
+                                                    input === null ? null :
+                                                        (<BooleanInput source={input.source}label={input.label}
+                                                                      helperText={false} sx={switchProps} size="small" />)
+
+                                                }
+                                            </TableCell>
+
+                                        ))
+                                    }
+                                </TableRow>
+                            ))
+                        }
+                    </Table>
+
+                    <UserEndorsements />
+
+                    <Divider />
+
                     <AdminAuditList />
                 </Grid>
 
@@ -546,9 +573,6 @@ export const UserEdit = () => {
                 </Grid>
 
 
-            </Grid>
-            <Grid size={{xs: 12}}>
-                <UserEndorsements />
             </Grid>
         </SimpleForm>
     </Edit>

@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { useMediaQuery } from '@mui/material';
 import {
     List,
@@ -26,8 +27,7 @@ import React from "react";
 import CategoryField from "../bits/CategoryField";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import YesIcon from "@mui/icons-material/CheckCircle";
-import NoIcon from "@mui/icons-material/Icecream";
+import Tooltip from '@mui/material/Tooltip';
 
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
@@ -99,6 +99,17 @@ const EndorsementFilter = (props: any) => {
     );
 };
 
+const WithTooltip = ({ children }: { children: ReactNode }) => {
+    const record = useRecordContext();
+    if (!record) return null;
+
+    return (
+        <Tooltip title={record.comment || ''} arrow placement="top">
+            <span>{children}</span>
+        </Tooltip>
+    );
+};
+
 
 export const EndorsementList = () => {
     const sorter: SortPayload = {field: 'endorsement_id', order: 'ASC'};
@@ -120,7 +131,9 @@ export const EndorsementList = () => {
                 />
             ) : (
                 <Datagrid rowClick="edit" >
-                    <NumberField source={"id"} />
+                    <WithTooltip>
+                        <NumberField source={"id"} />
+                    </WithTooltip>
                     <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
                                     link={(record, reference) => `/${reference}/${record.id}`} >
                         <TextField source={"last_name"} />
