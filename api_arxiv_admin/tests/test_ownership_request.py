@@ -1,7 +1,8 @@
 import pytest
 from arxiv.db.models import OwnershipRequest, OwnershipRequestsAudit, t_arXiv_ownership_requests_papers
 
-from arxiv_admin_api.ownership_requests import CreateOwnershipRequestModel, OwnershipRequestModel
+from arxiv_admin_api.ownership_requests import CreateOwnershipRequestModel, OwnershipRequestModel, \
+    OwnershipRequestSubmit
 from sqlalchemy.orm import Session
 
 
@@ -54,3 +55,32 @@ class TestCreateOwnershipRequest:
         ).all()
 
         assert doc_ids == set([row[0] for row in requested_papers])
+
+
+    def test_accept_ownership_request(self, arxiv_db, db_session: Session, test_env, api_client, api_headers):
+        response1 = api_client.get("/v1/ownership_requests/1", headers=api_headers)
+        assert response1.status_code == 200
+
+        or1 = OwnershipRequestModel.model_validate(response1.json())
+
+        document_ids = [
+            2650641, 2651312, 2654267, 2656141, 2657367,
+            2657459, 2663552, 2663650, 2664481, 2664960,
+            2665625, 2668328, 2669721, 2669912, 2670211,
+            2671590, 2673580, 2674579, 2675896
+        ]
+
+        # Select half of the documents (rounded down if odd number)
+        selected_documents = document_ids[:len(document_ids) // 2]
+
+        or_submit = OwnershipRequestSubmit(
+            user_id = 1,
+            workflow_status = "accepted",
+            document_ids = document_ids,
+            selected_documents = selected_documents
+        )
+
+        response2 = api_client.put("/v1/ownership_requests/1", headers=api_headers, json=or_submit.model_dump())
+        assert response2.status_code == 200
+
+        or2 = OwnershipRequestModel.model_validate(response2.json())

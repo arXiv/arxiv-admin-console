@@ -2,11 +2,13 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db.models import Endorsement
+from arxiv.db.models import Endorsement, EndorsementsAudit
 
 from ..categories import CategoryModel
 from ..endorsement_requests import EndorsementRequestModel
@@ -40,8 +42,9 @@ class EndorsementModel(BaseModel):
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
     archive: str #  mapped_column(String(16), nullable=False, server_default=FetchedValue())
     subject_class: str # Mapped[str] = mapped_column(String(16), nullable=False, server_default=FetchedValue())
-    flag_valid: int # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
+    flag_valid: bool # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
     type: EndorsementType | None = None # Mapped[Optional[Literal['user', 'admin', 'auto']]] = mapped_column(Enum('user', 'admin', 'auto'))
+    positive_endorsement: bool
     point_value: int # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
     issued_when: datetime # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
     request_id: int | None = None # Mapped[Optional[int]] = mapped_column(ForeignKey('arXiv_endorsement_requests.request_id'), index=True)
@@ -51,6 +54,14 @@ class EndorsementModel(BaseModel):
     # endorser: UserModel # = relationship('TapirUser', primaryjoin='Endorsement.endorser_id == TapirUser.user_id', back_populates='endorses')
     #request: List['EndorsementRequestModel'] # = relationship('EndorsementRequest', primaryjoin='Endorsement.request_id == EndorsementRequest.request_id', back_populates='endorsement')
 
+    session_id: Optional[int] = None
+    comment: Optional[str] = None
+    remote_addr: Optional[str] = None
+    remote_host: Optional[str] = None
+    tracking_cookie: Optional[str] = None
+    flag_knows_personally: Optional[bool] = None
+    flag_seen_paper: Optional[bool] = None
+
     @staticmethod
     def base_select(db: Session):
         return db.query(
@@ -59,11 +70,22 @@ class EndorsementModel(BaseModel):
             Endorsement.endorsee_id,
             Endorsement.archive,
             Endorsement.subject_class,
-            Endorsement.flag_valid,
+            case((Endorsement.flag_valid != 0, True), else_=False).label("flag_valid"),
             Endorsement.type,
             Endorsement.point_value,
+            case((Endorsement.point_value > 0, True), else_=False).label("positive_endorsement"),
             Endorsement.issued_when,
             Endorsement.request_id,
+            EndorsementsAudit.session_id,
+            EndorsementsAudit.comment,
+            EndorsementsAudit.remote_addr,
+            EndorsementsAudit.remote_host,
+            EndorsementsAudit.tracking_cookie,
+            case((EndorsementsAudit.flag_knows_personally == 1, True), else_=False).label("flag_knows_personally"),
+            case((EndorsementsAudit.flag_seen_paper == 1, True), else_=False).label("flag_seen_paper"),
+        ).outerjoin(
+            EndorsementsAudit,
+            EndorsementsAudit.endorsement_id == Endorsement.endorsement_id
         )
 
 

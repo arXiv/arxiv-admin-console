@@ -152,18 +152,36 @@ async def update_endorsement(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to update endorsements.")
     body = await request.json()
 
-    item = session.query(Endorsement).filter(Endorsement.endorsement_id == id).first()
-    if item is None:
+    changed = False
+    endorsement: Endorsement | None = session.query(Endorsement).filter(Endorsement.endorsement_id == id).one_or_none()
+    if endorsement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement '{id}' not found")
 
-    # Verify?
-    for key, value in body.items():
-        if key in item.__dict__:
-            setattr(item, key, value)
+    if "positive_endorsement" in body:
+        before = endorsement.point_value > 0
+        after = body["positive_endorsement"]
+        if before != after:
+            if body["positive_endorsement"]:
+                endorsement.point_value = 10
+            else:
+                endorsement.point_value = 0
+            changed = True
 
-    session.commit()
-    session.refresh(item)  # Refresh the instance with the updated data
-    return EndorsementModel.model_validate(item)
+    if "flag_valid" in body:
+        flag_valid = 1 if body["flag_valid"] else 0
+        if endorsement.flag_valid != flag_valid:
+            endorsement.flag_valid = flag_valid
+            changed = True
+
+    if changed:
+        session.commit()
+
+    data = EndorsementModel.base_select(session).filter(Endorsement.endorsement_id == id).one_or_none()
+    if data is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement '{id}' not found")
+    if not changed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No changes to update")
+    return EndorsementModel.model_validate(data)
 
 
 @router.post('/', description="Create a new endorsement by admin")
