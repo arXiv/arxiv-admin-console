@@ -240,9 +240,9 @@ function UserDemographic() {
     }, [dataProvider, record]);
 */
     return (
-    <Table size="small">
+    <Table size="small" >
         <TableHead>
-            <TableCell>
+            <TableCell width={"25%"} sx={{minWidth: "120px"}}>
                 Property
             </TableCell>
             <TableCell>
@@ -291,6 +291,15 @@ function UserDemographic() {
             </TableCell>
         </TableRow>
         <TableRow>
+            <TableCell>
+                Moderator for
+            </TableCell>
+            <TableCell>
+                <UserModerationCategories />
+            </TableCell>
+        </TableRow>
+
+        <TableRow>
             <TableCell>Career Status</TableCell>
             <TableCell>
                 <CareereStatusField source="type" />
@@ -312,6 +321,7 @@ function UserDemographic() {
                 </ReferenceField>
             </TableCell>
         </TableRow>
+
     </Table>);
 }
 
@@ -340,27 +350,67 @@ function UserEndorsements() {
     function Endorsement(props: any) {
         return (
                 <RecordContextProvider value={props.endorsement} >
-                    <Grid>
-                        <ReferenceField source="id" reference="endorsements" label={""}
-                                        link={(record, reference) => `/${reference}/${record.id}`}>
-                            <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
-                        </ReferenceField>
-                    </Grid>
+                    <ReferenceField source="id" reference="endorsements" label={""}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
+                    </ReferenceField>
                 </RecordContextProvider>
         );
     }
 
     return (
-        <Grid container size={{xs: 12}}>
-            <Grid size={{xs: 2}}>Endorsed for</Grid>
+        <Box>
+            <Box >Endorsed for</Box>
             {
                 endorsements.map((endorsement, _index) => (
-                    <Grid size={{xs: 2}}>
                         <Endorsement endorsement={endorsement} />
-                    </Grid>
                 ))
             }
-        </Grid>
+        </Box>
+    );
+}
+
+
+function UserModerationCategories() {
+    const record = useRecordContext<any>();
+    const [moderationCategories, setModerationCategories] = useState<any[]>([]);
+    const dataProvider = useDataProvider();
+
+    useEffect(() => {
+        const fetchModerationCategories = async (userId: number) => {
+            try {
+                const response = await dataProvider.getList('moderators', {
+                    filter: {user_id: userId}, sort: {field: 'archive,subject_class', order: 'ASC'},
+                });
+                setModerationCategories(response.data);
+            } catch (error) {
+                console.error("Error fetching moderators data:", error);
+            }
+        };
+
+        if (record)
+            fetchModerationCategories(record.id);
+    }, [dataProvider, record]);
+
+    function ModerationCategory(props: any) {
+        return (
+            <RecordContextProvider value={props.endorsement} >
+                <ReferenceField source="id" reference="moderators" label={""}
+                                link={(record, reference) => `/${reference}/${record.id}`}>
+                    <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
+                </ReferenceField>
+            </RecordContextProvider>
+        );
+    }
+
+    return (
+        <>
+        {
+                moderationCategories.map((endorsement, _index) => (
+                    <ModerationCategory endorsement={endorsement} />
+                ))
+        }
+        </>
     );
 }
 
@@ -495,12 +545,13 @@ export const UserEdit = () => {
 
                     <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                                 <SelectInput source="policy_class" choices={policyClassChoices} helperText={false} />
-                        <Box size={{xs: 3}} >
+                        <Box >
                             <Typography component={"span"} >Moderator
                                 <BooleanField source="flag_is_mod" label={"Moderator"} />
                             </Typography>
                         </Box>
                     </Box>
+
                     <Divider />
 
                     <Table size="small">
@@ -546,7 +597,6 @@ export const UserEdit = () => {
                     </Table>
 
                     <UserEndorsements />
-
                     <Divider />
 
                     <AdminAuditList />
