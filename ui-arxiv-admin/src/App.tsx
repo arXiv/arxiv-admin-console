@@ -14,7 +14,7 @@ import TapirSessionIcon from '@mui/icons-material/ConfirmationNumberSharp';
 import MembershipInstitutionIcon from '@mui/icons-material/School';
 
 import {TemplateCreate, TemplateList, TemplateEdit} from './pages/templates';
-import { UserList, UserEdit, UserCreate } from './users';
+import { UserList, UserEdit, UserCreate } from './pages/users';
 import {EndorsementRequestList, EndorsementRequestCreate, EndorsementRequestEdit, EndorsementRequestShow} from './pages/endorsementRequests';
 import { Dashboard } from './pages/Dashboard';
 import {createAuthProvider} from './authProvider';
@@ -215,6 +215,8 @@ const AdminConsole: React.FC = () => {
                 <Resource name="admin_logs"/>
                 <Resource name="submission_categories"/>
                 <Resource name="tapir_admin_audit"/>
+                <Resource name="orcid_ids"/>
+                <Resource name="author_ids"/>
 
             </Admin>
         </PingBackend>
