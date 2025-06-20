@@ -10,10 +10,7 @@ const CareerStatusField: React.FC<CareerStatusFieldProps> = (props) => {
     const literals = ["Unknown", "Staff", "Professor", "Post Doc", "Grad Student", "Other"];
     const record = useRecordContext();
     const { source } = props;
-    // console.log("CareerStatusField source: " + source);
-    let careerStatus = 0;
-    if (record && !source)
-        careerStatus = record[source];
+    const careerStatus = (record && source) ? Number(record[source]) : 0
     const customRecord = { ...record, [source]: literals[careerStatus]};
     return (<TextField {...props} record={customRecord} />);
 };

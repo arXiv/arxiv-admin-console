@@ -6,6 +6,7 @@ import {
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Grid from '@mui/material/Grid2';
+import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
@@ -37,7 +38,7 @@ import {
     RecordContextProvider,
     useDataProvider,
     SaveButton,
-    DeleteButton, Toolbar, useNotify,
+    DeleteButton, Toolbar, useNotify, useEditContext,
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -53,6 +54,7 @@ import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
 import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import { useLocation, useNavigate } from 'react-router-dom';
+import EmailLinkField from "../bits/EmailLinkField";
 
 
 const UserFilter = (props: any) => (
@@ -238,7 +240,7 @@ function UserDemographic() {
     }, [dataProvider, record]);
 */
     return (
-    <Table>
+    <Table size="small">
         <TableHead>
             <TableCell>
                 Property
@@ -474,52 +476,32 @@ export const UserEdit = () => {
                 <Grid size={{xs: 6}} >
                     <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                         <TextInput source="email" helperText={false} />
-                        <IconButton  color="primary" aria-label="send email" onClick={() => {}} >
-                            <EmailIcon />
-                        </IconButton>
-                        <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} />
-                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}} />
+                        <EmailLinkField />
+                        <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} sx={{mt: 1}} />
+                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}} sx={{mt: 1}} />
                     </Box>
+                    <Divider />
 
-                    <Table size="small">
-                        <TableRow>
-                            <TableCell>
-                                <TextInput source="first_name" helperText={false} />
-                            </TableCell>
-                            <TableCell>
-                                <TextInput source="last_name" helperText={false}  />
-                            </TableCell>
-                            <TableCell>
-                                <TextInput source="suffix_name" helperText={false}  />
-                            </TableCell>
-                        </TableRow>
-                    </Table>
+                    <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
+                        <TextInput source="first_name" helperText={false} />
+                        <TextInput source="last_name" helperText={false}  />
+                        <TextInput source="suffix_name" helperText={false} sx={{maxWidth: "5em"}} />
+                        <Box sx={{minWidth: "10em"}} >
+                            <Typography component={"span"} >Login: </Typography>
+                            <TextField source="username" fontFamily={"monospace"}/>
+                        </Box>
+                    </Box>
+                    <Divider />
 
-                    <Table size="small">
-                        <TableRow>
-                            <TableCell>
-                                <Typography component={"span"} >Login: </Typography>
-                                <TextField source="username" fontFamily={"monospace"} />
-                            </TableCell>
-                        </TableRow>
-                    </Table>
-
-                    <Table size="small">
-                        <TableRow>
-                            <TableCell />
-                            <TableCell>
+                    <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                                 <SelectInput source="policy_class" choices={policyClassChoices} helperText={false} />
-                            </TableCell>
-                            <TableCell>
-                            <Grid size={{xs: 3}} >
-                                <Typography component={"span"} >Moderator
-                                    <BooleanField source="flag_is_mod" label={"Moderator"} />
-                                </Typography>
-                            </Grid>
-                            </TableCell>
-
-                        </TableRow>
-                    </Table>
+                        <Box size={{xs: 3}} >
+                            <Typography component={"span"} >Moderator
+                                <BooleanField source="flag_is_mod" label={"Moderator"} />
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Divider />
 
                     <Table size="small">
                         {
