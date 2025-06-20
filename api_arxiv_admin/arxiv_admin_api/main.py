@@ -45,6 +45,8 @@ from arxiv_admin_api.member_institutions import router as member_institution_rou
 from arxiv_admin_api.countries import router as countries_router
 from arxiv_admin_api.tapir_admin_audit import router as tapir_admin_audit_router
 from arxiv_admin_api.taxonomy import router as taxonomy_router
+from arxiv_admin_api.orcid_ids import router as orcid_router
+from arxiv_admin_api.author_ids import router as author_id_router
 
 from arxiv_admin_api.frontend import router as frontend_router
 from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
@@ -249,7 +251,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(public_users_router, prefix="/v1")
     app.include_router(tapir_admin_audit_router, prefix="/v1")
     app.include_router(taxonomy_router, prefix="/v1")
-
+    app.include_router(orcid_router, prefix="/v1")
+    app.include_router(author_id_router, prefix="/v1")
 
     @app.middleware("http")
     async def apply_response_headers(request: Request, call_next: Callable) -> Response:

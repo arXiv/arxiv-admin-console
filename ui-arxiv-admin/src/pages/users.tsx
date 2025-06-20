@@ -1,5 +1,5 @@
 import {
-    Divider,
+    Divider, IconButton,
     useMediaQuery,
 } from '@mui/material';
 
@@ -11,7 +11,7 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Box from '@mui/material/Box';
-import Checkbox from '@mui/material/Checkbox';
+import EmailIcon from '@mui/icons-material/Email';
 
 
 import {
@@ -42,16 +42,16 @@ import {
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
 import React, {useContext, useEffect, useState} from "react";
-import CategoryField from "./bits/CategoryField";
-import PersonNameField from "./bits/PersonNameField";
-import CareereStatusField from "./bits/CareereStatusField";
-import LastLoginField from "./bits/LastLoginField";
+import CategoryField from "../bits/CategoryField";
+import PersonNameField from "../bits/PersonNameField";
+import CareereStatusField from "../bits/CareereStatusField";
+import LastLoginField from "../bits/LastLoginField";
 import Typography from "@mui/material/Typography";
-import PaperOwnersList from "./bits/PaperOwnersList";
-import {AdminAuditList} from "./bits/TapirAdminLogs";
+import PaperOwnersList from "../bits/PaperOwnersList";
+import {AdminAuditList} from "../bits/TapirAdminLogs";
 import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
-import {RuntimeContext} from "./RuntimeContext"; // for "Become This User"
+import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import { useLocation, useNavigate } from 'react-router-dom';
 
 
@@ -295,9 +295,19 @@ function UserDemographic() {
             </TableCell>
         </TableRow>
         <TableRow>
+            <TableCell>arXiv Author ID</TableCell>
+            <TableCell>
+                <ReferenceField reference={"author_ids"} source={"id"} >
+                    <TextField source="author_id" emptyText={"No author ID"} />
+                </ReferenceField>
+            </TableCell>
+        </TableRow>
+        <TableRow>
             <TableCell>ORCID</TableCell>
             <TableCell>
-                <TextField source="orcid" />
+                <ReferenceField reference={"orcid_ids"} source={"id"} >
+                    <TextField source="orcid" emptyText={"No ORCID"} />
+                </ReferenceField>
             </TableCell>
         </TableRow>
     </Table>);
@@ -462,19 +472,14 @@ export const UserEdit = () => {
         <SimpleForm toolbar={<UserEditToolbar />}>
             <Grid container>
                 <Grid size={{xs: 6}} >
-                    <Table size="small">
-                        <TableRow>
-                            <TableCell>
-                                <TextInput source="email" helperText={false} />
-                            </TableCell>
-                            <TableCell>
-                                <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} />
-                            </TableCell>
-                            <TableCell>
-                                <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}} />
-                            </TableCell>
-                        </TableRow>
-                    </Table>
+                    <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
+                        <TextInput source="email" helperText={false} />
+                        <IconButton  color="primary" aria-label="send email" onClick={() => {}} >
+                            <EmailIcon />
+                        </IconButton>
+                        <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} />
+                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}} />
+                    </Box>
 
                     <Table size="small">
                         <TableRow>
@@ -525,7 +530,7 @@ export const UserEdit = () => {
                                             <TableCell>
                                                 {
                                                     input === null ? null :
-                                                        (<BooleanInput source={input.source}label={input.label}
+                                                        (<BooleanInput source={input.source} label={input.label}
                                                                        helperText={false} sx={switchProps} size="small" />)
 
                                                 }
@@ -545,7 +550,7 @@ export const UserEdit = () => {
                                             <TableCell>
                                                 {
                                                     input === null ? null :
-                                                        (<BooleanInput source={input.source}label={input.label}
+                                                        (<BooleanInput source={input.source} label={input.label}
                                                                       helperText={false} sx={switchProps} size="small" />)
 
                                                 }
