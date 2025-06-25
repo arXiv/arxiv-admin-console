@@ -484,20 +484,22 @@ class TestEndorsementJudgement(unittest.TestCase):
         data = endorsement_request_good_data.copy()
         data['endorsee_id'] = str(endorsee.id)
         endorsement_request = EndorsementRequestModel.model_validate(data)
+        assert endorsement_request.archive != None
+        assert endorsement_request.subject_class != None
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_code=code,
+            endorsement_request=endorsement_request,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertTrue(business.can_submit())
         self.assertEqual("Endorser user-cs-mod is a moderator in cs.AI.", business.reason)
@@ -522,17 +524,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertFalse(business.can_submit())
 
@@ -556,18 +558,19 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
+
         self.assertFalse(business.can_submit())
         self.assertEqual("This endorsing user's ability to endorse has been suspended by administrative action.",
                          business.reason)
@@ -595,17 +598,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertFalse(business.can_submit())
         self.assertEqual("Proxy submitters are not allowed to endorse.", business.reason)
@@ -631,17 +634,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertFalse(business.can_submit())
         self.assertEqual("We don't issue endorsements for non-definitive categories.", business.reason)
@@ -667,17 +670,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertTrue(business.can_submit())
         self.assertEqual("Endorser moderator is a moderator in econ.", business.reason)
@@ -706,17 +709,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertFalse(business.can_submit())
         self.assertEqual("Requesting user's ability to upload has been suspended.", business.reason)
@@ -742,17 +745,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertTrue(business.can_submit())
         self.assertEqual("Endorser is author of: Paper 8001, Paper 8002, Paper 8003.", business.reason)
@@ -778,17 +781,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertFalse(business.can_submit())
         self.assertEqual(
@@ -816,17 +819,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertTrue(business.can_submit())
         self.assertEqual("Endorser is author of: Paper 8001, Paper 8002, Paper 8003.", business.reason)
@@ -852,17 +855,17 @@ class TestEndorsementJudgement(unittest.TestCase):
 
         business = EndorsementBusiness(
             self.accessor,
-            code,
             endorser,
             endorsee,
-            endorsement_request,
-            str(self.tapir_session_id),
-
-            self.client_host,
-            self.client_host_name,
-
             self.audit_timestamp,
-            self.tracking_cookie,
+            archive=endorsement_request.archive,
+            subject_class=endorsement_request.subject_class,
+            endorsement_request=endorsement_request,
+            endorsement_code=code,
+            session_id=str(self.tapir_session_id),
+            remote_host_ip=self.client_host,
+            remote_host_name=self.client_host_name,
+            tracking_cookie=self.tracking_cookie,
         )
         self.assertFalse(business.can_submit())
         self.assertEqual("User must be the registered author of 3 registered papers to endorse for econ.EM but has only 2 in the 3mo-5yr window.", business.reason)

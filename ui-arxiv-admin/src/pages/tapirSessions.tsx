@@ -36,6 +36,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import { addDays } from 'date-fns';
 
 import React, {useContext, useEffect} from "react";
+import { useFormContext } from 'react-hook-form';
 // import SaveOnlyActions from "../bits/SaveOnlyActions";
 import SaveOnlyToolbar from "../bits/SaveOnlyToolbar";
 
@@ -139,12 +140,13 @@ const TapirSessionTitle = () => {
 
 const CloseSessionToggle: React.FC = () => {
     const formGroupState = useFormGroup("tapirSessions");
-    const record = useRecordContext();
+    const { watch } = useFormContext();
+    const formValues = watch();
 
-    console.log("formGroupState record: " + JSON.stringify(record));
+    console.log("formGroupState record: " + JSON.stringify(formValues));
     console.log("formGroupState: " + JSON.stringify(formGroupState));
 
-    return <BooleanInput source="close_session" label="Close session" disabled={record?.close_session} />;
+    return <BooleanInput source="close_session" label="Close session" disabled={formValues?.close_session} />;
 };
 
 

@@ -1,9 +1,5 @@
 """arXiv moderator routes."""
-import re
-from datetime import timedelta, datetime, date
-from enum import Enum
-import urllib.parse
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
@@ -69,7 +65,7 @@ class ModeratorModel(BaseModel):
     id: str
     user_id: int
     archive: str
-    subject_class: Optional[str]
+    subject_class: Optional[str] = None
     is_public: bool
     no_email: bool
     no_web_email: bool
@@ -103,6 +99,7 @@ async def list_moderators_0(
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
+        id: Optional[List[str]] = Query(None, description="List of Moderator IDs."),
         user_id: Optional[int] = Query(None),
         archive: Optional[str] = Query(None),
         subject_class: Optional[str] = Query(None),
@@ -110,70 +107,85 @@ async def list_moderators_0(
         last_name: Optional[str] = Query(None),
         db: Session = Depends(get_db)
     ) -> List[ModeratorModel]:
-    if _start < 0 or _end < _start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid start or end index")
-
-    order_columns = []
-    if _sort:
-        keys = _sort.split(",")
-        for key in keys:
-            if key in order_columns:
-                continue
-            if key == "id":
-                order_columns = [
-                    getattr(t_arXiv_moderators.c, col) for col in ["archive", "subject_class", "user_id"]
-                ]
-                continue
-            try:
-                order_column = getattr(t_arXiv_moderators.c, key)
-                order_columns.append(order_column)
-            except AttributeError:
+    if id:
+        mods = []
+        for combind_id in id:
+            u_a_c = combind_id.split("+")
+            if len(u_a_c) != 3:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="Invalid start or end index")
+                                    detail="ID must have 3 elements separated by +, user id, archive, subject class.")
+            mod = ModeratorModel.base_query(db).filter(and_(
+                t_arXiv_moderators.c.user_id == u_a_c[0],
+                t_arXiv_moderators.c.archive == u_a_c[1],
+                t_arXiv_moderators.c.subject_class == u_a_c[2])).one_or_none()
+            if mod is not None:
+                mods.append(ModeratorModel.model_validate(mod))
+        response.headers['X-Total-Count'] = str(mods)
+        return mods
+    else:
+        if _start < 0 or _end < _start:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Invalid start or end index")
+        query = ModeratorModel.base_query(db)
+        order_columns = []
+        if _sort:
+            keys = _sort.split(",")
+            for key in keys:
+                if key in order_columns:
+                    continue
+                if key == "id":
+                    order_columns = [
+                        getattr(t_arXiv_moderators.c, col) for col in ["archive", "subject_class", "user_id"]
+                    ]
+                    continue
+                try:
+                    order_column = getattr(t_arXiv_moderators.c, key)
+                    order_columns.append(order_column)
+                except AttributeError:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                        detail="Invalid start or end index")
 
-    query = ModeratorModel.base_query(db)
-    if user_id is not None:
-        query = query.filter(t_arXiv_moderators.c.user_id == user_id)
+        if user_id is not None:
+            query = query.filter(t_arXiv_moderators.c.user_id == user_id)
 
-    if archive is not None:
-        query = query.filter(t_arXiv_moderators.c.archive.ilike(archive + "%"))
+        if archive is not None:
+            query = query.filter(t_arXiv_moderators.c.archive.ilike(archive + "%"))
 
-    if subject_class is not None:
-        query = query.filter(t_arXiv_moderators.c.subject_class.ilike(subject_class + "%"))
+        if subject_class is not None:
+            query = query.filter(t_arXiv_moderators.c.subject_class.ilike(subject_class + "%"))
 
-    if first_name is not None and last_name is not None:
-        query = query.join(
-            TapirUser,
-            and_(
-                TapirUser.user_id == t_arXiv_moderators.c.user_id,
-                TapirUser.first_name.ilike(first_name + "%"),
-                TapirUser.last_name.ilike(last_name + "%"),
-            ))
-    elif first_name is not None:
-        query = query.join(
-            TapirUser,
-            and_(
-                TapirUser.user_id == t_arXiv_moderators.c.user_id,
-                TapirUser.first_name.ilike(first_name + "%"),
-            ))
-    elif last_name is not None:
-        query = query.join(
-            TapirUser,
-            and_(
-                TapirUser.user_id == t_arXiv_moderators.c.user_id,
-                TapirUser.last_name.ilike(last_name + "%"),
-            ))
+        if first_name is not None and last_name is not None:
+            query = query.join(
+                TapirUser,
+                and_(
+                    TapirUser.user_id == t_arXiv_moderators.c.user_id,
+                    TapirUser.first_name.ilike(first_name + "%"),
+                    TapirUser.last_name.ilike(last_name + "%"),
+                ))
+        elif first_name is not None:
+            query = query.join(
+                TapirUser,
+                and_(
+                    TapirUser.user_id == t_arXiv_moderators.c.user_id,
+                    TapirUser.first_name.ilike(first_name + "%"),
+                ))
+        elif last_name is not None:
+            query = query.join(
+                TapirUser,
+                and_(
+                    TapirUser.user_id == t_arXiv_moderators.c.user_id,
+                    TapirUser.last_name.ilike(last_name + "%"),
+                ))
 
-    for column in order_columns:
-        if _order == "DESC":
-            query = query.order_by(column.desc())
-        else:
-            query = query.order_by(column.asc())
+        for column in order_columns:
+            if _order == "DESC":
+                query = query.order_by(column.desc())
+            else:
+                query = query.order_by(column.asc())
 
-    count = query.count()
-    response.headers['X-Total-Count'] = str(count)
-    return [ModeratorModel.model_validate(mod) for mod in query.offset(_start).limit(_end - _start).all()]
+        count = query.count()
+        response.headers['X-Total-Count'] = str(count)
+        return [ModeratorModel.model_validate(mod) for mod in query.offset(_start).limit(_end - _start).all()]
 
 
 @router.get('/{archive}/subject-class')
@@ -259,47 +271,63 @@ async def update_moderator(request: Request, id: str,
 @router.post('/')
 async def create_moderator(
         request: Request,
+        body: ModeratorModel,
         session: Session = Depends(get_db)) -> ModeratorModel:
-    body = await request.json()
+    data = body.model_dump()
+    if "id" in data:
+        del data["id"]
 
-    stmt = insert(t_arXiv_moderators).values(**body)
+    existing = ModeratorModel.base_query(session).filter(
+        and_(
+            t_arXiv_moderators.c.user_id == int(body.user_id),
+            t_arXiv_moderators.c.archive == body.archive,
+            t_arXiv_moderators.c.subject_class == body.subject_class,
+        )
+    ).one_or_none()
+
+    if existing:
+        raise HTTPException(status_code=409, detail="Moderator already exists.")
+
+    stmt = insert(t_arXiv_moderators).values(**data)
 
     try:
         result = session.execute(stmt)
-        session.commit()
+        session.flush()
 
         # Retrieve the inserted row using a SELECT query
-        user_id = body.get("user_id")
-        archive = body.get("archive")
-        subject_class = body.get("subject_class")
 
-        query = select(t_arXiv_moderators).where(
-            t_arXiv_moderators.c.user_id == user_id,
-            t_arXiv_moderators.c.archive == archive,
-            t_arXiv_moderators.c.subject_class == subject_class
-        )
-        inserted_row = session.execute(query).fetchone()
+        item = ModeratorModel.base_query(session).filter(
+            and_(
+                t_arXiv_moderators.c.user_id == int(body.user_id),
+                t_arXiv_moderators.c.archive == body.archive,
+                t_arXiv_moderators.c.subject_class == body.subject_class)).one_or_none()
 
-        if not inserted_row:
+        if not item:
             raise HTTPException(status_code=500, detail="Failed to fetch inserted record")
 
-        return ModeratorModel.model_validate(dict(inserted_row))
+        session.commit()
+        return ModeratorModel.model_validate(item)
 
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+
 def _delete_moderator(session: Session, user_id: str, archive: str, subject_class: str) -> Response:
-    item = session.query(t_arXiv_moderators).filter(
-        and_(
-            t_arXiv_moderators.c.user_id == user_id,
-            t_arXiv_moderators.c.archive == archive,
-            t_arXiv_moderators.c.subject_class == subject_class)).one_or_none()
-    if item is None:
+    result = session.execute(
+        t_arXiv_moderators.delete().where(
+            and_(
+                t_arXiv_moderators.c.user_id == user_id,
+                t_arXiv_moderators.c.archive == archive,
+                t_arXiv_moderators.c.subject_class == subject_class
+            )
+        )
+    )
+
+    if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Moderator not found")
 
-    item.delete_instance()
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

@@ -1,4 +1,5 @@
 """arXiv publci user routes."""
+from __future__ import annotations
 from functools import reduce
 from http.client import HTTPException
 from typing import Optional
@@ -105,6 +106,12 @@ class PublicUserModel(BaseModel):
         ).outerjoin(Demographic, TapirUser.user_id == Demographic.user_id)
         )
 
+    @staticmethod
+    def one_user(db: Session, user_id: int) -> Optional[PublicUserModel]:
+        user = PublicUserModel.base_select(db).filter(TapirUser.user_id == user_id).one_or_none()
+        if user:
+            return PublicUserModel.model_validate(user)
+        return None
     pass
 
 @router.get("/{user_id:int}")

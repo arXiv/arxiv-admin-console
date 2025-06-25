@@ -193,7 +193,7 @@ arXiv_endorsement_window: [timedelta] = [timedelta(days=365 * 5 + 1), timedelta(
 
 class EndorsementBusiness:
     accessor: EndorsementAccessor
-    endorsement_code: EndorsementCodeModel
+    endorsement_code: Optional[EndorsementCodeModel]
     ensorseR: UserModel
     canon_archive: str        # Normalized archive
     canon_subject_class: str  # Normalized subject class
@@ -213,15 +213,17 @@ class EndorsementBusiness:
     outcome: EndorsementOutcomeModel
 
     def __init__(self, accessor: EndorsementAccessor,
-                 endorsement_code: EndorsementCodeModel,
                  endorseR: UserModel,
                  endorseE: PublicUserModel,
-                 endorsement_request: EndorsementRequestModel,
-                 session_id: str,
-                 remote_host_ip: str,
-                 remote_host_name: str,
                  audit_timestamp: datetime,
-                 tracking_cookie: str,
+                 endorsement_request: Optional[EndorsementRequestModel] = None,
+                 endorsement_code: Optional[EndorsementCodeModel] = None,
+                 archive: str = "",
+                 subject_class: str = "",
+                 session_id: str = "",
+                 remote_host_ip: str = "",
+                 remote_host_name: str = "",
+                 tracking_cookie: str = "",
                  ):
         super().__init__()
         self.accessor = accessor
@@ -230,9 +232,12 @@ class EndorsementBusiness:
         # Participants
         self.endorseR = endorseR
 
-        assert(isinstance(endorsement_request, EndorsementRequestModel))
+        if endorsement_request:
+            assert(isinstance(endorsement_request, EndorsementRequestModel))
 
-        self.canon_archive, self.canon_subject_class = canonicalize_category(endorsement_request.archive, endorsement_request.subject_class)
+        self.archive = archive
+        self.subject_class = subject_class
+        self.canon_archive, self.canon_subject_class = canonicalize_category(archive, subject_class)
 
         self.session_id = session_id
         self.remote_host_ip = remote_host_ip
@@ -337,12 +342,8 @@ class EndorsementBusiness:
         return self.outcome.endorsement_request
 
     @property
-    def archive(self):
-        return self.outcome.endorsement_request.archive
-
-    @property
-    def subject_class(self):
-        return self.outcome.endorsement_request.subject_class
+    def endorsement_request_id(self):
+        return self.outcome.endorsement_request.id if self.outcome.endorsement_request else None
 
     @property
     def point_value(self) -> int:
@@ -455,10 +456,10 @@ class EndorsementBusiness:
         # ARXIVDEV-3461 - if this endorsement domain has the mod_endorse_all field
         # enabled, then any moderator within that domain should be able to endorse
         # within that domain (not just their moderated category)
-        if endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.endorsement_request.archive, None):
-            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {self.endorsement_request.archive}.")
+        if endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.archive, None):
+            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {self.archive}.")
 
-        if self.accessor.is_moderator(self.endorseR.id, self.endorsement_request.archive, self.endorsement_request.subject_class):
+        if self.accessor.is_moderator(self.endorseR.id, self.archive, self.subject_class):
             category = pretty_category(self.archive, self.subject_class)
             return self.accept(f"Endorser {self.endorseR.username} is a moderator in {category}.")
 
@@ -515,7 +516,7 @@ class EndorsementBusiness:
             not self.accessor.is_academic_email(self.endorseE.email)[0])
         does_not_accept_email = endorsement_domain.endorse_email != "y"
         if not_enough_papers and not_academic_email and does_not_accept_email:
-            category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
+            category = pretty_category(self.archive, self.subject_class)
             reason = f"User is not allowed to submit to {category}."
             if not_enough_papers:
                 reason = reason + " Not enough papers endorsed."
@@ -532,7 +533,7 @@ class EndorsementBusiness:
                                                   [None, None], require_author=False)
 
         if not papers:
-            category = pretty_category(self.endorsement_request.archive, self.endorsement_request.subject_class)
+            category = pretty_category(self.archive, self.subject_class)
             # The original message did not make any sense to me.
             # Added the first part of error message.
             reason = f"Endorser does not have enough registered papers in {category} in the 3mo-5yr window."
@@ -564,6 +565,79 @@ class EndorsementBusiness:
             reason += f" (user is non-author of {non_author_n_papers})"
         reason = reason + "."
         return self.reject(reason, public_reason=True, request_acceptable=True, endorser_n_papers=non_author_n_papers)
+
+
+    def admin_approve(self) -> bool:
+        """
+        This is about the endorser is ablet to submit an endorsement.
+        """
+
+        category = self.accessor.get_category(self.canon_archive, self.canon_subject_class)
+        if not category:
+            category = self.accessor.get_category(self.archive, self.subject_class)
+            if not category:
+                return self.reject("We don't issue endorsements for non-definitive categories - no such category.",
+                                   public_reason=True)
+
+        elif not category.definitive:
+            return self.reject("We don't issue endorsements for non-definitive categories.", public_reason=True)
+
+        endorsement_domain = self.accessor.get_domain_info(category)
+        if not endorsement_domain:
+            return self.reject("We don't issue endorsements for non-definitive categories - no such domain.",
+                               public_reason=True)
+
+        self.endorsement_domain = endorsement_domain
+
+        #
+        if endorsement_domain.endorse_all == "y":
+            category = pretty_category(self.archive, self.subject_class)
+            return self.accept(f"Everyone gets an auto-endorsement for category {category}.")
+
+        # can submit?
+        endorsee = self.accessor.get_user(str(self.endorseE.id))
+        if endorsee is None:
+            raise HTTPException(status_code=500, detail="Endorsee is not found")
+
+        if endorsee.veto_status == "no-upload":
+            # Endorser is okay but endorsee is not
+            return self.reject("Requesting user's ability to upload has been suspended.",
+                               endorser_capability=EndorserCapabilityType.unknown)
+
+        # check 1 - has_endorsements
+        self._find_endorsements()
+
+        # check 2 - auto endorsed
+        # First test to see if there is a reason not to autoendorse (questionable category, marked invalid, is flagged)
+        questionable_category = self.accessor.get_questionable_categories(self.canon_archive,
+                                                                          self.canon_subject_class)
+
+        if questionable_category:
+            invalids = [
+                endorsement for endorsement in self.endorsements if
+                (not endorsement.flag_valid) and endorsement.type == "auto" and (
+                        (
+                                    endorsement.archive == self.canon_archive and endorsement.subject_class == self.canon_subject_class) or
+                        (endorsement.archive == self.archive and endorsement.subject_class == self.subject_class))
+            ]
+            if invalids:
+                return self.reject("User's auto-endorsement has been invalidated (strong case).",
+                                   endorser_capability=EndorserCapabilityType.unknown)
+
+        else:
+            invalidated = [endorsement for endorsement in self.endorsements if
+                           not endorsement.flag_valid and endorsement.type == 'auto']
+            # if not invalidated: ? REVIEW THIS
+            if invalidated:
+                return self.reject("User's auto-endorsement has been invalidated.",
+                                   endorser_capability=EndorserCapabilityType.unknown)
+
+            if endorsee.flag_suspect:
+                return self.reject("User is flagged, does not get autoendorsed.",
+                                   endorser_capability=EndorserCapabilityType.unknown)
+
+        return self.accept(f"Endorser is admin.", endorser_capability=EndorserCapabilityType.credited)
+
 
     def submit_endorsement(self) -> EndorsementModel | None:
         result = self.accessor.arxiv_endorse(self)

@@ -301,7 +301,7 @@ export interface paths {
         put?: never;
         /**
          * Create Endorsement
-         * @description Create a new endorsement by admin
+         * @description Create a new endorsement (admin user only)
          */
         post: operations["create_endorsement_v1_endorsements__post"];
         delete?: never;
@@ -1517,6 +1517,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orcid_ids/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Membership Institutions */
+        get: operations["list_membership_institutions_v1_orcid_ids__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orcid_ids/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membership Institution Data */
+        get: operations["membership_institution_data_v1_orcid_ids__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/author_ids/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Membership Institutions */
+        get: operations["list_membership_institutions_v1_author_ids__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/author_ids/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membership Institution Data */
+        get: operations["membership_institution_data_v1_author_ids__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -1607,6 +1675,15 @@ export interface components {
             start_date: string;
             /** End Date */
             end_date?: string | null;
+        };
+        /** AuthorIDModel */
+        AuthorIDModel: {
+            /** Id */
+            id: number | null;
+            /** Author Id */
+            author_id: string | null;
+            /** Updated */
+            updated: string | null;
         };
         /**
          * Category
@@ -1812,6 +1889,32 @@ export interface components {
             /** Seen Paper */
             seen_paper: boolean;
         };
+        /** EndorsementCreationModel */
+        EndorsementCreationModel: {
+            /** Endorser Id */
+            endorser_id: string;
+            /** Endorsee Id */
+            endorsee_id: string;
+            /** Archive */
+            archive: string;
+            /** Subject Class */
+            subject_class: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type_: "user" | "admin" | "auto";
+            /** Point Value */
+            point_value: number;
+            /** Flag Valid */
+            flag_valid: boolean;
+            /** Flag Seen Paper */
+            flag_seen_paper: boolean;
+            /** Flag Knows Personally */
+            flag_knows_personally: boolean;
+            /** Comment */
+            comment?: string | null;
+        };
         /** EndorsementModel */
         EndorsementModel: {
             /** Id */
@@ -1825,8 +1928,10 @@ export interface components {
             /** Subject Class */
             subject_class: string;
             /** Flag Valid */
-            flag_valid: number;
+            flag_valid: boolean;
             type?: components["schemas"]["EndorsementType"] | null;
+            /** Positive Endorsement */
+            positive_endorsement: boolean;
             /** Point Value */
             point_value: number;
             /**
@@ -1837,6 +1942,20 @@ export interface components {
             /** Request Id */
             request_id?: number | null;
             arXiv_category?: components["schemas"]["CategoryModel"] | null;
+            /** Session Id */
+            session_id?: number | null;
+            /** Comment */
+            comment?: string | null;
+            /** Remote Addr */
+            remote_addr?: string | null;
+            /** Remote Host */
+            remote_host?: string | null;
+            /** Tracking Cookie */
+            tracking_cookie?: string | null;
+            /** Flag Knows Personally */
+            flag_knows_personally?: boolean | null;
+            /** Flag Seen Paper */
+            flag_seen_paper?: boolean | null;
         };
         /** EndorsementOutcomeModel */
         EndorsementOutcomeModel: {
@@ -2033,7 +2152,7 @@ export interface components {
             /** Archive */
             archive: string;
             /** Subject Class */
-            subject_class: string | null;
+            subject_class?: string | null;
             /** Is Public */
             is_public: boolean;
             /** No Email */
@@ -2044,6 +2163,17 @@ export interface components {
             no_reply_to: boolean;
             /** Daily Update */
             daily_update: boolean;
+        };
+        /** OrcidIDModel */
+        OrcidIDModel: {
+            /** Id */
+            id: number | null;
+            /** Orcid */
+            orcid: string | null;
+            /** Authenticated */
+            authenticated: boolean | null;
+            /** Updated */
+            updated: string | null;
         };
         /** OwnershipModel */
         OwnershipModel: {
@@ -2455,14 +2585,17 @@ export interface components {
         UserModel: {
             /** Id */
             id?: number | null;
-            /** Email */
+            /**
+             * Email
+             * Format: email
+             */
             email: string;
             /** First Name */
             first_name: string;
             /** Last Name */
             last_name: string;
             /** Suffix Name */
-            suffix_name: string;
+            suffix_name?: string | null;
             /**
              * Share First Name
              * @default true
@@ -2585,23 +2718,30 @@ export interface components {
             veto_status?: components["schemas"]["VetoStatusEnum"] | null;
             /** Flag Is Mod */
             flag_is_mod?: boolean | null;
+            /** Moderated Categories */
+            moderated_categories?: string[] | null;
+            /** Moderated Archives */
+            moderated_archives?: string[] | null;
             /** Tapir Policy Classes */
             tapir_policy_classes?: number[] | null;
-            /** Orcid */
-            orcid?: string | null;
+            /** Orcid Id */
+            orcid_id?: string | null;
         };
         /** UserUpdateModel */
         UserUpdateModel: {
             /** Id */
             id?: number | null;
-            /** Email */
+            /**
+             * Email
+             * Format: email
+             */
             email: string;
             /** First Name */
             first_name: string;
             /** Last Name */
             last_name: string;
             /** Suffix Name */
-            suffix_name: string;
+            suffix_name?: string | null;
             /**
              * Share First Name
              * @default true
@@ -2724,10 +2864,14 @@ export interface components {
             veto_status?: components["schemas"]["VetoStatusEnum"] | null;
             /** Flag Is Mod */
             flag_is_mod?: boolean | null;
+            /** Moderated Categories */
+            moderated_categories?: string[] | null;
+            /** Moderated Archives */
+            moderated_archives?: string[] | null;
             /** Tapir Policy Classes */
             tapir_policy_classes?: number[] | null;
-            /** Orcid */
-            orcid?: string | null;
+            /** Orcid Id */
+            orcid_id?: string | null;
         };
         /**
          * UserVetoStatus
@@ -3690,7 +3834,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndorsementCreationModel"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -3699,6 +3847,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EndorsementModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4794,6 +4951,8 @@ export interface operations {
                 _order?: string | null;
                 _start?: number | null;
                 _end?: number | null;
+                /** @description List of Moderator IDs. */
+                id?: string[] | null;
                 user_id?: number | null;
                 archive?: string | null;
                 subject_class?: string | null;
@@ -4833,7 +4992,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModeratorModel"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4842,6 +5005,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModeratorModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6171,6 +6343,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Archive"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_membership_institutions_v1_orcid_ids__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description User ID */
+                id?: number[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrcidIDModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    membership_institution_data_v1_orcid_ids__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrcidIDModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_membership_institutions_v1_author_ids__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description User ID */
+                id?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorIDModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    membership_institution_data_v1_author_ids__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorIDModel"];
                 };
             };
             /** @description Validation Error */

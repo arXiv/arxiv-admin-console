@@ -49,7 +49,7 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ sourceCategory, sourceCla
     const renderContent = (): ReactNode => {
         switch (renderAs) {
             case 'chip':
-                return <Chip key={categoryText} label={categoryText} variant="outlined" sx={{ mr: 1, mb: 1 }} />;
+                return <Chip size={"small"} key={categoryText} label={categoryText}  sx={{ mr: 1, mb: 0 }} />;
             default:
                 return <Typography>{categoryText}</Typography>;
         }

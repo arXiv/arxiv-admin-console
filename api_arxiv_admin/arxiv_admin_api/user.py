@@ -275,7 +275,6 @@ async def update_user(request: Request,
         raise HTTPException(status_code=404, detail="User not found")
 
     demographic = session.query(Demographic).filter(Demographic.user_id == user_id).first()
-
     update_data = user_update.model_dump(exclude_unset=True)  # Exclude fields that were not provided
 
     # check new category
@@ -292,13 +291,87 @@ async def update_user(request: Request,
     elif hasattr(update_data, 'subject_class'):
         raise HTTPException(status_code=404, detail="Need archive and subject_class")
 
-    for key, value in update_data.items():
-        if hasattr(user, key):
-            setattr(user, key, value)  # Update the user's fields
-        elif demographic and hasattr(demographic, key):
-            setattr(demographic, key, value)
-        else:
-            raise HTTPException(status_code=404, detail="Bad update data")
+    _ = '''
+    email: EmailStr
+    first_name: str
+    last_name: str
+    suffix_name: Optional[str] = None
+    share_first_name: bool = True
+    share_last_name: bool = True
+    username: str
+    share_email: int = 8
+    email_bouncing: bool = False
+    policy_class: int
+    joined_date: int
+    joined_ip_num: Optional[str] = None
+    joined_remote_host: str
+    flag_internal: bool = False
+    flag_edit_users: bool = False
+    flag_edit_system: bool = False
+    flag_email_verified: bool = False
+    flag_approved: bool = True
+    flag_deleted: bool = False
+    flag_banned: bool = False
+    flag_wants_email: Optional[bool] = None
+    flag_html_email: Optional[bool] = None
+    tracking_cookie: Optional[str] = None
+    flag_allow_tex_produced: Optional[bool] = None
+    flag_can_lock: Optional[bool] = None
+
+    # From Demographic
+    country: Optional[
+        str] = None  # = mapped_column(String(2), nullable=False, index=True, server_default=FetchedValue())
+    affiliation: Optional[str] = None  # = mapped_column(String(255), nullable=False, server_default=FetchedValue())
+    url: Optional[str] = None  # = mapped_column(String(255), nullable=False, server_default=FetchedValue())
+    type: Optional[int] = None  # = mapped_column(SmallInteger, index=True)
+    archive: Optional[str] = None  # = mapped_column(String(16))
+    subject_class: Optional[str] = None  # = mapped_column(String(16))
+    original_subject_classes: str  # = mapped_column(String(255), nullable=False, server_default=FetchedValue())
+    flag_group_physics: Optional[int] = None  # = mapped_column(Integer, index=True)
+    flag_group_math: Optional[
+        int]  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_cs: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_nlin: Optional[
+        int]  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_proxy: Optional[int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_journal: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_xml: Optional[int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    dirty: Optional[int] = None  # = mapped_column(Integer, nullable=False, server_default=text("'0'"))
+    flag_group_test: Optional[int] = None  # = mapped_column(Integer, nullable=False, server_default=text("'0'"))
+    flag_suspect: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_q_bio: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_q_fin: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_stat: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_eess: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    flag_group_econ: Optional[
+        int] = None  # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
+    veto_status: Optional[
+        VetoStatusEnum] = None  # Mapped[Literal['ok', 'no-endorse', 'no-upload', 'no-replace']] = mapped_column(Enum('ok', 'no-endorse', 'no-upload', 'no-replace'), nullable=False, server_default=text("'ok'"))
+
+    flag_is_mod: Optional[bool] = None
+    moderated_categories: Optional[List[str]] = None
+    moderated_archives: Optional[List[str]] = None
+
+    tapir_policy_classes: Optional[List[int]] = None
+
+    orcid_id: Optional[str] = None
+
+    @field_validator('first_name', 'last_name', 'suffix_name', 'username', 'country', 'affiliation', 'url',
+                     'archive', 'subject_class', 'original_subject_classes', 'orcid_id',)
+    @classmethod
+    def strip_field_value(cls, value: str | None) -> str | None:
+        return value.strip() if value else value
+
+
+'''
+
 
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data

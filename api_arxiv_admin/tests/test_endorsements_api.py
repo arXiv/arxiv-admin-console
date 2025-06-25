@@ -1,7 +1,6 @@
 import pytest
 from datetime import datetime
 
-
 from arxiv_bizlogic.database import DatabaseSession
 from arxiv.db.models import EndorsementRequest, TapirUser
 from arxiv_admin_api.biz.endorsement_io import EndorsementDBAccessor
@@ -9,19 +8,9 @@ from arxiv_admin_api.biz.endorsement_biz import EndorsementBusiness
 from arxiv_admin_api.endorsements import EndorsementCodeModel
 from arxiv_admin_api.endorsement_requests import EndorsementRequestModel
 
-from tests.scaffolding import setup_db_fixture, teardown_db_fixture
-
-
-@pytest.fixture(scope="class", autouse=True)
-def setup_db():
-    """Fixture to set up and tear down the database."""
-    setup_db_fixture()  # Setup before tests
-    yield
-    teardown_db_fixture()  # Teardown after tests
-
 
 @pytest.fixture(scope="function")
-def db_session():
+def db_session(setup_db_fixture):
     """Fixture to provide a database session."""
     with DatabaseSession() as session:
         yield session
@@ -37,7 +26,7 @@ def test_tapir_session_id():
     return 100
 
 
-@pytest.mark.usefixtures("setup_db")
+@pytest.mark.usefixtures("setup_db_fixture")
 class TestReadOnlys:
 
     def test_see_papers(self, db_session):
@@ -125,7 +114,7 @@ class TestReadOnlys:
         assert count == 143
 
 
-@pytest.mark.usefixtures("setup_db")
+@pytest.mark.usefixtures("setup_db_fixture")
 class TestCreateEndorsement:
 
     def test_create_endorsement(self, db_session, test_audit_timestamp, test_tapir_session_id):
@@ -154,18 +143,22 @@ class TestCreateEndorsement:
             seen_paper=True,
             positive=True,
         )
+        assert erm0.archive != None
+        assert erm0.subject_class != None
 
         business = EndorsementBusiness(
             accessor,
-            code,
             endorser,
             endorsee,
-            erm0,
-            str(test_tapir_session_id),
-            client_host,
-            client_host_name,
             test_audit_timestamp,
-            tracking_cookie,
+            archive=erm0.archive,
+            subject_class=erm0.subject_class,
+            endorsement_code=code,
+            endorsement_request=erm0,
+            session_id=str(test_tapir_session_id),
+            remote_host_ip=client_host,
+            remote_host_name=client_host_name,
+            tracking_cookie=tracking_cookie,
         )
         assert business.can_submit()
         endorsement = business.submit_endorsement()

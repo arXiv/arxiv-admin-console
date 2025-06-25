@@ -165,7 +165,9 @@ export const AdminAuditList: React.FC = () => {
 
     return (
         <ListContextProvider value={controllerProps}>
-            <Datagrid rowClick="show" empty={<p><b>No audits for this user</b></p>}>
+            <Datagrid rowClick="show" empty={<p><b>No audits for this user</b></p>} size="small"
+                      bulkActionButtons={false}
+            >
                 <DateField source="log_date" />
                 <ReferenceField reference={"users"} source={"admin_user"} >
                     <UserNameField />

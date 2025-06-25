@@ -183,7 +183,7 @@ const EndorsementTitle = () => {
     );
 
     return (
-        <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+        <Box sx={{ flex: 8, display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'baseline'}} >
             {endorser}
             {action}
             <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
@@ -200,7 +200,7 @@ const EndorsementTitle = () => {
 };
 
 export const EndorsementEdit = () => (
-    <Edit title={<EndorsementTitle />} >
+    <Edit title={ <EndorsementTitle />}  >
         <SimpleForm>
             <div style={{
                 display: 'grid',

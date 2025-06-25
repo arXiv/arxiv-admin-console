@@ -1,5 +1,4 @@
 import {
-    Divider, IconButton,
     useMediaQuery,
 } from '@mui/material';
 
@@ -12,6 +11,7 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Box from '@mui/material/Box';
+import Divider from '@mui/material/Divider';
 import EmailIcon from '@mui/icons-material/Email';
 
 
@@ -55,6 +55,13 @@ import LoginIcon from '@mui/icons-material/Login';
 import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import { useLocation, useNavigate } from 'react-router-dom';
 import EmailLinkField from "../bits/EmailLinkField";
+import ModerationCategoryDialog from "../components/ModerationCategoryDialog";
+import EndorsementCategoryDialog from "../components/EndorsementCategoryDialog";
+
+import { paths as adminApi } from '../types/admin-api';
+
+type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
+type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
 
 
 const UserFilter = (props: any) => (
@@ -290,14 +297,6 @@ function UserDemographic() {
                 <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" />
             </TableCell>
         </TableRow>
-        <TableRow>
-            <TableCell>
-                Moderator for
-            </TableCell>
-            <TableCell>
-                <UserModerationCategories />
-            </TableCell>
-        </TableRow>
 
         <TableRow>
             <TableCell>Career Status</TableCell>
@@ -326,30 +325,31 @@ function UserDemographic() {
 }
 
 
-function UserEndorsements() {
-    const record = useRecordContext<any>();
-    const [endorsements, setEndorsements] = useState<any[]>([]);
+function UserEndorsements({open, setOpen} : {open: boolean, setOpen: (open: boolean) => void}) {
+    const record = useRecordContext();
     const dataProvider = useDataProvider();
+    const [endorsements, setEndorsements] = useState<EndorsementT[]>([]);
 
     useEffect(() => {
-        const fetchEndorsements = async (userId: number) => {
-            try {
-                const response = await dataProvider.getList('endorsements', {
-                    filter: {endorsee_id: userId}, sort: {field: 'archive,subject_class', order: 'ASC'},
-                });
-                setEndorsements(response.data);
-            } catch (error) {
-                console.error("Error fetching endorsements data:", error);
+        const fetchEndorsements = async () => {
+            if (record?.id) {
+                try {
+                    const response = await dataProvider.getList('endorsements', {
+                        filter: {endorsee_id: record.id}, sort: {field: 'archive,subject_class', order: 'ASC'},
+                    });
+                    setEndorsements(response.data);
+                } catch (error) {
+                    console.error("Error fetching endorsements data:", error);
+                }
             }
         };
 
-        if (record)
-            fetchEndorsements(record.id);
-    }, [dataProvider, record]);
+        fetchEndorsements();
+    }, [dataProvider, record, open]);
 
-    function Endorsement(props: any) {
+    function Endorsement({domain}: {domain: EndorsementT}) {
         return (
-                <RecordContextProvider value={props.endorsement} >
+                <RecordContextProvider value={domain} >
                     <ReferenceField source="id" reference="endorsements" label={""}
                                     link={(record, reference) => `/${reference}/${record.id}`}>
                         <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
@@ -359,42 +359,49 @@ function UserEndorsements() {
     }
 
     return (
-        <Box>
-            <Box >Endorsed for</Box>
+        <>
             {
                 endorsements.map((endorsement, _index) => (
-                        <Endorsement endorsement={endorsement} />
+                        <Endorsement domain={endorsement} />
                 ))
             }
-        </Box>
+            <EndorsementCategoryDialog
+                open={open}
+                setOpen={setOpen}
+                userId={Number(record?.id) || 0}
+            />
+        </>
     );
 }
 
 
-function UserModerationCategories() {
-    const record = useRecordContext<any>();
-    const [moderationCategories, setModerationCategories] = useState<any[]>([]);
+function UserModerationCategories({open, setOpen} : {open: boolean, setOpen: (open: boolean) => void}) {
+    const record = useRecordContext();
     const dataProvider = useDataProvider();
+    const [moderationCategories, setModerationCategories] = useState<ModeratorT[]>([]);
 
     useEffect(() => {
-        const fetchModerationCategories = async (userId: number) => {
-            try {
-                const response = await dataProvider.getList('moderators', {
-                    filter: {user_id: userId}, sort: {field: 'archive,subject_class', order: 'ASC'},
-                });
-                setModerationCategories(response.data);
-            } catch (error) {
-                console.error("Error fetching moderators data:", error);
+        const fetchModerationCategories = async () => {
+            console.log("fetchModerationCategories " + JSON.stringify(record));
+            if (record?.id) {
+
+                try {
+                    const response = await dataProvider.getList('moderators', {
+                        filter: {user_id: record.id}, sort: {field: 'archive,subject_class', order: 'ASC'},
+                    });
+                    setModerationCategories(response.data);
+                } catch (error) {
+                    console.error("Error fetching moderators data:", error);
+                }
             }
         };
 
-        if (record)
-            fetchModerationCategories(record.id);
+        fetchModerationCategories();
     }, [dataProvider, record]);
 
-    function ModerationCategory(props: any) {
+    function ModerationCategory({domain}: {domain: ModeratorT}) {
         return (
-            <RecordContextProvider value={props.endorsement} >
+            <RecordContextProvider value={domain} >
                 <ReferenceField source="id" reference="moderators" label={""}
                                 link={(record, reference) => `/${reference}/${record.id}`}>
                     <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
@@ -405,11 +412,17 @@ function UserModerationCategories() {
 
     return (
         <>
-        {
-                moderationCategories.map((endorsement, _index) => (
-                    <ModerationCategory endorsement={endorsement} />
+            {
+                moderationCategories.map((domain, _index) => (
+                    <ModerationCategory domain={domain} />
                 ))
-        }
+            }
+
+            <ModerationCategoryDialog
+                open={open}
+                setOpen={setOpen}
+                userId={Number(record?.id) || 0}
+            />
         </>
     );
 }
@@ -479,6 +492,9 @@ const UserEditToolbar = () => {
 
 
 export const UserEdit = () => {
+    const [isEndorsementsOpen, setIsEndorsementsOpen] = useState(false);
+    const [isModOpen, setIsModOpen] = useState(false);
+
     const switchProps = {
         '& .MuiSwitch-root': {
             transform: 'scale(0.7)', // smaller than small
@@ -596,7 +612,15 @@ export const UserEdit = () => {
                         }
                     </Table>
 
-                    <UserEndorsements />
+                    <Box >
+                        <Button onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
+                        <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen} />
+                    </Box>
+                    <Divider />
+                    <Box >
+                        <Button onClick={() => setIsModOpen(true)}>Moderator for</Button>
+                        <UserModerationCategories  open={isModOpen} setOpen={setIsModOpen} />
+                    </Box>
                     <Divider />
 
                     <AdminAuditList />

@@ -1,0 +1,145 @@
+import React, {useEffect, useState} from "react";
+import {
+    Dialog,
+    DialogContent,
+    DialogActions,
+    DialogTitle,
+    Button,
+    Box,
+    List,
+    ListItem,
+    ListItemText,
+} from "@mui/material";
+
+import Checkbox from '@mui/material/Checkbox';
+
+import { paths as adminApi } from '../types/admin-api';
+import {useDataProvider} from "react-admin";
+import MuiTextField  from "@mui/material/TextField";
+
+type CategoryT = adminApi['/v1/categories/']['get']['responses']['200']['content']['application/json'][0];
+
+const CategoryChooserDialog: React.FC<
+    {
+        title: string;
+        open: boolean;
+        setOpen: (open: boolean) => void;
+        currentCategories: Map<string, boolean>;
+        onUpdateCategory?: (cat_id: string, selections: Map<string, boolean>, on_or_off: boolean) => void;
+        onSaveUpdates?: (selection: Map<string, boolean>) => Promise<void>;
+        saveLabel? : string;
+        setComment?: (comment: string) => void;
+        comment?: string;
+    }
+> = ({ title, open, setOpen, currentCategories, onUpdateCategory, onSaveUpdates, saveLabel, setComment, comment }) => {
+    const [allCategories, setAllCategories] = useState<Map<string, CategoryT>>(new Map());
+    const dataProvider = useDataProvider();
+
+    useEffect(() => {
+        if (open) {
+            const fetchAllCategories = async () => {
+                try {
+                    const { data } = await dataProvider.getList<CategoryT>('categories', {
+                        pagination: { page: 1, perPage: 10000 },
+                        sort: { field: 'id', order: 'ASC' },
+                        filter: {}
+                    });
+
+                    const catMap = new Map<string, CategoryT>();
+                    data.forEach((category) => catMap.set(category.id, category));
+                    setAllCategories(catMap);
+                } catch (error) {
+                    console.error("Error fetching all categories:", error);
+                }
+            };
+
+            fetchAllCategories();
+        }
+    }, [open, dataProvider]);
+
+    const handleToggle = (category: CategoryT) => {
+        if (onUpdateCategory) {
+            const currentSelection = currentCategories.get(category.id);
+            /*
+            if (currentSelection)
+                currentCategories.set(category.id, false);
+            else
+                currentCategories.set(category.id, true);
+             */
+            onUpdateCategory(category.id, currentCategories, !currentSelection);
+        }
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
+
+    const handleSave = async () => {
+        if (onSaveUpdates)
+            await onSaveUpdates(currentCategories);
+        setOpen(false);
+    };
+
+    const commentInput = setComment ? (
+        <MuiTextField
+         value={comment} onChange={(e) => setComment(e.target.value)} label="Comment" multiline rows={2}
+                   fullWidth sx={{mt: 2}} variant="outlined"/>
+    ) : null;
+
+    return (
+        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
+            <DialogTitle>{title}</DialogTitle>
+            <DialogContent>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <List sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1
+                    }}>
+                        {Array.from(allCategories.entries()).map(([key, cat]) => (
+                            <ListItem
+                                key={key}
+                                dense
+                                onClick={() => handleToggle(cat)}
+                                sx={{
+                                    cursor: 'pointer',
+                                    borderRadius: 1,
+                                    flex: '0 0 calc(50% - 8px)',
+                                    '@media (min-width: 900px)': {
+                                        flex: '0 0 calc(33.333% - 8px)'
+                                    },
+                                    '@media (min-width: 1200px)': {
+                                        flex: '0 0 calc(25% - 8px)'
+                                    },
+                                    '&:hover': {
+                                        backgroundColor: '#888'
+                                    }
+                                }}
+                            >
+                                <Checkbox
+                                    edge="start"
+                                    checked={!!currentCategories.get(cat.id)}
+                                    tabIndex={-1}
+                                    disableRipple
+                                />
+                                <ListItemText
+                                    primary={`${cat.archive}.${cat.subject_class}`}
+                                    secondary={cat.category_name}
+                                />
+                            </ListItem>
+                        ))}
+                    </List>
+                </Box>
+                {commentInput}
+            </DialogContent>
+            <DialogActions>
+                {
+                    onSaveUpdates ? <Button onClick={handleSave} variant="contained">{saveLabel || "Save"}</Button> : null
+                }
+                <Button onClick={handleClose}>Cancel</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+export default CategoryChooserDialog;

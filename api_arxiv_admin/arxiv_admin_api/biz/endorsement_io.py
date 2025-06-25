@@ -262,7 +262,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 type=endorsement_type.value,
                 point_value=endorsement.point_value if endorsement.endorsement_code.positive else 0,
                 issued_when=datetime_to_epoch(endorsement.audit_timestamp, datetime.now(UTC)),
-                request_id=endorsement.endorsement_request.id
+                request_id=endorsement.endorsement_request_id
             )
             session.add(new_endorsement)
             session.flush()
@@ -325,7 +325,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 )
 
             # Update request if applicable
-            if endorsement.endorsement_request.id and endorsement.point_value:
+            if endorsement.endorsement_request and endorsement.endorsement_request.id and endorsement.point_value:
                 e_req: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == endorsement.endorsement_request.id).one_or_none()
                 if e_req and e_req.point_value != endorsement.total_points:
                     e_req.point_value = endorsement.total_points

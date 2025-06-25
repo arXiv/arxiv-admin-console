@@ -104,6 +104,6 @@ class EndorsementOutcomeModel(BaseModel):
     endorser_capability: EndorserCapabilityType   # Endorser's capability for submitting
     endorser_n_papers: Optional[int] = None  # number of credible papers
     reason: str
-    endorsement_request: EndorsementRequestModel
-    endorsee: Optional[PublicUserModel]
-    endorsement: Optional[EndorsementModel]
+    endorsement_request: Optional[EndorsementRequestModel] = None
+    endorsee: Optional[PublicUserModel] = None
+    endorsement: Optional[EndorsementModel] = None
