@@ -34,6 +34,7 @@ const CategoryChooserDialog: React.FC<
 > = ({ title, open, setOpen, currentCategories, onUpdateCategory, onSaveUpdates, saveLabel, setComment, comment }) => {
     const [allCategories, setAllCategories] = useState<Map<string, CategoryT>>(new Map());
     const dataProvider = useDataProvider();
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -60,25 +61,38 @@ const CategoryChooserDialog: React.FC<
     const handleToggle = (category: CategoryT) => {
         if (onUpdateCategory) {
             const currentSelection = currentCategories.get(category.id);
-            /*
-            if (currentSelection)
-                currentCategories.set(category.id, false);
-            else
-                currentCategories.set(category.id, true);
-             */
             onUpdateCategory(category.id, currentCategories, !currentSelection);
         }
     };
 
-    const handleClose = () => {
-        setOpen(false);
+
+    const handleSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+
+        // Set saving state to disable the button
+        setIsSaving(true);
+
+        try {
+            if (onSaveUpdates)
+                await onSaveUpdates(currentCategories);
+        } catch (error) {
+            console.error("Error during save operations:", error);
+        } finally {
+            // Re-enable the button regardless of success or failure
+            handleClose();
+            setIsSaving(false);
+        }
+
+        handleClose();
     };
 
-    const handleSave = async () => {
-        if (onSaveUpdates)
-            await onSaveUpdates(currentCategories);
-        setOpen(false);
+    const handleClose = () => {
+        // Only allow closing if not in the middle of saving
+        if (!isSaving) {
+            setOpen(false);
+        }
     };
+
 
     const commentInput = setComment ? (
         <MuiTextField
@@ -133,10 +147,16 @@ const CategoryChooserDialog: React.FC<
                 {commentInput}
             </DialogContent>
             <DialogActions>
-                {
-                    onSaveUpdates ? <Button onClick={handleSave} variant="contained">{saveLabel || "Save"}</Button> : null
-                }
-                <Button onClick={handleClose}>Cancel</Button>
+                {onSaveUpdates ? (
+                    <Button
+                        onClick={handleSave}
+                        variant="contained"
+                        disabled={isSaving}
+                    >
+                        {isSaving ? "Saving..." : (saveLabel || "Save")}
+                    </Button>
+                ) : null}
+                <Button onClick={handleClose} disabled={isSaving}>Cancel</Button>
             </DialogActions>
         </Dialog>
     );
