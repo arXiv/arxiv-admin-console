@@ -252,6 +252,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users/{user_id}/can-submit-to": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User Can Submit To */
+        get: operations["get_user_can_submit_to_v1_users__user_id__can_submit_to_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{user_id}/can-endorse-for": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User Can Endorse For */
+        get: operations["get_user_can_endorse_for_v1_users__user_id__can_endorse_for_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/email_templates/": {
         parameters: {
             query?: never;
@@ -343,6 +377,26 @@ export interface paths {
          */
         post: operations["endorse_v1_endorsements_endorse_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsements/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Endorsement
+         * @description Delete an endorsement (admin user only)
+         */
+        delete: operations["delete_endorsement_v1_endorsements__id___delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1728,6 +1782,19 @@ export interface components {
             /** Endorsement Domain */
             endorsement_domain: string | null;
         };
+        /** CategoryYesNo */
+        CategoryYesNo: {
+            /** Id */
+            id: string;
+            /** Archive */
+            archive: string;
+            /** Subject Class */
+            subject_class: string;
+            /** Positive */
+            positive: boolean;
+            /** Reason */
+            reason: string;
+        };
         /** CountryAlpha2Model */
         CountryAlpha2Model: {
             /** Id */
@@ -1970,9 +2037,9 @@ export interface components {
             endorser_n_papers?: number | null;
             /** Reason */
             reason: string;
-            endorsement_request: components["schemas"]["EndorsementRequestModel"];
-            endorsee: components["schemas"]["PublicUserModel"] | null;
-            endorsement: components["schemas"]["EndorsementModel"] | null;
+            endorsement_request?: components["schemas"]["EndorsementRequestModel"] | null;
+            endorsee?: components["schemas"]["PublicUserModel"] | null;
+            endorsement?: components["schemas"]["EndorsementModel"] | null;
         };
         /** EndorsementRequestModel */
         EndorsementRequestModel: {
@@ -3623,6 +3690,68 @@ export interface operations {
             };
         };
     };
+    get_user_can_submit_to_v1_users__user_id__can_submit_to_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryYesNo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_can_endorse_for_v1_users__user_id__can_endorse_for_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryYesNo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_templates_v1_email_templates__get: {
         parameters: {
             query?: {
@@ -3792,6 +3921,7 @@ export interface operations {
                 end_date?: string | null;
                 /** @description user, auto, admin */
                 type?: string[] | string | null;
+                /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
                 endorser_id?: number | null;
@@ -3846,7 +3976,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementModel"];
+                    "application/json": components["schemas"]["EndorsementModel"] | null;
                 };
             };
             /** @description Validation Error */
@@ -3965,6 +4095,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EndorsementOutcomeModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_endorsement_v1_endorsements__id___delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

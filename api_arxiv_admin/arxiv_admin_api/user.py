@@ -17,7 +17,10 @@ from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demog
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
+from .biz import canonicalize_category
 from .biz.document_biz import document_summary
+from .biz.endorsement_biz import can_user_submit_to, can_user_endorse_for, EndorsementAccessor
+
 
 router = APIRouter(prefix="/users")
 
@@ -428,3 +431,93 @@ def get_user_document_summary(user_id:int,
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return UserDocumentSummary.model_validate(document_summary(db, str(user_id)))
+
+
+class CategoryYesNo(BaseModel):
+    id: str  # for react-admin, it always heeds a unique ID
+    archive: str
+    subject_class: str
+    positive: bool
+    reason: str
+
+
+def from_submit_to_to_category_yes_no(accessor: EndorsementAccessor, cat: Category, user: UserModel) -> CategoryYesNo:
+    canon_archive, canon_subject_class = canonicalize_category(cat.archive, cat.subject_class)
+    positive, biz = can_user_submit_to(accessor, user, canon_archive, canon_subject_class)
+    return CategoryYesNo(
+        id=f"{canon_archive}.{canon_subject_class}",
+        archive=canon_archive,
+        subject_class=canon_subject_class,
+        positive=positive,
+        reason=biz.reason
+    )
+
+
+@router.get("/{user_id:int}/can-submit-to")
+def get_user_can_submit_to(
+        response: Response,
+        user_id:int,
+        current_user: ArxivUserClaims = Depends(get_authn),
+        session: Session = Depends(get_db)) -> List[CategoryYesNo]:
+    from .biz.endorsement_io import EndorsementDBAccessor
+    check_authnz(None, current_user, user_id)
+
+
+    categories: List[Category] = session.query(Category).all()
+    accessor = EndorsementDBAccessor(session)
+
+    result = []
+    user = accessor.get_user(user_id)
+    covered = {}
+
+    cat: Category
+    for cat in categories:
+        canon_archive, canon_subject_class = canonicalize_category(cat.archive, cat.subject_class)
+        tag = f"{canon_archive}.{canon_subject_class}"
+        if tag in covered:
+            continue
+        covered[tag] = True
+        result.append(from_submit_to_to_category_yes_no(accessor, cat, user))
+
+    response.headers['X-Total-Count'] = str(result)
+    return result
+
+
+def from_can_endorse_for_to_category_yes_no(accessor: EndorsementAccessor, cat: Category, user: UserModel) -> CategoryYesNo:
+    canon_archive, canon_subject_class = canonicalize_category(cat.archive, cat.subject_class)
+    positive, biz = can_user_endorse_for(accessor, user, canon_archive, canon_subject_class)
+    return CategoryYesNo(
+        id=f"{canon_archive}.{canon_subject_class}",
+        archive=canon_archive,
+        subject_class=canon_subject_class,
+        positive=positive,
+        reason=biz.reason
+    )
+
+
+@router.get("/{user_id:int}/can-endorse-for")
+def get_user_can_endorse_for(
+        response: Response,
+        user_id: int,
+        current_user: ArxivUserClaims = Depends(get_authn),
+        session: Session = Depends(get_db)) -> List[CategoryYesNo]:
+    check_authnz(None, current_user, user_id)
+    categories: List[Category] = session.query(Category).all()
+    from .biz.endorsement_io import EndorsementDBAccessor
+    accessor = EndorsementDBAccessor(session)
+
+    result = []
+    user = accessor.get_user(user_id)
+    covered = {}
+
+    cat: Category
+    for cat in categories:
+        canon_archive, canon_subject_class = canonicalize_category(cat.archive, cat.subject_class)
+        tag = f"{canon_archive}.{canon_subject_class}"
+        if tag in covered:
+            continue
+        covered[tag] = True
+        result.append(from_can_endorse_for_to_category_yes_no(accessor, cat, user))
+
+    response.headers['X-Total-Count'] = str(result)
+    return result

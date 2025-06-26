@@ -1,6 +1,7 @@
 import abc
 from typing import Optional, List, Tuple
 
+from dulwich.porcelain import archive
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, aliased
 from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNickname, QuestionableCategory,)
@@ -11,35 +12,7 @@ from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, Endor
     EndorserCapabilityType
 from ..public_users import PublicUserModel
 from arxiv_bizlogic.bizmodels.user_model import UserModel
-
-# I don't know of the rational of this.
-# Someone needs to review this
-def canonicalize_category(archive: str, subject_class: str) -> Tuple[str, str]:
-    if archive == "math" and subject_class == "MP":
-        archive = "math-ph"
-        subject_class = ""
-    elif archive == "stat" and subject_class == "TH":
-        archive = "math"
-        subject_class = "ST"
-    elif archive == "math" and subject_class == "IT":
-        archive = "cs"
-    elif archive == "q-fin" and subject_class == "EC":
-        archive = "econ"
-        subject_class = "GN"
-    elif archive == "cs" and subject_class == "NA":
-        archive = "math"
-        subject_class = "NA"
-    elif archive == "cs" and subject_class == "SY":
-        archive = "eess"
-        subject_class = "SY"
-
-    return archive, subject_class
-
-
-def pretty_category(archive: str, subject_class: str) -> str:
-    if not subject_class:
-        subject_class = "*"
-    return f"{archive}.{subject_class}"
+from . import canonicalize_category, pretty_category
 
 
 class EndorsementWithEndorser(BaseModel):
@@ -191,6 +164,11 @@ class EndorsementAccessor:
 # Some magic values
 arXiv_endorsement_window: [timedelta] = [timedelta(days=365 * 5 + 1), timedelta(days=30 * 3)]
 
+
+def is_user_vetoed(user: UserModel) -> bool:
+    return user.veto_status == "no-upload"
+
+
 class EndorsementBusiness:
     accessor: EndorsementAccessor
     endorsement_code: Optional[EndorsementCodeModel]
@@ -214,7 +192,7 @@ class EndorsementBusiness:
 
     def __init__(self, accessor: EndorsementAccessor,
                  endorseR: UserModel,
-                 endorseE: PublicUserModel,
+                 endorseE: Optional[PublicUserModel],
                  audit_timestamp: datetime,
                  endorsement_request: Optional[EndorsementRequestModel] = None,
                  endorsement_code: Optional[EndorsementCodeModel] = None,
@@ -399,6 +377,7 @@ class EndorsementBusiness:
         self.submitted = existing_endorsement is not None
 
     def _find_endorsements(self):
+        assert self.endorseE != None
         self.endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.archive, self.subject_class)
         if self.archive != self.canon_archive and self.subject_class != self.canon_subject_class:
             self.endorsements = self.endorsements + self.accessor.get_endorsements(str(self.endorseE.id), self.canon_archive, self.canon_subject_class)
@@ -409,6 +388,9 @@ class EndorsementBusiness:
         """
         This is about the endorser is ablet to submit an endorsement.
         """
+        assert self.endorseR is not None
+        assert self.endorseE is not None
+
         self._find_existing_endorsement()
 
         if self.submitted:
@@ -433,51 +415,51 @@ class EndorsementBusiness:
             return self.reject("Proxy submitters are not allowed to endorse.",
                                endorser_capability=EndorserCapabilityType.uncredited,)
 
-        category = self.accessor.get_category(self.canon_archive, self.canon_subject_class)
-        if not category:
-            category = self.accessor.get_category(self.archive, self.subject_class)
-            if not category:
-                return self.reject("We don't issue endorsements for non-definitive categories - no such category.", public_reason=True)
+        # For endorsement doamin, if it dose not exist, we cannot go on
+        result = self.acquire_endorsement_domain()
+        if not result:
+            return result
 
-        elif not category.definitive:
-            return self.reject("We don't issue endorsements for non-definitive categories.", public_reason=True)
+        # For endorse-all, the decision short-circuits
+        result = self.is_endorsement_domain_endorse_all()
+        if result:
+            return result
 
-        endorsement_domain = self.accessor.get_domain_info(category)
-        if not endorsement_domain:
-            return self.reject( "We don't issue endorsements for non-definitive categories - no such domain.", public_reason=True)
-
-        self.endorsement_domain = endorsement_domain
-
-        #
-        if endorsement_domain.endorse_all == "y":
-            category = pretty_category(self.archive, self.subject_class)
-            return self.accept(f"Everyone gets an auto-endorsement for category {category}.")
-
-        # ARXIVDEV-3461 - if this endorsement domain has the mod_endorse_all field
-        # enabled, then any moderator within that domain should be able to endorse
-        # within that domain (not just their moderated category)
-        if endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.archive, None):
-            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {self.archive}.")
-
-        if self.accessor.is_moderator(self.endorseR.id, self.archive, self.subject_class):
-            category = pretty_category(self.archive, self.subject_class)
-            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {category}.")
+        # Moderator's special case
+        result = self.is_endorser_moderator()
+        if result:
+            return result
 
         # can submit?
         endorsee = self.accessor.get_user(str(self.endorseE.id))
         if endorsee is None:
             raise HTTPException(status_code=500, detail="Endorsee is not found")
 
-        if endorsee.veto_status == "no-upload":
+        if is_user_vetoed(endorsee):
             # Endorser is okay but endorsee is not
             return self.reject("Requesting user's ability to upload has been suspended.",
                                endorser_capability = EndorserCapabilityType.unknown)
 
-        # check 1 - has_endorsements
-        self._find_endorsements()
+        # check 1 - has_endorsements?
 
         # check 2 - auto endorsed
         # First test to see if there is a reason not to autoendorse (questionable category, marked invalid, is flagged)
+        result = self.check_rejected_endorsements(endorsee=endorsee)
+        if not result:
+            return result
+
+        # Now we have done tests to see if there are reasons not to autoendorse this
+        # user, do tests to find out whether we should...
+        # (I don't think this has nothing to do with submitting endorsement.)
+        result = self.check_negative_auto_endorsement()
+        if not result:
+            return result
+
+        return self.can_endorser_endorse()
+
+
+    def check_rejected_endorsements(self, endorsee: UserModel | None = None) -> bool:
+        self._find_endorsements()
         questionable_category = self.accessor.get_questionable_categories(self.canon_archive,
                                                                           self.canon_subject_class)
 
@@ -500,21 +482,64 @@ class EndorsementBusiness:
                 return self.reject("User's auto-endorsement has been invalidated.",
                                    endorser_capability = EndorserCapabilityType.unknown)
 
-            if endorsee.flag_suspect:
-                return self.reject("User is flagged, does not get autoendorsed.",
-                                   endorser_capability = EndorserCapabilityType.unknown)
+            if endorsee:
+                if endorsee.flag_suspect:
+                    return self.reject("User is flagged, does not get autoendorsed.",
+                                       endorser_capability = EndorserCapabilityType.unknown)
+        return True
 
+
+    def acquire_endorsement_domain(self) -> bool:
+        category = self.accessor.get_category(self.canon_archive, self.canon_subject_class)
+        if not category:
+            category = self.accessor.get_category(self.archive, self.subject_class)
+            if not category:
+                return self.reject("We don't issue endorsements for non-definitive categories - no such category.", public_reason=True)
+
+        elif not category.definitive:
+            return self.reject("We don't issue endorsements for non-definitive categories.", public_reason=True)
+
+        endorsement_domain = self.accessor.get_domain_info(category)
+        if not endorsement_domain:
+            return self.reject( "We don't issue endorsements for non-definitive categories - no such domain.", public_reason=True)
+
+        self.endorsement_domain = endorsement_domain
+        return True
+
+
+    def is_endorsement_domain_endorse_all(self) -> bool:
+        if self.endorsement_domain.endorse_all == "y":
+            category = pretty_category(self.archive, self.subject_class)
+            return self.accept(f"Everyone gets an auto-endorsement for category {category}.")
+        return False
+
+
+    def is_endorser_moderator(self) -> bool:
+        # ARXIVDEV-3461 - if this endorsement domain has the mod_endorse_all field
+        # enabled, then any moderator within that domain should be able to endorse
+        # within that domain (not just their moderated category)
+        if self.endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.archive, None):
+            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {self.archive}.")
+
+        if self.accessor.is_moderator(self.endorseR.id, self.archive, self.subject_class):
+            category = pretty_category(self.archive, self.subject_class)
+            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {category}.")
+
+        return False
+
+
+    def check_negative_auto_endorsement(self) -> bool:
         # Now we have done tests to see if there are reasons not to autoendorse this
         # user, do tests to find out whether we should...
         # (I don't think this has nothing to do with submitting endorsement.)
-        papers = self.accessor.get_papers_by_user(str(self.endorseE.id), endorsement_domain.endorsement_domain,
+        papers = self.accessor.get_papers_by_user(str(self.endorseE.id), self.endorsement_domain.endorsement_domain,
                                                   self.window, require_author=False)
 
         # I'm not quite sure of this section
-        not_enough_papers = (len(papers) < endorsement_domain.papers_to_endorse)
-        not_academic_email = endorsement_domain.endorse_email == "y" and (
+        not_enough_papers = (len(papers) < self.endorsement_domain.papers_to_endorse)
+        not_academic_email = self.endorsement_domain.endorse_email == "y" and (
             not self.accessor.is_academic_email(self.endorseE.email)[0])
-        does_not_accept_email = endorsement_domain.endorse_email != "y"
+        does_not_accept_email = self.endorsement_domain.endorse_email != "y"
         if not_enough_papers and not_academic_email and does_not_accept_email:
             category = pretty_category(self.archive, self.subject_class)
             reason = f"User is not allowed to submit to {category}."
@@ -525,11 +550,14 @@ class EndorsementBusiness:
             if not not_academic_email:
                 reason = reason + " The submitter email is not academic institution."
             return self.reject(reason)
+        return True
 
+
+    def can_endorser_endorse(self) -> bool:
         # ==============================================================================================================
         # Look at the endorser
         papers = self.accessor.get_papers_by_user(str(self.endorseR.id),
-                                                  endorsement_domain.endorsement_domain,
+                                                  self.endorsement_domain.endorsement_domain,
                                                   [None, None], require_author=False)
 
         if not papers:
@@ -542,7 +570,7 @@ class EndorsementBusiness:
         authored_papers = [paper for paper in papers if paper.flag_author]
         not_authored_papers = [paper for paper in papers if not paper.flag_author]
 
-        N_papers = endorsement_domain.papers_to_endorse
+        N_papers = self.endorsement_domain.papers_to_endorse
 
         if len(authored_papers) >= N_papers:
             # This also makes very little sense.
@@ -599,42 +627,10 @@ class EndorsementBusiness:
         if endorsee is None:
             raise HTTPException(status_code=500, detail="Endorsee is not found")
 
-        if endorsee.veto_status == "no-upload":
+        if is_user_vetoed(endorsee):
             # Endorser is okay but endorsee is not
             return self.reject("Requesting user's ability to upload has been suspended.",
                                endorser_capability=EndorserCapabilityType.unknown)
-
-        # check 1 - has_endorsements
-        self._find_endorsements()
-
-        # check 2 - auto endorsed
-        # First test to see if there is a reason not to autoendorse (questionable category, marked invalid, is flagged)
-        questionable_category = self.accessor.get_questionable_categories(self.canon_archive,
-                                                                          self.canon_subject_class)
-
-        if questionable_category:
-            invalids = [
-                endorsement for endorsement in self.endorsements if
-                (not endorsement.flag_valid) and endorsement.type == "auto" and (
-                        (
-                                    endorsement.archive == self.canon_archive and endorsement.subject_class == self.canon_subject_class) or
-                        (endorsement.archive == self.archive and endorsement.subject_class == self.subject_class))
-            ]
-            if invalids:
-                return self.reject("User's auto-endorsement has been invalidated (strong case).",
-                                   endorser_capability=EndorserCapabilityType.unknown)
-
-        else:
-            invalidated = [endorsement for endorsement in self.endorsements if
-                           not endorsement.flag_valid and endorsement.type == 'auto']
-            # if not invalidated: ? REVIEW THIS
-            if invalidated:
-                return self.reject("User's auto-endorsement has been invalidated.",
-                                   endorser_capability=EndorserCapabilityType.unknown)
-
-            if endorsee.flag_suspect:
-                return self.reject("User is flagged, does not get autoendorsed.",
-                                   endorser_capability=EndorserCapabilityType.unknown)
 
         return self.accept(f"Endorser is admin.", endorser_capability=EndorserCapabilityType.credited)
 
@@ -643,3 +639,82 @@ class EndorsementBusiness:
         result = self.accessor.arxiv_endorse(self)
         return result
 
+
+    def has_endorsements(self) -> bool:
+        self._find_endorsements()
+        return len(self.valid_endorsements) > 0
+
+dummy_timestamp: datetime = datetime.now()
+
+def can_user_endorse_for(accessor:EndorsementAccessor, user: UserModel, archive: str, subject_class: str) -> Tuple[bool, EndorsementBusiness]:
+    biz = EndorsementBusiness(
+        accessor,
+        user,
+        None,
+        dummy_timestamp,
+        archive = archive,
+        subject_class = subject_class,
+    )
+    result = biz.acquire_endorsement_domain()
+    if not result:
+        return result, biz
+    result = biz.is_endorsement_domain_endorse_all()
+    if result:
+        return result, biz
+    result = biz.is_endorser_moderator()
+    if result:
+        return result, biz
+    result = biz.can_endorser_endorse()
+    return result, biz
+
+
+
+def can_user_submit_to(accessor: EndorsementAccessor, user: UserModel, archive: str, subject_class: str) -> bool:
+    """
+    Check if a user can submit to a specific arXiv category.
+
+    Args:
+        session: SQLAlchemy session
+        user: User model
+        archive: Archive code (e.g., 'math', 'cs')
+        subject_class: Subject class (e.g., 'AG', 'AI')
+
+    Returns:
+        bool: True if the user can submit, False otherwise
+    """
+    # user = accessor.get_user(user_id)
+    if is_user_vetoed(user):
+        return False
+    puser = PublicUserModel.model_validate(user.model_dump())
+
+    biz = EndorsementBusiness(
+        accessor,
+        user, # This is a hack
+        puser,
+        dummy_timestamp,
+        archive = archive,
+        subject_class = subject_class,
+    )
+    result = biz.acquire_endorsement_domain()
+    if not result:
+        return result, biz
+
+    result = biz.check_rejected_endorsements(user)
+    if not result:
+        return result, biz
+
+    result = biz.is_endorsement_domain_endorse_all()
+    if result:
+        return result, biz
+
+    # Check if user has an endorsement for this category
+    result = biz.check_rejected_endorsements()
+    if not result:
+        return result, biz
+
+    # Check if user is eligible for auto-endorsement
+    result = biz.check_negative_auto_endorsement()
+    if not result:
+        return result, biz
+    biz.accept("User is eligible for auto-endorsement.")
+    return True, biz

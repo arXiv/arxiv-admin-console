@@ -59,6 +59,8 @@ import ModerationCategoryDialog from "../components/ModerationCategoryDialog";
 import EndorsementCategoryDialog from "../components/EndorsementCategoryDialog";
 
 import { paths as adminApi } from '../types/admin-api';
+import CanSubmitToDialog from "../components/CanSubmitToDialog";
+import CanEndorseForDialog from "../components/CanEndorseForDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -362,7 +364,7 @@ function UserEndorsements({open, setOpen} : {open: boolean, setOpen: (open: bool
         <>
             {
                 endorsements.map((endorsement, _index) => (
-                        <Endorsement domain={endorsement} />
+                        <Endorsement key={`${endorsement.id}`} domain={endorsement} />
                 ))
             }
             <EndorsementCategoryDialog
@@ -414,7 +416,7 @@ function UserModerationCategories({open, setOpen} : {open: boolean, setOpen: (op
         <>
             {
                 moderationCategories.map((domain, _index) => (
-                    <ModerationCategory domain={domain} />
+                    <ModerationCategory key={`${domain.id}`} domain={domain} />
                 ))
             }
 
@@ -494,6 +496,8 @@ const UserEditToolbar = () => {
 export const UserEdit = () => {
     const [isEndorsementsOpen, setIsEndorsementsOpen] = useState(false);
     const [isModOpen, setIsModOpen] = useState(false);
+    const [canEndorseForOpen, setCanEndorseForOpen] = useState(false);
+    const [canSubmitToOpen, setCanSubmitToOpen] = useState(false);
 
     const switchProps = {
         '& .MuiSwitch-root': {
@@ -620,6 +624,13 @@ export const UserEdit = () => {
                     <Box >
                         <Button onClick={() => setIsModOpen(true)}>Moderator for</Button>
                         <UserModerationCategories  open={isModOpen} setOpen={setIsModOpen} />
+                    </Box>
+                    <Divider />
+                    <Box>
+                        <Button variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>Can Submit to?</Button>
+                        <Button variant={"contained"} onClick={() => setCanEndorseForOpen(true)} sx={{ml: 2}}>Can Endorsed for?</Button>
+                        <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen} />
+                        <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen} />
                     </Box>
                     <Divider />
 

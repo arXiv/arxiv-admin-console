@@ -217,6 +217,8 @@ const AdminConsole: React.FC = () => {
                 <Resource name="tapir_admin_audit"/>
                 <Resource name="orcid_ids"/>
                 <Resource name="author_ids"/>
+                <Resource name="can_submit_to"/>
+                <Resource name="can_endorse_for"/>
 
             </Admin>
         </PingBackend>

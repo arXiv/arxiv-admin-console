@@ -92,6 +92,40 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
         }
+        else if (resource === 'can_submit_to') {
+            const { user_id } = params.filter;
+            const url = `${this.api}/users/${user_id}/can-submit-to`;
+            try {
+                const response = await retryHttpClient(url);
+                return {
+                    data: response.json as T[],
+                    total: response.json.length,
+                };
+            }
+            catch (error) {
+                return {
+                    data: [] as T[],
+                    total: 0,
+                };
+            }
+        }
+        else if (resource === 'can_endorse_for') {
+            const { user_id } = params.filter;
+            const url = `${this.api}/users/${user_id}/can-endorse-for`;
+            try {
+                const response = await retryHttpClient(url);
+                return {
+                    data: response.json as T[],
+                    total: response.json.length,
+                };
+            }
+            catch (error) {
+                return {
+                    data: [] as T[],
+                    total: 0,
+                };
+            }
+        }
 
         return this.dataProvider.getList<T>(addTrailingSlash(resource), params);
     }

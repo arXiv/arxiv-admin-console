@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple
 
 from arxiv.db.models import Category, EndorsementDomain, QuestionableCategory, Endorsement
 from arxiv_admin_api.biz.endorsement_biz import EndorsementAccessor, EndorsementBusiness, EndorsementWithEndorser, \
-    PaperProps
+    PaperProps, can_user_endorse_for, can_user_submit_to
 from arxiv_admin_api.dao.endorsement_model import EndorsementModel
 from arxiv_admin_api.endorsement_requests import EndorsementRequestModel
 from arxiv_admin_api.endorsements import EndorsementCodeModel
@@ -869,6 +869,28 @@ class TestEndorsementJudgement(unittest.TestCase):
         )
         self.assertFalse(business.can_submit())
         self.assertEqual("User must be the registered author of 3 registered papers to endorse for econ.EM but has only 2 in the 3mo-5yr window.", business.reason)
+
+    def test_can_user_endorse_for(self):
+        # This user is a cs.AI moderator
+        user_id = "100"
+        user = self.accessor(user_id)
+        result, biz = can_user_endorse_for(self.accessor, user,"cs", "AI")
+        self.assertTrue(result)
+        self.assertEqual('Endorser user-cs-mod is a moderator in cs.AI.', biz.reason)
+
+        # This user is not a econ.EM moderator
+        result, biz = can_user_endorse_for(self.accessor, user,"econ", "EM")
+        self.assertFalse(result)
+        self.assertEqual('Endorser does not have enough registered papers in econ.EM in the 3mo-5yr window.', biz.reason)
+
+
+    def test_can_user_submit_to(self):
+        # This user is a cs.AI moderator
+        user_id = "100"
+        user = self.accessor(user_id)
+        result, biz = can_user_submit_to(self.accessor, user,"econ", "EM")
+        self.assertTrue(result)
+
 
 
 if __name__ == '__main__':
