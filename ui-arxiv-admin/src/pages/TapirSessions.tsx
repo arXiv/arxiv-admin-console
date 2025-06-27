@@ -50,24 +50,23 @@ const calculatePresetDates = (preset: string) => {
     const today = new Date();
     switch (preset) {
         case 'last_1_day':
-            return { startDate: addDays(today, -1), endDate: today };
+            return { preset: preset, startDate: addDays(today, -1), endDate: today };
         case 'last_7_days':
-            return { startDate: addDays(today, -7), endDate: today };
+            return { preset: preset, startDate: addDays(today, -7), endDate: today };
         case 'last_28_days':
-            return { startDate: addDays(today, -28), endDate: today };
+            return { preset: preset, startDate: addDays(today, -28), endDate: today };
         default:
-            return { startDate: null, endDate: null };
+            return { preset: preset, startDate: null, endDate: null };
     }
 };
 
 const TapirSessionFilter = (props: any) => {
     const { setFilters, filterValues } = useListContext();
     const handlePresetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const { startDate, endDate } = calculatePresetDates(event.target.value);
+        const preset = event.target.value;
         setFilters({
             ...filterValues,
-            startDate: startDate ? startDate.toISOString().split('T')[0] : '',
-            endDate: endDate ? endDate.toISOString().split('T')[0] : '',
+            preset: preset,
         });
     };
 
@@ -99,12 +98,7 @@ export const TapirSessionList = () => {
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     const defaultDates = calculatePresetDates('last_28_days');
     return (
-        <List filters={<TapirSessionFilter />}
-              filterDefaultValues={{
-                  start_date: defaultDates.startDate ? defaultDates.startDate.toISOString().split('T')[0] : '',
-                  end_date: defaultDates.endDate ? defaultDates.endDate.toISOString().split('T')[0] : '',
-              }}
-        >
+        <List filters={<TapirSessionFilter />}>
             {isSmall ? (
                 <SimpleList
                     primaryText={record => record.name}

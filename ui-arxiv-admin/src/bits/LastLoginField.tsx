@@ -10,7 +10,7 @@ import {
 } from 'react-admin';
 
 interface LastLoginFieldProps extends TextFieldProps {
-    record?: any
+
 }
 
 const LastLoginField: React.FC<LastLoginFieldProps> = (props) => {

@@ -12,7 +12,7 @@ const CanSubmitToDialog: React.FC<
         setOpen: (open: boolean) => void;
     }
 > = ({ open, setOpen }) => {
-    const [canSubmitTo, setCanSubmitTo] = useState<Map<string, boolean> | null>(null);
+    const [canSubmitTo, setCanSubmitTo] = useState<Map<string, boolean> >(new Map<string, boolean>());
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const dataProvider = useDataProvider();
     const record = useRecordContext();
@@ -49,23 +49,6 @@ const CanSubmitToDialog: React.FC<
 
     if (!userId) return null;
 
-    if (isLoading || !canSubmitTo) {
-        return (
-            <Dialog open={open} onClose={() => setOpen(false)}>
-                <DialogTitle>Can submit to</DialogTitle>
-                <DialogContent>
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        height: '200px'
-                    }}>
-                        <CircularProgress />
-                    </Box>
-                </DialogContent>
-            </Dialog>
-        );
-    }
 
     return (
         <CategoryChooserDialog
@@ -73,6 +56,7 @@ const CanSubmitToDialog: React.FC<
             open={open}
             setOpen={setOpen}
             currentCategories={canSubmitTo}
+            isLoading={isLoading}
         />
     );
 };

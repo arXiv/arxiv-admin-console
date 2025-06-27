@@ -275,6 +275,29 @@ function UserDemographic() {
                 <LastLoginField source={"id"} />
             </TableCell>
         </TableRow>
+
+        <TableRow>
+            <TableCell>Penultimate Login</TableCell>
+            <TableCell>
+                <TextField source="affiliation" />
+            </TableCell>
+        </TableRow>
+
+        <TableRow>
+            <TableCell>Joined Date</TableCell>
+            <TableCell>
+                <DateField source="joined_date" />
+            </TableCell>
+        </TableRow>
+
+        <TableRow>
+            <TableCell>Joined From</TableCell>
+            <TableCell>
+                <TextField source="joined_ip_num" />
+            </TableCell>
+        </TableRow>
+
+
         <TableRow>
             <TableCell>Affiliation</TableCell>
             <TableCell>
@@ -317,9 +340,7 @@ function UserDemographic() {
         <TableRow>
             <TableCell>ORCID</TableCell>
             <TableCell>
-                <ReferenceField reference={"orcid_ids"} source={"id"} >
-                    <TextField source="orcid" emptyText={"No ORCID"} />
-                </ReferenceField>
+                <TextField source="orcid_id" emptyText={"No ORCID"} />
             </TableCell>
         </TableRow>
 

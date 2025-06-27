@@ -2687,8 +2687,11 @@ export interface components {
             email_bouncing: boolean;
             /** Policy Class */
             policy_class: number;
-            /** Joined Date */
-            joined_date: number;
+            /**
+             * Joined Date
+             * Format: date-time
+             */
+            joined_date: string;
             /** Joined Ip Num */
             joined_ip_num?: string | null;
             /** Joined Remote Host */
@@ -2833,8 +2836,11 @@ export interface components {
             email_bouncing: boolean;
             /** Policy Class */
             policy_class: number;
-            /** Joined Date */
-            joined_date: number;
+            /**
+             * Joined Date
+             * Format: date-time
+             */
+            joined_date: string;
             /** Joined Ip Num */
             joined_ip_num?: string | null;
             /** Joined Remote Host */

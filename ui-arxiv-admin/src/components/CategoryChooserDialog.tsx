@@ -13,9 +13,10 @@ import {
 
 import Checkbox from '@mui/material/Checkbox';
 
-import { paths as adminApi } from '../types/admin-api';
+import {paths as adminApi} from '../types/admin-api';
 import {useDataProvider} from "react-admin";
-import MuiTextField  from "@mui/material/TextField";
+import MuiTextField from "@mui/material/TextField";
+import CircularProgress from "@mui/material/CircularProgress";
 
 type CategoryT = adminApi['/v1/categories/']['get']['responses']['200']['content']['application/json'][0];
 
@@ -27,22 +28,35 @@ const CategoryChooserDialog: React.FC<
         currentCategories: Map<string, boolean>;
         onUpdateCategory?: (cat_id: string, selections: Map<string, boolean>, on_or_off: boolean) => void;
         onSaveUpdates?: (selection: Map<string, boolean>) => Promise<void>;
-        saveLabel? : string;
+        saveLabel?: string;
         setComment?: (comment: string) => void;
         comment?: string;
+        isLoading?: boolean;
     }
-> = ({ title, open, setOpen, currentCategories, onUpdateCategory, onSaveUpdates, saveLabel, setComment, comment }) => {
+> = ({
+         title,
+         open,
+         setOpen,
+         currentCategories,
+         onUpdateCategory,
+         onSaveUpdates,
+         saveLabel,
+         setComment,
+         comment,
+         isLoading
+     }) => {
     const [allCategories, setAllCategories] = useState<Map<string, CategoryT>>(new Map());
     const dataProvider = useDataProvider();
     const [isSaving, setIsSaving] = useState(false);
+    const [isCategoryLoading, setIsCategoryLoading] = useState(false);
 
     useEffect(() => {
         if (open) {
             const fetchAllCategories = async () => {
                 try {
-                    const { data } = await dataProvider.getList<CategoryT>('categories', {
-                        pagination: { page: 1, perPage: 10000 },
-                        sort: { field: 'id', order: 'ASC' },
+                    const {data} = await dataProvider.getList<CategoryT>('categories', {
+                        pagination: {page: 1, perPage: 10000},
+                        sort: {field: 'id', order: 'ASC'},
                         filter: {}
                     });
 
@@ -96,54 +110,58 @@ const CategoryChooserDialog: React.FC<
 
     const commentInput = setComment ? (
         <MuiTextField
-         value={comment} onChange={(e) => setComment(e.target.value)} label="Comment" multiline rows={2}
-                   fullWidth sx={{mt: 2}} variant="outlined"/>
+            value={comment} onChange={(e) => setComment(e.target.value)} label="Comment" multiline rows={2}
+            fullWidth sx={{mt: 2}} variant="outlined"/>
     ) : null;
 
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
             <DialogTitle>{title}</DialogTitle>
             <DialogContent>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <List sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 1
-                    }}>
-                        {Array.from(allCategories.entries()).map(([key, cat]) => (
-                            <ListItem
-                                key={key}
-                                dense
-                                onClick={() => handleToggle(cat)}
-                                sx={{
-                                    cursor: 'pointer',
-                                    borderRadius: 1,
-                                    flex: '0 0 calc(50% - 8px)',
-                                    '@media (min-width: 900px)': {
-                                        flex: '0 0 calc(33.333% - 8px)'
-                                    },
-                                    '@media (min-width: 1200px)': {
-                                        flex: '0 0 calc(25% - 8px)'
-                                    },
-                                    '&:hover': {
-                                        backgroundColor: '#888'
-                                    }
-                                }}
-                            >
-                                <Checkbox
-                                    edge="start"
-                                    checked={!!currentCategories.get(cat.id)}
-                                    tabIndex={-1}
-                                    disableRipple
-                                />
-                                <ListItemText
-                                    primary={`${cat.archive}.${cat.subject_class}`}
-                                    secondary={cat.category_name}
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                </Box>
+                {
+                    (isCategoryLoading || isLoading) ? <CircularProgress color="secondary"/> : (
+                        <Box sx={{display: 'flex', flexDirection: 'column'}}>
+                            <List sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 1
+                            }}>
+                                {Array.from(allCategories.entries()).map(([key, cat]) => (
+                                    <ListItem
+                                        key={key}
+                                        dense
+                                        onClick={() => handleToggle(cat)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            borderRadius: 1,
+                                            flex: '0 0 calc(50% - 8px)',
+                                            '@media (min-width: 900px)': {
+                                                flex: '0 0 calc(33.333% - 8px)'
+                                            },
+                                            '@media (min-width: 1200px)': {
+                                                flex: '0 0 calc(25% - 8px)'
+                                            },
+                                            '&:hover': {
+                                                backgroundColor: '#888'
+                                            }
+                                        }}
+                                    >
+                                        <Checkbox
+                                            edge="start"
+                                            checked={!!currentCategories.get(cat.id)}
+                                            tabIndex={-1}
+                                            disableRipple
+                                        />
+                                        <ListItemText
+                                            primary={`${cat.archive}.${cat.subject_class}`}
+                                            secondary={cat.category_name}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
+                    )
+                }
                 {commentInput}
             </DialogContent>
             <DialogActions>
@@ -151,7 +169,7 @@ const CategoryChooserDialog: React.FC<
                     <Button
                         onClick={handleSave}
                         variant="contained"
-                        disabled={isSaving}
+                        disabled={isSaving || isLoading || isCategoryLoading}
                     >
                         {isSaving ? "Saving..." : (saveLabel || "Save")}
                     </Button>

@@ -12,7 +12,7 @@ const CanEndorseForDialog: React.FC<
         setOpen: (open: boolean) => void;
     }
 > = ({ open, setOpen }) => {
-    const [canEndorseFor, setCanEndorseFor] = useState<Map<string, boolean> | null>(null);
+    const [canEndorseFor, setCanEndorseFor] = useState<Map<string, boolean> >( new Map<string, boolean>());
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const dataProvider = useDataProvider();
     const record = useRecordContext();
@@ -50,24 +50,6 @@ const CanEndorseForDialog: React.FC<
     if (!userId) return null;
     if (!open) return null;
 
-    // Show loading dialog while data is loading
-    if (isLoading || !canEndorseFor) {
-        return (
-            <Dialog open={open} onClose={() => setOpen(false)}>
-                <DialogTitle>Can endorse for</DialogTitle>
-                <DialogContent>
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        height: '200px'
-                    }}>
-                        <CircularProgress />
-                    </Box>
-                </DialogContent>
-            </Dialog>
-        );
-    }
 
     return (
         <CategoryChooserDialog
@@ -75,6 +57,7 @@ const CanEndorseForDialog: React.FC<
             open={open}
             setOpen={setOpen}
             currentCategories={canEndorseFor}
+            isLoading={isLoading}
         />
     );
 };
