@@ -273,7 +273,7 @@ export const DocumentList = () => {
                     </ReferenceField>
 
                     <TextField source="authors" />
-                    <TextField source="primary_subject_class" />
+                    <TextField source="abs_categories" label={"Categories"}/>
                     <DateField source="created" label={"Created"}/>
 
                 </Datagrid>

@@ -479,7 +479,7 @@ def get_user_can_submit_to(
         covered[tag] = True
         result.append(from_submit_to_to_category_yes_no(accessor, cat, user))
 
-    response.headers['X-Total-Count'] = str(result)
+    response.headers['X-Total-Count'] = str(len(result))
     return result
 
 
@@ -519,5 +519,5 @@ def get_user_can_endorse_for(
         covered[tag] = True
         result.append(from_can_endorse_for_to_category_yes_no(accessor, cat, user))
 
-    response.headers['X-Total-Count'] = str(result)
+    response.headers['X-Total-Count'] = str(len(result))
     return result

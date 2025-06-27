@@ -46,7 +46,7 @@ import React, {useContext, useEffect, useState} from "react";
 import CategoryField from "../bits/CategoryField";
 import PersonNameField from "../bits/PersonNameField";
 import CareereStatusField from "../bits/CareereStatusField";
-import LastLoginField from "../bits/LastLoginField";
+import TapirSessionInfo from "../bits/TapirSessionInfo";
 import Typography from "@mui/material/Typography";
 import PaperOwnersList from "../bits/PaperOwnersList";
 import {AdminAuditList} from "../bits/TapirAdminLogs";
@@ -61,6 +61,7 @@ import EndorsementCategoryDialog from "../components/EndorsementCategoryDialog";
 import { paths as adminApi } from '../types/admin-api';
 import CanSubmitToDialog from "../components/CanSubmitToDialog";
 import CanEndorseForDialog from "../components/CanEndorseForDialog";
+import PolicClassField from "../bits/PolicClassField";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -248,6 +249,53 @@ function UserDemographic() {
             fetchDemographic(record.id);
     }, [dataProvider, record]);
 */
+    const record = useRecordContext();
+    const dataProvider = useDataProvider();
+    const [tapirSessions, setTapirSessions] = useState<any[]>([]);
+    const [totalTapirSessions, setTotalTapirSessions] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+
+    useEffect(() => {
+        const fetchTapirSessions = async () => {
+            console.log("tapir session record: " + JSON.stringify(record?.id));
+            if (record?.id) {
+                setIsLoading(true);
+                try {
+                    const response = await dataProvider.getList('tapir_sessions', {
+                        filter: { user_id: record.id },
+                        sort: { field: "id", order: "DESC" },
+                        pagination: { page: 1, perPage: 2 }, // Only get the latest two
+                    });
+                    setTapirSessions(response.data);
+                    setTotalTapirSessions(Number(response.total));
+                } catch (error) {
+                    console.error("Error fetching tapir sessions:", error);
+                    setTapirSessions([]);
+                    setTotalTapirSessions(0);
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchTapirSessions();
+    }, [dataProvider, record?.id]);
+
+
+    /*
+                        <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
+                        <SelectInput source="policy_class" choices={policyClassChoices} helperText={false} />
+                        <Box >
+                            <Typography component={"span"} >Moderator
+                                <BooleanField source="flag_is_mod" label={"Moderator"} />
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    <Divider />
+
+     */
     return (
     <Table size="small" >
         <TableHead>
@@ -267,19 +315,46 @@ function UserDemographic() {
                 <TextField source="id" />
             </TableCell>
         </TableRow>
+
+        <TableRow>
+            <TableCell>
+                Login name
+            </TableCell>
+            <TableCell>
+                <TextField source="username" />
+            </TableCell>
+        </TableRow>
+
+        <TableRow>
+            <TableCell>
+                Policy class
+            </TableCell>
+            <TableCell>
+                <PolicClassField source="policy_class" />
+            </TableCell>
+        </TableRow>
+
+
         <TableRow>
             <TableCell>
                 Last login
             </TableCell>
             <TableCell>
-                <LastLoginField source={"id"} />
+                <TapirSessionInfo source={"id"} index={0} isLoading={isLoading} total={totalTapirSessions} tapirSessions={tapirSessions} />
             </TableCell>
         </TableRow>
 
         <TableRow>
             <TableCell>Penultimate Login</TableCell>
             <TableCell>
-                <TextField source="affiliation" />
+                <TapirSessionInfo source={"id"} index={1} isLoading={isLoading} total={totalTapirSessions} tapirSessions={tapirSessions} />
+            </TableCell>
+        </TableRow>
+
+        <TableRow>
+            <TableCell>Total sessions</TableCell>
+            <TableCell>
+                <TapirSessionInfo source={"id"} index={-1} isLoading={isLoading} total={totalTapirSessions} tapirSessions={tapirSessions} />
             </TableCell>
         </TableRow>
 
@@ -405,7 +480,6 @@ function UserModerationCategories({open, setOpen} : {open: boolean, setOpen: (op
 
     useEffect(() => {
         const fetchModerationCategories = async () => {
-            console.log("fetchModerationCategories " + JSON.stringify(record));
             if (record?.id) {
 
                 try {
@@ -576,23 +650,8 @@ export const UserEdit = () => {
                     <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                         <TextInput source="first_name" helperText={false} />
                         <TextInput source="last_name" helperText={false}  />
-                        <TextInput source="suffix_name" helperText={false} sx={{maxWidth: "5em"}} />
-                        <Box sx={{minWidth: "10em"}} >
-                            <Typography component={"span"} >Login: </Typography>
-                            <TextField source="username" fontFamily={"monospace"}/>
-                        </Box>
+                        <TextInput source="suffix_name" helperText={false} sx={{maxWidth: "6em"}} />
                     </Box>
-                    <Divider />
-
-                    <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
-                                <SelectInput source="policy_class" choices={policyClassChoices} helperText={false} />
-                        <Box >
-                            <Typography component={"span"} >Moderator
-                                <BooleanField source="flag_is_mod" label={"Moderator"} />
-                            </Typography>
-                        </Box>
-                    </Box>
-
                     <Divider />
 
                     <Table size="small">
