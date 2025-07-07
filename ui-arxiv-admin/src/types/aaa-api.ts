@@ -44,7 +44,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/impersonate/{user_id: str}": {
+    "/impersonate/{user_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -75,7 +75,7 @@ export interface paths {
          *         to a target URL if impersonation was successful.
          *     :rtype: Response
          */
-        post: operations["impersonate_impersonate__user_id__str__post"];
+        post: operations["impersonate_impersonate__user_id___post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -360,6 +360,26 @@ export interface paths {
          * @description Request to change email
          */
         put: operations["change_email_account_email__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/email/history/{user_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Email History
+         * @description Get the past email history
+         */
+        get: operations["get_email_history_account_email_history__user_id___get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -752,6 +772,37 @@ export interface components {
             /** Subject Class */
             subject_class: string;
         };
+        /** EmailChangeEntry */
+        EmailChangeEntry: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Email */
+            email: string;
+            /**
+             * Start Date
+             * Format: date-time
+             */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+            changed_by: components["schemas"]["EmailChangedBy"];
+            /** Admin Id */
+            admin_id?: number | null;
+            /**
+             * Issued When
+             * Format: date-time
+             */
+            issued_when: string;
+            /** Used */
+            used: boolean;
+        };
+        /**
+         * EmailChangedBy
+         * @enum {string}
+         */
+        EmailChangedBy: "USER" | "ADMIN";
         /** EmailModel */
         EmailModel: {
             /** User Id */
@@ -767,6 +818,8 @@ export interface components {
             email: string;
             /** New Email */
             new_email: string;
+            /** Email Verified */
+            email_verified?: boolean | null;
         };
         /** EmailVerifiedStatus */
         EmailVerifiedStatus: {
@@ -926,13 +979,13 @@ export interface operations {
             };
         };
     };
-    impersonate_impersonate__user_id__str__post: {
+    impersonate_impersonate__user_id___post: {
         parameters: {
-            query: {
+            query?: never;
+            header?: never;
+            path: {
                 user_id: string;
             };
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -1509,6 +1562,18 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            /** @description Too many email change request */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Too many email change request."
+                     *     } */
+                    "application/json": unknown;
+                };
+            };
             /** @description Error while updating Keycloak */
             503: {
                 headers: {
@@ -1519,6 +1584,37 @@ export interface operations {
                      *       "detail": "Could not update Keycloak"
                      *     } */
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_email_history_account_email_history__user_id___get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailChangeEntry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

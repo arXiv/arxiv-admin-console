@@ -62,6 +62,7 @@ import { paths as adminApi } from '../types/admin-api';
 import CanSubmitToDialog from "../components/CanSubmitToDialog";
 import CanEndorseForDialog from "../components/CanEndorseForDialog";
 import PolicClassField from "../bits/PolicClassField";
+import EmailHistoryList from "../bits/EmailHistoryList";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -719,6 +720,7 @@ export const UserEdit = () => {
 
                 <Grid size={{xs: 6}}>
                     <UserDemographic />
+                    <EmailHistoryList />
                     <Grid size={{xs: 12}}>
                         <PaperOwnersList />
                     </Grid>

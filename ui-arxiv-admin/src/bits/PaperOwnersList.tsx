@@ -99,7 +99,7 @@ const PaperOwnersList: React.FC = () => {
         resource: 'paper_owners',
         filter: { user_id: record.id },
         sort: { field: 'id', order: 'DESC' },
-        perPage: 10,
+        perPage: 5,
         disableSyncWithLocation: true,
     });
 

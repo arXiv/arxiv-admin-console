@@ -97,7 +97,10 @@ const WithNavigationLinkPanel: React.FC = () => {
 
 const AdminConsole: React.FC = () => {
     const runtimeProps = useContext(RuntimeContext);
-    const dataProvider = new adminApiDataProvider(runtimeProps.ADMIN_API_BACKEND_URL);
+    const dataProvider = new adminApiDataProvider(
+        runtimeProps.ADMIN_API_BACKEND_URL,
+        runtimeProps.AAA_URL
+    );
     const authProvider = createAuthProvider(runtimeProps);
 
     return (
