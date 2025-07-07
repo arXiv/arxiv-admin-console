@@ -47,9 +47,12 @@ const retryHttpClient = (url: string, options: fetchUtils.Options = {}) => {
 class adminApiDataProvider implements DataProvider {
     private dataProvider: DataProvider;
     private api: string;
-    constructor(api: string) {
+    private aaaApi: string;
+
+    constructor(api: string, aaaApi: string) {
         this.api = api;
         this.dataProvider = jsonServerProvider(api, retryHttpClient);
+        this.aaaApi = aaaApi;
     }
     async getList<T extends RaRecord>(resource: string, params: GetListParams): Promise<GetListResult<T>> {
 
@@ -117,6 +120,51 @@ class adminApiDataProvider implements DataProvider {
                 return {
                     data: response.json as T[],
                     total: response.json.length,
+                };
+            }
+            catch (error) {
+                return {
+                    data: [] as T[],
+                    total: 0,
+                };
+            }
+        }
+        else if (resource === 'user_email_history') {
+            const { user_id } = params.filter;
+            const baseUrl = `${this.aaaApi}/account/email/history/${user_id}/`;
+
+            const searchParams = new URLSearchParams();
+
+            if (params.pagination) {
+                const { page, perPage } = params.pagination;
+                // Calculate _start and _end for server-side pagination
+                const start = (page - 1) * perPage;
+                const end = page * perPage;
+                searchParams.append('_start', start.toString());
+                searchParams.append('_end', end.toString());
+            }
+
+            // Handle sorting if provided
+            if (params.sort) {
+                const { field, order } = params.sort;
+                searchParams.append('_sort', field);
+                searchParams.append('_order', order.toLowerCase());
+            }
+
+            // Construct the final URL
+            const url = searchParams.toString()
+                ? `${baseUrl}?${searchParams.toString()}`
+                : baseUrl;
+
+            try {
+                const response = await retryHttpClient(url);
+                const totalCount = response.headers.get('X-Total-Count')
+                    ? parseInt(response.headers.get('X-Total-Count') || '0', 10)
+                    : response.json.length;
+
+                return {
+                    data: response.json as T[],
+                    total: totalCount,
                 };
             }
             catch (error) {
