@@ -97,25 +97,6 @@ interface VisibleColumns {
 export const UserList = () => {
     const sorter: SortPayload = {field: 'user_id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
-    const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(
-        {
-            email: true,
-            joinedDate: false,
-            mod: false,
-        }
-    );
-
-    const handleToggle = (event: React.MouseEvent<HTMLElement>) => {
-        const column = event.currentTarget.getAttribute('value');
-        if (column) {
-            const isSelected = event.currentTarget.getAttribute('aria-pressed') === 'true';
-            setVisibleColumns((prevState) => ({
-                ...prevState,
-                [column]: !isSelected,
-            }));
-        }
-    };
-
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -157,29 +138,6 @@ export const UserList = () => {
 
 
     return (
-        <div>
-            <ToggleButtonGroup
-                aria-label="Column visibility"
-                sx={{ marginBottom: '1em' }}
-            >
-                <ToggleButton
-                    value={"email"}
-                    selected={visibleColumns.email}
-                    onClick={handleToggle}
-                    aria-label="Show Email"
-                >
-                    Email
-                </ToggleButton>
-                <ToggleButton
-                    value={"joinedDate"}
-                    onClick={handleToggle}
-                    selected={visibleColumns.joinedDate}
-                    aria-label="Show Joined Date"
-                >
-                    Joined Date
-                </ToggleButton>
-            </ToggleButtonGroup>
-
                 <List filters={<UserFilter/>}>
                 {isSmall ? (
                     <SimpleList
@@ -192,13 +150,8 @@ export const UserList = () => {
                     <Datagrid rowClick="edit" sort={sorter}>
                         <PersonNameField source={"id"} label="Name" />
                         <TextField source="username" label={"Login name"}/>
-
-                        {
-                            visibleColumns.email ? <EmailField source="email"/> : null
-                        }
-                        {
-                            visibleColumns.joinedDate ? <DateField source="joined_date"/> : null
-                        }
+                        <EmailField source="email"/>
+                        <DateField source="joined_date"/>
                         <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
                         <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
                         <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
@@ -211,11 +164,9 @@ export const UserList = () => {
                             {"/"}
                             <TextField source={"subject_class"} />
                         </ReferenceField>
-
                     </Datagrid>
                 )}
             </List>
-        </div>
     );
 };
 
