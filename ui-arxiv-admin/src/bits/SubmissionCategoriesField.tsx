@@ -57,7 +57,7 @@ export const CategoriesField: React.FC<FieldProps> = ({source}) => {
 }
 
 const SubmissionCategoriesField: React.FC = () => {
-    const record = useRecordContext<{ last_submission_id: number }>();
+    const record = useRecordContext<{ last_submission_id: number | null, abs_categories: string }>();
     const dataProvider = useDataProvider();
     const [categories, setCategories] = useState<
         {
@@ -68,25 +68,45 @@ const SubmissionCategoriesField: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        if (record?.last_submission_id) {
-            const fetchCategories = async () => {
-                try {
-                    setLoading(true);
-                    // Fetch categories using getOne()
-                    const { data } = await dataProvider.getOne('submission_categories', {
-                        id: record.last_submission_id,
-                    });
-                    console.log("submission categories: " + JSON.stringify(data));
-                    setCategories(data);
-                } catch (error) {
-                    console.error('Error fetching submission categories:', error);
-                    setCategories(null);
-                } finally {
-                    setLoading(false);
-                }
-            };
+        console.log("submission: " + JSON.stringify(record));
+        if (record?.last_submission_id === null) {
+            if (record?.abs_categories) {
+                setCategories(
+                    {
+                        id: 0,
+                        categories: record.abs_categories.split(',').map((category) => ({
+                            category: category,
+                            is_primary: false,
+                            is_published: null,
+                            }
+                        ))
+                    }
+                )
+            }
+            setLoading(false);
+        } else {
+            if (record?.last_submission_id) {
+                const fetchCategories1 = async () => {
+                    try {
+                        setLoading(true);
+                        // Fetch categories using getOne()
+                        const {data} = await dataProvider.getOne('submission_categories', {
+                            id: record.last_submission_id,
+                        });
+                        console.log("submission categories: " + JSON.stringify(data));
+                        setCategories(data);
+                    } catch (error) {
+                        console.error('Error fetching submission categories:', error);
+                        setCategories(null);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
 
-            fetchCategories();
+                fetchCategories1();
+            }
+            else
+                setLoading(false);
         }
     }, [record, dataProvider]);
 

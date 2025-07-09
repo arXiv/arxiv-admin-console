@@ -6,20 +6,25 @@ import {
     GetListParams,
     RaRecord,
     GetManyParams,
-    GetManyResult, GetOneParams, GetOneResult
+    GetManyResult, GetOneParams, GetOneResult, UpdateResult, UpdateParams,
+    HttpError,
 } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
+import {paths as aaaApi} from "./types/aaa-api";
+
+type EmailChangeRequestBodyT = aaaApi['/account/email/']['put']['requestBody']['content']['application/json'];
 
 const addTrailingSlash = (url: string) => {
     return url.endsWith('/') ? url : `${url}/`;
 };
 
+
 let retryCount = 0;
 
-interface HttpError extends Error {
-    status: number;
-    body?: any;
-}
+// interface HttpError extends Error {
+//     status: number;
+//     body?: any;
+// }
 
 const retryHttpClient = (url: string, options: fetchUtils.Options = {}) => {
     const access_token = localStorage.getItem('access_token');
@@ -191,9 +196,68 @@ class adminApiDataProvider implements DataProvider {
         return this.dataProvider.getMany<T>(addTrailingSlash(resource), params);
     }
 
+    async update<T extends RaRecord>(resource: string, params: UpdateParams):  Promise<UpdateResult<T>>
+    {
+        if (resource === 'aaa_user_email') {
+            console.log("Update user email via AAA API");
+            const user_id = params.id;
+            const url = `${this.aaaApi}/account/email/`;
+
+            const body : EmailChangeRequestBodyT = {
+                user_id: params.id,
+                email: params.data.email,
+                new_email: params.data.new_email,
+            };
+
+            try {
+                const response = await retryHttpClient(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body),
+                });
+
+                return {data: response.json as T};
+            }
+            catch (error) {
+                if (error && typeof error === 'object') {
+                    // Check if it has a status property (like HttpError)
+                    if ('status' in error && error.status) {
+                        throw error;
+                    }
+
+                    // Create a new HttpError with type-safe property access
+                    const errorObj = error as Record<string, any>;
+                    const errorMessage =
+                        'message' in errorObj && typeof errorObj.message === 'string'
+                            ? errorObj.message
+                            : 'An unknown error occurred';
+
+                    const httpError = new HttpError(
+                        errorMessage,
+                        'status' in errorObj && typeof errorObj.status === 'number' ? errorObj.status : 500,
+                        'body' in errorObj ? errorObj.body : {}
+                    );
+
+                    throw httpError;
+                }
+
+                // If error is not an object or doesn't have expected properties
+                throw new HttpError(
+                    'An unknown error occurred',
+                    500,
+                    {}
+                );
+            }
+        }
+
+        return this.dataProvider.update(resource, params);
+    }
+
+
     getManyReference: typeof this.dataProvider.getManyReference = (resource, params) => this.dataProvider.getManyReference(resource, params);
     create: typeof this.dataProvider.create = (resource, params) => this.dataProvider.create(resource, params);
-    update: typeof this.dataProvider.update = (resource, params) => this.dataProvider.update(resource, params);
     updateMany: typeof this.dataProvider.updateMany= (resource, params) => this.dataProvider.updateMany(resource, params);
     delete: typeof this.dataProvider.delete = (resource, params) => this.dataProvider.delete(resource, params);
     deleteMany: typeof this.dataProvider.deleteMany = (resource, params) => this.dataProvider.deleteMany(resource, params);

@@ -38,7 +38,7 @@ import {
     RecordContextProvider,
     useDataProvider,
     SaveButton,
-    DeleteButton, Toolbar, useNotify, useEditContext,
+    DeleteButton, Toolbar, useNotify, useEditContext, useRefresh,
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -63,6 +63,7 @@ import CanSubmitToDialog from "../components/CanSubmitToDialog";
 import CanEndorseForDialog from "../components/CanEndorseForDialog";
 import PolicClassField from "../bits/PolicClassField";
 import EmailHistoryList from "../bits/EmailHistoryList";
+import ChangeEmailDialog from "../components/ChangeEmailDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -594,6 +595,8 @@ export const UserEdit = () => {
     const [isModOpen, setIsModOpen] = useState(false);
     const [canEndorseForOpen, setCanEndorseForOpen] = useState(false);
     const [canSubmitToOpen, setCanSubmitToOpen] = useState(false);
+    const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+    const refresh = useRefresh(); // Import this from react-admin
 
     const switchProps = {
         '& .MuiSwitch-root': {
@@ -634,17 +637,36 @@ export const UserEdit = () => {
         ],
     ];
 
+    const handleEmailChanged = (newEmail: string) => {
+        refresh(); // Refresh the form to show the updated email
+    };
+
 
     return (
     <Edit title={<UserTitle />} actions={false}>
         <SimpleForm toolbar={<UserEditToolbar />}>
             <Grid container>
                 <Grid size={{xs: 6}} >
-                    <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
-                        <TextInput source="email" helperText={false} />
-                        <EmailLinkField />
-                        <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} sx={{mt: 1}} />
-                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}} sx={{mt: 1}} />
+                    <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<EmailIcon />}
+                            onClick={() => setChangeEmailOpen(true)}
+                        >
+                            Change
+                        </Button>
+                        <EmailField source="email"  fontSize={"large"} />
+                            <ChangeEmailDialog
+                                open={changeEmailOpen}
+                                setOpen={setChangeEmailOpen}
+                                onEmailChanged={handleEmailChanged}
+                            />
+
+                    </Box>
+                    <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
+                        <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false} options={{size: "small"}} />
+                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false} options={{size: "small"}}  />
                     </Box>
                     <Divider />
 
