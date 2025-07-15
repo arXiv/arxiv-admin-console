@@ -63,12 +63,17 @@ const EndorsementRequestFilter = (props: any) => {
 
     return (
         <Filter {...props}>
+            <TextInput label="First Name" source="endorsee_first_name" alwaysOn />
+            <TextInput label="Last Name" source="endorsee_last_name" alwaysOn />
+            <TextInput label="Email Address" source="endorsee_email" alwaysOn />
+            <TextInput label="Username" source="endorsee_username" alwaysOn />
+            <TextInput label="Category" source="category" alwaysOn />
+
             <SelectInput
                 label="Preset Date Range"
                 source="preset"
                 choices={presetOptions}
                 onChange={(event) => handlePresetChange(event as React.ChangeEvent<HTMLSelectElement>)}
-                alwaysOn
             />
             <BooleanInput label="Closed" source="positive" />
             <DateInput label="Start Date" source="start_date" />
@@ -76,9 +81,6 @@ const EndorsementRequestFilter = (props: any) => {
             <BooleanInput label="Valid" source="flag_valid" defaultValue="true"/>
             <BooleanInput label="Suspect" source="suspected" defaultValue="false"/>
 
-            <TextInput label="First Name" source="endorsee_first_name" />
-            <TextInput label="Last Name" source="endorsee_last_name" />
-            <TextInput label="Email Address" source="endorsee_email" />
         </Filter>
     );
 };

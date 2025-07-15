@@ -8,7 +8,7 @@ from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
-from sqlalchemy import case # select, update, func, Select, distinct, exists, and_, or_
+from sqlalchemy import case, and_  # select, update, func, Select, distinct, exists, and_, or_
 from sqlalchemy.orm import Session #, joinedload
 
 from pydantic import BaseModel
@@ -92,6 +92,8 @@ async def list_endorsement_requests(
         endorsee_first_name: Optional[str] = Query(None, description="Endorsement request endorsee first_name"),
         endorsee_last_name: Optional[str] = Query(None, description="Endorsement request endorsee last_name"),
         endorsee_email: Optional[str] = Query(None, description="Endorsement request endorsee email"),
+        endorsee_username: Optional[str] = Query(None, description="Endorsee username"),
+        category: Optional[str] = Query(None, description="Endorsement category"),
         current_id: Optional[int] = Query(None, description="Current ID - index position - for navigation"),
         current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db),
@@ -145,17 +147,30 @@ async def list_endorsement_requests(
         if suspected is not None:
             query = query.filter(Demographic.flag_suspect == suspected)
 
-        if endorsee_first_name is not None:
-            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
-                TapirUser.first_name.contains(endorsee_first_name))
+        if endorsee_first_name is not None or endorsee_last_name is not None or endorsee_email is not None:
+            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id)
+            if endorsee_first_name is not None:
+                query = query.filter(TapirUser.first_name.contains(endorsee_first_name))
+            if endorsee_last_name is not None:
+                query = query.filter(TapirUser.last_name.contains(endorsee_last_name))
+            if endorsee_email is not None:
+                query = query.filter(TapirUser.email.startswith(endorsee_email))
 
-        if endorsee_last_name is not None:
-            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
-                TapirUser.last_name.contains(endorsee_last_name))
+        if endorsee_username is not None:
+            query = query.join(TapirNickname, EndorsementRequest.endorsee_id == TapirNickname.user_id).filter(
+                TapirNickname.nickname.contains(endorsee_username))
 
-        if endorsee_email is not None:
-            query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id).filter(
-                TapirUser.email == endorsee_email)
+        if category is not None:
+            if "." in category:
+                elems = category.split(".")
+                archive = elems[0]
+                subject_class = elems[1]
+                query = query.filter(and_(EndorsementRequest.archive.startswith(archive),
+                                          EndorsementRequest.subject_class.startswith(subject_class)))
+            else:
+                query = query.filter(EndorsementRequest.archive.startswith(category))
+                pass
+            pass
 
         if current_id is not None:
             # This is used to navigate
@@ -252,7 +267,10 @@ async def update_endorsement_request(
     if current_user.is_admin:
         if body.archive is not None:
             item.archive = body.archive
-            item.subject_class = body.subject_class
+            if body.subject_class is not None:
+                item.subject_class = body.subject_class
+            else:
+                item.subject_class = ""
     session.add(item)
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
