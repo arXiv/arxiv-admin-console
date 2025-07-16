@@ -105,6 +105,7 @@ async def list_moderators_0(
         subject_class: Optional[str] = Query(None),
         first_name: Optional[str] = Query(None),
         last_name: Optional[str] = Query(None),
+        email: Optional[bool] = Query(None, description="Moderator email"),
         db: Session = Depends(get_db)
     ) -> List[ModeratorModel]:
     if id:
@@ -154,28 +155,22 @@ async def list_moderators_0(
         if subject_class is not None:
             query = query.filter(t_arXiv_moderators.c.subject_class.ilike(subject_class + "%"))
 
-        if first_name is not None and last_name is not None:
+        if first_name is not None or last_name is not None or email is not None:
             query = query.join(
                 TapirUser,
-                and_(
-                    TapirUser.user_id == t_arXiv_moderators.c.user_id,
-                    TapirUser.first_name.ilike(first_name + "%"),
-                    TapirUser.last_name.ilike(last_name + "%"),
-                ))
-        elif first_name is not None:
-            query = query.join(
-                TapirUser,
-                and_(
-                    TapirUser.user_id == t_arXiv_moderators.c.user_id,
-                    TapirUser.first_name.ilike(first_name + "%"),
-                ))
-        elif last_name is not None:
-            query = query.join(
-                TapirUser,
-                and_(
-                    TapirUser.user_id == t_arXiv_moderators.c.user_id,
-                    TapirUser.last_name.ilike(last_name + "%"),
-                ))
+                TapirUser.user_id == t_arXiv_moderators.c.user_id,
+                )
+
+            if first_name is not None:
+                query = query.filter(TapirUser.first_name.istartswith(first_name))
+                pass
+            if last_name is not None:
+                query = query.filter(TapirUser.last_name.istartswith(last_name))
+                pass
+            if email is not None:
+                query = query.filter(TapirUser.email.istartswith(email))
+                pass
+            pass
 
         for column in order_columns:
             if _order == "DESC":
