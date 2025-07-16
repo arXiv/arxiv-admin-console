@@ -157,8 +157,7 @@ async def list_endorsement_requests(
                 query = query.filter(TapirUser.email.startswith(endorsee_email))
 
         if endorsee_username is not None:
-            query = query.join(TapirNickname, EndorsementRequest.endorsee_id == TapirNickname.user_id).filter(
-                TapirNickname.nickname.contains(endorsee_username))
+            query = query.filter(TapirNickname.nickname.contains(endorsee_username))
 
         if category is not None:
             if "." in category:
