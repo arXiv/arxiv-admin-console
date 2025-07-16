@@ -58,7 +58,15 @@ export const AdminConsoleAppBar = () => {
     const handleDocSearch = async (e: React.KeyboardEvent) => {
         const searchTerm = docSearch.trim();
         if (e.key === 'Enter' && searchTerm) {
-            if (searchTerm.includes('/') || searchTerm.includes('.')) {
+            if (searchTerm.startsWith('s/')) {
+                const id = searchTerm.substring(2);
+                navigate(`/submissions/${id}`);
+            }
+            else if (searchTerm.startsWith('d/')) {
+                const id = searchTerm.substring(2);
+                navigate(`/documents/${id}`);
+            }
+            else if (searchTerm.includes('/') || searchTerm.includes('.')) {
                 console.log("doc search: " + searchTerm);
                 try {
                     const { data } = await dataProvider.getList('documents', {

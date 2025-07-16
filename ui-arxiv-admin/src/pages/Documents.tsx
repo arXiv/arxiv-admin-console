@@ -79,13 +79,16 @@ const DocumentFilter = (props: any) => {
 
     return (
         <Filter {...props}>
-            <TextInput label="arXiv ID" source="paper_id" alwaysOn />
+            <TextInput label="Paoper ID" source="paper_id" alwaysOn />
+            <TextInput label="Name" source="submitter_name" alwaysOn />
+            <TextInput label="Category" source="category" alwaysOn />
+            <TextInput label="Category" source="category" alwaysOn />
+
             <SelectInput
                 label="Preset Date Range"
                 source="preset"
                 choices={presetOptions}
                 onChange={(event) => handlePresetChange(event as React.ChangeEvent<HTMLSelectElement>)}
-                alwaysOn
             />
             <DateInput label="Start Date" source="start_date" />
             <DateInput label="End Date" source="end_date" />
@@ -247,7 +250,6 @@ export const DocumentShow = () => {
 )};
 
 export const DocumentList = () => {
-    const sorter: SortPayload = {field: 'document_id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <List filters={<DocumentFilter />}>
@@ -258,7 +260,8 @@ export const DocumentList = () => {
                     tertiaryText={record => record.email}
                 />
             ) : (
-                <Datagrid rowClick="show" sort={sorter}>
+                <Datagrid rowClick="edit">
+                    <TextField source="id" label={"ID"}/>
                     <DateField source="dated" label={"Date"}/>
 
                     <TextField source="paper_id" label={"Paper ID"}/>
