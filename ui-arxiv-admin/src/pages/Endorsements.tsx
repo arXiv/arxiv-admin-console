@@ -20,7 +20,8 @@ import {
     DateField,
     ReferenceField,
     NumberField,
-    DateInput, useListContext, SelectInput, SelectField
+    DateInput, useListContext, SelectInput, SelectField,
+    NullableBooleanInput
 } from 'react-admin';
 
 import React from "react";
@@ -89,7 +90,11 @@ const EndorsementFilter = (props: any) => {
                 onChange={(event) => handleEndorsementTypeChange(event as React.ChangeEvent<HTMLSelectElement>)}
                 alwaysOn
             />
-            <BooleanInput label="Positive" source="positive_endorsement" />
+
+            <NullableBooleanInput label="Positive" source="positive_endorsement" alwaysOn />
+            <TextInput label={"Name"} source={"endorsee_name"} alwaysOn size={"small"} />
+            <TextInput label={"Email"} source={"endorsee_email"} alwaysOn />
+            <TextInput label={"Category"} source={"category"} alwaysOn />
 
             <DateInput label="Start Date" source="start_date" />
             <DateInput label="End Date" source="end_date" />
