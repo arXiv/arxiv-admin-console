@@ -339,7 +339,7 @@ const DocumentEditContent = () => {
             </Box>
 
             {/* Paper Information */}
-            <Box item xs={12}>
+            <Box flex={12}>
                 <Card>
                     <CardContent>
                         <Typography variant="body1" gutterBottom>
@@ -361,7 +361,7 @@ const DocumentEditContent = () => {
             </Box>
 
             {/* Paper Owners */}
-            <Box item xs={12}>
+            <Box flex={12}>
                 <Card>
                     <CardContent>
                         <Typography variant="h6" gutterBottom>
@@ -419,7 +419,7 @@ const DocumentEditContent = () => {
             </Box>
 
             {/* Submission History */}
-            <Box item xs={12}>
+            <Box flex={12}>
                 <Card>
                     <CardContent>
                         <Typography variant="h6" gutterBottom>
@@ -466,7 +466,7 @@ const DocumentEditContent = () => {
             </Box>
 
             {/* Admin Log */}
-            <Box item xs={12}>
+            <Box flex={12}>
                 <Card>
                     <CardContent>
                         <Typography variant="h6" gutterBottom>
