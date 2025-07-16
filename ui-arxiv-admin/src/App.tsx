@@ -133,16 +133,6 @@ const AdminConsole: React.FC = () => {
                 />
 
                 <Resource
-                    name="email_templates"
-                    list={TemplateList}
-                    show={ShowGuesser}
-                    icon={EmailIcon}
-                    recordRepresentation="short_name"
-                    edit={TemplateEdit}
-                    create={TemplateCreate}
-                />
-
-                <Resource
                     name="endorsements"
                     list={EndorsementList}
                     show={ShowGuesser}
@@ -159,6 +149,23 @@ const AdminConsole: React.FC = () => {
                     icon={RequestIcon}
                     edit={EndorsementRequestEdit}
                     create={EndorsementRequestCreate}
+                    recordRepresentation="id"
+                />
+
+                <Resource
+                    name="ownership_requests"
+                    list={OwnershipRequestList}
+                    edit={OwnershipRequestEdit}
+                    icon={OwnershipRequestIcon}
+                    recordRepresentation="id"
+                />
+
+                <Resource
+                    name="submissions"
+                    list={SubmissionList}
+                    edit={SubmissionEdit}
+                    show={SubmissionShow}
+                    icon={SubmissionIcon}
                     recordRepresentation="id"
                 />
 
@@ -192,20 +199,13 @@ const AdminConsole: React.FC = () => {
                 />
 
                 <Resource
-                    name="ownership_requests"
-                    list={OwnershipRequestList}
-                    edit={OwnershipRequestEdit}
-                    icon={OwnershipRequestIcon}
-                    recordRepresentation="id"
-                />
-
-                <Resource
-                    name="submissions"
-                    list={SubmissionList}
-                    edit={SubmissionEdit}
-                    show={SubmissionShow}
-                    icon={SubmissionIcon}
-                    recordRepresentation="id"
+                    name="email_templates"
+                    list={TemplateList}
+                    show={ShowGuesser}
+                    icon={EmailIcon}
+                    recordRepresentation="short_name"
+                    edit={TemplateEdit}
+                    create={TemplateCreate}
                 />
 
                 <Resource

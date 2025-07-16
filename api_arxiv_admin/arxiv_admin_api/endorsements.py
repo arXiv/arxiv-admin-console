@@ -49,6 +49,9 @@ async def list_endorsements(
         positive_endorsement: Optional[bool] = Query(None),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         request_id: Optional[int] = Query(None),
+        endorsee_name: Optional[str] = Query(None, description="Endorsee name. Last name, or first name + last name"),
+        endorsee_email: Optional[str] = Query(None, description="Endorsee email"),
+        category: Optional[str] = Query(None, description="Category"),
         current_user: Optional[ArxivUserClaims] = Depends(get_authn),
         db: Session = Depends(get_db)
     ) -> List[EndorsementModel]:
@@ -121,6 +124,46 @@ async def list_endorsements(
         if by_suspect is not None:
             query = query.join(Demographic, Endorsement.endorser_id == Demographic.user_id)
             query = query.filter(Demographic.flag_suspect == by_suspect)
+            pass
+
+        if endorsee_name is not None or endorsee_email is not None:
+            query = query.join(TapirUser, TapirUser.user_id == Endorsement.endorsee_id)
+
+            if endorsee_name is not None:
+                first_name = None
+                last_name = None
+                if "," in endorsee_name:
+                    elems = endorsee_name.split(",")
+                    if len(elems) == 2:
+                        last_name = elems[0].strip()
+                        first_name = elems[1].strip()
+                else:
+                    elems = endorsee_name.split(" ")
+                    if len(elems) == 2:
+                        first_name = elems[0].strip()
+                        last_name = elems[1].strip()
+
+                if first_name and last_name:
+                    query = query.filter(TapirUser.first_name.istartswith(first_name))
+                    query = query.filter(TapirUser.last_name.istartswith(last_name))
+                else:
+                    query = query.filter(TapirUser.last_name.istartswith(endorsee_name))
+                    pass
+                pass
+
+            if endorsee_email is not None:
+                query = query.filter(TapirUser.email.istartswith(endorsee_email))
+                pass
+            pass
+
+        if category is not None:
+            elems = category.split(".")
+            if len(elems) > 1 and elems[1]:
+                query = query.filter(Endorsement.archive.istartswith(elems[0].strip()))
+                query = query.filter(Endorsement.subject_class.istartswith(elems[1].strip()))
+            else:
+                query = query.filter(Endorsement.archive.istartswith(elems[0].strip()))
+                pass
             pass
 
         for column in order_columns:
