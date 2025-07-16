@@ -30,6 +30,10 @@ import React from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import CategoryField from "../bits/CategoryField";
 import SubmissionCategoriesField from "../bits/SubmissionCategoriesField";
+import Box from "@mui/material/Box";
+import Table from "@mui/material/Table";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
@@ -291,36 +295,218 @@ const DocumentTitle = () => {
     return <span>Document {record ? `${record.paper_id}: ${record.title} by ${record.authors}` : ''}</span>;
 };
 
+const DocumentEditContent = () => {
+    const record = useRecordContext();
+    
+    return (
+        <Box gap={2} display="flex" flexDirection="column">
+            {/* Paper Header */}
+            <Box flex={12}>
+            </Box>
+
+            {/* Paper Details */}
+            <Box flex={12}>
+                <Table >
+                    <TableRow>
+                        <TableCell>Paper</TableCell>
+                        <TableCell>
+                            <TextField source={"paper_id"} />
+                            <a href={`/abs/${record?.paper_id}`}>abs</a> |
+                            <a href={`/pdf/${record?.paper_id}`}>PDF</a> |
+                            <a href={`/admin/meta/edit/${record?.paper_id}`}>edit</a>
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <TableCell>Title</TableCell>
+                        <TableCell>
+                            <TextField source="title" variant="body1"  />
+                        </TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell>Authors</TableCell>
+                        <TableCell>
+                            <TextField source="authors" variant="body1"  />
+                        </TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell>Categories</TableCell>
+                        <TableCell>
+                            <SubmissionCategoriesField />
+                        </TableCell>
+                    </TableRow>
+                </Table>
+            </Box>
+
+            {/* Paper Information */}
+            <Box item xs={12}>
+                <Card>
+                    <CardContent>
+                        <Typography variant="body1" gutterBottom>
+                            <span style={{ fontWeight: 'bold' }}>Paper password:</span> <TextField source="paper_password" variant="body1" />
+                            <span style={{ fontWeight: 'bold' }}> [<a href={`/admin/change-paper-pw.php?document_id=${record?.id}`}>change</a>]</span>
+                        </Typography>
+                        <Typography variant="body1" gutterBottom>
+                            <span style={{ fontWeight: 'bold' }}>Document id:</span> <TextField source="id" variant="body1" />,
+                            latest is v<TextField source="version" variant="body1" /> (shown)
+                        </Typography>
+                        <Typography variant="body1" gutterBottom>
+                            <span style={{ fontWeight: 'bold' }}>Show e-mail requests:</span> 
+                            <a href={`/admin/generic-list.php?document_id=${record?.id}`}>
+                                <NumberField source="email_request_count" />
+                            </a>
+                        </Typography>
+                    </CardContent>
+                </Card>
+            </Box>
+
+            {/* Paper Owners */}
+            <Box item xs={12}>
+                <Card>
+                    <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                            <span style={{ fontWeight: 'bold' }}>Paper owners:</span>
+                        </Typography>
+                        <table style={{ marginLeft: '2em', width: '100%' }}>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* This would be populated with paper owners data */}
+                                <tr>
+                                    <td>
+                                        <ReferenceField source="submitter_id" reference="users" label="Submitter">
+                                            <TextField source="username" />
+                                        </ReferenceField>
+                                    </td>
+                                    <td>
+                                        <EmailField source="submitter_email" />
+                                    </td>
+                                    <td>
+                                        <ReferenceField source="submitter_id" reference="users">
+                                            <TextField source="first_name" />
+                                            {" "}
+                                            <TextField source="last_name" />
+                                        </ReferenceField>
+                                    </td>
+                                    <td><strong>Author</strong></td>
+                                    <td><strong>[<a href="#">revoke</a>]</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        {/* Add Owner Form */}
+                        <SimpleForm style={{ marginLeft: '2em', marginTop: '1em' }}>
+                            <TextInput source="new_owner_search" label="Search User" />
+                            <SelectInput
+                                source="author_type"
+                                choices={[
+                                    { id: '1', name: 'as Author' },
+                                    { id: '0', name: 'as Non-Author' }
+                                ]}
+                                defaultValue="1"
+                            />
+                            <button type="submit">Add Owner &gt;&gt;</button>
+                        </SimpleForm>
+                    </CardContent>
+                </Card>
+            </Box>
+
+            {/* Submission History */}
+            <Box item xs={12}>
+                <Card>
+                    <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                            <span style={{ fontWeight: 'bold' }}>Submission history:</span>
+                        </Typography>
+                        <table style={{ marginLeft: '2em', width: '100%', border: '1px solid #ddd' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f5f5f5' }}>
+                                    <th>Version</th>
+                                    <th>Date</th>
+                                    <th>Submitter</th>
+                                    <th>Email/Name on Submission</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* This would be populated with submission history data */}
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            <a href={`/abs/${record?.paper_id}`}>
+                                                v<TextField source="version" variant="body1"  />
+                                            </a>
+                                        </strong>
+                                    </td>
+                                    <td><DateField source="created" /></td>
+                                    <td>
+                                        <ReferenceField source="submitter_id" reference="users">
+                                            <TextField source="username" />
+                                        </ReferenceField>
+                                        : <EmailField source="submitter_email" />
+                                        (<TextField source="submitter_name" />)
+                                    </td>
+                                    <td>
+                                        <small>
+                                            [email/name on submission: <EmailField source="submitter_old_email" />
+                                            (<TextField source="submitter_old_name" />)]
+                                        </small>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </CardContent>
+                </Card>
+            </Box>
+
+            {/* Admin Log */}
+            <Box item xs={12}>
+                <Card>
+                    <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                            <span style={{ fontWeight: 'bold' }}>Admin Log:</span>
+                        </Typography>
+                        <table style={{ border: '1px solid #ddd', width: '100%' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#FAA' }}>
+                                    <th>Time</th>
+                                    <th>Username</th>
+                                    <th>Program/Command</th>
+                                    <th>Sub Id</th>
+                                    <th>Log text</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* This would be populated with log entries */}
+                                <tr>
+                                    <td><DateField source="log_created" /></td>
+                                    <td><TextField source="log_username" /></td>
+                                    <td><TextField source="log_program" /> / <TextField source="log_command" /></td>
+                                    <td>
+                                        <ReferenceField source="log_submission_id" reference="submissions">
+                                            <TextField source="id" />
+                                        </ReferenceField>
+                                    </td>
+                                    <td><TextField source="log_text" /></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </CardContent>
+                </Card>
+            </Box>
+        </Box>
+    );
+};
+
 export const DocumentEdit = () => (
     <Edit title={<DocumentTitle />}>
-        <SimpleForm>
-            <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
-                {", "}
-                <TextField source={"first_name"} />
-            </ReferenceField>
-
-            <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
-                {", "}
-                <TextField source={"first_name"} />
-            </ReferenceField>
-
-            <TextInput source="archive" />
-
-            <TextInput source="subject_class" />
-            <BooleanInput source="flag_valid" label={"Valid"} />
-
-            <TextInput source="type" />
-            <NumberInput source="point_value" label={"Point"} />
-            <DateInput source="issued_when" label={"Issued"} />
-
-            <ReferenceField source="request_id" reference="document_request" label={"Request"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-            </ReferenceField>
-        </SimpleForm>
+        <DocumentEditContent />
     </Edit>
 );
 

@@ -49,10 +49,11 @@ const ModeratorFilter = (props: any) => {
 
     return (
         <Filter {...props}>
-            <TextInput label="Subject" source="archive" alwaysOn  />
-            <TextInput label="Class" source="subject_class" alwaysOn />
-            <TextInput label="Last name" source="last_name" />
-            <TextInput label="First name" source="first_name" />
+            <TextInput label="Archive" source="archive" alwaysOn  />
+            <TextInput label="Subject" source="subject_class" alwaysOn />
+            <TextInput label="Last name" source="last_name" alwaysOn />
+            <TextInput label="First name" source="first_name" alwaysOn />
+            <TextInput label="Email" source="email" alwaysOn />
         </Filter>
     );
 };

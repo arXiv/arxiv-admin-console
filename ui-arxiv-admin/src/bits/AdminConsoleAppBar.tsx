@@ -11,6 +11,9 @@ import Box from '@mui/material/Box';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {PanelToggleButton} from "../components/PanelToggleButton";
+import {useTheme} from "@mui/material/styles";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 
 
 export const AdminConsoleAppBar = () => {
@@ -18,6 +21,8 @@ export const AdminConsoleAppBar = () => {
     const [docSearch, setDocSearch] = useState('');
     const navigate = useNavigate();
     const dataProvider = useDataProvider();
+    const theme = useTheme();
+    // const isDark = theme.palette.mode === 'dark';
 
     const handleUserSearch = (e: React.KeyboardEvent) => {
         let criteria = {}
@@ -109,7 +114,14 @@ export const AdminConsoleAppBar = () => {
         <RaAppBar>
             <Toolbar sx={{ display: 'flex', alignItems: 'center', width: '100%', mx: 1 , minHeight: '48px !important',}}>
                 <TitlePortal />
-                    <Box sx={{flexGrow: 1 }} />
+                <Box sx={{flexGrow: 1 }} />
+                <Tooltip title={(
+                    <Typography variant="body1">
+                        <p>Name search: Last name</p>
+                        <p>Name search: "First name"  "Last name"</p>
+                        <p>Email search: foo@mit.edu</p>
+                        <p>Username search: foo@</p>
+                    </Typography>)}>
                     <TextField
                         variant="outlined"
                         size="small"
@@ -118,9 +130,24 @@ export const AdminConsoleAppBar = () => {
                         onChange={(e) => setUserSearch(e.target.value)}
                         onKeyDown={handleUserSearch}
                         helperText={null}
-                        sx={{maxWidth: "200px", mr: 1}}
+                        sx={{maxWidth: "200px", mr: 1,
+                            backgroundColor: theme.palette.background.default,
+                            color: theme.palette.text.primary,
+                            '& .MuiInputBase-input': {
+                                color: theme.palette.text.primary
+                            }
+                        }}
                     />
+                </Tooltip>
 
+                <Tooltip title={(
+                    <Typography variant="body1">
+                        <p>Submission: nnnnnn</p>
+                        <p>Submission: s/nnnnnn</p>
+                        <p>Document: yymm.nnnnn</p>
+                        <p>Document: category/nnnnnnn</p>
+                        <p>Document: d/nnnnnn</p>
+                    </Typography>)}>
                     <TextField
                         size="small"
                         variant="outlined"
@@ -129,8 +156,15 @@ export const AdminConsoleAppBar = () => {
                         onChange={(e) => setDocSearch(e.target.value)}
                         helperText={null}
                         onKeyDown={handleDocSearch}
-                        sx={{maxWidth: "200px"}}
+                        sx={{maxWidth: "200px",
+                            backgroundColor: theme.palette.background.default,
+                            color: theme.palette.text.primary,
+                            '& .MuiInputBase-input': {
+                                color: theme.palette.text.primary
+                            }
+                        }}
                     />
+                </Tooltip>
 
             </Toolbar>
             <PanelToggleButton />

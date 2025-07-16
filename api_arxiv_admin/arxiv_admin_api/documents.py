@@ -150,7 +150,7 @@ class DocumentModel(BaseModel):
 async def list_documents(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
-        _order: Optional[str] = Query("ASC", description="sort order"),
+        _order: Optional[str] = Query("DESC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
