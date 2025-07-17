@@ -7,12 +7,12 @@ from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_
+from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, union
 from sqlalchemy.orm import Session, joinedload
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db.models import AdminLog
+from arxiv.db.models import AdminLog, Submission
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user, is_admin_user
 
@@ -44,19 +44,18 @@ class AdminLogModel(BaseModel):
         return db.query(
             AdminLog.id,
             AdminLog.logtime,
-        AdminLog.created,
-        AdminLog.paper_id,
-        AdminLog.username,
-        AdminLog.host,
-        AdminLog.program,
-        AdminLog.command,
-        AdminLog.logtext,
-        AdminLog.document_id,
-        AdminLog.submission_id,
-        AdminLog.notify
+            AdminLog.created,
+            AdminLog.paper_id,
+            AdminLog.username,
+            AdminLog.host,
+            AdminLog.program,
+            AdminLog.command,
+            AdminLog.logtext,
+            AdminLog.document_id,
+            AdminLog.submission_id,
+            AdminLog.notify
         )
     pass
-
 
 
 @router.get('/')
@@ -64,10 +63,10 @@ async def list_admin_logs(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
-        submission_id: Optional[int] = Query(None, alias="submission_id"),
-        paper_id: Optional[str] = Query(None, alias="paper_id"),
+        _start: Optional[int] = Query(0),
+        _end: Optional[int] = Query(100),
+        submission_id: Optional[int] = Query(None),
+        paper_id: Optional[str] = Query(None, description="arXid Paper ID"),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
         _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
@@ -85,6 +84,15 @@ async def list_admin_logs(
 
     if paper_id:
         query = query.filter(AdminLog.paper_id == paper_id)
+        if submission_id is None:
+            # Second query: join with submissions where doc_paper_id matches
+            query2 = AdminLogModel.base_select(db).join(
+                Submission, AdminLog.submission_id == Submission.submission_id,
+                isouter=True
+            ).filter(Submission.doc_paper_id == paper_id)
+
+            # Union the queries - need to convert to subqueries first
+            query = query.union(query2)
 
     order_columns = []
     if _sort:
