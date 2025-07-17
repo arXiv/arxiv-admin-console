@@ -15,7 +15,7 @@ from . import get_db, datetime_to_epoch, VERY_OLDE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/metadatas")
+router = APIRouter(prefix="/metadata")
 
 yymm_re = re.compile(r"^\d{4}\.\d{0,5}")
 
@@ -57,6 +57,7 @@ class MetadataModel(BaseModel):
 
         return db.query(
             Metadata.metadata_id.label("id"),
+            Metadata.document_id,
             Metadata.paper_id,
             Metadata.created,
             Metadata.updated,

@@ -356,7 +356,7 @@ async def update_ownership(
 
 
 
-paper_pw_router = APIRouter(prefix="/paper-pw")
+paper_pw_router = APIRouter(prefix="/paper_pw")
 
 class PaperPwModel(BaseModel):
     id: int
@@ -405,6 +405,37 @@ async def _get_paper_pw(id: str,
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Paper password already exists")
 
     return PaperPwModel.model_validate(item)
+
+
+@paper_pw_router.get('/')
+async def list_paper_pw(
+        response: Response,
+        _sort: Optional[str] = Query("date", description="sort by"),
+        _order: Optional[str] = Query("DESC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        id: Optional[List[str]] = Query(None, description="List of paper owner"),
+        current_user: ArxivUserClaims = Depends(get_authn),
+        session: Session = Depends(get_db)
+    ) -> List[PaperPwModel]:
+
+    if current_user is None:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    ppws = []
+    if id:
+        ppws = [await _get_paper_pw(doc_id, current_user, session) for doc_id in id]
+
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
+
+    response.headers['X-Total-Count'] = str(len(ppws))
+    result = [PaperPwModel.model_validate(ppw) for ppw in ppws[_start:_end]]
+    return result
+
+
 
 
 @paper_pw_router.get('/{id:str}')

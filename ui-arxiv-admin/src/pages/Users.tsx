@@ -48,7 +48,7 @@ import PersonNameField from "../bits/PersonNameField";
 import CareereStatusField from "../bits/CareereStatusField";
 import TapirSessionInfo from "../bits/TapirSessionInfo";
 import Typography from "@mui/material/Typography";
-import PaperOwnersList from "../bits/PaperOwnersList";
+import OwnedPaperList from "../bits/OwnedPaperList";
 import {AdminAuditList} from "../bits/TapirAdminLogs";
 import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
@@ -695,7 +695,7 @@ export const UserEdit = () => {
                     <UserDemographic />
                     <EmailHistoryList />
                     <Grid size={{xs: 12}}>
-                        <PaperOwnersList />
+                        <OwnedPaperList />
                     </Grid>
                 </Grid>
 

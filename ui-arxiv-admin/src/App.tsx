@@ -229,6 +229,8 @@ const AdminConsole: React.FC = () => {
                 <Resource name="author_ids"/>
                 <Resource name="can_submit_to"/>
                 <Resource name="can_endorse_for"/>
+                <Resource name="metadata"/>
+                <Resource name="paper_pw"/>
 
             </Admin>
         </PingBackend>
