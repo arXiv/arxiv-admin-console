@@ -22,7 +22,6 @@ import Button from '@mui/material/Button';
 
 import {paths as adminApi} from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
-import UserNameField from "./UserNameField";
 
 type UpdatePaperOwnersRequestType = adminApi['/v1/paper_owners/update-paper-owners']['post']['requestBody']['content']['application/json'];
 
@@ -98,11 +97,11 @@ const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({docume
     );
 };
 
-const PaperOwnersList: React.FC<{document_id?: Identifier}> = ({document_id}) => {
+const AddPaperOwnersDialog: React.FC<{document_id?: Identifier}> = ({document_id}) => {
     if (!document_id) return null;
 
     const controllerProps = useListController({
-        resource: 'paper_owners',
+        resource: 'users',
         filter: { document_id: document_id },
         sort: { field: 'id', order: 'ASC' },
         perPage: 5,
@@ -121,7 +120,14 @@ const PaperOwnersList: React.FC<{document_id?: Identifier}> = ({document_id}) =>
             >
                 <BooleanField source="flag_author" label={"Author"} />
                 <ReferenceField reference="users" source="user_id" label="Owner">
-                    <UserNameField />
+                    <TextField source="last_name" />
+                    {", "}
+                    <TextField source="first_name" />
+                    {" ("}
+                    <TextField source="username" />
+                    {") <"}
+                    <EmailField source="email" />
+                    {">"}
                 </ReferenceField>
             </Datagrid>
             <Pagination />
@@ -129,4 +135,4 @@ const PaperOwnersList: React.FC<{document_id?: Identifier}> = ({document_id}) =>
     );
 };
 
-export default PaperOwnersList;
+export default AddPaperOwnersDialog;

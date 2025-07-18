@@ -577,6 +577,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/paper_owners/update-paper-owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Authorship */
+        post: operations["update_authorship_v1_paper_owners_update_paper_owners_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/paper_owners/pwc_link": {
         parameters: {
             query?: never;
@@ -594,7 +611,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper-pw/{id}": {
+    "/v1/paper_pw/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Paper Pw */
+        get: operations["list_paper_pw_v1_paper_pw__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/paper_pw/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -611,7 +645,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper-pw/paper/{arxiv_id}": {
+    "/v1/paper_pw/paper/{arxiv_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -628,7 +662,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper-pw/paper/{category}/{subject_class}": {
+    "/v1/paper_pw/paper/{category}/{subject_class}": {
         parameters: {
             query?: never;
             header?: never;
@@ -645,7 +679,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper-pw/renew/{document_id}": {
+    "/v1/paper_pw/renew/{document_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1074,7 +1108,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metadatas/": {
+    "/v1/metadata/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1082,7 +1116,7 @@ export interface paths {
             cookie?: never;
         };
         /** List Metadatas */
-        get: operations["list_metadatas_v1_metadatas__get"];
+        get: operations["list_metadatas_v1_metadata__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1091,7 +1125,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metadatas/paper_id/{paper_id}": {
+    "/v1/metadata/paper_id/{paper_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1102,7 +1136,7 @@ export interface paths {
          * Get Metadata
          * @description Display a paper.
          */
-        get: operations["get_metadata_v1_metadatas_paper_id__paper_id__get"];
+        get: operations["get_metadata_v1_metadata_paper_id__paper_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1111,7 +1145,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metadatas/{id}": {
+    "/v1/metadata/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1122,7 +1156,7 @@ export interface paths {
          * Get Metadata
          * @description Display a paper.
          */
-        get: operations["get_metadata_v1_metadatas__id__get"];
+        get: operations["get_metadata_v1_metadata__id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2381,6 +2415,27 @@ export interface components {
             /** Is Author */
             is_author: boolean;
         };
+        /** PaperOwnersUpdateRequest */
+        PaperOwnersUpdateRequest: {
+            /** Document Id */
+            document_id: string;
+            /**
+             * Owners
+             * @default []
+             */
+            owners: string[];
+            /**
+             * Nonowners
+             * @default []
+             */
+            nonowners: string[];
+            /** Timestamp */
+            timestamp?: string | null;
+            /** Valid */
+            valid?: boolean | null;
+            /** Auto */
+            auto?: boolean | null;
+        };
         /** PaperOwnershipDecisionModel */
         PaperOwnershipDecisionModel: {
             workflow_status: components["schemas"]["WorkflowStatus"];
@@ -2989,6 +3044,7 @@ export interface operations {
                 _start?: number | null;
                 _end?: number | null;
                 submission_id?: number | null;
+                /** @description arXid Paper ID */
                 paper_id?: string | null;
                 /** @description Start date for filtering */
                 start_date?: string | null;
@@ -3936,6 +3992,12 @@ export interface operations {
                 /** @description List of user IDs to filter by */
                 id?: number[] | null;
                 request_id?: number | null;
+                /** @description Endorsee name. Last name, or first name + last name */
+                endorsee_name?: string | null;
+                /** @description Endorsee email */
+                endorsee_email?: string | null;
+                /** @description Category */
+                category?: string | null;
             };
             header?: never;
             path?: never;
@@ -4174,6 +4236,10 @@ export interface operations {
                 endorsee_last_name?: string | null;
                 /** @description Endorsement request endorsee email */
                 endorsee_email?: string | null;
+                /** @description Endorsee username */
+                endorsee_username?: string | null;
+                /** @description Endorsement category */
+                category?: string | null;
                 /** @description Current ID - index position - for navigation */
                 current_id?: number | null;
             };
@@ -4675,6 +4741,39 @@ export interface operations {
             };
         };
     };
+    update_authorship_v1_paper_owners_update_paper_owners_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaperOwnersUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pwc_link_v1_paper_owners_pwc_link_get: {
         parameters: {
             query?: never;
@@ -4690,6 +4789,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_paper_pw_v1_paper_pw__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description List of paper owner */
+                id?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperPwModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -5125,6 +5262,8 @@ export interface operations {
                 subject_class?: string | null;
                 first_name?: string | null;
                 last_name?: string | null;
+                /** @description Moderator email */
+                email?: boolean | null;
             };
             header?: never;
             path?: never;
@@ -5550,7 +5689,7 @@ export interface operations {
             };
         };
     };
-    list_metadatas_v1_metadatas__get: {
+    list_metadatas_v1_metadata__get: {
         parameters: {
             query?: {
                 /** @description sort by */
@@ -5595,7 +5734,7 @@ export interface operations {
             };
         };
     };
-    get_metadata_v1_metadatas_paper_id__paper_id__get: {
+    get_metadata_v1_metadata_paper_id__paper_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5626,7 +5765,7 @@ export interface operations {
             };
         };
     };
-    get_metadata_v1_metadatas__id__get: {
+    get_metadata_v1_metadata__id__get: {
         parameters: {
             query?: never;
             header?: never;

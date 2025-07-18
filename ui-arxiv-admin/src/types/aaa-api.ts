@@ -820,6 +820,8 @@ export interface components {
             new_email: string;
             /** Email Verified */
             email_verified?: boolean | null;
+            /** Comment */
+            comment?: string | null;
         };
         /** EmailVerifiedStatus */
         EmailVerifiedStatus: {
@@ -1590,7 +1592,14 @@ export interface operations {
     };
     get_email_history_account_email_history__user_id___get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+            };
             header?: never;
             path: {
                 user_id: string;

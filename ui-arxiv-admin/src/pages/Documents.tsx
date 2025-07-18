@@ -367,10 +367,13 @@ const DocumentEditContent = () => {
                         <TableRow>
                             <TableCell>Paper Password</TableCell>
                             <TableCell>
-                                <ReferenceField reference={"paper_pw"} source={"id"}>
-                                    <TextField source="password_enc" variant="body1"/>
-                                </ReferenceField>
-                                <Button>Change Paper Password</Button>
+                                <Box display="flex" sx={{m: 0, p: 0}}>
+                                    <ReferenceField reference={"paper_pw"} source={"id"}>
+                                        <TextField source="password_enc" variant="body1"/>
+                                    </ReferenceField>
+                                    <Box flex={1}/>
+                                    <Button>Change Paper Password</Button>
+                                </Box>
                             </TableCell>
                         </TableRow>
 
@@ -410,12 +413,13 @@ const DocumentEditContent = () => {
 
                 {/* Paper Owners */}
                 <Paper elevation={3} style={{padding: '1em'}}>
-                    <Typography variant="h6" gutterBottom>
-                        <span style={{fontWeight: 'bold'}}>Paper owners:</span>
-                    </Typography>
-                    {
-                        record?.id ? <PaperOwnersList document_id={record.id}/> : null
-                    }
+                    <Box display="flex"  alignItems="center">
+                        <Typography variant="body1" fontWeight={"bold"}>
+                            Paper owners:
+                        </Typography>
+                        <Button variant={"contained"} sx={{ml: 3}}>Add Owners</Button>
+                    </Box>
+                    <PaperOwnersList document_id={record?.id}/>
                 </Paper>
 
                 {/* Submission History */}
@@ -473,5 +477,3 @@ export const DocumentCreate = () => (
         </SimpleForm>
     </Create>
 );
-
-

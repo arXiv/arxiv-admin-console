@@ -4,12 +4,12 @@ import json
 import time
 from datetime import timedelta, datetime, date, UTC
 from hashlib import sha256
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.bizmodels.user_model import UserModel
-from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host, get_authn
+from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host, get_authn, ApiToken, is_admin_user
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
@@ -25,7 +25,6 @@ from arxiv.db.models import PaperOwner, PaperPw, Document, DocumentCategory
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user, get_tracking_cookie
 from .biz.paper_owner_biz import generate_paper_pw
 from .helpers.mui_datagrid import MuiDataGridFilter
-from .localfile.submission_state import arxiv_is_pending
 
 from .documents import DocumentModel
 
@@ -80,6 +79,9 @@ def ownership_combo_key(user_id: int, document_id: int):
     return f"user_{user_id}-doc_{document_id}"
 
 def to_ids(one_id: str) -> Tuple[Optional[int], Optional[int]]:
+    """
+    PaperOwnerModel ID -> (user_id, document_id)
+    """
     matched = ownership_id_re.match(one_id)
     if not matched:
         return (None, None)
@@ -589,13 +591,16 @@ async def update_authorship(
         remote_addr: Optional[str] = Depends(get_client_host),
         remote_host: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
-        current_user: ArxivUserClaims = Depends(get_authn)  # Assumes user has an 'id' field
+        current_user: ArxivUserClaims | ApiToken = Depends(get_authn)  # Assumes user has an 'id' field
 ):
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    if body.user_id != current_user.user_id and not current_user.is_admin:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
+    if isinstance(current_user, ArxivUserClaims):
+        if current_user.user_id != body.user_id or not current_user.is_admin:
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
+    else:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="API token is not allowed to update paper ownership for audit reason.")
 
     timestamp = datetime.fromisoformat(body.timestamp) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
     auto = False if body.auto is None else body.auto
@@ -609,7 +614,7 @@ async def update_authorship(
             continue
         doc_ids = [parse_doc_id(doc) for doc in doc__list]
 
-        existing_docs = {
+        existing_docs: Dict[str, PaperOwner] = {
             str(po.document_id): po for po in session.query(PaperOwner)
             .filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id.in_(doc_ids))
             .all()
@@ -627,6 +632,104 @@ async def update_authorship(
                 new_ownership = PaperOwner(
                     document_id=doc_id,
                     user_id=body.user_id,
+                    date=timestamp,
+                    added_by=current_user.user_id,
+                    remote_addr=remote_addr,
+                    remote_host=remote_host,
+                    tracking_cookie=tracking_cookie,
+                    valid=valid,
+                    flag_author=flag,
+                    flag_auto=auto,
+                )
+                session.add(new_ownership)
+    session.commit()
+    return
+
+
+
+class PaperOwnersUpdateRequest(BaseModel):
+    document_id: str
+    owners: List[str] = []         # list of doc-user (PaperOwnerModel ID) IDs
+    nonowners: List[str] = []      # ditto
+    timestamp: Optional[str] = None # ISO timestamp
+    valid: Optional[bool] = None
+    auto: Optional[bool] = None
+
+
+@router.post("/update-paper-owners")
+async def update_authorship(
+        body: PaperOwnersUpdateRequest,
+        session: Session = Depends(get_db),
+        remote_addr: Optional[str] = Depends(get_client_host),
+        remote_host: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
+        current_user: ArxivUserClaims | ApiToken = Depends(get_authn)  # Assumes user has an 'id' field
+):
+    """
+    Handles the process of updating paper ownership by modifying existing ownership records or adding
+    new ones based on the provided data, user authentication, and permissions. This endpoint is
+    restricted to authenticated users, with additional constraints for non-admin users.
+
+    Parameters
+    ----------
+    body : PaperOwnersUpdateRequest
+        The request payload containing document ID, ownership details, and optional flags.
+    session : Session, default: Depends(get_db)
+        The database session for querying and committing changes.
+    remote_addr : Optional[str], default: Depends(get_client_host)
+        The IP address of the client making the request.
+    remote_host : Optional[str], default: Depends(get_client_host_name)
+        The hostname of the client making the request.
+    tracking_cookie : Optional[str], default: Depends(get_tracking_cookie)
+        An optional tracking cookie for identifying the client.
+    current_user : ArxivUserClaims | ApiToken, default: Depends(get_authn)
+        The authenticated user making the request.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not authenticated (401 Unauthorized).
+        If a non-admin user attempts to update ownership of a paper they don’t own (403 Forbidden).
+        If an API token is used to update ownership (403 Forbidden).
+
+    Returns
+    -------
+    None
+        No data is returned. The method commits changes to the database if the operation is successful.
+    """
+    if current_user is None:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    if isinstance(current_user, ArxivUserClaims):
+        if not current_user.is_admin:
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
+    else:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="API token is not allowed to update paper ownership for audit reason.")
+
+    timestamp = datetime.fromisoformat(body.timestamp) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
+    auto = False if body.auto is None else body.auto
+    valid = True if body.valid is None else body.valid
+
+    current_ownerships = session.query(PaperOwner).filter(PaperOwner.document_id == body.document_id).all()
+    owner: PaperOwner
+    existing = { owner.user_id: owner for owner in current_ownerships }
+
+    for flag, user_doc_ids in enumerate([body.nonowners, body.owners]):
+        if not user_doc_ids:
+            continue
+
+        for user_doc_id in user_doc_ids:
+            user_id, doc_id = to_ids(user_doc_id)
+            if user_id in existing:
+                existing[user_id].flag_author = flag
+                if body.auto is not None:
+                    existing[user_id].flag_auto = body.auto
+                if body.valid is not None:
+                    existing[user_id].flag_valid = body.valid
+            else:
+                new_ownership = PaperOwner(
+                    document_id=body.document_id,
+                    user_id=user_id,
                     date=timestamp,
                     added_by=current_user.user_id,
                     remote_addr=remote_addr,

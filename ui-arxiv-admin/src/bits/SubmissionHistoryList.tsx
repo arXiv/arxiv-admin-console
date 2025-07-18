@@ -24,6 +24,7 @@ import Button from '@mui/material/Button';
 
 import {paths as adminApi} from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
+import UserNameField from "./UserNameField";
 
 
 const SubmissionHistoryList: React.FC<{document_id?: Identifier}> = ({document_id}) => {
@@ -59,14 +60,7 @@ const SubmissionHistoryList: React.FC<{document_id?: Identifier}> = ({document_i
                 <TextField source="version" label={"Version"} />
                 <DateField source={"submit_time"} label={"Submit Time"} showTime={true}  />
                 <ReferenceField reference="users" source="submitter_id" label="Submitter">
-                    <TextField source="last_name" />
-                    {", "}
-                    <TextField source="first_name" />
-                    {" ("}
-                    <TextField source="username" />
-                    {") <"}
-                    <TextField source="email" />
-                    {">"}
+                    <UserNameField />
                 </ReferenceField>
                 <EmailField source="submitter_email" label={"Submitter Email"} />
             </Datagrid>
