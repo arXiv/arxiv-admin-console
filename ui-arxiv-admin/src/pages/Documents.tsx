@@ -7,7 +7,7 @@ import {
     Typography,
     useMediaQuery,
     Switch,
-    FormControlLabel
+    FormControlLabel, IconButton
 } from '@mui/material';
 import {
     List,
@@ -31,23 +31,35 @@ import {
     NumberField,
     SimpleShowLayout,
     Show,
-    DateInput, useListContext, SelectInput, useShowContext
+    DateInput, useListContext, SelectInput, useShowContext, Identifier, useDataProvider
 } from 'react-admin';
+
+import LinkIcon from '@mui/icons-material/Link';
+import MetadataIcon from '@mui/icons-material/Edit';
+
 
 import {addDays} from 'date-fns';
 
-import React from "react";
+import React, {ReactNode, useEffect, useState} from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import CategoryField from "../bits/CategoryField";
 import SubmissionCategoriesField from "../bits/SubmissionCategoriesField";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableRow from "@mui/material/TableRow";
-import TableCell from "@mui/material/TableCell";
+import TableCell, {TableCellProps} from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
 import PaperOwnersList from "../bits/PaperOwnersList";
 import SubmissionHistoryList from "../bits/SubmissionHistoryList";
 import AdminLogList from "../bits/AdminLogList";
+import PaperAdminAddOwnerDialog from "../components/PaperAdminAddOwnerDialog";
+import {useNavigate} from "react-router-dom";
+import {paths as adminApi} from '../types/admin-api';
+import FieldNameCell from "../bits/FieldNameCell";
+
+type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
+
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
@@ -315,8 +327,32 @@ const DocumentTitle = () => {
     return <span>Document {record ? `${record.paper_id}: ${record.title} by ${record.authors}` : ''}</span>;
 };
 
+
+
 const DocumentEditContent = () => {
     const record = useRecordContext();
+    const [openAddOwnerDialog, setOpenAddOwnerDialog] = React.useState(false);
+    const navigate = useNavigate();
+    const [metadata, setMetadata] = useState<MetadataT | null>(null);
+    const dataProvider =  useDataProvider();
+
+    useEffect(() => {
+        async function getMetadata() {
+            if (record?.id) {
+                try {
+                    const response = await dataProvider.getOne('document-metadata', {
+                        id: record.id,
+                    });
+                    setMetadata(response.data);
+                    console.log('Metadata:', JSON.stringify(response.data));
+                } catch (error) {
+                    console.error('Error fetching submission categories:', error);
+                } finally {
+                }
+            }
+        }
+        getMetadata();
+    }, [record?.id]);
 
     return (
         <SimpleForm>
@@ -336,36 +372,39 @@ const DocumentEditContent = () => {
                 <Paper elevation={3} style={{padding: '1em'}}>
                     <Table size="small">
                         <TableRow>
-                            <TableCell>Paper</TableCell>
+                            <FieldNameCell>Paper</FieldNameCell>
                             <TableCell>
-                                <TextField source={"paper_id"}/>
-                                <a href={`/abs/${record?.paper_id}`}>abs</a> |
-                                <a href={`/pdf/${record?.paper_id}`}>PDF</a> |
-                                <a href={`/admin/meta/edit/${record?.paper_id}`}>edit</a>
+                                <Box gap={2} flexDirection={'row'} display="flex"  alignItems="center">
+                                    <TextField source={"paper_id"}/>
+                                    <Link href={`https://arxiv.org/abs/${record?.paper_id}`} target="_blank">Abstruct <LinkIcon /></Link>
+                                    <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon /></Link>
+                                    <Button endIcon={<MetadataIcon />} onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit Metadata</Button>
+                                </Box>
                             </TableCell>
                         </TableRow>
 
                         <TableRow>
-                            <TableCell>Title</TableCell>
+                            <FieldNameCell>Title</FieldNameCell>
                             <TableCell>
-                                <TextField source="title" variant="body1"/>
+                                <TextField source="title" variant={"body1"} fontSize={"1.25rem"} />
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell>Authors</TableCell>
+                            <FieldNameCell>Authors</FieldNameCell>
                             <TableCell>
-                                <TextField source="authors" variant="body1"/>
+                                <TextField source="authors" variant={"body1"} />
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell>Categories</TableCell>
+                            <FieldNameCell>Categories</FieldNameCell>
                             <TableCell>
                                 <SubmissionCategoriesField/>
                             </TableCell>
                         </TableRow>
 
+
                         <TableRow>
-                            <TableCell>Paper Password</TableCell>
+                            <FieldNameCell>Paper Password</FieldNameCell>
                             <TableCell>
                                 <Box display="flex" sx={{m: 0, p: 0}}>
                                     <ReferenceField reference={"paper_pw"} source={"id"}>
@@ -378,7 +417,7 @@ const DocumentEditContent = () => {
                         </TableRow>
 
                         <TableRow>
-                            <TableCell>Document ID</TableCell>
+                            <FieldNameCell>Document ID</FieldNameCell>
                             <TableCell>
                                 <Box gap={1}>
                                     <TextField source="id" variant="body1"/>
@@ -387,9 +426,9 @@ const DocumentEditContent = () => {
                         </TableRow>
 
                         <TableRow>
-                            <TableCell>Latest version</TableCell>
+                            <FieldNameCell>Latest version</FieldNameCell>
                             <TableCell>
-                                <ReferenceField reference={"metadata"} source={"id"}>
+                                <ReferenceField reference={"submissions"} source={"last_submission_id"}>
                                     <Typography>
                                         {"version "}
                                         <TextField source="version" variant="body1"/>
@@ -417,9 +456,13 @@ const DocumentEditContent = () => {
                         <Typography variant="body1" fontWeight={"bold"}>
                             Paper owners:
                         </Typography>
-                        <Button variant={"contained"} sx={{ml: 3}}>Add Owners</Button>
+                        <Button variant={"contained"} sx={{ml: 3}}
+                                onClick={() => setOpenAddOwnerDialog(true)}
+                        >Add Owners</Button>
                     </Box>
-                    <PaperOwnersList document_id={record?.id}/>
+                    <Box maxWidth={"sm"} >
+                        <PaperOwnersList document_id={record?.id}/>
+                    </Box>
                 </Paper>
 
                 {/* Submission History */}
@@ -427,7 +470,9 @@ const DocumentEditContent = () => {
                     <Typography variant="body1" fontWeight={"bold"}>
                         Submission history:
                     </Typography>
-                    <SubmissionHistoryList document_id={record?.id}/>
+                    <Box maxWidth={"sm"} >
+                        <SubmissionHistoryList document_id={record?.id}/>
+                    </Box>
                 </Paper>
 
                 {/* Admin Log */}
@@ -438,6 +483,7 @@ const DocumentEditContent = () => {
                     <AdminLogList paper_id={record?.paper_id}/>
                 </Paper>
             </Box>
+            <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog} setOpen={setOpenAddOwnerDialog} />
         </SimpleForm>
     );
 };

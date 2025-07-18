@@ -41,6 +41,7 @@ import { LinkPanel } from './components/LinkPanel';
 import { PanelToggleButton } from './components/PanelToggleButton';
 import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
 import {useNavigate} from "react-router-dom";
+import {MetadataEdit} from "./pages/Metadata";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -229,7 +230,9 @@ const AdminConsole: React.FC = () => {
                 <Resource name="author_ids"/>
                 <Resource name="can_submit_to"/>
                 <Resource name="can_endorse_for"/>
-                <Resource name="metadata"/>
+                <Resource name="metadata"
+                          edit={MetadataEdit}
+                />
                 <Resource name="paper_pw"/>
 
             </Admin>

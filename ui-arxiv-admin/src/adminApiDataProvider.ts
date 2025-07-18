@@ -185,6 +185,22 @@ class adminApiDataProvider implements DataProvider {
 
     async getOne<T extends RaRecord>(resource: string, params: GetOneParams): Promise<GetOneResult<T>>
     {
+        if (resource === 'document-metadata') {
+            const docId = params.id;
+            const url = `${this.api}/metadata/document_id/${docId}`;
+            try {
+                const response = await retryHttpClient(url);
+                return {
+                    data: response.json as T,
+                };
+            }
+            catch (error) {
+                return {
+                    data: {} as T
+                };
+            }
+        }
+
         return this.dataProvider.getOne(resource, params);
     }
 

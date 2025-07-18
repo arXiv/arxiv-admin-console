@@ -97,6 +97,7 @@ async def list_metadatas(
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
+        document_id: Optional[str] = Query(None, description="Document ID"),
         paper_id: Optional[str] = Query(None, description="arXiv ID"),
         db: Session = Depends(get_db)
     ) -> List[MetadataModel]:
@@ -136,13 +137,17 @@ async def list_metadatas(
                 t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
                 query = query.filter(Metadata.created.between(t_begin, t_end))
 
-        if paper_id is not None:
+        if document_id is not None:
+            query = query.filter(Metadata.document_id == document_id)
+            pass
+        elif paper_id is not None:
             if len(paper_id) >= 5 and yymm_re.match(paper_id):
                 least_paper_id = paper_id + "0000.00000"[len(paper_id):]
                 most_paper_id = paper_id + "9999.99999"[len(paper_id):]
                 query = query.filter(Metadata.paper_id.between(least_paper_id, most_paper_id))
             else:
                 query = query.filter(Metadata.paper_id.like(paper_id + "%"))
+                pass
             pass
 
         for column in order_columns:
@@ -162,12 +167,36 @@ async def list_metadatas(
 @router.get("/paper_id/{paper_id:str}")
 def get_metadata(paper_id:str,
                  session: Session = Depends(get_db)) -> MetadataModel:
-    """Display a paper."""
+    """Get the metadata from paper id."""
     query = MetadataModel.base_select(session).filter(Metadata.paper_id == paper_id)
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
     return MetadataModel.model_validate(doc)
+
+@router.get("/paper_id/{category}/{numeric_id:str}")
+def get_metadata(category:str, numeric_id:str,
+                 session: Session = Depends(get_db)) -> MetadataModel:
+    """Get the metadata from paper id."""
+    paper_id = f"{category}/{numeric_id}"
+    query = MetadataModel.base_select(session).filter(Metadata.paper_id == paper_id)
+    doc = query.one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    return MetadataModel.model_validate(doc)
+
+
+@router.get("/document_id/{document_id:str}")
+def get_metadata_from_document_id(
+    document_id:str,
+    session: Session = Depends(get_db)) -> MetadataModel:
+    """Display a paper."""
+    query = MetadataModel.base_select(session).filter(Metadata.document_id == document_id)
+    doc = query.one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    return MetadataModel.model_validate(doc)
+
 
 @router.get("/{id:str}")
 def get_metadata(id:int,

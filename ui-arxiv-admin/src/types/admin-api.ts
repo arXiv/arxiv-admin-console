@@ -586,8 +586,40 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update Authorship */
-        post: operations["update_authorship_v1_paper_owners_update_paper_owners_post"];
+        /**
+         * Update Paper Owners
+         * @description Handles the process of updating paper ownership by modifying existing ownership records or adding
+         *     new ones based on the provided data, user authentication, and permissions. This endpoint is
+         *     restricted to authenticated users, with additional constraints for non-admin users.
+         *
+         *     Parameters
+         *     ----------
+         *     body : PaperOwnersUpdateRequest
+         *         The request payload containing document ID, ownership details, and optional flags.
+         *     session : Session, default: Depends(get_db)
+         *         The database session for querying and committing changes.
+         *     remote_addr : Optional[str], default: Depends(get_client_host)
+         *         The IP address of the client making the request.
+         *     remote_host : Optional[str], default: Depends(get_client_host_name)
+         *         The hostname of the client making the request.
+         *     tracking_cookie : Optional[str], default: Depends(get_tracking_cookie)
+         *         An optional tracking cookie for identifying the client.
+         *     current_user : ArxivUserClaims | ApiToken, default: Depends(get_authn)
+         *         The authenticated user making the request.
+         *
+         *     Raises
+         *     ------
+         *     HTTPException
+         *         If the user is not authenticated (401 Unauthorized).
+         *         If a non-admin user attempts to update ownership of a paper they don’t own (403 Forbidden).
+         *         If an API token is used to update ownership (403 Forbidden).
+         *
+         *     Returns
+         *     -------
+         *     None
+         *         No data is returned. The method commits changes to the database if the operation is successful.
+         */
+        post: operations["update_paper_owners_v1_paper_owners_update_paper_owners_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1134,9 +1166,49 @@ export interface paths {
         };
         /**
          * Get Metadata
-         * @description Display a paper.
+         * @description Get the metadata from paper id.
          */
         get: operations["get_metadata_v1_metadata_paper_id__paper_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/metadata/paper_id/{category}/{numeric_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Metadata
+         * @description Get the metadata from paper id.
+         */
+        get: operations["get_metadata_v1_metadata_paper_id__category___numeric_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/metadata/document_id/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Metadata From Document Id
+         * @description Display a paper.
+         */
+        get: operations["get_metadata_from_document_id_v1_metadata_document_id__document_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4741,7 +4813,7 @@ export interface operations {
             };
         };
     };
-    update_authorship_v1_paper_owners_update_paper_owners_post: {
+    update_paper_owners_v1_paper_owners_update_paper_owners_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5705,6 +5777,8 @@ export interface operations {
                 start_date?: string | null;
                 /** @description End date for filtering */
                 end_date?: string | null;
+                /** @description Document ID */
+                document_id?: string | null;
                 /** @description arXiv ID */
                 paper_id?: string | null;
             };
@@ -5740,6 +5814,69 @@ export interface operations {
             header?: never;
             path: {
                 paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_metadata_v1_metadata_paper_id__category___numeric_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category: string;
+                numeric_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_metadata_from_document_id_v1_metadata_document_id__document_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
             };
             cookie?: never;
         };

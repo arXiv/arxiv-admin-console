@@ -8,7 +8,6 @@ import {
     TextInput,
     Filter,
     DateField,
-    ReferenceField,
     useRecordContext,
     Identifier,
 } from 'react-admin';
@@ -18,9 +17,12 @@ import React, { useState, useCallback } from "react";
 import PersonNameField from "../bits/PersonNameField";
 import Checkbox from '@mui/material/Checkbox';
 
+import {paths as adminApi} from '../types/admin-api';
+type UsersT = adminApi['/v1/users/']['get']['responses']['200']['content']['application/json'];
+
 
 interface UserChooserListProps {
-    onUsersSelected?: (selectedUsers: Identifier[]) => void;
+    onUsersSelected?: (selectedUsers: UsersT) => void;
 }
 
 
@@ -73,7 +75,7 @@ const UserChooserList = ({ onUsersSelected }: UserChooserListProps) => {
     };
 
     return (
-        <List filters={<UserChooserFilter/>}>
+        <List filters={<UserChooserFilter/>} resource="users" actions={false}>
             <Datagrid rowClick={false} sort={sorter} bulkActionButtons={false}>
                 <SelectCheckbox />
                 <PersonNameField source={"id"} label="Name" />
@@ -86,12 +88,6 @@ const UserChooserList = ({ onUsersSelected }: UserChooserListProps) => {
                               TrueIcon={DoDisturbOnIcon}/>
                 <BooleanField source="flag_suspect" label={"Suspect"} FalseIcon={null}
                               TrueIcon={DoDisturbOnIcon}/>
-                <ReferenceField source="moderator_id" reference="moderators"
-                                link={(record, reference) => `/${reference}/${record.moderator_id}`}>
-                    <TextField source={"archive"} />
-                    {"/"}
-                    <TextField source={"subject_class"} />
-                </ReferenceField>
             </Datagrid>
         </List>
     );

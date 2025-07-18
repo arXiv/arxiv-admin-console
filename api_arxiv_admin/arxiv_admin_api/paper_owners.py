@@ -657,7 +657,7 @@ class PaperOwnersUpdateRequest(BaseModel):
 
 
 @router.post("/update-paper-owners")
-async def update_authorship(
+async def update_paper_owners(
         body: PaperOwnersUpdateRequest,
         session: Session = Depends(get_db),
         remote_addr: Optional[str] = Depends(get_client_host),
@@ -725,7 +725,7 @@ async def update_authorship(
                 if body.auto is not None:
                     existing[user_id].flag_auto = body.auto
                 if body.valid is not None:
-                    existing[user_id].flag_valid = body.valid
+                    existing[user_id].valid = valid
             else:
                 new_ownership = PaperOwner(
                     document_id=body.document_id,

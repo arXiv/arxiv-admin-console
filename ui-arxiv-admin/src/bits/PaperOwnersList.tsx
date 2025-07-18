@@ -33,12 +33,13 @@ const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({docume
     const notify = useNotify();
     const refresh = useRefresh();
 
-    async function setPaperOwners(selectedIds: string[], is_owner: boolean) {
+    async function setPaperOwners(selectedIds: string[], is_owner: boolean, valid: boolean) {
 
         const body: UpdatePaperOwnersRequestType = {
             document_id: documentId.toString(),
             owners: is_owner ? selectedIds : [],
             nonowners: !is_owner ? selectedIds : [],
+            valid: valid,
         }
 
         const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + "/paper_owners/update-paper-owners",
@@ -62,7 +63,7 @@ const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({docume
             notify("No document selected", { type: 'warning' });
             return;
         }
-        await setPaperOwners(selectedIds, true);
+        await setPaperOwners(selectedIds, true, true);
     };
 
     const handleIsNotOwner = async () => {
@@ -73,26 +74,46 @@ const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({docume
             notify("No document selected", { type: 'warning' });
             return;
         }
-        await setPaperOwners(selectedIds, false);
+        await setPaperOwners(selectedIds, false, true);
+    };
+
+    const handleRevoked = async () => {
+        const selectedIds = listContext.selectedIds;
+        console.log('Selected IDs:', selectedIds);
+
+        if (selectedIds.length === 0) {
+            notify("No document selected", { type: 'warning' });
+            return;
+        }
+        await setPaperOwners(selectedIds, false, false);
     };
 
     return (
-        <Box display={"flex"} flexDirection={"row"} sx={{gap: 1, m: 1}}>
+        <Box display={"flex"} flexDirection={"row"} sx={{gap: 3, m: 1}}>
             <Button
                 id="owns_paper"
                 name="owns_paper"
-                variant="outlined"
+                variant="contained"
                 onClick={handleIsOwner}
             >
-                Make an author.
+                Author
             </Button>
             <Button
                 id="not_owns_paper"
                 name="not_owns_paper"
-                variant="outlined"
+                variant="contained"
                 onClick={handleIsNotOwner}
             >
-                Make not an author.
+                Not author
+            </Button>
+            <Button
+                id="not_owns_paper"
+                name="not_owns_paper"
+                variant="contained"
+                color="warning"
+                onClick={handleRevoked}
+            >
+                Revoke
             </Button>
         </Box>
     );
@@ -115,12 +136,14 @@ const PaperOwnersList: React.FC<{document_id?: Identifier}> = ({document_id}) =>
     return (
         <ListContextProvider value={controllerProps}>
             <Datagrid
+                size={"small"}
                 rowClick="edit"
                 bulkActionButtons={<PaperOwnerBulkActionButtons documentId={document_id} />}
                 empty={<p><b>No owners for this paper</b></p>}
             >
-                <BooleanField source="flag_author" label={"Author"} />
-                <ReferenceField reference="users" source="user_id" label="Owner">
+                <BooleanField source="flag_author" label={"Owner"} />
+                <BooleanField source="valid" label={"Valid"} />
+                <ReferenceField reference="users" source="user_id" label="Name">
                     <UserNameField />
                 </ReferenceField>
             </Datagrid>

@@ -45,7 +45,7 @@ const SubmissionHistoryList: React.FC<{document_id?: Identifier}> = ({document_i
         <ListContextProvider value={controllerProps}>
             <Datagrid
                 bulkActionButtons={false}
-                rowClick="edit"
+                rowClick={false}
                 empty={<p><b>No submissions this paper???</b></p>}
             >
                 {
@@ -57,6 +57,9 @@ const SubmissionHistoryList: React.FC<{document_id?: Identifier}> = ({document_i
 
                      */
                 }
+                <ReferenceField reference="submissions" source="id">
+                    <TextField source="id" label={"ID"} />
+                </ReferenceField>
                 <TextField source="version" label={"Version"} />
                 <DateField source={"submit_time"} label={"Submit Time"} showTime={true}  />
                 <ReferenceField reference="users" source="submitter_id" label="Submitter">
