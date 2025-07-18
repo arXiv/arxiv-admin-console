@@ -57,6 +57,7 @@ import PaperAdminAddOwnerDialog from "../components/PaperAdminAddOwnerDialog";
 import {useNavigate} from "react-router-dom";
 import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";
+import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -445,9 +446,9 @@ const DocumentEditContent = () => {
                     <Typography variant="body1" fontWeight={"bold"}>
                         Show e-mail requests:
                     </Typography>
-                    <a href={`/admin/generic-list.php?document_id=${record?.id}`}>
-                        <NumberField source="email_request_count"/>
-                    </a>
+                    <Box maxWidth={"sm"} >
+                        <ShowEmailsRequestsList document_id={record?.id}/>
+                    </Box>
                 </Paper>
 
                 {/* Paper Owners */}

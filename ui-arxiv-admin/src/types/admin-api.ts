@@ -1745,6 +1745,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/show_email_requests/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Show Email Requests */
+        get: operations["list_show_email_requests_v1_show_email_requests__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2592,6 +2609,27 @@ export interface components {
             flag_group_eess: number | null;
             /** Flag Group Econ */
             flag_group_econ: number | null;
+        };
+        /** ShowEmailRequestsModel */
+        ShowEmailRequestsModel: {
+            /** Id */
+            id: number;
+            /** Document Id */
+            document_id: number;
+            /** User Id */
+            user_id: number;
+            /** Session Id */
+            session_id: number;
+            /** Dated */
+            dated: number;
+            /** Flag Allowed */
+            flag_allowed: number;
+            /** Remote Addr */
+            remote_addr: string;
+            /** Remote Host */
+            remote_host: string;
+            /** Tracking Cookie */
+            tracking_cookie: string;
         };
         /** SubmissionCategoryModel */
         SubmissionCategoryModel: {
@@ -6924,6 +6962,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthorIDModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_show_email_requests_v1_show_email_requests__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description Document ID */
+                document_id?: number | null;
+                /** @description User ID */
+                user_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowEmailRequestsModel"][];
                 };
             };
             /** @description Validation Error */
