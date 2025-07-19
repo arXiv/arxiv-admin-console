@@ -3,15 +3,25 @@ import { TextInput, TextInputProps } from 'react-admin';
 
 interface PlainTextInputProps extends TextInputProps {
     fontSize?: string;
+    resizable?: boolean | 'horizontal' | 'vertical' | 'both';
 }
 
 const PlainTextInput: React.FC<PlainTextInputProps> = ({
                                                            fontSize = '1rem',
                                                            label = false,
                                                            helperText = false,
+                                                           resizable = false,
                                                            sx,
                                                            ...rest
-                                                       }) => (
+                                                       }) => {
+    const getResizeValue = () => {
+        if (resizable === true || resizable === 'both') return 'both';
+        if (resizable === 'horizontal') return 'horizontal';
+        if (resizable === 'vertical') return 'vertical';
+        return 'none';
+    };
+
+    return (
     <TextInput
         label={label}
         helperText={helperText}
@@ -19,7 +29,9 @@ const PlainTextInput: React.FC<PlainTextInputProps> = ({
             '& .MuiInputBase-input': {
                 fontSize,
                 padding: '4px 0',
-                minHeight: 'auto'
+                minHeight: 'auto',
+                resize: getResizeValue(),
+                overflow: 'auto'
             },
             '& .MuiOutlinedInput-root': {
                 '& fieldset': {
@@ -37,9 +49,11 @@ const PlainTextInput: React.FC<PlainTextInputProps> = ({
             },
             ...sx
         }}
+        multiline={resizable !== false}
         {...rest}
     />
-);
+    );
+};
 
 export default PlainTextInput;
 

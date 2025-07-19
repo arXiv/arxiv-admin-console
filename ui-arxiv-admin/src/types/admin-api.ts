@@ -1762,6 +1762,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/licenses/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Licenses */
+        get: operations["list_licenses_v1_licenses__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2248,6 +2265,19 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LicenseModel */
+        LicenseModel: {
+            /** Id */
+            id: string;
+            /** Label */
+            label?: string | null;
+            /** Active */
+            active?: boolean | null;
+            /** Note */
+            note?: string | null;
+            /** Sequence */
+            sequence?: number | null;
         };
         /** MemberInstitutionModel */
         MemberInstitutionModel: {
@@ -7002,6 +7032,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShowEmailRequestsModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_licenses_v1_licenses__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description List of licenses */
+                id?: string[] | null;
+                /** @description Active licenses */
+                active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseModel"][];
                 };
             };
             /** @description Validation Error */
