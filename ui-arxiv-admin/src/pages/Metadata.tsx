@@ -58,6 +58,7 @@ import {useNavigate} from "react-router-dom";
 import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";
 import PlainTextInput from '../bits/PlainTextInput';
+import CategoryInput from "../bits/CategoryInput";
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -115,7 +116,7 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>Categories</FieldNameCell>
                             <TableCell>
-
+                                <CategoryInput source="abs_categories" />
                             </TableCell>
                         </TableRow>
 
