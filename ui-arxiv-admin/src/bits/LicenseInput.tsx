@@ -42,7 +42,9 @@ const LicenseInput: React.FC<LicenseInputProps> = ({source, ...inputProps}) => {
 
 
     // Convert option strings to full source format object
-    const selectedOption = value ? licenseOptions.find(license => license.id === value) : null;
+    const selectedOption = value && licenseOptions.length > 0 ? licenseOptions.find(license => license.id === value) || null : null;
+
+    console.log("Licenses - selectedOption:", JSON.stringify(selectedOption));
 
     const handleSelectionChange = (newSelectedOption: LicenseType | null) => {
         // Convert selected option back to string value or null
@@ -56,7 +58,7 @@ const LicenseInput: React.FC<LicenseInputProps> = ({source, ...inputProps}) => {
             options={licenseOptions}
             getOptionLabel={(option) => option.label ?? "Unknown Format"}
             isOptionEqualToValue={(option, value) =>
-                option.id === value.id
+                option.id === (value as LicenseType)?.id
             }
             renderInput={(params) => <TextField
                 {...params}
