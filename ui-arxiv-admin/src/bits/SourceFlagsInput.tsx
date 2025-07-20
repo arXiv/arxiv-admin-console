@@ -60,6 +60,32 @@ const SourceFlagsInput: React.FC<FlagInputProps> = ({source, ...inputProps}) => 
                 label={false}
                 error={!!error}
                 helperText={false}
+sx={{
+                    '& .MuiAutocomplete-root': {
+                        paddingTop: '0px !important'
+                    },
+                    '& .MuiFilledInput-root': {
+                        paddingTop: '0px !important'
+                    },
+                    '& .MuiInputBase-input': {
+                        padding: '4px 0',
+                        minHeight: 'auto'
+                    },
+                    '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                            border: 'none'
+                        },
+                        '&:hover fieldset': {
+                            border: 'none'
+                        },
+                        '&.Mui-focused fieldset': {
+                            border: 'none'
+                        }
+                    },
+                    '& .MuiInputBase-root': {
+                        minHeight: 'auto'
+                    }
+                }}
                 slotProps={{
                     inputLabel: {
                         shrink: true,

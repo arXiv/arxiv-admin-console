@@ -63,6 +63,7 @@ import Tooltip from "@mui/material/Tooltip";
 import SourceFlagsInput from '../bits/SourceFlagsInput';
 import SourceFormatInput from "../bits/SourceFormatInput";
 import LicenseInput from "../bits/LicenseInput";
+import {PrepACMClass, PrepDOI, PrepJoyrnalRef, PrepMSCClass, PrepReportNum} from "../helptexts/Prep";
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -168,10 +169,7 @@ const MetadataEditContents = () => {
 
                         <TableRow>
                             <FieldNameCell>
-                                <Tooltip title={<Typography variant={"body1"}>Required only when supplied by author's institution
-                                    <li>Enter your institution's locally assigned publication number.</li>
-                                    <li>Do not put any other information in this field.</li>
-                                    <li>Example: Report-no: EFI-94-11</li></Typography>} >
+                                <Tooltip title={PrepReportNum} >
                                     <Typography>Report Number</Typography>
                                 </Tooltip>
                             </FieldNameCell>
@@ -181,14 +179,26 @@ const MetadataEditContents = () => {
                         </TableRow>
 
                         <TableRow>
-                            <FieldNameCell>MSC Class</FieldNameCell>
+                            <FieldNameCell>
+                                <Tooltip title={PrepMSCClass}>
+                                    <Typography>
+                                        MSC Class
+                                    </Typography>
+                                </Tooltip>
+                            </FieldNameCell>
                             <TableCell>
                                 <PlainTextInput source="msc_class" />
                             </TableCell>
                         </TableRow>
 
                         <TableRow>
-                            <FieldNameCell>ACM Class</FieldNameCell>
+                            <FieldNameCell>
+                                <Tooltip title={PrepACMClass}>
+                                    <Typography>
+                                        ACM Class
+                                    </Typography>
+                                </Tooltip>
+                            </FieldNameCell>
                             <TableCell>
                                 <PlainTextInput source="acm_class" />
                             </TableCell>
@@ -196,15 +206,7 @@ const MetadataEditContents = () => {
 
                         <TableRow>
                             <FieldNameCell>
-                                <Tooltip title={<Typography variant={"body1"}>
-                                    <li>This field is only for a full bibliographic reference if the article has already appeared in a journal or a proceedings.</li>
-                                    <li>Indicate the volume number, year, and page number (or page range).</li>
-                                    <li>If your submission has not appeared yet, but you would still like to indicate where it will be published, use the Comments: field. Please note that the Comments field can only be updated by submitting a replacement.</li>
-                                    <li>If there are multiple full bibliographic references associated with the paper, for example the original and an erratum, then separate them with a semicolon and a space, e.g.
-                                        <code>J.Hasty Results 1 (2008) 1-9; Erratum: J.Hasty Results 2 (2008) 1-2</code></li>
-                                    <li>In most cases, submissions are not yet published, and so Journal-ref information is not available. A facility is provided for you to add a journal reference to your previously submitted article at a later date.</li>
-                                    <li>Do not put URLs into this field, as they will not be converted into links.</li>
-                                </Typography>} >
+                                <Tooltip title={PrepJoyrnalRef} >
                                     <Typography>JournalRef</Typography>
                                 </Tooltip>
                             </FieldNameCell>
@@ -214,9 +216,12 @@ const MetadataEditContents = () => {
                         </TableRow>
 
                         <TableRow>
-                            <FieldNameCell>DOI</FieldNameCell>
+                            <FieldNameCell>
+                                <Tooltip title={PrepDOI} >
+                                    <Typography>DOI</Typography>
+                                </Tooltip>
+                            </FieldNameCell>
                             <TableCell>
-                                
                                 <PlainTextInput source="doi" />
                             </TableCell>
                         </TableRow>

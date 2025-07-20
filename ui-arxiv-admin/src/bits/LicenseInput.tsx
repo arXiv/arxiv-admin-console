@@ -65,6 +65,32 @@ const LicenseInput: React.FC<LicenseInputProps> = ({source, ...inputProps}) => {
                 label={false}
                 error={!!error}
                 helperText={false}
+sx={{
+                    '& .MuiAutocomplete-root': {
+                        paddingTop: '0px !important'
+                    },
+                    '& .MuiFilledInput-root': {
+                        paddingTop: '0px !important'
+                    },
+                    '& .MuiInputBase-input': {
+                        padding: '4px 0',
+                        minHeight: 'auto'
+                    },
+                    '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                            border: 'none'
+                        },
+                        '&:hover fieldset': {
+                            border: 'none'
+                        },
+                        '&.Mui-focused fieldset': {
+                            border: 'none'
+                        }
+                    },
+                    '& .MuiInputBase-root': {
+                        minHeight: 'auto'
+                    }
+                }}
                 slotProps={{
                     inputLabel: {
                         shrink: true,
@@ -81,7 +107,7 @@ const LicenseInput: React.FC<LicenseInputProps> = ({source, ...inputProps}) => {
                     input: {
                         ...params.InputProps,
                         notched: false,
-                        'aria-label': 'Source Format',
+                        'aria-label': 'License',
                     }
                 }}
             />}
