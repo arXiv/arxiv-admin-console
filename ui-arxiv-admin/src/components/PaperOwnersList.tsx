@@ -8,32 +8,31 @@ import {
     useListController,
     ListContextProvider,
     Datagrid,
-    TextField,
-    DateField,
     ReferenceField,
     Pagination,
     BooleanField,
     useListContext, useNotify, Identifier,
-    useRefresh, EmailField
+    useRefresh, useDataProvider
 } from 'react-admin';
 import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 
 import {paths as adminApi} from "../types/admin-api";
-import {RuntimeContext} from "../RuntimeContext";
-import UserNameField from "./UserNameField";
+import UserNameField from "../bits/UserNameField";
 
-type UpdatePaperOwnersRequestType = adminApi['/v1/paper_owners/update-paper-owners']['post']['requestBody']['content']['application/json'];
+type UpdatePaperOwnersRequestType = adminApi['/v1/paper_owners/update-paper-owners/{id}']['put']['requestBody']['content']['application/json'];
 
 // Create a separate component for bulk actions to properly use hooks
 const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({documentId}) => {
     const listContext = useListContext();
-    const runtimeProps = React.useContext(RuntimeContext);
     const notify = useNotify();
     const refresh = useRefresh();
+    const dataProvider = useDataProvider();
 
     async function setPaperOwners(selectedIds: string[], is_owner: boolean, valid: boolean) {
+        if (!documentId)
+            return;
 
         const body: UpdatePaperOwnersRequestType = {
             document_id: documentId.toString(),
@@ -42,18 +41,22 @@ const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({docume
             valid: valid,
         }
 
-        const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + "/paper_owners/update-paper-owners",
-            {
-                method: "POST", headers: {"Content-Type": "application/json",}, body: JSON.stringify(body),
-            });
-        if (response.ok) {
-            notify("Updated", { type: 'info' });
+        try {
+            const response = await dataProvider.update("paper_owners/update-paper-owners",
+                {
+                    id: "upsert",
+                    data: body,
+                    previousData: {}
+                });
+            console.log(JSON.stringify(response));
+            notify("Updated", {type: 'info'});
             refresh();
-        } else {
-            notify(await response.text(), { type: 'warning' });
+        } catch (error: any) {
+            console.error(JSON.stringify(error));
+            notify(error?.detail || JSON.stringify(error), {type: 'warning'});
+            refresh();
         }
     }
-
 
     const handleIsOwner = async () => {
         const selectedIds = listContext.selectedIds;

@@ -568,16 +568,16 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
         /** Update Authorship */
-        post: operations["update_authorship_v1_paper_owners_update_authorship_post"];
+        put: operations["update_authorship_v1_paper_owners_update_authorship_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/paper_owners/update-paper-owners": {
+    "/v1/paper_owners/update-paper-owners/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -585,7 +585,6 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
         /**
          * Update Paper Owners
          * @description Handles the process of updating paper ownership by modifying existing ownership records or adding
@@ -594,6 +593,8 @@ export interface paths {
          *
          *     Parameters
          *     ----------
+         *     id : identifier
+         *         The identifier of the paper to be updated. "upsert" is a special ID for bulk upsert
          *     body : PaperOwnersUpdateRequest
          *         The request payload containing document ID, ownership details, and optional flags.
          *     session : Session, default: Depends(get_db)
@@ -617,9 +618,11 @@ export interface paths {
          *     Returns
          *     -------
          *     None
-         *         No data is returned. The method commits changes to the database if the operation is successful.
+         *         react-admin update result is returned but it is not very kosher. It may come back to
+         *         bite me.
          */
-        post: operations["update_paper_owners_v1_paper_owners_update_paper_owners_post"];
+        put: operations["update_paper_owners_v1_paper_owners_update_paper_owners__id__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2639,6 +2642,18 @@ export interface components {
             flag_group_eess: number | null;
             /** Flag Group Econ */
             flag_group_econ: number | null;
+        };
+        /** ReactAdminUpdateResult */
+        ReactAdminUpdateResult: {
+            /** Id */
+            id: string | number;
+            /**
+             * Data
+             * @default {}
+             */
+            data: {
+                [key: string]: unknown;
+            };
         };
         /** ShowEmailRequestsModel */
         ShowEmailRequestsModel: {
@@ -4848,7 +4863,7 @@ export interface operations {
             };
         };
     };
-    update_authorship_v1_paper_owners_update_authorship_post: {
+    update_authorship_v1_paper_owners_update_authorship_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -4881,11 +4896,13 @@ export interface operations {
             };
         };
     };
-    update_paper_owners_v1_paper_owners_update_paper_owners_post: {
+    update_paper_owners_v1_paper_owners_update_paper_owners__id__put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -4900,7 +4917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ReactAdminUpdateResult"];
                 };
             };
             /** @description Validation Error */

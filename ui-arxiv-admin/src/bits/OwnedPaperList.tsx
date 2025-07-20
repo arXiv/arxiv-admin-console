@@ -23,7 +23,7 @@ import Button from '@mui/material/Button';
 
 import {paths as adminApi} from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
-type PaperAuthoredRequestType = adminApi['/v1/paper_owners/update-authorship']['post']['requestBody']['content']['application/json'];
+type PaperAuthoredRequestType = adminApi['/v1/paper_owners/update-authorship']['put']['requestBody']['content']['application/json'];
 
 // Create a separate component for bulk actions to properly use hooks
 const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {

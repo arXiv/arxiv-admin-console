@@ -16,14 +16,15 @@ from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy import literal_column, func, and_  # , update, case, Select, distinct, exists, alias,  select, update
 
-from sqlalchemy.orm import Session # , joinedload
+from sqlalchemy.orm import Session  # , joinedload
 
-from pydantic import BaseModel #, validator
+from pydantic import BaseModel  # , validator
 from arxiv.base import logging
 from arxiv.db.models import PaperOwner, PaperPw, Document, DocumentCategory
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user, get_tracking_cookie
 from .biz.paper_owner_biz import generate_paper_pw
+from .dao.react_admin import ReactAdminUpdateResult
 from .helpers.mui_datagrid import MuiDataGridFilter
 
 from .documents import DocumentModel
@@ -31,6 +32,7 @@ from .documents import DocumentModel
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/paper_owners")
+
 
 class OwnershipModel(BaseModel):
     class Config:
@@ -71,12 +73,31 @@ class OwnershipModel(BaseModel):
             PaperOwner.flag_auto,
         )
 
+    @staticmethod
+    def rec_to_dict(rec: PaperOwner) -> dict:
+        return {
+            'id': f"user_{rec.user_id}-doc_{rec.document_id}",
+            'document_id': rec.document_id,
+            'user_id': rec.user_id,
+            'date': rec.date,
+            'added_by': rec.added_by,
+            'remote_addr': rec.remote_addr,
+            'remote_host': rec.remote_host,
+            'tracking_cookie': rec.tracking_cookie,
+            'valid': rec.valid,
+            'flag_author': rec.flag_author,
+            'flag_auto': rec.flag_auto
+        }
+
+
 # to deal with combo primary key - what a pain
 ownership_id_re = re.compile(r"user_(\d+)-doc_(\d+)")
+
 
 def ownership_combo_key(user_id: int, document_id: int):
     """Make the combo primary key -matches with the select above"""
     return f"user_{user_id}-doc_{document_id}"
+
 
 def to_ids(one_id: str) -> Tuple[Optional[int], Optional[int]]:
     """
@@ -107,7 +128,7 @@ async def list_ownerships(
         with_document: Optional[bool] = Query(False, description="with document"),
         current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)
-    ) -> List[OwnershipModel]:
+) -> List[OwnershipModel]:
     query = OwnershipModel.base_select(session)
 
     if str(user_id) != current_user.user_id and not current_user.is_admin:
@@ -223,11 +244,11 @@ async def list_ownerships(
 
     if with_document:
         doc_ids = [doc.document_id for doc in result]
-        docs = {d.id: d for d in [DocumentModel.model_validate(doc).populate_remaining_fields(session) for doc in DocumentModel.base_select(session).filter(Document.document_id.in_(doc_ids)).all()]}
+        docs = {d.id: d for d in [DocumentModel.model_validate(doc).populate_remaining_fields(session) for doc in
+                                  DocumentModel.base_select(session).filter(Document.document_id.in_(doc_ids)).all()]}
         for onwnership in result:
             onwnership.document = docs.get(onwnership.document_id)
     return result
-
 
 
 @router.get('/user/{user_id:int}')
@@ -245,7 +266,7 @@ async def list_ownerships_for_user(
         document_id: Optional[int] = Query(None),
         current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)
-    ) -> List[OwnershipModel]:
+) -> List[OwnershipModel]:
     # gate_admin_user(current_user)
     query = OwnershipModel.base_select(session)
 
@@ -308,7 +329,6 @@ async def list_ownerships_for_user(
     return result
 
 
-
 @router.get('/{id:str}')
 async def get_ownership(id: str,
                         current_user: ArxivUserClaims = Depends(get_authn),
@@ -336,7 +356,7 @@ async def update_ownership(
     gate_admin_user(current_user)
 
     if not current_user.is_admin:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,)
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, )
 
     uid, did = to_ids(id)
     if uid is None:
@@ -357,8 +377,8 @@ async def update_ownership(
     return OwnershipModel.model_validate(item)
 
 
-
 paper_pw_router = APIRouter(prefix="/paper_pw")
+
 
 class PaperPwModel(BaseModel):
     id: int
@@ -373,6 +393,7 @@ class PaperPwModel(BaseModel):
             PaperPw.document_id.label("id"),
             PaperPw.password_enc,
         )
+
 
 async def _get_paper_pw(id: str,
                         current_user: ArxivUserClaims = Depends(get_authn),
@@ -419,8 +440,7 @@ async def list_paper_pw(
         id: Optional[List[str]] = Query(None, description="List of paper owner"),
         current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)
-    ) -> List[PaperPwModel]:
-
+) -> List[PaperPwModel]:
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -438,8 +458,6 @@ async def list_paper_pw(
     return result
 
 
-
-
 @paper_pw_router.get('/{id:str}')
 async def get_paper_pw(id: str,
                        current_user: ArxivUserClaims = Depends(get_authn),
@@ -449,17 +467,18 @@ async def get_paper_pw(id: str,
 
 @paper_pw_router.get('/paper/{arxiv_id:str}')
 async def get_paper_pw_from_arxiv_id(arxiv_id: str,
-                       current_user: ArxivUserClaims = Depends(get_authn),
-                       session: Session = Depends(get_db)) -> PaperPwModel:
+                                     current_user: ArxivUserClaims = Depends(get_authn),
+                                     session: Session = Depends(get_db)) -> PaperPwModel:
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
     if not doc:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper not found")
     return await _get_paper_pw(doc.document_id, current_user, session)
 
+
 @paper_pw_router.get('/paper/{category:str}/{subject_class:str}')
 async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
-                       current_user: ArxivUserClaims = Depends(get_authn),
-                       session: Session = Depends(get_db)) -> PaperPwModel:
+                                     current_user: ArxivUserClaims = Depends(get_authn),
+                                     session: Session = Depends(get_db)) -> PaperPwModel:
     arxiv_id = f"{category}/{subject_class}"
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
     if not doc:
@@ -501,7 +520,6 @@ def arxiv_squash_id(paper_id: str) -> str | None:
     return None
 
 
-
 @router.post("/authorize/")
 def register_paper_owner(
         response: Response,
@@ -515,18 +533,22 @@ def register_paper_owner(
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
 
     if body.user_id != current_user.user_id and not current_user.is_admin:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only own the paper as your own.")
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                            detail="You can only own the paper as your own.")
 
     if not body.verify_id:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="You must verify your contact information.")
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                            detail="You must verify your contact information.")
 
     squashed_id = arxiv_squash_id(body.paper_id)
     if not squashed_id:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper ID '{body.paper_id}' is ill-formed.")
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                            detail=f"Paper ID '{body.paper_id}' is ill-formed.")
 
     paper: Document | None = session.query(Document).filter(Document.paper_id == squashed_id).one_or_none()
     if paper is None:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper with ID '{body.paper_id}' does not exist.")
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                            detail=f"Paper with ID '{body.paper_id}' does not exist.")
 
     # This needs to review hard
     is_auto = body.user_id == paper.submitter_id
@@ -536,19 +558,24 @@ def register_paper_owner(
     if not current_user.is_admin:
         paper_pw = session.query(PaperPw).filter(PaperPw.document_id == document_id).one_or_none()
         if not paper_pw:
-            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' does not have a password.")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                detail=f"Paper '{body.paper_id}' does not have a password.")
 
         if paper_pw.password_storage != 0:
-            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                detail=f"Paper '{body.paper_id}' has a password storage which is unexpected.")
 
         if body.password != paper_pw.password_enc and not current_user.is_admin:  # the 2nd part is redundant, I know.
-            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST , detail=f"Incorrect paper password for {body.paper_id}. Please provide correct paper password")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                detail=f"Incorrect paper password for {body.paper_id}. Please provide correct paper password")
 
     user = UserModel.one_user(session, body.user_id)
 
-    existing = session.query(PaperOwner).filter(PaperOwner.user_id == body.user_id, PaperOwner.document_id == document_id).one_or_none()
+    existing = session.query(PaperOwner).filter(PaperOwner.user_id == body.user_id,
+                                                PaperOwner.document_id == document_id).one_or_none()
     if existing:
-        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT, detail=f"You, {user.username} have the ownership of '{body.paper_id}'.")
+        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT,
+                            detail=f"You, {user.username} have the ownership of '{body.paper_id}'.")
 
     paper_owner = PaperOwner(
         user_id=body.user_id,
@@ -556,10 +583,10 @@ def register_paper_owner(
         added_by=current_user.user_id,
         remote_addr=remote_addr,
         remote_host=remote_host,
-        valid = True,
+        valid=True,
         flag_author=body.is_author,
         flag_auto=1 if is_auto else 0,
-        tracking_cookie = None if user is None else user.tracking_cookie,
+        tracking_cookie=None if user is None else user.tracking_cookie,
     )
     session.add(paper_owner)
     session.commit()
@@ -571,9 +598,9 @@ class PaperOwnershipUpdateRequest(BaseModel):
     user_id: str
     authored: List[str] = []
     not_authored: List[str] = []
-    valid: Optional[bool] = None    # Default is True when created
-    auto: Optional[bool] = None     # Default is False when created
-    timestamp: Optional[str] = None # ISO timestamp
+    valid: Optional[bool] = None  # Default is True when created
+    auto: Optional[bool] = None  # Default is False when created
+    timestamp: Optional[str] = None  # ISO timestamp
 
 
 def parse_doc_id(doc_id: str) -> str | int:
@@ -584,7 +611,7 @@ def parse_doc_id(doc_id: str) -> str | int:
     return doc_id
 
 
-@router.post("/update-authorship")
+@router.put("/update-authorship")
 async def update_authorship(
         body: PaperOwnershipUpdateRequest,
         session: Session = Depends(get_db),
@@ -598,9 +625,11 @@ async def update_authorship(
 
     if isinstance(current_user, ArxivUserClaims):
         if current_user.user_id != body.user_id or not current_user.is_admin:
-            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                                detail="You can only update own paper owner.")
     else:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="API token is not allowed to update paper ownership for audit reason.")
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                            detail="API token is not allowed to update paper ownership for audit reason.")
 
     timestamp = datetime.fromisoformat(body.timestamp) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
     auto = False if body.auto is None else body.auto
@@ -646,25 +675,25 @@ async def update_authorship(
     return
 
 
-
 class PaperOwnersUpdateRequest(BaseModel):
     document_id: str
-    owners: List[str] = []         # list of doc-user (PaperOwnerModel ID) IDs
-    nonowners: List[str] = []      # ditto
-    timestamp: Optional[str] = None # ISO timestamp
+    owners: List[str] = []  # list of doc-user (PaperOwnerModel ID) IDs
+    nonowners: List[str] = []  # ditto
+    timestamp: Optional[str] = None  # ISO timestamp
     valid: Optional[bool] = None
     auto: Optional[bool] = None
 
 
-@router.post("/update-paper-owners")
+@router.put("/update-paper-owners/{id:str}")
 async def update_paper_owners(
+        id: str,
         body: PaperOwnersUpdateRequest,
         session: Session = Depends(get_db),
         remote_addr: Optional[str] = Depends(get_client_host),
         remote_host: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
         current_user: ArxivUserClaims | ApiToken = Depends(get_authn)  # Assumes user has an 'id' field
-):
+) -> ReactAdminUpdateResult:
     """
     Handles the process of updating paper ownership by modifying existing ownership records or adding
     new ones based on the provided data, user authentication, and permissions. This endpoint is
@@ -672,6 +701,8 @@ async def update_paper_owners(
 
     Parameters
     ----------
+    id : identifier
+        The identifier of the paper to be updated. "upsert" is a special ID for bulk upsert
     body : PaperOwnersUpdateRequest
         The request payload containing document ID, ownership details, and optional flags.
     session : Session, default: Depends(get_db)
@@ -695,16 +726,19 @@ async def update_paper_owners(
     Returns
     -------
     None
-        No data is returned. The method commits changes to the database if the operation is successful.
+        react-admin update result is returned but it is not very kosher. It may come back to
+        bite me.
     """
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     if isinstance(current_user, ArxivUserClaims):
         if not current_user.is_admin:
-            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You can only update own paper owner.")
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                                detail="You can only update own paper owner.")
     else:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="API token is not allowed to update paper ownership for audit reason.")
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                            detail="API token is not allowed to update paper ownership for audit reason.")
 
     timestamp = datetime.fromisoformat(body.timestamp) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
     auto = False if body.auto is None else body.auto
@@ -712,7 +746,8 @@ async def update_paper_owners(
 
     current_ownerships = session.query(PaperOwner).filter(PaperOwner.document_id == body.document_id).all()
     owner: PaperOwner
-    existing = { owner.user_id: owner for owner in current_ownerships }
+    existing = {owner.user_id: owner for owner in current_ownerships}
+    added = []
 
     for flag, user_doc_ids in enumerate([body.nonowners, body.owners]):
         if not user_doc_ids:
@@ -739,16 +774,22 @@ async def update_paper_owners(
                     flag_author=flag,
                     flag_auto=auto,
                 )
+                added.append(new_ownership)
                 session.add(new_ownership)
     session.commit()
-    return
+    rec: PaperOwner
+    return ReactAdminUpdateResult(
+        id=id,
+        data={"data":
+            [
+              OwnershipModel.model_validate(OwnershipModel.rec_to_dict(rec)) for rec in list(existing.values()) + added]})
 
 
 @router.get("/pwc_link", response_class=RedirectResponse)
 def pwc_link(request: Request,
              current_user: ArxivUserClaims = Depends(get_current_user)):
     pwc_secret = request.app.extra['PWC_SECRET']
-    arxiv_user_secret = request.app.extra['PWC_ARXIV_USER_SECRET'] # "pwc_arxiv_user_id_2020"
+    arxiv_user_secret = request.app.extra['PWC_ARXIV_USER_SECRET']  # "pwc_arxiv_user_id_2020"
     person_id = sha256(f"{arxiv_user_secret}{current_user.user_id}".encode()).hexdigest()
 
     assertion = {
@@ -765,10 +806,8 @@ def pwc_link(request: Request,
     return RedirectResponse(url=redirect_url, status_code=307)
 
 
-
-
 @paper_pw_router.put("/renew/{document_id:str}",
-                     description="Give the paper a new password",)
+                     description="Give the paper a new password", )
 def renew_paper_password(
         document_id: int,
         current_user: ArxivUserClaims = Depends(get_authn),
@@ -777,7 +816,8 @@ def renew_paper_password(
     if not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Only admins can change passwords")
 
-    item: PaperPwModel | None = PaperPwModel.base_select(session).filter(PaperPw.document_id == document_id).one_or_none()
+    item: PaperPwModel | None = PaperPwModel.base_select(session).filter(
+        PaperPw.document_id == document_id).one_or_none()
     if not item:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper owner not created yet")
     item.password_enc = generate_paper_pw()

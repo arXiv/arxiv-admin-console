@@ -50,7 +50,7 @@ import TableRow from "@mui/material/TableRow";
 import TableCell, {TableCellProps} from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
-import PaperOwnersList from "../bits/PaperOwnersList";
+import PaperOwnersList from "../components/PaperOwnersList";
 import SubmissionHistoryList from "../bits/SubmissionHistoryList";
 import AdminLogList from "../bits/AdminLogList";
 import PaperAdminAddOwnerDialog from "../components/PaperAdminAddOwnerDialog";

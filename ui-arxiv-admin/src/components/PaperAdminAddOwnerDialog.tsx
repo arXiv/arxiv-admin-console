@@ -9,7 +9,7 @@ import Box from '@mui/material/Box';
 // import Checkbox from '@mui/material/Checkbox';
 
 import {paths as adminApi} from '../types/admin-api';
-import {Identifier, useDataProvider, useNotify} from "react-admin";
+import {Identifier, useDataProvider, useNotify, useRefresh} from "react-admin";
 // import MuiTextField from "@mui/material/TextField";
 import CircularProgress from "@mui/material/CircularProgress";
 import UserChooser from "./UserChooser";
@@ -17,7 +17,7 @@ import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormGroup from "@mui/material/FormGroup";
 
-type UpdatePaperOwnersRequestT = adminApi['/v1/paper_owners/update-paper-owners']['post']['requestBody']['content']['application/json'];
+type UpdatePaperOwnersRequestT = adminApi['/v1/paper_owners/update-paper-owners/{id}']['put']['requestBody']['content']['application/json'];
 type UsersT = adminApi['/v1/users/']['get']['responses']['200']['content']['application/json'];
 type UserT = UsersT[0];
 
@@ -32,6 +32,7 @@ const PaperAdminAddUserDialog: React.FC<
 
     const dataProvider = useDataProvider();
     const notify = useNotify();
+    const refresh = useRefresh();
     const [paperOwners, setPaperOwners] = useState<string[]>([]);
     const [isOwner, setIsOwner] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -53,12 +54,18 @@ const PaperAdminAddUserDialog: React.FC<
             };
 
         try {
-            await dataProvider.create('paper_owners/update-paper-owners', {data});
+            // Use update method for upsert operation
+            await dataProvider.update('paper_owners/update-paper-owners', {
+                id: 'upsert',
+                data: data,
+                previousData: {}
+            });
             notify('Paper owners updated successfully', { type: 'success' });
             handleClose();
-        } catch (error) {
+            refresh();
+        } catch (error: any) {
             console.error("Error during save operations:", error);
-            notify('Failed to update paper owners', { type: 'error' });
+            notify('Failed to update paper owners. ' + error?.detail, { type: 'error' });
         } finally {
             setIsSaving(false);
         }

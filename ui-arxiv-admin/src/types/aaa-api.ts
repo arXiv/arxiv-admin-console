@@ -820,6 +820,8 @@ export interface components {
             new_email: string;
             /** Email Verified */
             email_verified?: boolean | null;
+            /** Comment */
+            comment?: string | null;
         };
         /** EmailVerifiedStatus */
         EmailVerifiedStatus: {
