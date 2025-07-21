@@ -80,10 +80,7 @@ const MetadataEditContents = () => {
             <Box gap={1} display="flex" flexDirection="column"
                  sx={{
                      width: '100%',
-                     '& .MuiBox-root': {  // Targets all Box components inside
-                         width: '100%'
-                     },
-                     '& .MuiTable-root': {  // Targets all Table components inside
+                     '& .MuiBox-root': {
                          width: '100%'
                      }
                  }}
@@ -91,18 +88,31 @@ const MetadataEditContents = () => {
 
                 {/* Paper Details */}
                 <Paper elevation={3} style={{padding: '1em'}}>
-                    <Table size="small">
-                        <TableRow>
-                            <FieldNameCell>ID</FieldNameCell>
-                            <TableCell>
-                                <TextField source={"id"} />
-                            </TableCell>
-                        </TableRow>
+                    <Table size="small"
+                           sx={{
+                               '& .MuiTable-root': {  // Targets all Table components inside
+                                   width: '100%'
+                               },
+                               '& .MuiTableCell-root': {  // Targets all Table components inside
+                                   padding: '4px 6px'
+                               },
+                               '& .MuiFormControl-root': {  // Targets all Table components inside
+                                   margin: '0px 0px'
+                               }
 
+                           }}
+                    >
                         <TableRow>
                             <FieldNameCell>Paper ID</FieldNameCell>
                             <TableCell>
-                                <TextField source={"paper_id"} />
+                                <ReferenceField reference={"documents"} source={"document_id"} label={""} link={"edit"}>
+                                    <TextField source={"paper_id"} />
+                                    <Typography sx={{ml: 4}} component={"span"}>
+                                        {" ID: "}
+                                    </Typography>
+                                    <TextField source={"id"}/>
+
+                                </ReferenceField>
                             </TableCell>
                         </TableRow>
 
@@ -163,14 +173,14 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>Is Withdrawn</FieldNameCell>
                             <TableCell>
-                                <BooleanInput label={""} source={"is_withdrawn"} helperText={false}  />
+                                <BooleanInput label={""} source={"is_withdrawn"} helperText={false} size={"small"} />
                             </TableCell>
                         </TableRow>
 
                         <TableRow>
                             <FieldNameCell>
                                 <Tooltip title={PrepReportNum} >
-                                    <Typography>Report Number</Typography>
+                                    <Typography>Report No.</Typography>
                                 </Tooltip>
                             </FieldNameCell>
                             <TableCell>
