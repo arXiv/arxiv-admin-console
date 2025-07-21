@@ -379,7 +379,7 @@ const DocumentEditContent = () => {
                                     <TextField source={"paper_id"}/>
                                     <Link href={`https://arxiv.org/abs/${record?.paper_id}`} target="_blank">Abstruct <LinkIcon /></Link>
                                     <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon /></Link>
-                                    <Button endIcon={<MetadataIcon />} onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit Metadata</Button>
+                                    <Button disabled={!metadata?.id} endIcon={<MetadataIcon />} onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit Metadata</Button>
                                 </Box>
                             </TableCell>
                         </TableRow>

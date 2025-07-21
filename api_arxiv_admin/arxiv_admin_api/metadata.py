@@ -24,14 +24,14 @@ class MetadataModel(BaseModel):
 
     document_id: int
     paper_id: str # Mapped[str] = mapped_column(String(64), nullable=False)
-    created: datetime # Mapped[Optional[datetime]] = mapped_column(DateTime)
-    updated: datetime # Mapped[Optional[datetime]] = mapped_column(DateTime)
-    submitter_id: int # Mapped[Optional[int]] = mapped_column(ForeignKey("tapir_users.user_id"), index=True)
+    created: Optional[datetime] = None # Mapped[Optional[datetime]] = mapped_column(DateTime)
+    updated: Optional[datetime] = None # Mapped[Optional[datetime]] = mapped_column(DateTime)
+    submitter_id: Optional[int] = None # Mapped[Optional[int]] = mapped_column(ForeignKey("tapir_users.user_id"), index=True)
     submitter_name: str # Mapped[str] = mapped_column(String(64), nullable=False)
     submitter_email: str # Mapped[str] = mapped_column(String(64), nullable=False)
     source_size: Optional[int] = None # Mapped[Optional[int]] = mapped_column(Integer)
-    source_format: Optional[SOURCE_FORMAT] # Mapped[Optional[SOURCE_FORMAT]] = mapped_column(String(12))
-    source_flags: Optional[str] # Mapped[Optional[str]] = mapped_column(String(12))
+    source_format: Optional[SOURCE_FORMAT] = None # Mapped[Optional[SOURCE_FORMAT]] = mapped_column(String(12))
+    source_flags: Optional[str] = None # Mapped[Optional[str]] = mapped_column(String(12))
     title: Optional[str] = None # Mapped[Optional[str]] = mapped_column(Text)
     authors: Optional[str] = None # Mapped[Optional[str]] = mapped_column(Text)
     abs_categories: Optional[str] = None # Mapped[Optional[str]] = mapped_column(String(255))
@@ -47,7 +47,7 @@ class MetadataModel(BaseModel):
     version: int #Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
     modtime: Optional[int] = None # Mapped[Optional[int]] = mapped_column(Integer)
     is_current: Optional[int] = None # Mapped[Optional[int]] = mapped_column(Integer, server_default=FetchedValue())
-    is_withdrawn: int # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
+    is_withdrawn: bool # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
 
     class Config:
         from_attributes = True
