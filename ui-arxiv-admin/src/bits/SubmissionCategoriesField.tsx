@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {useRecordContext, useDataProvider, ReferenceField, RecordContextProvider, FieldProps} from 'react-admin';
-import Grid from '@mui/material/Grid';
+import {useRecordContext, useDataProvider, RecordContextProvider, FieldProps} from 'react-admin';
+import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from "@mui/material/CircularProgress";
 import CategoryField from "./CategoryField";
@@ -21,10 +21,10 @@ export const CategoryList: React.FC<CategoryListProps> = ({categories}) => {
     const is_published = categories.some((category) => category.is_published);
 
     return (
-        <Grid container>
+        <Box>
             {
                 categories.map((category, index) => (
-                    <Grid item key={category.category} >
+                    <Box key={category.category} sx={{ display: 'flex', alignItems: 'center' }}>
                         {
                             index ? ", " : ""
                         }
@@ -35,26 +35,18 @@ export const CategoryList: React.FC<CategoryListProps> = ({categories}) => {
                             <CategoryField source={category.category} sourceCategory="sourceCategory" sourceClass="sourceClass" />
                         </RecordContextProvider>
                         {
-                            category.is_primary ? <PrimaryIcon sx={{height: "16px"}} /> : ""
+                            category.is_primary ? <PrimaryIcon sx={{height: "16px", marginLeft: '4px'}} /> : ""
                         }
                         {
-                            (is_published && index === 0) ? <PublishedIcon sx={{height: "16px"}} /> : ""
+                            (is_published && index === 0) ? <PublishedIcon sx={{height: "16px", marginLeft: '4px'}} /> : ""
                         }
-                    </Grid>
+                    </Box>
                 ))
             }
-        </Grid>
+        </Box>
     );
 }
 
-export const CategoriesField: React.FC<FieldProps> = ({source}) => {
-    const record = useRecordContext();
-
-    if (!record || !source || !record[source]) return null;
-    return (
-        <CategoryList categories={record[source]} />
-    );
-}
 
 const SubmissionCategoriesField: React.FC = () => {
     const record = useRecordContext<{ last_submission_id: number | null, abs_categories: string }>();
@@ -121,9 +113,9 @@ const SubmissionCategoriesField: React.FC = () => {
     }
 
     return (
-        <Grid container>
+        <Box>
             <CategoryList categories={categories.categories} />
-        </Grid>
+        </Box>
     );
 };
 

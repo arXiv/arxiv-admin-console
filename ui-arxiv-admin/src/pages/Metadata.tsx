@@ -93,19 +93,21 @@ const MetadataEditContents = () => {
                                '& .MuiTable-root': {  // Targets all Table components inside
                                    width: '100%'
                                },
-                               '& .MuiTableCell-root': {  // Targets all Table components inside
+                               '& .MuiTableCell-root': {
                                    padding: '4px 6px'
                                },
-                               '& .MuiFormControl-root': {  // Targets all Table components inside
+                               '& .MuiFormControl-root': {
                                    margin: '0px 0px'
-                               }
-
+                               },
+                               '& .MuiInputBase-root': {
+                                   padding: '2px 2px'
+                               },
                            }}
                     >
                         <TableRow>
                             <FieldNameCell>Paper ID</FieldNameCell>
                             <TableCell>
-                                <ReferenceField reference={"documents"} source={"document_id"} label={""} link={"edit"}>
+                                <ReferenceField reference={"documents"} source={"document_id"} label={""} link={"show"}>
                                     <TextField source={"paper_id"} />
                                     <Typography sx={{ml: 4}} component={"span"}>
                                         {" ID: "}
@@ -128,6 +130,13 @@ const MetadataEditContents = () => {
                                 <PlainTextInput source="authors"  />
                             </TableCell>
                         </TableRow>
+                        <TableRow>
+                            <FieldNameCell>Categories</FieldNameCell>
+                            <TableCell>
+                                <CategoryInput source="abs_categories"  />
+                            </TableCell>
+                        </TableRow>
+
                         <TableRow>
                             <FieldNameCell>License</FieldNameCell>
                             <TableCell>

@@ -806,7 +806,7 @@ def pwc_link(request: Request,
     return RedirectResponse(url=redirect_url, status_code=307)
 
 
-@paper_pw_router.put("/renew/{document_id:str}",
+@paper_pw_router.put("/{document_id:str}",
                      description="Give the paper a new password", )
 def renew_paper_password(
         document_id: int,
@@ -816,11 +816,14 @@ def renew_paper_password(
     if not current_user.is_admin:
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Only admins can change passwords")
 
-    item: PaperPwModel | None = PaperPwModel.base_select(session).filter(
-        PaperPw.document_id == document_id).one_or_none()
+    item: PaperPw | None = session.query(PaperPw).filter(PaperPw.document_id == document_id).one_or_none()
     if not item:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper owner not created yet")
     item.password_enc = generate_paper_pw()
-    data = PaperPwModel.model_validate(item)
+    session.flush()
+    session.refresh(item)
+    data = PaperPwModel.base_select(session).filter(PaperPw.document_id == document_id).one_or_none()
+    if not data:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper owner not created yet")
     session.commit()
-    return data
+    return PaperPwModel.model_validate(data)

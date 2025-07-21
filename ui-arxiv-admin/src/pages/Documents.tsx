@@ -31,7 +31,8 @@ import {
     NumberField,
     SimpleShowLayout,
     Show,
-    DateInput, useListContext, SelectInput, useShowContext, Identifier, useDataProvider
+    DateInput, useListContext, SelectInput, useShowContext, Identifier, useDataProvider,
+    Confirm, useRefresh, useNotify
 } from 'react-admin';
 
 import LinkIcon from '@mui/icons-material/Link';
@@ -58,6 +59,7 @@ import {useNavigate} from "react-router-dom";
 import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";
 import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
+import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -130,158 +132,240 @@ const DocumentFilter = (props: any) => {
 
 
 const ShowArxivPdf = () => {
-    const record = useShowContext();
+    const record = useRecordContext();
 
-    if (record.isFetching)
+    if (!record)
         return <CircularProgress/>;
 
-    const paper_id = record?.record?.paper_id;
+    const paper_id = record?.paper_id;
+    console.log('ShowArxivPdf:', paper_id);
 
     return (
         paper_id ? (
-                <Grid item xs={12} style={{display: 'flex', flexDirection: 'column', height: '75vh'}}>
+                <Box style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                     <iframe
-                        src={`https://arxiv.org/pdf/${paper_id}`}
-                        title="PDF Document"
+                        src={`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(`https://arxiv.org/pdf/${paper_id}`)}`}
                         style={{
-                            border: 'none',
                             width: "100%",
-                            flex: 1,
+                            height: "1200px",
+                            border: "none"
                         }}
                     />
-                </Grid>
+                </Box>
             )
+
             : null
     );
 }
+
+
+const DocumentContent = () => {
+    const record = useRecordContext();
+    const [openAddOwnerDialog, setOpenAddOwnerDialog] = React.useState(false);
+    const [openRenewPaperPasswordDialog, setOpenRenewPaperPasswordDialog] = React.useState(false);
+    const refresh = useRefresh();
+    const navigate = useNavigate();
+    const [metadata, setMetadata] = useState<MetadataT | null>(null);
+    const dataProvider = useDataProvider();
+    const notify = useNotify();
+
+    useEffect(() => {
+        async function getMetadata() {
+            if (record?.id) {
+                try {
+                    const response = await dataProvider.getOne('document-metadata', {
+                        id: record.id,
+                    });
+                    setMetadata(response.data);
+                    console.log('Metadata:', JSON.stringify(response.data));
+                } catch (error) {
+                    console.error('Error fetching submission categories:', error);
+                    notify('Error fetching document metadata', 'error');
+                } finally {
+                }
+            }
+        }
+
+        getMetadata();
+    }, [record?.id]);
+
+    async function renewPaperPassword () {
+        console.log('Renewing paper password');
+        if (record?.id) {
+            try {
+                const response = await dataProvider.update('paper_pw', {
+                    id: record.id,
+                    previousData: {}
+                });
+                console.log('Renewed paper password:', JSON.stringify(response.data));
+                notify('Renewed paper password');
+            } catch (error) {
+                console.error('Error renewing paper password:', error);
+                notify('Error renewing paper password', 'error');
+            } finally {
+                refresh();
+            }
+        }
+    }
+
+    return (
+        <Box gap={1} display="flex" flexDirection="column"
+             sx={{
+                 width: '100%',
+                 '& .MuiBox-root': {  // Targets all Box components inside
+                     width: '100%'
+                 },
+                 '& .MuiTable-root': {  // Targets all Table components inside
+                     width: '100%'
+                 }
+             }}
+        >
+
+            {/* Paper Details */}
+            <Paper elevation={3} style={{padding: '1em'}}>
+                <Table size="small">
+                    <TableRow>
+                        <FieldNameCell>Paper</FieldNameCell>
+                        <TableCell>
+                            <Box gap={2} flexDirection={'row'} display="flex" alignItems="center">
+                                <TextField source={"paper_id"}/>
+                                <Link href={`https://arxiv.org/abs/${record?.paper_id}`}
+                                      target="_blank">Abstruct <LinkIcon/></Link>
+                                <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon/></Link>
+                                <Button disabled={!metadata?.id} endIcon={<MetadataIcon/>}
+                                        onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit
+                                    Metadata</Button>
+                            </Box>
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Title</FieldNameCell>
+                        <TableCell>
+                            <TextField source="title" variant={"body1"} fontSize={"1.25rem"}/>
+                        </TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <FieldNameCell>Authors</FieldNameCell>
+                        <TableCell>
+                            <TextField source="authors" variant={"body1"}/>
+                        </TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <FieldNameCell>Categories</FieldNameCell>
+                        <TableCell>
+                            <SubmissionCategoriesField/>
+                        </TableCell>
+                    </TableRow>
+
+
+                    <TableRow>
+                        <FieldNameCell>Paper PWD</FieldNameCell>
+                        <TableCell>
+                            <Box display="flex" sx={{m: 0, p: 0}}>
+                                <ReferenceField reference={"paper_pw"} source={"id"}>
+                                    <TextField source="password_enc" variant="body1"/>
+                                </ReferenceField>
+                                <Box flex={1}/>
+                                <Button onClick={() => setOpenRenewPaperPasswordDialog(true)}>Change Paper Password</Button>
+                            </Box>
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Document ID</FieldNameCell>
+                        <TableCell>
+                            <Box gap={1}>
+                                <TextField source="id" variant="body1"/>
+                            </Box>
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Latest V.</FieldNameCell>
+                        <TableCell>
+                            <ReferenceField reference={"submissions"} source={"last_submission_id"}>
+                                <Typography>
+                                    {"version "}
+                                    <TextField source="version" variant="body1"/>
+                                </Typography>
+                            </ReferenceField>
+                        </TableCell>
+                    </TableRow>
+
+                </Table>
+            </Paper>
+
+            {/* Paper Information */}
+            <Paper elevation={3} style={{padding: '1em'}}>
+                <Typography variant="body1" fontWeight={"bold"}>
+                    Show e-mail requests:
+                </Typography>
+                <Box maxWidth={"sm"}>
+                    <ShowEmailsRequestsList document_id={record?.id}/>
+                </Box>
+            </Paper>
+
+            {/* Paper Owners */}
+            <Paper elevation={3} style={{padding: '1em'}}>
+                <Box display="flex" alignItems="center">
+                    <Typography variant="body1" fontWeight={"bold"}>
+                        Paper owners:
+                    </Typography>
+                    <Button variant={"contained"} sx={{ml: 3}}
+                            onClick={() => setOpenAddOwnerDialog(true)}
+                    >Add Owners</Button>
+                </Box>
+                <Box maxWidth={"sm"}>
+                    <PaperOwnersList document_id={record?.id}/>
+                </Box>
+            </Paper>
+
+            {/* Submission History */}
+            <Paper elevation={3} style={{padding: '1em'}}>
+                <Typography variant="body1" fontWeight={"bold"}>
+                    Submission history:
+                </Typography>
+                <Box maxWidth={"sm"}>
+                    <SubmissionHistoryList document_id={record?.id}/>
+                </Box>
+            </Paper>
+
+            {/* Admin Log */}
+            <Paper elevation={3} style={{padding: '1em'}}>
+                <Typography variant="body1" fontWeight={"bold"}>
+                    Admin Log:
+                </Typography>
+                <AdminLogList paper_id={record?.paper_id}/>
+            </Paper>
+            <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog}
+                                      setOpen={setOpenAddOwnerDialog}/>
+            <RenewPaperPasswordDialog open={openRenewPaperPasswordDialog} setOpen={setOpenRenewPaperPasswordDialog} renew={renewPaperPassword} />
+        </Box>
+    );
+};
 
 export const DocumentShow = () => {
     const [showPdf, setShowPdf] = React.useState(true);
 
     return (
-        <Show>
-            <Grid container>
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        {" "}
-                    </Grid>
-                    <Grid item xs={10}>
-                        <TextField source="paper_id"/>
-                        {" / "}
-                        <TextField source="id"/>
-                        {" ("}
-                        <ReferenceField source="last_submission_id" reference="submissions" label={"Submission"}>
-                            <TextField source="id"/>
-                        </ReferenceField>
-                        {")"}
-                    </Grid>
-                </Grid>
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        From:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
-                                        link={(record, reference) => `/${reference}/${record.id}`}>
-                            <TextField source={"last_name"}/>
-                            {", "}
-                            <TextField source={"first_name"}/>
-                            {" <"}
-                            <EmailField source={"email"}/>
-                            {">"}
-                        </ReferenceField>
-                    </Grid>
-                </Grid>
+        <Show title={<DocumentTitle/>} actions={false}>
+            <Box>
+                <DocumentContent/>
 
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        Submitter Email:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <EmailField source="submitter_email"/>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        Submission date:
-                    </Grid>
-                    <Grid item xs={3}>
-                        <DateField source="dated"/>
-                    </Grid>
-                    <Grid item xs={2}>
-                        Created:
-                    </Grid>
-                    <Grid item xs={3}>
-                        <DateField source="created"/>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        Title:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <TextField source="title"/>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        Authors:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <TextField source="authors"/>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        Categories:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <SubmissionCategoriesField/>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        License:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <ReferenceField source="last_submission_id" reference="submissions" label={"Licence"}
-                                        link={false}>
-                            <TextField source="license"/>
-                        </ReferenceField>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
-                        Abstract:
-                    </Grid>
-                    <Grid item xs={10}>
-                        <ReferenceField source="last_submission_id" reference="submissions" label={"Abstract"}
-                                        link={false}>
-                            <TextField source="abstract"/>
-                        </ReferenceField>
-                    </Grid>
-                </Grid>
-
-                <Grid container item xs={12}>
-                    <FormControlLabel
-                        control={
-                            <Switch checked={showPdf} onChange={() => setShowPdf(!showPdf)}
-                                    inputProps={{'aria-label': 'controlled'}}/>
-                        }
-                        label="PDF"/>
-                </Grid>
-                <Grid container item xs={12}>
-                    {
-                        showPdf ? <ShowArxivPdf/> : null
+                <FormControlLabel
+                    control={
+                        <Switch checked={showPdf} onChange={() => setShowPdf(!showPdf)}
+                                inputProps={{'aria-label': 'controlled'}}/>
                     }
-                </Grid>
-            </Grid>
+                    label="PDF"/>
+                {
+                    showPdf ? <ShowArxivPdf/> : null
+                }
+
+
+            </Box>
+
         </Show>
     )
 };
@@ -329,13 +413,12 @@ const DocumentTitle = () => {
 };
 
 
-
 const DocumentEditContent = () => {
     const record = useRecordContext();
     const [openAddOwnerDialog, setOpenAddOwnerDialog] = React.useState(false);
     const navigate = useNavigate();
     const [metadata, setMetadata] = useState<MetadataT | null>(null);
-    const dataProvider =  useDataProvider();
+    const dataProvider = useDataProvider();
 
     useEffect(() => {
         async function getMetadata() {
@@ -352,139 +435,13 @@ const DocumentEditContent = () => {
                 }
             }
         }
+
         getMetadata();
     }, [record?.id]);
 
     return (
         <SimpleForm>
-            <Box gap={1} display="flex" flexDirection="column"
-                 sx={{
-                     width: '100%',
-                     '& .MuiBox-root': {  // Targets all Box components inside
-                         width: '100%'
-                     },
-                     '& .MuiTable-root': {  // Targets all Table components inside
-                         width: '100%'
-                     }
-                 }}
-            >
-
-                {/* Paper Details */}
-                <Paper elevation={3} style={{padding: '1em'}}>
-                    <Table size="small">
-                        <TableRow>
-                            <FieldNameCell>Paper</FieldNameCell>
-                            <TableCell>
-                                <Box gap={2} flexDirection={'row'} display="flex"  alignItems="center">
-                                    <TextField source={"paper_id"}/>
-                                    <Link href={`https://arxiv.org/abs/${record?.paper_id}`} target="_blank">Abstruct <LinkIcon /></Link>
-                                    <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon /></Link>
-                                    <Button disabled={!metadata?.id} endIcon={<MetadataIcon />} onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit Metadata</Button>
-                                </Box>
-                            </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                            <FieldNameCell>Title</FieldNameCell>
-                            <TableCell>
-                                <TextField source="title" variant={"body1"} fontSize={"1.25rem"} />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <FieldNameCell>Authors</FieldNameCell>
-                            <TableCell>
-                                <TextField source="authors" variant={"body1"} />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <FieldNameCell>Categories</FieldNameCell>
-                            <TableCell>
-                                <SubmissionCategoriesField/>
-                            </TableCell>
-                        </TableRow>
-
-
-                        <TableRow>
-                            <FieldNameCell>Paper Password</FieldNameCell>
-                            <TableCell>
-                                <Box display="flex" sx={{m: 0, p: 0}}>
-                                    <ReferenceField reference={"paper_pw"} source={"id"}>
-                                        <TextField source="password_enc" variant="body1"/>
-                                    </ReferenceField>
-                                    <Box flex={1}/>
-                                    <Button>Change Paper Password</Button>
-                                </Box>
-                            </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                            <FieldNameCell>Document ID</FieldNameCell>
-                            <TableCell>
-                                <Box gap={1}>
-                                    <TextField source="id" variant="body1"/>
-                                </Box>
-                            </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                            <FieldNameCell>Latest version</FieldNameCell>
-                            <TableCell>
-                                <ReferenceField reference={"submissions"} source={"last_submission_id"}>
-                                    <Typography>
-                                        {"version "}
-                                        <TextField source="version" variant="body1"/>
-                                    </Typography>
-                                </ReferenceField>
-                            </TableCell>
-                        </TableRow>
-
-                    </Table>
-                </Paper>
-
-                {/* Paper Information */}
-                <Paper elevation={3} style={{padding: '1em'}}>
-                    <Typography variant="body1" fontWeight={"bold"}>
-                        Show e-mail requests:
-                    </Typography>
-                    <Box maxWidth={"sm"} >
-                        <ShowEmailsRequestsList document_id={record?.id}/>
-                    </Box>
-                </Paper>
-
-                {/* Paper Owners */}
-                <Paper elevation={3} style={{padding: '1em'}}>
-                    <Box display="flex"  alignItems="center">
-                        <Typography variant="body1" fontWeight={"bold"}>
-                            Paper owners:
-                        </Typography>
-                        <Button variant={"contained"} sx={{ml: 3}}
-                                onClick={() => setOpenAddOwnerDialog(true)}
-                        >Add Owners</Button>
-                    </Box>
-                    <Box maxWidth={"sm"} >
-                        <PaperOwnersList document_id={record?.id}/>
-                    </Box>
-                </Paper>
-
-                {/* Submission History */}
-                <Paper elevation={3} style={{padding: '1em'}}>
-                    <Typography variant="body1" fontWeight={"bold"}>
-                        Submission history:
-                    </Typography>
-                    <Box maxWidth={"sm"} >
-                        <SubmissionHistoryList document_id={record?.id}/>
-                    </Box>
-                </Paper>
-
-                {/* Admin Log */}
-                <Paper elevation={3} style={{padding: '1em'}}>
-                    <Typography variant="body1" fontWeight={"bold"}>
-                        Admin Log:
-                    </Typography>
-                    <AdminLogList paper_id={record?.paper_id}/>
-                </Paper>
-            </Box>
-            <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog} setOpen={setOpenAddOwnerDialog} />
+            <DocumentContent/>
         </SimpleForm>
     );
 };
