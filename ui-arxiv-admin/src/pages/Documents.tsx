@@ -180,7 +180,7 @@ const DocumentContent = () => {
                     console.log('Metadata:', JSON.stringify(response.data));
                 } catch (error) {
                     console.error('Error fetching submission categories:', error);
-                    notify('Error fetching document metadata', 'error');
+                    notify('Error fetching document metadata', {type: 'error'});
                 } finally {
                 }
             }
@@ -195,13 +195,14 @@ const DocumentContent = () => {
             try {
                 const response = await dataProvider.update('paper_pw', {
                     id: record.id,
-                    previousData: {}
+                    previousData: {},
+                    data: {} /* auto-gen so no need for data*/
                 });
                 console.log('Renewed paper password:', JSON.stringify(response.data));
                 notify('Renewed paper password');
             } catch (error) {
                 console.error('Error renewing paper password:', error);
-                notify('Error renewing paper password', 'error');
+                notify('Error renewing paper password', {type: 'error'});
             } finally {
                 refresh();
             }

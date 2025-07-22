@@ -10,7 +10,7 @@ import { isValidEmail } from '../helptexts/validation/email_validation';
 import {paths as adminApi} from '../types/admin-api';
 import React from "react";
 import Typography from "@mui/material/Typography";
-import {ReferenceField, TextField} from "react-admin";
+import {RaRecord, ReferenceField, TextField, Identifier} from "react-admin";
 import UserNameField from "../bits/UserNameField";
 import {Box} from "@mui/material";
 type TapirAdminAudit = adminApi['/v1/tapir_admin_audit/{id}']['get']['responses']['200']['content']['application/json'];
@@ -1622,7 +1622,7 @@ const eventClasses: Record<string, EventClass | EventFactory> = {
     [AdminAuditActionEnum.FLIP_FLAG]: adminAuditFlipFlagInstantiator,
 };
 
-export function createAdminAuditEvent(auditRecord: TapirAdminAudit): AdminAuditEvent {
+export function createAdminAuditEvent(auditRecord: RaRecord<Identifier>): AdminAuditEvent {
     const eventClassOrFactory = eventClasses[auditRecord.action];
     if (!eventClassOrFactory) {
         throw new Error(`${auditRecord.action} is not a valid admin action`);
@@ -1630,12 +1630,12 @@ export function createAdminAuditEvent(auditRecord: TapirAdminAudit): AdminAuditE
 
     // Check if it's the flip flag factory function
     if (auditRecord.action === AdminAuditActionEnum.FLIP_FLAG) {
-        return adminAuditFlipFlagInstantiator(auditRecord);
+        return adminAuditFlipFlagInstantiator(auditRecord as TapirAdminAudit);
     }
 
     // It's a class constructor
     const EventClass = eventClassOrFactory as typeof AdminAuditEvent;
-    const params = EventClass.getInitParams(auditRecord);
+    const params = EventClass.getInitParams(auditRecord as TapirAdminAudit);
     const { admin_user, affected_user, session_id, ...options } = params;
     return new (EventClass as any)(admin_user, affected_user, session_id, options);
 }
