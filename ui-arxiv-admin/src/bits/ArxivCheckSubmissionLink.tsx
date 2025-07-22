@@ -24,7 +24,7 @@ const ArxivCheckSubmissionLink = () => {
 
     return (
         <a href={url} onClick={handleClick}>
-            <CheckIcon />
+            <CheckIcon sx={{width: 16, height: 16}}/>
         </a>
     );
 };

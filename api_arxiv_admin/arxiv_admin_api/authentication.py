@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse, Response, JSONResponse
 from arxiv.base import logging
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv.auth.openid.oidc_idp import ArxivOidcIdpClient
-from arxiv.auth.user_claims_to_legacy import create_tapir_session_from_user_claims
+# from arxiv.auth.user_claims_to_legacy import create_tapir_session_from_user_claims
 from arxiv.auth.legacy.sessions import invalidate as legacy_invalidate
 
 
@@ -33,7 +33,7 @@ def login(request: Request) -> Response:
 
 
 @router.get('/logout')
-def logout(request: Request, current_user: dict = Depends(get_current_user)) -> Response:
+def logout(request: Request, current_user: ArxivUserClaims = Depends(get_current_user)) -> Response:
     """Log out of arXiv."""
     default_next_page = request.app.extra['LOGOUT_REDIRECT_URL']
     next_page = request.query_params.get('next_page', default_next_page)

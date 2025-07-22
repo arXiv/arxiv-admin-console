@@ -381,7 +381,7 @@ export const DocumentList = () => {
                     tertiaryText={record => record.email}
                 />
             ) : (
-                <Datagrid rowClick="edit">
+                <Datagrid rowClick="show">
                     <TextField source="id" label={"ID"}/>
                     <DateField source="dated" label={"Date"}/>
 

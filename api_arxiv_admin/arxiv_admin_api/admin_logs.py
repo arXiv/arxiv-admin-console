@@ -1,20 +1,19 @@
 """arXiv admin routes."""
-import re
-from datetime import timedelta, datetime, date
+
+from datetime import datetime, date
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
-from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, union
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 from arxiv.base import logging
 from arxiv.db.models import AdminLog, Submission
 
-from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user, is_admin_user
+from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, is_admin_user
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +109,7 @@ async def list_admin_logs(
     if start_date or end_date:
         t_begin = datetime_to_epoch(start_date, VERY_OLDE)
         t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
-        query = query.filter(AdminLog.issued_when.between(t_begin, t_end))
+        query = query.filter(AdminLog.logtime.between(t_begin, t_end))
 
 
     for column in order_columns:
@@ -184,16 +183,13 @@ async def create_admin_log(
 async def delete_admin_log(
         id: int,
         _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        _current_user: ArxivUserClaims = Depends(get_authn),
         session: Session = Depends(get_db)) -> Response:
 
-    item: AdminLog = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()
+    item: AdminLog | None = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if current_user.user_id != item.endorsee_id and (not (current_user.is_admin or current_user.is_mod)):
-        return Response(status_code=status.HTTP_403_FORBIDDEN)
-
-    item.delete_instance()
+    session.delete(item)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

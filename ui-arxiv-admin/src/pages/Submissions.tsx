@@ -96,7 +96,6 @@ const SubmissionFilter = (props: any) => {
 
 
 export const SubmissionList = () => {
-    const sorter: SortPayload = {field: 'submission_id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     const defaultDates = calculatePresetDates('last_28_days');
 
@@ -115,9 +114,10 @@ export const SubmissionList = () => {
                     tertiaryText={record => record.email}
                 />
             ) : (
-                <Datagrid rowClick="edit" sort={sorter}>
-                    <ArxivCheckSubmissionLink />
-                    <TextField source="id" label="ID"  textAlign="right" />
+                <Datagrid rowClick="false">
+                    <ReferenceField reference={"submissions"} source={"id"} link={"edit"}>
+                        <TextField source="id" label="ID"  textAlign="right" />
+                    </ReferenceField>
                     <DateField source={"created"} />
                     <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                     link={(record, reference) => `/${reference}/${record.id}/show`} >
@@ -132,6 +132,7 @@ export const SubmissionList = () => {
                     </ReferenceField>
                     <SubmissionStateField source="status"/>
                     <IsOkField source="is_ok" label={"OK?"}/>
+                    <ArxivCheckSubmissionLink />
                 </Datagrid>
             )}
         </List>

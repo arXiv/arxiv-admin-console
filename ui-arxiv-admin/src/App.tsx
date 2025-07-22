@@ -175,7 +175,6 @@ const AdminConsole: React.FC = () => {
                     list={DocumentList}
                     show={DocumentShow}
                     icon={DocumentIcon}
-                    edit={DocumentEdit}
                     create={DocumentCreate}
                     recordRepresentation="id"
                 />

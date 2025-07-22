@@ -1,6 +1,6 @@
 """arXiv user routes."""
 from typing import Optional, List
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn
@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel
 
-from sqlalchemy import select, distinct, and_
+from sqlalchemy import select, distinct, and_, inspect
 from sqlalchemy.orm import Session, aliased
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
@@ -264,6 +264,16 @@ async def list_users(
     result = [UserModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
+audit_registry = {
+
+}
+
+def sanitize_user_update_data(update_data: dict) -> dict:
+    for key in ["id", "user_id", "username", "moderated_categories", "moderated_archives", "tapir_policy_classes", "orcid_id", "flag_is_mod"]:
+        if key in update_data:
+            del update_data[key]
+    return update_data
+
 
 @router.put('/{user_id:int}')
 async def update_user(request: Request,
@@ -280,6 +290,8 @@ async def update_user(request: Request,
     demographic = session.query(Demographic).filter(Demographic.user_id == user_id).first()
     update_data = user_update.model_dump(exclude_unset=True)  # Exclude fields that were not provided
 
+    update_data = sanitize_user_update_data(update_data)
+
     # check new category
     if hasattr(update_data, 'archive'):
         if hasattr(update_data, 'subject_class'):
@@ -293,6 +305,32 @@ async def update_user(request: Request,
             raise HTTPException(status_code=404, detail="Need archive and subject_class")
     elif hasattr(update_data, 'subject_class'):
         raise HTTPException(status_code=404, detail="Need archive and subject_class")
+
+    props = {}
+    for instance in [user, demographic]:
+        if instance is not None:  # Check if instance exists
+            for column in instance.__table__.columns:
+                column_name = column.name
+                props[column_name] = instance
+
+    del props['user_id']
+
+    for prop, instance in props.items():
+        if prop in update_data:
+            old_value = getattr(instance, prop)
+            new_value = update_data[prop]
+            if isinstance(new_value, datetime):
+                new_value.replace(tzinfo=timezone.utc)
+                new_value = datetime_to_epoch(None, new_value)
+            if old_value != new_value:
+                setattr(instance, prop, new_value)
+                audit_func = audit_registry.get(prop)
+                if audit_func:
+                    audit_func(session, user_id, old_value, new_value)
+            del update_data[prop]
+
+    if update_data:
+        raise HTTPException(status_code=400, detail="Invalid update data")
 
     session.commit()
     session.refresh(user)  # Refresh the instance with the updated data

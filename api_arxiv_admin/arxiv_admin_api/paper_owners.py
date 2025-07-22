@@ -8,6 +8,7 @@ from typing import Optional, List, Tuple, Dict
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_AdminChangePaperPassword
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host, get_authn, ApiToken, is_admin_user
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
@@ -810,11 +811,12 @@ def pwc_link(request: Request,
                      description="Give the paper a new password", )
 def renew_paper_password(
         document_id: int,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(is_admin_user),
+        remote_addr: str = Depends(get_client_host),
+        remote_host: str = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
         session: Session = Depends(get_db)) -> PaperPwModel:
     """Change Paper Password"""
-    if not current_user.is_admin:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Only admins can change passwords")
 
     item: PaperPw | None = session.query(PaperPw).filter(PaperPw.document_id == document_id).one_or_none()
     if not item:
@@ -825,5 +827,19 @@ def renew_paper_password(
     data = PaperPwModel.base_select(session).filter(PaperPw.document_id == document_id).one_or_none()
     if not data:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper owner not created yet")
+    doc = session.query(Document).filter(Document.document_id == document_id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper not found")
+
+    admin_audit(
+        session,
+        AdminAudit_AdminChangePaperPassword,
+        current_user.user_id,
+        doc.submitter_id,
+        session_id = current_user.tapir_session_id,
+        remote_ip = remote_addr,
+        remote_hostname = remote_host,
+        tracking_cookie = tracking_cookie)
+
     session.commit()
     return PaperPwModel.model_validate(data)

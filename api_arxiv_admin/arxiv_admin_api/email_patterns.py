@@ -1,20 +1,16 @@
 """Provides integration for the external user interface."""
-import datetime
-
-from arxiv_bizlogic.fastapi_helpers import get_authn
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, aliased
-from pydantic import BaseModel, field_validator
-from enum import IntEnum
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from arxiv.base import logging
 from arxiv.db.models import t_arXiv_black_email, t_arXiv_white_email, t_arXiv_block_email
-from arxiv.auth.user_claims import ArxivUserClaims
+# from arxiv.auth.user_claims import ArxivUserClaims
 
-from . import is_admin_user, get_db, get_current_user
+from . import is_admin_user, get_db
 
 logger = logging.getLogger(__name__)
 
