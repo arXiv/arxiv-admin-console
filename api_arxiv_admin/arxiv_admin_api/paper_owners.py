@@ -811,7 +811,8 @@ def pwc_link(request: Request,
                      description="Give the paper a new password", )
 def renew_paper_password(
         document_id: int,
-        current_user: ArxivUserClaims = Depends(is_admin_user),
+        _is_admin: ArxivUserClaims = Depends(is_admin_user),
+        current_user: ArxivUserClaims = Depends(get_current_user),
         remote_addr: str = Depends(get_client_host),
         remote_host: str = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
