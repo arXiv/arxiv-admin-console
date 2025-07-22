@@ -5,7 +5,6 @@
  */
 
 import { UserVetoStatus, UserFlags } from '../helptexts/userStatus';
-import { isValidEmail } from '../helptexts/validation/email_validation';
 
 import {paths as adminApi} from '../types/admin-api';
 import React from "react";
@@ -482,9 +481,6 @@ export class AdminAudit_ChangeEmail extends AdminAuditEvent {
         }
     ) {
         const { email, ...restOptions } = options;
-        if (!isValidEmail(email)) {
-            throw new Error(`email '${email}' is not a valid email`);
-        }
         super(admin_id, affected_user, session_id, {
             ...restOptions,
             data: email,
