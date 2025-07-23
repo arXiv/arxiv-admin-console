@@ -162,13 +162,13 @@ async def list_moderators_0(
                 )
 
             if first_name is not None:
-                query = query.filter(TapirUser.first_name.istartswith(first_name))
+                query = query.filter(TapirUser.first_name.like(first_name + "%"))
                 pass
             if last_name is not None:
-                query = query.filter(TapirUser.last_name.istartswith(last_name))
+                query = query.filter(TapirUser.last_name.like(last_name + "%"))
                 pass
             if email is not None:
-                query = query.filter(TapirUser.email.istartswith(email))
+                query = query.filter(TapirUser.email.like(email + "%"))
                 pass
             pass
 

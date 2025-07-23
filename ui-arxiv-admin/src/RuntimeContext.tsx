@@ -12,7 +12,7 @@ export interface ArxiURLs
 https://www.npmjs.com/package/uri-templates
  */
 const arXivURLs: ArxiURLs = {
-    CheckSubmissionLink: '{+arxivCheck}/#/q/submitted/{submissionId}',
+    CheckSubmissionLink: '{+arxivCheck}/submit/{submissionId}',
     JiraLink: '{+jira}/browse/{issueKey}',
 }
 

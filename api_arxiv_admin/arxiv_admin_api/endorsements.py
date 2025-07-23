@@ -144,25 +144,25 @@ async def list_endorsements(
                         last_name = elems[1].strip()
 
                 if first_name and last_name:
-                    query = query.filter(TapirUser.first_name.istartswith(first_name))
-                    query = query.filter(TapirUser.last_name.istartswith(last_name))
+                    query = query.filter(TapirUser.first_name.like(first_name + "%"))
+                    query = query.filter(TapirUser.last_name.like(last_name + "%"))
                 else:
-                    query = query.filter(TapirUser.last_name.istartswith(endorsee_name))
+                    query = query.filter(TapirUser.last_name.like(endorsee_name + "%"))
                     pass
                 pass
 
             if endorsee_email is not None:
-                query = query.filter(TapirUser.email.istartswith(endorsee_email))
+                query = query.filter(TapirUser.email.like(endorsee_email + "%"))
                 pass
             pass
 
         if category is not None:
             elems = category.split(".")
             if len(elems) > 1 and elems[1]:
-                query = query.filter(Endorsement.archive.istartswith(elems[0].strip()))
-                query = query.filter(Endorsement.subject_class.istartswith(elems[1].strip()))
+                query = query.filter(Endorsement.archive.like(elems[0].strip() + "%"))
+                query = query.filter(Endorsement.subject_class.like(elems[1].strip() + "%"))
             else:
-                query = query.filter(Endorsement.archive.istartswith(elems[0].strip()))
+                query = query.filter(Endorsement.archive.like(elems[0].strip() + "%"))
                 pass
             pass
 

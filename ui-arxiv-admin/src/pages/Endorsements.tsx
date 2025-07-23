@@ -29,6 +29,8 @@ import CategoryField from "../bits/CategoryField";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Tooltip from '@mui/material/Tooltip';
+import UserNameField from "../bits/UserNameField";
+import UserStatusField from "../bits/UserStatusField";
 
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
@@ -244,9 +246,8 @@ export const EndorsementEdit = () => (
 
                     <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
                                 link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
+                        <UserNameField />
+                        <UserStatusField />
                     </ReferenceField>
                 </Box>
 
@@ -259,9 +260,8 @@ export const EndorsementEdit = () => (
                     <Typography>{"Endorsee: "}</Typography>
                     <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
                                     link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
+                        <UserNameField />
+                        <UserStatusField />
                     </ReferenceField>
                 </Box>
 
