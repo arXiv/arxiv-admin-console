@@ -99,33 +99,61 @@ export const UserList = () => {
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     const location = useLocation();
     const navigate = useNavigate();
+    
+    // Track if this is the initial load to prevent interference with user interactions
+    const isInitialLoad = React.useRef(true);
+    const lastProcessedSearch = React.useRef<string>('');
 
     useEffect(() => {
+        // Skip processing if this is a user interaction (not initial load)
+        if (!isInitialLoad.current) {
+            return;
+        }
+
+        // Skip if we've already processed this exact search string
+        if (lastProcessedSearch.current === location.search) {
+            return;
+        }
+
         const searchParams = new URLSearchParams(location.search);
         const filterParam = searchParams.get('filter');
 
+        // Only process if there are filters and they might need cleanup
         if (filterParam) {
             try {
                 const parsedFilters = JSON.parse(decodeURIComponent(filterParam));
 
-                // Create new filter object with only email, first_name, and last_name
-                const newFilters: any = {};
+                // Check if this looks like a URL that needs cleanup (has problematic filters)
+                const hasProblematicFilters = Object.keys(parsedFilters).some(key => 
+                    !['email', 'first_name', 'last_name', 'username', 'flag_edit_users', 'flag_is_mod', 
+                      'email_bouncing', 'suspect', 'is_non_academic', 'flag_email_verified', 
+                      'start_joined_date', 'end_joined_date'].includes(key)
+                );
 
-                if (parsedFilters.email) {
-                    newFilters.email = parsedFilters.email;
-                }
-                if (parsedFilters.first_name) {
-                    newFilters.first_name = parsedFilters.first_name;
-                }
-                if (parsedFilters.last_name) {
-                    newFilters.last_name = parsedFilters.last_name;
-                }
+                if (hasProblematicFilters) {
+                    // Create new filter object with only allowed filters
+                    const allowedFilters: any = {};
+                    const allowedKeys = ['email', 'first_name', 'last_name', 'username', 'flag_edit_users', 
+                                       'flag_is_mod', 'email_bouncing', 'suspect', 'is_non_academic', 
+                                       'flag_email_verified', 'start_joined_date', 'end_joined_date'];
 
-                // Only update if we have relevant filters
-                if (Object.keys(newFilters).length > 0) {
-                    // Create new URL with only the relevant filters
-                    const newFilterParam = encodeURIComponent(JSON.stringify(newFilters));
-                    const newUrl = `${location.pathname}?filter=${newFilterParam}`;
+                    allowedKeys.forEach(key => {
+                        if (parsedFilters[key] !== undefined) {
+                            allowedFilters[key] = parsedFilters[key];
+                        }
+                    });
+
+                    // Preserve all other React Admin URL parameters (pagination, sorting, etc.)
+                    const newSearchParams = new URLSearchParams(location.search);
+                    
+                    if (Object.keys(allowedFilters).length > 0) {
+                        newSearchParams.set('filter', encodeURIComponent(JSON.stringify(allowedFilters)));
+                    } else {
+                        newSearchParams.delete('filter');
+                    }
+
+                    const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
+                    lastProcessedSearch.current = newSearchParams.toString();
 
                     // Replace current URL without triggering a page reload
                     navigate(newUrl, { replace: true });
@@ -134,6 +162,10 @@ export const UserList = () => {
                 console.error('Error parsing URL filters:', error);
             }
         }
+
+        // Mark that initial load processing is complete
+        isInitialLoad.current = false;
+        lastProcessedSearch.current = location.search;
     }, [location.search, navigate, location.pathname]);
 
 
