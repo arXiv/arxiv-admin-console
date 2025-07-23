@@ -8,7 +8,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic
+from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic, TapirUser
 from sqlalchemy import func, and_, desc, cast, LargeBinary, Row
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -155,6 +155,7 @@ async def list_documents(
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
         submitter_id: Optional[str] = Query(None, description="Submitter ID"),
+        submitter_name: Optional[str] = Query(None, description="Submitter Name"),
         filter: Optional[str] = Query(None, description="MUI datagrid filter"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
@@ -211,6 +212,40 @@ async def list_documents(
             else:
                 query = query.filter(Document.paper_id.like(paper_id + "%"))
             pass
+
+        if submitter_name:
+            first_name = None
+            last_name = None
+            if "," in submitter_name:
+                name_elems = submitter_name.split(",")
+                if len(name_elems) == 2:
+                    first_name = name_elems[1].strip()
+                    last_name = name_elems[0].strip()
+                elif len(name_elems) == 1:
+                    last_name = name_elems[0].strip()
+            elif " " in submitter_name:
+                name_elems = [elem for elem in submitter_name.split(" ") if elem]
+                if len(name_elems) == 2:
+                    first_name = name_elems[0].strip()
+                    last_name = name_elems[1].strip()
+                elif len(name_elems) == 1:
+                    last_name = name_elems[0].strip()
+                    pass
+                pass
+            else:
+                last_name = submitter_name.strip()
+                pass
+
+            if first_name or last_name:
+                # Build a subquery to pre-filter TapirUser table first
+                user_subquery = db.query(TapirUser.user_id)
+                if last_name:
+                    user_subquery = user_subquery.filter(TapirUser.last_name.like(last_name + "%"))
+                if first_name:
+                    user_subquery = user_subquery.filter(TapirUser.first_name.like(first_name + "%"))
+                
+                # Use the pre-filtered user IDs to filter documents directly
+                query = query.filter(Document.submitter_id.in_(user_subquery))
 
         if datagrid_filter:
             field_name = datagrid_filter.field_name
