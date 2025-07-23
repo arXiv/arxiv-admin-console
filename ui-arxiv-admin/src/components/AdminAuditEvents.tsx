@@ -39,6 +39,17 @@ export enum AdminAuditActionEnum {
 }
 
 
+const normalizeBoolean = (value: string | number | boolean): boolean => {
+    if (typeof value === 'string') {
+        return ['yes', 'true', '1'].includes(value.toLowerCase());
+    } else if (typeof value === 'number') {
+        return value !== 0;
+    } else {
+        return value;
+    }
+};
+
+
 
 export abstract class AdminAuditEvent {
     /**
@@ -94,9 +105,6 @@ export abstract class AdminAuditEvent {
         return this._data || '';
     }
 
-    get action(): AdminAuditActionEnum {
-        return (this.constructor as typeof AdminAuditEvent)._action;
-    }
 
     static getInitParams(audit_record: TapirAdminAudit): Record<string, any> {
         /**
@@ -118,26 +126,11 @@ export abstract class AdminAuditEvent {
         };
     }
 
-    describeUser(id: string): React.ReactNode {
-        return `{user[${id}]}`;
-    }
-
-    describeAffectedUser(): React.ReactNode {
-        return this.describeUser(this.affected_user);
-    }
-
-    describeAdminUser(): React.ReactNode {
-        return this.describeUser(this.admin_user);
-    }
-
     describe(): React.ReactElement {
         return <Typography>{this.data}</Typography>;
     }
 }
 
-export function docHref(doc_id: string, paper_id: string): string {
-    return `<a href="/auth/admin/paper-detail.php?document_id=${doc_id}">${paper_id}</a>`;
-}
 
 export abstract class AdminAudit_PaperEvent extends AdminAuditEvent {
     /**
@@ -217,7 +210,7 @@ export class AdminAudit_AddPaperOwner extends AdminAudit_PaperEvent {
                 <ReferenceField reference={"users"} source={"admin_user"} >
                     <UserNameField />
                 </ReferenceField>
-                {" mede "}
+                {" made "}
                 <ReferenceField reference={"users"} source={"affected_user"} >
                     <UserNameField />
                 </ReferenceField>
@@ -240,7 +233,7 @@ export class AdminAudit_AddPaperOwner2 extends AdminAudit_PaperEvent {
                 <ReferenceField reference={"users"} source={"admin_user"} >
                     <UserNameField />
                 </ReferenceField>
-                {" mede "}
+                {" made "}
                 <ReferenceField reference={"users"} source={"affected_user"} >
                     <UserNameField />
                 </ReferenceField>
@@ -813,6 +806,8 @@ export class AdminAudit_SuspendUser extends AdminAuditEvent {
                 <ReferenceField reference="users" source="affected_user">
                     <UserNameField />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -862,6 +857,8 @@ export class AdminAudit_UnsuspendUser extends AdminAuditEvent {
                 <ReferenceField reference="users" source="affected_user">
                     <UserNameField />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -927,7 +924,7 @@ export abstract class AdminAudit_SetFlag extends AdminAuditEvent {
     static readonly _value_name: string;
     static readonly _value_type: 'boolean' | 'number' | 'string';
 
-    constructor(
+    protected constructor(
         admin_id: string,
         affected_user: string,
         session_id: string,
@@ -1015,14 +1012,7 @@ export class AdminAudit_SetGroupTest extends AdminAudit_SetFlag {
         }
     ) {
         const { group_test, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof group_test === 'string') {
-            normalized = ['yes', 'true', '1'].includes(group_test.toLowerCase());
-        } else if (typeof group_test === 'number') {
-            normalized = group_test !== 0;
-        } else {
-            normalized = group_test;
-        }
+        const normalized = normalizeBoolean(group_test);
         const data = `${AdminAudit_SetGroupTest._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
@@ -1069,14 +1059,7 @@ export class AdminAudit_SetProxy extends AdminAudit_SetFlag {
         }
     ) {
         const { proxy, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof proxy === 'string') {
-            normalized = ['yes', 'true', '1'].includes(proxy.toLowerCase());
-        } else if (typeof proxy === 'number') {
-            normalized = proxy !== 0;
-        } else {
-            normalized = proxy;
-        }
+        const normalized = normalizeBoolean(proxy);
         const data = `${AdminAudit_SetProxy._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
@@ -1122,17 +1105,32 @@ export class AdminAudit_SetSuspect extends AdminAudit_SetFlag {
         }
     ) {
         const { suspect, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof suspect === 'string') {
-            normalized = ['yes', 'true', '1'].includes(suspect.toLowerCase());
-        } else if (typeof suspect === 'number') {
-            normalized = suspect !== 0;
-        } else {
-            normalized = suspect;
-        }
+        const normalized = normalizeBoolean(suspect);
         const data = `${AdminAudit_SetSuspect._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {` made `}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {parseInt(value1) ? " suspect. " : " not suspect. "}
+                    <TextField source="comment" />
+                </Box>
+            );
+        }
+        return <Typography>{this.data}</Typography>;
+    }
+
 }
 
 export class AdminAudit_SetXml extends AdminAudit_SetFlag {
@@ -1154,16 +1152,29 @@ export class AdminAudit_SetXml extends AdminAudit_SetFlag {
         }
     ) {
         const { xml, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof xml === 'string') {
-            normalized = ['yes', 'true', '1'].includes(xml.toLowerCase());
-        } else if (typeof xml === 'number') {
-            normalized = xml !== 0;
-        } else {
-            normalized = xml;
-        }
+        const normalized = normalizeBoolean(xml);
         const data = `${AdminAudit_SetXml._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
+    }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {" set xml flag of "}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {parseInt(value1) ? " to true" : " to false"}
+                </Box>
+            );
+        }
+        return <Typography>{this.data}</Typography>;
     }
 }
 
@@ -1186,18 +1197,33 @@ export class AdminAudit_SetEndorsementValid extends AdminAudit_SetFlag {
         }
     ) {
         const { endorsement_valid, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof endorsement_valid === 'string') {
-            normalized = ['yes', 'true', '1'].includes(endorsement_valid.toLowerCase());
-        } else if (typeof endorsement_valid === 'number') {
-            normalized = endorsement_valid !== 0;
-        } else {
-            normalized = endorsement_valid;
-        }
+        const normalized = normalizeBoolean(endorsement_valid);
         const data = `${AdminAudit_SetEndorsementValid._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {parseInt(value1) ? " made the endorsement valid for " : " made the endorsement invalid for "}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {" "}
+                    <TextField source="comment" />
+                </Box>
+            );
+        }
+        return <Typography>{this.data}</Typography>;
+    }
 }
+
 
 export class AdminAudit_SetPointValue extends AdminAudit_SetFlag {
     static readonly _flag = UserFlags.ARXIV_ENDORSEMENT_POINT_VALUE;
@@ -1221,6 +1247,26 @@ export class AdminAudit_SetPointValue extends AdminAudit_SetFlag {
         const data = `${AdminAudit_SetPointValue._flag}=${point_value}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {" set the point value of "}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {` to ${value1}`}
+                </Box>
+            );
+        }
+        return <Typography>{this.data}</Typography>;
+    }
 }
 
 export class AdminAudit_SetEndorsementRequestsValid extends AdminAudit_SetFlag {
@@ -1242,16 +1288,30 @@ export class AdminAudit_SetEndorsementRequestsValid extends AdminAudit_SetFlag {
         }
     ) {
         const { endorsement_requests_valid, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof endorsement_requests_valid === 'string') {
-            normalized = ['yes', 'true', '1'].includes(endorsement_requests_valid.toLowerCase());
-        } else if (typeof endorsement_requests_valid === 'number') {
-            normalized = endorsement_requests_valid !== 0;
-        } else {
-            normalized = endorsement_requests_valid;
-        }
+        const normalized = normalizeBoolean(endorsement_requests_valid);
         const data = `${AdminAudit_SetEndorsementRequestsValid._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
+    }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField/>
+                    </ReferenceField>
+                    {parseInt(value1) ? " set endorsement request of " : " cleared entorsement request of "}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField/>
+                    </ReferenceField>
+                    {" Comment: "}
+                    <TextField source="comment" />
+                </Box>
+            );
+        }
+        return <Typography>{this.data}</Typography>;
     }
 }
 
@@ -1274,16 +1334,28 @@ export class AdminAudit_SetEmailBouncing extends AdminAudit_SetFlag {
         }
     ) {
         const { email_bouncing, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof email_bouncing === 'string') {
-            normalized = ['yes', 'true', '1'].includes(email_bouncing.toLowerCase());
-        } else if (typeof email_bouncing === 'number') {
-            normalized = email_bouncing !== 0;
-        } else {
-            normalized = email_bouncing;
-        }
+        const normalized = normalizeBoolean(email_bouncing);
         const data = `${AdminAudit_SetEmailBouncing._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
+    }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField/>
+                    </ReferenceField>
+                    {parseInt(value1) ? " set email bouncing of " : " cleared email bouncing of "}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField/>
+                    </ReferenceField>
+                </Box>
+            );
+        }
+        return <Typography>{this.data}</Typography>;
     }
 }
 
@@ -1306,14 +1378,7 @@ export class AdminAudit_SetBanned extends AdminAudit_SetFlag {
         }
     ) {
         const { banned, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof banned === 'string') {
-            normalized = ['yes', 'true', '1'].includes(banned.toLowerCase());
-        } else if (typeof banned === 'number') {
-            normalized = banned !== 0;
-        } else {
-            normalized = banned;
-        }
+        const normalized = normalizeBoolean(banned);
         const data = `${AdminAudit_SetBanned._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
@@ -1322,31 +1387,17 @@ export class AdminAudit_SetBanned extends AdminAudit_SetFlag {
         const elements = this.data.split('=');
         if (elements.length === 2) {
             const value1 = elements[1];
-            if (parseInt(value1)) {
-                return (
-                    <Box component="span">
-                        <ReferenceField reference="users" source="admin_user">
-                            <UserNameField />
-                        </ReferenceField>
-                        {" banned "}
-                        <ReferenceField reference="users" source="affected_user">
-                            <UserNameField />
-                        </ReferenceField>
-                    </Box>
-                );
-            } else {
-                return (
-                    <Box component="span">
-                        <ReferenceField reference="users" source="admin_user">
-                            <UserNameField />
-                        </ReferenceField>
-                        {" unbanned "}
-                        <ReferenceField reference="users" source="affected_user">
-                            <UserNameField />
-                        </ReferenceField>
-                    </Box>
-                );
-            }
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {  parseInt(value1) ? " banned " : " unbanned " }
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField />
+                    </ReferenceField>
+                </Box>
+            );
         }
         return <Typography>{this.data}</Typography>;
     }
@@ -1371,14 +1422,7 @@ export class AdminAudit_SetEditSystem extends AdminAudit_SetFlag {
         }
     ) {
         const { edit_system, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof edit_system === 'string') {
-            normalized = ['yes', 'true', '1'].includes(edit_system.toLowerCase());
-        } else if (typeof edit_system === 'number') {
-            normalized = edit_system !== 0;
-        } else {
-            normalized = edit_system;
-        }
+        const normalized = normalizeBoolean(edit_system);
         const data = `${AdminAudit_SetEditSystem._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
@@ -1397,7 +1441,7 @@ export class AdminAudit_SetEditSystem extends AdminAudit_SetFlag {
                         <ReferenceField reference="users" source="affected_user">
                             <UserNameField />
                         </ReferenceField>
-                        {" a sysad"}
+                        {" a sysadmin"}
                     </Box>
                 );
             } else {
@@ -1406,7 +1450,7 @@ export class AdminAudit_SetEditSystem extends AdminAudit_SetFlag {
                         <ReferenceField reference="users" source="admin_user">
                             <UserNameField />
                         </ReferenceField>
-                        {" cleared sysad of "}
+                        {" cleared sysadmin of "}
                         <ReferenceField reference="users" source="affected_user">
                             <UserNameField />
                         </ReferenceField>
@@ -1437,14 +1481,7 @@ export class AdminAudit_SetEditUsers extends AdminAudit_SetFlag {
         }
     ) {
         const { edit_users, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof edit_users === 'string') {
-            normalized = ['yes', 'true', '1'].includes(edit_users.toLowerCase());
-        } else if (typeof edit_users === 'number') {
-            normalized = edit_users !== 0;
-        } else {
-            normalized = edit_users;
-        }
+        const normalized = normalizeBoolean(edit_users);
         const data = `${AdminAudit_SetEditUsers._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
@@ -1503,14 +1540,7 @@ export class AdminAudit_SetEmailVerified extends AdminAudit_SetFlag {
         }
     ) {
         const { verified, ...restOptions } = options;
-        let normalized: boolean;
-        if (typeof verified === 'string') {
-            normalized = ['yes', 'true', '1'].includes(verified.toLowerCase());
-        } else if (typeof verified === 'number') {
-            normalized = verified !== 0;
-        } else {
-            normalized = verified;
-        }
+        const normalized = normalizeBoolean(verified);
         const data = `${AdminAudit_SetEmailVerified._flag}=${normalized ? 1 : 0}`;
         super(admin_id, affected_user, session_id, data, restOptions);
     }
@@ -1519,31 +1549,17 @@ export class AdminAudit_SetEmailVerified extends AdminAudit_SetFlag {
         const elements = this.data.split('=');
         if (elements.length === 2) {
             const value1 = elements[1];
-            if (parseInt(value1)) {
-                return (
-                    <Box component="span">
-                        <ReferenceField reference="users" source="admin_user">
-                            <UserNameField />
-                        </ReferenceField>
-                        {" verified the email of "}
-                        <ReferenceField reference="users" source="affected_user">
-                            <UserNameField />
-                        </ReferenceField>
-                    </Box>
-                );
-            } else {
-                return (
-                    <Box component="span">
-                        <ReferenceField reference="users" source="admin_user">
-                            <UserNameField />
-                        </ReferenceField>
-                        {" unverified the email of "}
-                        <ReferenceField reference="users" source="affected_user">
-                            <UserNameField />
-                        </ReferenceField>
-                    </Box>
-                );
-            }
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {parseInt(value1) ? " verified the email of " : " unverified the email of "}
+                    <ReferenceField reference="users" source="affected_user">
+                        <UserNameField />
+                    </ReferenceField>
+                </Box>
+            );
         }
         return <Typography>{this.data}</Typography>;
     }
