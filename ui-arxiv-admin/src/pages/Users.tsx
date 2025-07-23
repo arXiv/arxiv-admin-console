@@ -400,7 +400,9 @@ function UserDemographic() {
         <TableRow>
             <TableCell>ORCID</TableCell>
             <TableCell>
-                <TextField source="orcid_id" emptyText={"No ORCID"} />
+                <ReferenceField reference={"orcid_ids"} source={"id"} >
+                    <TextField source="orcid" emptyText={"No ORCID"} />
+                </ReferenceField>
             </TableCell>
         </TableRow>
 
