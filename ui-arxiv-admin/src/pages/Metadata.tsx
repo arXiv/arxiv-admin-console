@@ -31,7 +31,15 @@ import {
     NumberField,
     SimpleShowLayout,
     Show,
-    DateInput, useListContext, SelectInput, useShowContext, Identifier, useDataProvider
+    DateInput,
+    useListContext,
+    SelectInput,
+    useShowContext,
+    Identifier,
+    useDataProvider,
+    TopToolbar,
+    SaveButton,
+    EditActions
 } from 'react-admin';
 
 import LinkIcon from '@mui/icons-material/Link';
@@ -69,6 +77,12 @@ import LicenseField from "../bits/LicenseField";
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
 
+const MetadataEditToolbar = () => (
+    <TopToolbar sx={{ justifyContent: 'flex-start', ml: 2 }}>
+        <SaveButton />
+    </TopToolbar>
+);
+
 const MetadataEditContents = () => {
     const record = useRecordContext();
     const [openAddOwnerDialog, setOpenAddOwnerDialog] = React.useState(false);
@@ -77,7 +91,7 @@ const MetadataEditContents = () => {
     const dataProvider =  useDataProvider();
 
     return (
-        <SimpleForm>
+        <SimpleForm toolbar={<MetadataEditToolbar />}>
             <Box gap={1} display="flex" flexDirection="column"
                  sx={{
                      width: '100%',
@@ -260,5 +274,3 @@ export const MetadataEdit = () => (
         <MetadataEditContents/>
     </Edit>
 );
-
-

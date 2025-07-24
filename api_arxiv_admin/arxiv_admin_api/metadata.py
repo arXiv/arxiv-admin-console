@@ -7,11 +7,12 @@ from arxiv.document.version import SOURCE_FORMAT
 
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 # from .models import CrossControlModel
 import re
 
 from . import get_db, datetime_to_epoch, VERY_OLDE
+
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +226,7 @@ def update_metadata_by_id(
             count += 1
             setattr(md, key, value)
     if count > 0:
+        md.updated = datetime.now(timezone.utc)
         session.commit()
     metadata = MetadataModel.base_select(session).filter(Metadata.metadata_id == id).one_or_none()
     if not metadata:

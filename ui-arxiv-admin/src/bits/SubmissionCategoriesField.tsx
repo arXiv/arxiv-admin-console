@@ -21,24 +21,22 @@ export const CategoryList: React.FC<CategoryListProps> = ({categories}) => {
     const is_published = categories.some((category) => category.is_published);
 
     return (
-        <Box sx={{
-            display: 'flex',
-            flexDirection: 'row', // Explicitly set horizontal direction
-            flexWrap: 'wrap',
-            gap: '8px', // Space between items
-            alignItems: 'center'
-        }}>
+        <Box
+            sx={{
+                display: 'inline-flex !important',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-start !important',
+                gap: 1,
+                width: 'auto !important'
+        }}
+        >
             {
                 categories.map((category, index) => (
                     <Box
                         key={category.category}
-                        width={"4rem"}
                         sx={{
-                            flexShrink: 0, // Prevents shrinking
-                            flexGrow: 0,   // Prevents growing
-                            display: 'inline-block', // Use inline-block instead of flex
                             whiteSpace: 'nowrap',
-                            overflow: 'hidden',
                             textOverflow: 'ellipsis'
                         }}
                     >
@@ -54,7 +52,6 @@ export const CategoryList: React.FC<CategoryListProps> = ({categories}) => {
                 ))
             }
         </Box>
-
     );
 }
 
@@ -124,9 +121,7 @@ const SubmissionCategoriesField: React.FC = () => {
     }
 
     return (
-        <Box component={"span"}>
-            <CategoryList categories={categories.categories} />
-        </Box>
+        <CategoryList categories={categories.categories} />
     );
 };
 
