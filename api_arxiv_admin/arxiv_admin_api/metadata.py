@@ -165,7 +165,7 @@ async def list_metadatas(
 
 
 @router.get("/paper_id/{paper_id:str}")
-def get_metadata(paper_id:str,
+def get_metadata_by_paper_id(paper_id:str,
                  session: Session = Depends(get_db)) -> MetadataModel:
     """Get the metadata from paper id."""
     query = MetadataModel.base_select(session).filter(Metadata.paper_id == paper_id)
@@ -175,7 +175,7 @@ def get_metadata(paper_id:str,
     return MetadataModel.model_validate(doc)
 
 @router.get("/paper_id/{category}/{numeric_id:str}")
-def get_metadata(category:str, numeric_id:str,
+def get_metadata_ancient(category:str, numeric_id:str,
                  session: Session = Depends(get_db)) -> MetadataModel:
     """Get the metadata from paper id."""
     paper_id = f"{category}/{numeric_id}"
@@ -199,7 +199,7 @@ def get_metadata_from_document_id(
 
 
 @router.get("/{id:str}")
-def get_metadata(id:int,
+def get_metadata_by_id(id:int,
                  session: Session = Depends(get_db)) -> MetadataModel:
     """Display a paper."""
     query = MetadataModel.base_select(session).filter(Metadata.metadata_id == id)
@@ -207,4 +207,27 @@ def get_metadata(id:int,
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
     return MetadataModel.model_validate(doc)
+
+@router.put("/{id:str}")
+def update_metadata_by_id(
+        id:int,
+        body: MetadataModel,
+        session: Session = Depends(get_db)) -> MetadataModel:
+    """Display a paper."""
+    md = session.query(Metadata).filter(Metadata.metadata_id == id).one_or_none()
+    if not md:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    updating = body.model_dump(exclude_unset=True, exclude_none=True, exclude={"id"})
+    count = 0
+    for key, value in updating.items():
+        old_value = getattr(md, key)
+        if old_value != value:
+            count += 1
+            setattr(md, key, value)
+    if count > 0:
+        session.commit()
+    metadata = MetadataModel.base_select(session).filter(Metadata.metadata_id == id).one_or_none()
+    if not metadata:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    return MetadataModel.model_validate(metadata)
 

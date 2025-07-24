@@ -21,29 +21,40 @@ export const CategoryList: React.FC<CategoryListProps> = ({categories}) => {
     const is_published = categories.some((category) => category.is_published);
 
     return (
-        <Box>
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'row', // Explicitly set horizontal direction
+            flexWrap: 'wrap',
+            gap: '8px', // Space between items
+            alignItems: 'center'
+        }}>
             {
                 categories.map((category, index) => (
-                    <Box key={category.category} sx={{ display: 'flex', alignItems: 'center' }}>
-                        {
-                            index ? ", " : ""
-                        }
+                    <Box
+                        key={category.category}
+                        width={"4rem"}
+                        sx={{
+                            flexShrink: 0, // Prevents shrinking
+                            flexGrow: 0,   // Prevents growing
+                            display: 'inline-block', // Use inline-block instead of flex
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                        }}
+                    >
                         <RecordContextProvider value={{
                             sourceCategory: category.category.split('.')[0] || '',
                             sourceClass: category.category.split('.')[1] || null
                         }}>
-                            <CategoryField source={category.category} sourceCategory="sourceCategory" sourceClass="sourceClass" />
+                            <CategoryField source={category.category} sourceCategory="sourceCategory" sourceClass="sourceClass"
+                                           primary={index === 0} renderAs={"chip"}
+                            />
                         </RecordContextProvider>
-                        {
-                            category.is_primary ? <PrimaryIcon sx={{height: "16px", marginLeft: '4px'}} /> : ""
-                        }
-                        {
-                            (is_published && index === 0) ? <PublishedIcon sx={{height: "16px", marginLeft: '4px'}} /> : ""
-                        }
                     </Box>
                 ))
             }
         </Box>
+
     );
 }
 
@@ -113,7 +124,7 @@ const SubmissionCategoriesField: React.FC = () => {
     }
 
     return (
-        <Box>
+        <Box component={"span"}>
             <CategoryList categories={categories.categories} />
         </Box>
     );

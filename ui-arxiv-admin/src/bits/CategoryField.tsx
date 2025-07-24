@@ -10,9 +10,10 @@ interface CategoryFieldProps extends FieldProps {
     sourceCategory: string;
     sourceClass: string;
     renderAs?: "chip" | "text";
+    primary?: boolean;
 }
 
-const CategoryField: React.FC<CategoryFieldProps> = ({ sourceCategory, sourceClass, renderAs }) => {
+const CategoryField: React.FC<CategoryFieldProps> = ({ sourceCategory, sourceClass, renderAs, primary }) => {
     const record = useRecordContext<{ [key: string]: string }>();
     const [hovered, setHovered] = useState(false); // Track whether the mouse is over the element
     const [categoryName, setCategoryName] = useState<string | null>(null); // Store the fetched category name
@@ -47,11 +48,18 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ sourceCategory, sourceCla
     const categoryText = record[sourceCategory] + "." + (record[sourceClass] || '*');
 
     const renderContent = (): ReactNode => {
+        const label = <Typography fontWeight={primary ? "bolder" : "normal" } component={"span"} sx={{m:0, p:0}}>{categoryText}</Typography>;
         switch (renderAs) {
             case 'chip':
-                return <Chip size={"small"} key={categoryText} label={categoryText}  sx={{ mr: 1, mb: 0 }} />;
+                return (
+                    <Chip
+                        size={"small"}
+                        key={categoryText}
+                        label={label}  // Use text directly instead of Typography component
+                    />
+                );
             default:
-                return <Typography>{categoryText}</Typography>;
+                return label;
         }
     };
 

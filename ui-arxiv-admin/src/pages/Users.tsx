@@ -95,7 +95,6 @@ interface VisibleColumns {
 }
 
 export const UserList = () => {
-    const sorter: SortPayload = {field: 'user_id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     const location = useLocation();
     const navigate = useNavigate();
@@ -179,8 +178,9 @@ export const UserList = () => {
                     />
                 ) : (
 
-                    <Datagrid rowClick="edit" sort={sorter}>
-                        <PersonNameField source={"id"} label="Name" />
+                    <Datagrid rowClick="edit" bulkActionButtons={false}>
+                        <TextField source={"id"} label="ID" />
+                        <PersonNameField source={"last_name"} label="Name" />
                         <TextField source="username" label={"Login name"}/>
                         <EmailField source="email"/>
                         <DateField source="joined_date"/>

@@ -62,8 +62,9 @@ import CategoryInput from "../bits/CategoryInput";
 import Tooltip from "@mui/material/Tooltip";
 import SourceFlagsInput from '../bits/SourceFlagsInput';
 import SourceFormatInput from "../bits/SourceFormatInput";
-import LicenseInput from "../bits/LicenseInput";
+// import LicenseInput from "../bits/LicenseInput";
 import {PrepACMClass, PrepDOI, PrepJoyrnalRef, PrepMSCClass, PrepReportNum} from "../helptexts/Prep";
+import LicenseField from "../bits/LicenseField";
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -140,7 +141,9 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>License</FieldNameCell>
                             <TableCell>
-                                <LicenseInput source="license" />
+                                <Typography variant={"body1"} sx={{ml: 1}}>
+                                    <LicenseField source="license" />
+                                </Typography>
                             </TableCell>
                         </TableRow>
 
@@ -253,7 +256,7 @@ const MetadataEditContents = () => {
 };
 
 export const MetadataEdit = () => (
-    <Edit>
+    <Edit redirect={false}>
         <MetadataEditContents/>
     </Edit>
 );

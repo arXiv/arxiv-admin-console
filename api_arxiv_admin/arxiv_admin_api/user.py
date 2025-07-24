@@ -3,7 +3,8 @@ from typing import Optional, List
 from datetime import date, timedelta, datetime, timezone
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn
+from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn, get_client_host, get_client_host_name, \
+    get_tapir_tracking_cookie, get_authn_user
 from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
@@ -264,8 +265,19 @@ async def list_users(
     result = [UserModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
-audit_registry = {
 
+audit_registry = {
+    "flag_banned": {
+    },
+    "flag_edit_users": {
+
+    },
+    "flag_edit_system": {
+
+    },
+    "flag_suspect": {
+
+    },
 }
 
 def sanitize_user_update_data(update_data: dict) -> dict:
@@ -276,11 +288,15 @@ def sanitize_user_update_data(update_data: dict) -> dict:
 
 
 @router.put('/{user_id:int}')
-async def update_user(request: Request,
-                      user_id: int,
-                      user_update: UserUpdateModel,
-                      current_user: ArxivUserClaims = Depends(get_authn),
-                      session: Session = Depends(get_db)) -> UserModel:
+async def update_user(
+        request: Request,
+        user_id: int,
+        user_update: UserUpdateModel,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> UserModel:
     """Update user - by PUT"""
     check_authnz(None, current_user, user_id)
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
@@ -355,7 +371,7 @@ async def create_user(request: Request,
 @router.delete('/{user_id:int}')
 def delete_user(response: Response,
                 user_id: int,
-                current_user: ArxivUserClaims = Depends(get_authn),
+                current_user: ArxivUserClaims = Depends(get_authn_user),
                 session: Session = Depends(get_db)):
     check_authnz(None, current_user, user_id)
     user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()

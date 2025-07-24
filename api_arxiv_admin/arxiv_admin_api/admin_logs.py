@@ -4,7 +4,9 @@ from datetime import datetime, date
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_AddComment
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, get_tapir_tracking_cookie, get_client_host, \
+    get_client_host_name
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
 from sqlalchemy.orm import Session
@@ -104,8 +106,6 @@ async def list_admin_logs(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid start or end index")
 
-    t0 = datetime.now()
-
     if start_date or end_date:
         t_begin = datetime_to_epoch(start_date, VERY_OLDE)
         t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
@@ -138,58 +138,35 @@ async def get_admin_log(id: int,
     return AdminLogModel.model_validate(item)
 
 
-@router.put('/{id:int}', dependencies=[Depends(is_any_user)])
-async def update_admin_log(
-        request: Request,
-        id: int,
-        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-        session: Session = Depends(get_db)) -> AdminLogModel:
-    body = await request.json()
 
-    item = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()
-    if item is None:
-        raise HTTPException(status_code=404, detail="Admin log not found")
+class AdminUserComment(BaseModel):
+    class Config:
+        from_attributes = True
+    user_id: str
+    comment: str
 
-    #
-    flag_open = body.gep("flag_open")
-    if flag_open == False and item.point_value == 0:
-        item.point_value = 10
+@router.post('/user_comment')
+async def create_admin_log_user_comment(
+        body: AdminUserComment,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        ) -> AdminLogModel:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
 
-    item.flag_valid = body.gep("flag_valid", item.flag_valid)
-    session.commit()
-    session.refresh(item)  # Refresh the instance with the updated data
-    updated = AdminLogModel.base_select(session).filter(AdminLog.id == id).one_or_none()
-    return AdminLogModel.model_validate(updated)
+    admin_audit(
+        session,
+        AdminAudit_AddComment(
+            current_user.user_id,
+            body.user_id,
+            current_user.session_id,
+            comment=body.comment,
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+        )
+    )
 
-
-@router.post('/')
-async def create_admin_log(
-        request: Request,
-        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-        session: Session = Depends(get_db)) -> AdminLogModel:
-    body = await request.json()
-    # ID is decided after added
-    if "id" in body:
-        del body["id"]
-
-    item = AdminLog(**body)
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return AdminLogModel.model_validate(item)
-
-
-@router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_admin_log(
-        id: int,
-        _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-        _current_user: ArxivUserClaims = Depends(get_authn),
-        session: Session = Depends(get_db)) -> Response:
-
-    item: AdminLog | None = session.query(AdminLog).filter(AdminLog.id == id).one_or_none()
-    if item is None:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    session.delete(item)
-    session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
