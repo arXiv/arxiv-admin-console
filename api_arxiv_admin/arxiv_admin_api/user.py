@@ -144,19 +144,29 @@ async def list_users(
                             detail="Invalid start or end index")
 
     order_columns = []
+    sort_nickname_alias = None
     if _sort:
         keys = _sort.split(",")
         for key in keys:
             if key == "id":
                 key = "user_id"
-            try:
-                order_column = getattr(TapirUser, key)
-                order_columns.append(order_column)
-            except AttributeError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="Invalid start or end index")
+            if key == "username":
+                if sort_nickname_alias is None:
+                    sort_nickname_alias = aliased(TapirNickname)
+                order_columns.append(sort_nickname_alias.nickname)
+            else:
+                try:
+                    order_column = getattr(TapirUser, key)
+                    order_columns.append(order_column)
+                except AttributeError:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                        detail="Invalid sort field")
 
     query = UserModel.base_select(db)
+    
+    # Join with TapirNickname if needed for sorting by username
+    if sort_nickname_alias is not None:
+        query = query.join(sort_nickname_alias, TapirUser.user_id == sort_nickname_alias.user_id)
 
     if id is not None:
         query = query.filter(TapirUser.user_id.in_(id))
