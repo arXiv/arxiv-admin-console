@@ -9,7 +9,6 @@ import {
     ListContextProvider,
     Datagrid,
     TextField,
-    DateField,
     useRecordContext,
 
     ReferenceField,
@@ -25,6 +24,7 @@ import Button from '@mui/material/Button';
 import {paths as adminApi} from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
 import UserNameField from "./UserNameField";
+import ISODateField from "./ISODateFiled";
 
 
 const SubmissionHistoryList: React.FC<{document_id?: Identifier}> = ({document_id}) => {
@@ -61,7 +61,7 @@ const SubmissionHistoryList: React.FC<{document_id?: Identifier}> = ({document_i
                     <TextField source="id" label={"ID"} />
                 </ReferenceField>
                 <TextField source="version" label={"Version"} />
-                <DateField source={"submit_time"} label={"Submit Time"} showTime={true}  />
+                <ISODateField source={"submit_time"} label={"Submit Time"} showTime={true}  />
                 <ReferenceField reference="users" source="submitter_id" label="Submitter">
                     <UserNameField />
                 </ReferenceField>

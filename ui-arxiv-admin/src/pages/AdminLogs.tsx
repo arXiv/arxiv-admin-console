@@ -16,7 +16,6 @@ import {
     Create,
     Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
     NumberField,
     DateInput, useListContext, SelectInput, ListContextProvider, useDataProvider, useGetList
@@ -25,6 +24,7 @@ import {
 import { addDays } from 'date-fns';
 
 import React from "react";
+import ISODateField from "../bits/ISODateFiled";
 
 
 const calculatePresetDates = (preset: string) => {
@@ -74,7 +74,7 @@ export const AdminLogs = (props: AdminLogsProps) => {
     return (
         <List filters={<AdminLogFilter />} resource="admin_logs" filter={{submission_id: record.id}} >
             <Datagrid size="small" bulkActionButtons={false}>
-                <DateField source="created" />
+                <ISODateField source="created" />
                 <TextField source="username" />
                 <TextField source="logtext" />
             </Datagrid>

@@ -7,9 +7,7 @@ import {
     SimpleList,
     Datagrid,
     TextField,
-    EmailField,
     BooleanField,
-    DateField,
     NumberField,
     SortPayload,
     useRecordContext,
@@ -24,7 +22,6 @@ import {
     SelectInput,
     useListContext,
     ReferenceField,
-    NumberInput,
     Show,
     SimpleShowLayout, useGetOne, RecordContextProvider, Identifier,
 } from 'react-admin';
@@ -32,6 +29,7 @@ import {
 import CategoryField from "../bits/CategoryField";
 
 import PointValueBooleanField from "../bits/PointValueBooleanField";
+import ISODateField from "../bits/ISODateFiled";
 
 interface Category {
     id: string;
@@ -115,7 +113,7 @@ export const EndorsementRequestList = () => {
                     </ReferenceField>
 
                     <CategoryField label={"Category"} source="id" sourceCategory="archive" sourceClass="subject_class" />
-                    <DateField source="issued_when" label={"Issued"}/>
+                    <ISODateField source="issued_when" label={"Issued"}/>
 
                     <TextField source={"secret"} />
 
@@ -405,7 +403,7 @@ export const EndorsementRequestEdit = () => {
                             </ReferenceInput>
                         </Grid>
                         <Grid container item xs={12}>
-                            Issued when: <DateField source="issued_when"  label={"Issued"}/>
+                            Issued when: <ISODateField source="issued_when"  label={"Issued"}/>
                         </Grid>
                     </SimpleForm>
                     <Grid >
@@ -446,7 +444,7 @@ export const EndorsementRequestShow = () => (
             <TextField source="archive" />
             <TextField source="subject_class" />
             <BooleanField source="flag_valid" />
-            <DateField source="issued_when" />
+            <ISODateField source="issued_when" />
             <NumberField source="point_value" />
             <BooleanField source="flag_suspect" />
             <TextField source="arXiv_categories" />

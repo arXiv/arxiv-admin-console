@@ -2,15 +2,15 @@ import {
     List,
     Datagrid,
     TextField,
-    ReferenceField,
     EditButton,
     Edit,
     Create,
     SimpleForm,
     ReferenceInput,
     TextInput,
-    useRecordContext, DateField,
+    useRecordContext,
 } from 'react-admin';
+import ISODateField from "../bits/ISODateFiled";
 
 const templateFilters = [
     <TextInput source="long_name" label="Search" alwaysOn />,
@@ -24,7 +24,7 @@ export const TemplateList = () => (
             <TextField source="short_name" />
             <TextField source="long_name" />
             <TextField source="data" />
-            <DateField source="update_date" />
+            <ISODateField source="update_date" />
             <TextField source="updater_last_name"  />
             <EditButton />
         </Datagrid>

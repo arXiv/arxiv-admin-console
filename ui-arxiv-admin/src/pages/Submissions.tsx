@@ -4,7 +4,6 @@ import {
     BooleanInput,
     Create,
     Datagrid,
-    DateField,
     DateInput,
     Edit,
     EmailField,
@@ -39,6 +38,7 @@ import CategoryInputField from "../bits/CategoryInputField";
 import IsOkField from "../bits/IsOkField";
 // import {RuntimeContext} from "../RuntimeContext";
 import ArxivCheckSubmissionLink from "../bits/ArxivCheckSubmissionLink";
+import ISODateField from '../bits/ISODateFiled';
 
 const presetOptions = [
     { id: 'last_1_day', name: 'Last 1 Day' },
@@ -118,7 +118,7 @@ export const SubmissionList = () => {
                     <ReferenceField reference={"submissions"} source={"id"} link={"edit"}>
                         <TextField source="id" label="ID"  textAlign="right" />
                     </ReferenceField>
-                    <DateField source={"created"} />
+                    <ISODateField source={"created"} />
                     <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                     link={(record, reference) => `/${reference}/${record.id}/show`} >
                         <TextField source={"last_name"} />
@@ -210,13 +210,13 @@ export const SubmissionEdit = () => {
                             Date created:
                         </Grid>
                         <Grid item xs={2}>
-                            <DateField source="created" label="Created"/>
+                            <ISODateField source="created" label="Created"/>
                         </Grid>
                         <Grid item xs={2}>
                             Date updated:
                         </Grid>
                         <Grid item xs={2}>
-                            <DateField source="updated" />
+                            <ISODateField source="updated" />
                         </Grid>
                     </Grid>
 
@@ -356,13 +356,13 @@ export const SubmissionShow = () => {
                         Submission date:
                     </Grid>
                     <Grid item xs={3}>
-                        <DateField source="submit_time" />
+                        <ISODateField source="submit_time" />
                     </Grid>
                     <Grid item xs={2}>
                         Release time:
                     </Grid>
                     <Grid item xs={3}>
-                        <DateField source="release_time" />
+                        <ISODateField source="release_time" />
                     </Grid>
                 </Grid>
 

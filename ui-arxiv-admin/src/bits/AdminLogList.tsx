@@ -8,21 +8,11 @@ import {
     ListContextProvider,
     Datagrid,
     TextField,
-    DateField,
-    useRecordContext,
-
     ReferenceField,
     Pagination,
-    BooleanField,
-    useListContext, useNotify, Identifier,
-    useRefresh, DateTimeInput, EmailField
 } from 'react-admin';
 import React from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-
-import {paths as adminApi} from "../types/admin-api";
-import {RuntimeContext} from "../RuntimeContext";
+import ISODateField from "./ISODateFiled";
 
 
 const AdminLogList: React.FC<{paper_id?: string}> = ({paper_id}) => {
@@ -56,7 +46,7 @@ const AdminLogList: React.FC<{paper_id?: string}> = ({paper_id}) => {
 
                      */
                 }
-                <DateField source={"created"} label={"Time"} showTime={true} />
+                <ISODateField source={"created"} label={"Time"} showTime={true} />
                 <TextField source="username" label={"Username"} />
                 <TextField source="program" label={"Program"} />
                 <TextField source="command" label={"Command"} />

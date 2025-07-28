@@ -9,7 +9,7 @@ import {
     SimpleForm,
     ReferenceInput,
     TextInput,
-    useRecordContext, DateField, EmailField,
+    useRecordContext, EmailField,
 } from 'react-admin';
 
 const membershipInstitutionFilters = [

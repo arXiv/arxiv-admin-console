@@ -17,7 +17,6 @@ import {
     Create,
     Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
     NumberField,
     DateInput, useListContext, SelectInput, SelectField,
@@ -31,6 +30,7 @@ import Typography from "@mui/material/Typography";
 import Tooltip from '@mui/material/Tooltip';
 import UserNameField from "../bits/UserNameField";
 import UserStatusField from "../bits/UserStatusField";
+import ISODateField from "../bits/ISODateFiled";
 
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
@@ -160,7 +160,7 @@ export const EndorsementList = () => {
 
                     <TextField source="type" />
                     <NumberField source="point_value" label={"Point"} />
-                    <DateField source="issued_when" label={"Issued"} />
+                    <ISODateField source="issued_when" label={"Issued"} />
 
                     <ReferenceField source="request_id" reference="endorsement_requests" label={"Request"}
                                     link={(record, reference) => `/${reference}/${record.id}`} >
@@ -237,7 +237,7 @@ export const EndorsementEdit = () => (
 
                 <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
                     <Typography>{"Issued on: "}</Typography>
-                    <DateField source="issued_when"/>
+                    <ISODateField source="issued_when"/>
                 </Box>
 
 

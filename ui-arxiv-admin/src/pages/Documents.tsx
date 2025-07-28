@@ -14,9 +14,6 @@ import {
     SimpleList,
     Datagrid,
     TextField,
-    EmailField,
-    BooleanField,
-    SortPayload,
     NumberInput,
     useRecordContext,
     Edit,
@@ -26,10 +23,7 @@ import {
     Create,
     Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
-    NumberField,
-    SimpleShowLayout,
     Show,
     DateInput, useListContext, SelectInput, useShowContext, Identifier, useDataProvider,
     Confirm, useRefresh, useNotify
@@ -60,6 +54,7 @@ import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";
 import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
 import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
+import ISODateField from '../bits/ISODateFiled';
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -383,7 +378,7 @@ export const DocumentList = () => {
             ) : (
                 <Datagrid rowClick="show">
                     <TextField source="id" label={"ID"}/>
-                    <DateField source="dated" label={"Date"}/>
+                    <ISODateField source="dated" label={"Date"}/>
 
                     <TextField source="paper_id" label={"Paper ID"}/>
 
@@ -398,7 +393,7 @@ export const DocumentList = () => {
 
                     <TextField source="authors"/>
                     <TextField source="abs_categories" label={"Categories"}/>
-                    <DateField source="created" label={"Created"}/>
+                    <ISODateField source="created" label={"Created"}/>
 
                 </Datagrid>
             )}

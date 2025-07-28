@@ -31,7 +31,6 @@ import {
     Create,
     Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
     SelectInput,
     DateInput,
@@ -64,6 +63,7 @@ import CanEndorseForDialog from "../components/CanEndorseForDialog";
 import PolicClassField from "../bits/PolicClassField";
 import EmailHistoryList from "../bits/EmailHistoryList";
 import ChangeEmailDialog from "../components/ChangeEmailDialog";
+import ISODateField from "../bits/ISODateFiled";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -183,7 +183,7 @@ export const UserList = () => {
                         <PersonNameField source={"last_name"} label="Name" />
                         <TextField source="username" label={"Login name"}/>
                         <EmailField source="email"/>
-                        <DateField source="joined_date"/>
+                        <ISODateField source="joined_date"/>
                         <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
                         <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
                         <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
@@ -346,7 +346,7 @@ function UserDemographic() {
         <TableRow>
             <TableCell>Joined Date</TableCell>
             <TableCell>
-                <DateField source="joined_date" />
+                <ISODateField source="joined_date" />
             </TableCell>
         </TableRow>
 

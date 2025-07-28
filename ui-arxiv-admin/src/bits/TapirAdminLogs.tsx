@@ -2,10 +2,10 @@ import React from "react";
 import {
     useRecordContext,
     Datagrid,
-    DateField,
     useListController, ListContextProvider, Pagination
 } from "react-admin";
 import AdminAuditField from "./AdminAuditField";
+import ISODateField from "./ISODateFiled";
 
 
 export const AdminAuditList: React.FC = () => {
@@ -28,7 +28,7 @@ export const AdminAuditList: React.FC = () => {
             <Datagrid rowClick="show" empty={<p><b>No audits for this user</b></p>} size="small"
                       bulkActionButtons={false}
             >
-                <DateField source="log_date" />
+                <ISODateField source="log_date" />
                 <AdminAuditField source={"id"} />
             </Datagrid>
             <Pagination />

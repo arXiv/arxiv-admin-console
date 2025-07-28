@@ -30,7 +30,6 @@ import {
     Datagrid,
     TextField,
     EmailField,
-    DateField,
     NumberField,
     useRecordContext,
     Edit,
@@ -64,6 +63,7 @@ import { useFormContext } from 'react-hook-form';
 import {paths as adminApi} from "../types/admin-api";
 import HighlightText from "../bits/HighlightText";
 import {RuntimeContext} from "../RuntimeContext";
+import ISODateField from '../bits/ISODateFiled';
 
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
 // type OwnershipRequestsRequest = adminApi['/v1/ownership_requests/']['post']['requestBody']['content']['application/json'];
@@ -149,7 +149,7 @@ export const OwnershipRequestList = () => {
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
             <Datagrid sort={{field: 'id', order: 'ASC'}}> rowClick="edit"
                 <NumberField source="id" label={"Req ID"}/>
-                <DateField source="date" label={"Date"}/>
+                <ISODateField source="date" label={"Date"}/>
                 <ReferenceField source="user_id" reference="users"
                                 link={(record, reference) => `/${reference}/${record.id}`} >
                     <TextField source={"last_name"} />
@@ -746,7 +746,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                                         {"Remote host: "}
                                         <TextField source={"remote_host"} defaultValue={"Unknown"}/>
                                         {"Date: "}
-                                        <DateField source={"date"} />
+                                        <ISODateField source={"date"} />
                                     </ReferenceField>
 
                                 </TableCell>
@@ -820,7 +820,7 @@ export const OwnershipRequestShow = () => {
                         {", "}
                         <TextField source={"first_name"}/>
                     </ReferenceField>
-                    <DateField source="date"/>
+                    <ISODateField source="date"/>
                 </Box>
                 <ReferenceArrayField source="document_ids" reference="documents">
                     <TextField source="id"/>

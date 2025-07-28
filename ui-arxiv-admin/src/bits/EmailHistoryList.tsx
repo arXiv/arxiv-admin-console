@@ -3,22 +3,16 @@ import {
     ListContextProvider,
     Datagrid,
     TextField,
-    DateField,
     useRecordContext,
-    ReferenceField,
     Pagination,
     BooleanField,
-    useListContext, useNotify, Identifier,
-    useRefresh
 } from 'react-admin';
 import React from 'react';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import ISODateField from "./ISODateFiled";
 
-import {paths as aaaApi} from "../types/aaa-api";
-import {RuntimeContext} from "../RuntimeContext";
+// import {paths as aaaApi} from "../types/aaa-api";
 
-type emailHistoryResponseType = aaaApi['/account/email/history/{user_id}/']['get']['responses']['200']['content']['application/json'];
+// type emailHistoryResponseType = aaaApi['/account/email/history/{user_id}/']['get']['responses']['200']['content']['application/json'];
 
 
 const EmailHistoryList: React.FC = () => {
@@ -40,8 +34,8 @@ const EmailHistoryList: React.FC = () => {
         <ListContextProvider value={controllerProps}>
             <Datagrid empty={<p><b>User has no email change history</b></p>} size="small" >
                 <TextField source={"email"} />
-                <DateField source={"start_date"} />
-                <DateField source={"end_date"} />
+                <ISODateField source={"start_date"} />
+                <ISODateField source={"end_date"} />
                 <TextField source={"changed_by"} label={"By"}/>
                 <BooleanField source={"used"} />
             </Datagrid>

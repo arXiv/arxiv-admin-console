@@ -4,7 +4,6 @@ import {
     SimpleList,
     Datagrid,
     TextField,
-    EmailField,
     BooleanField,
     SortPayload,
     NumberInput,
@@ -12,13 +11,10 @@ import {
     Edit,
     SimpleForm,
     TextInput,
-    ReferenceInput,
     Create,
     Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
-    NumberField,
     DateInput, useListContext, SelectInput
 } from 'react-admin';
 
@@ -26,6 +22,7 @@ import { addDays } from 'date-fns';
 
 import React from "react";
 import Typography from "@mui/material/Typography";
+import ISODateField from "../bits/ISODateFiled";
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
@@ -108,7 +105,7 @@ export const OwnershipList = () => {
                         <TextField source={"last_name"} />
                     </ReferenceField>
 
-                    <DateField source={"date"} />
+                    <ISODateField source={"date"} />
 
                     <ReferenceField reference={"users"} source={"added_by"} >
                         <TextField source={"first_name"} /> {" "}
@@ -150,7 +147,7 @@ export const OwnershipEdit = () => (
                 <TextField source={"first_name"} />
             </ReferenceField>
 
-            <DateField source="date" />
+            <ISODateField source="date" />
             <ReferenceField source="document_id" reference="documents" label={"Paper"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
                 <TextField source={"paper_id"} /> {" Title: "}

@@ -16,13 +16,10 @@ import {
     Create,
     Filter,
     BooleanInput,
-    DateField,
-    ReferenceField,
-    NumberField,
-    DateInput, useListContext, SelectInput, EditButton
+    useListContext, SelectInput, EditButton
 } from 'react-admin';
 
-import { addDays } from 'date-fns';
+// import { addDays } from 'date-fns';
 
 import React from "react";
 import CategoryField from "../bits/CategoryField";

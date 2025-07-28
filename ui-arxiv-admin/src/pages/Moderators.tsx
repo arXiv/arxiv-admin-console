@@ -5,9 +5,7 @@ import {
     Datagrid,
     TextField,
     EmailField,
-    BooleanField,
     SortPayload,
-    NumberInput,
     useRecordContext,
     Edit,
     SimpleForm,
@@ -16,10 +14,9 @@ import {
     Create,
     Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
-    NumberField,
-    DateInput, useListContext, SelectInput, AutocompleteInput
+    useListContext,
+    AutocompleteInput
 } from 'react-admin';
 
 import { addDays } from 'date-fns';

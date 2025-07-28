@@ -7,13 +7,13 @@ import {
     ListContextProvider,
     Datagrid,
     TextField,
-    DateField,
     ReferenceField,
     Pagination,
     Identifier,
 } from 'react-admin';
 import React from 'react';
 import UserNameField from "./UserNameField";
+import ISODateField from "./ISODateFiled";
 
 
 const ShowEmailsRequestsList: React.FC<{document_id?: Identifier}> = ({document_id}) => {
@@ -41,7 +41,7 @@ const ShowEmailsRequestsList: React.FC<{document_id?: Identifier}> = ({document_
                 <ReferenceField reference={"users"} source={"user_id"} label={"User"}>
                     <UserNameField />
                 </ReferenceField>
-                <DateField source={"dated"} showTime={true} />
+                <ISODateField source={"dated"} showTime={true} />
             </Datagrid>
             <Pagination />
         </ListContextProvider>

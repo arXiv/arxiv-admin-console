@@ -87,7 +87,7 @@ const PaperAdminAddUserDialog: React.FC<
 
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
-            <DialogTitle>Add Paper Owner</DialogTitle>
+            <DialogTitle>Add Paper Owners</DialogTitle>
             <DialogContent>
                 <Box sx={{display: 'flex', flexDirection: 'column'}}>
                     <UserChooser onUsersSelected={onUsersSelected}/>

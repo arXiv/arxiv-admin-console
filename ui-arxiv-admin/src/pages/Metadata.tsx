@@ -10,58 +10,22 @@ import {
     FormControlLabel, IconButton
 } from '@mui/material';
 import {
-    List,
-    SimpleList,
-    Datagrid,
     TextField,
-    EmailField,
-    BooleanField,
-    SortPayload,
-    NumberInput,
     useRecordContext,
     Edit,
     SimpleForm,
-    TextInput,
-    ReferenceInput,
-    Create,
-    Filter,
     BooleanInput,
-    DateField,
     ReferenceField,
-    NumberField,
-    SimpleShowLayout,
-    Show,
-    DateInput,
-    useListContext,
-    SelectInput,
-    useShowContext,
-    Identifier,
     useDataProvider,
     TopToolbar,
     SaveButton,
-    EditActions
 } from 'react-admin';
 
-import LinkIcon from '@mui/icons-material/Link';
-import MetadataIcon from '@mui/icons-material/Edit';
-
-
-import {addDays} from 'date-fns';
-
-import React, {ReactNode, useEffect, useState} from "react";
-import CircularProgress from "@mui/material/CircularProgress";
-import CategoryField from "../bits/CategoryField";
-import SubmissionCategoriesField from "../bits/SubmissionCategoriesField";
+import React, {useState} from "react";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableRow from "@mui/material/TableRow";
 import TableCell, {TableCellProps} from "@mui/material/TableCell";
-import Button from "@mui/material/Button";
-import Link from "@mui/material/Link";
-import PaperOwnersList from "../components/PaperOwnersList";
-import SubmissionHistoryList from "../bits/SubmissionHistoryList";
-import AdminLogList from "../bits/AdminLogList";
-import PaperAdminAddOwnerDialog from "../components/PaperAdminAddOwnerDialog";
 import {useNavigate} from "react-router-dom";
 import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";

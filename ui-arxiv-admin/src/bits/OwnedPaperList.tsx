@@ -9,7 +9,6 @@ import {
     ListContextProvider,
     Datagrid,
     TextField,
-    DateField,
     useRecordContext,
     ReferenceField,
     Pagination,
@@ -23,13 +22,14 @@ import Button from '@mui/material/Button';
 
 import {paths as adminApi} from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
+import ISODateField from "./ISODateFiled";
 type PaperAuthoredRequestType = adminApi['/v1/paper_owners/update-authorship']['put']['requestBody']['content']['application/json'];
 
 // Create a separate component for bulk actions to properly use hooks
 const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
     const listContext = useListContext();
     const runtimeProps = React.useContext(RuntimeContext);
-    const nofify = useNotify();
+    const notify = useNotify();
     const refresh = useRefresh();
 
     async function setAuthored(selectedIds: string[], authored: boolean) {
@@ -45,10 +45,10 @@ const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
                 method: "POST", headers: {"Content-Type": "application/json",}, body: JSON.stringify(body),
             });
         if (response.ok) {
-            nofify("Updated", { type: 'info' });
+            notify("Updated", { type: 'info' });
             refresh();
         } else {
-            nofify(await response.text(), { type: 'warning' });
+            notify(await response.text(), { type: 'warning' });
         }
     }
 
@@ -58,7 +58,7 @@ const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
         console.log('Selected IDs:', selectedIds);
 
         if (selectedIds.length === 0) {
-            nofify("No document selected", { type: 'warning' });
+            notify("No document selected", { type: 'warning' });
             return;
         }
         await setAuthored(selectedIds, true);
@@ -69,7 +69,7 @@ const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
         console.log('Selected IDs:', selectedIds);
 
         if (selectedIds.length === 0) {
-            nofify("No document selected", { type: 'warning' });
+            notify("No document selected", { type: 'warning' });
             return;
         }
         await setAuthored(selectedIds, false);
@@ -132,7 +132,7 @@ const OwnedPaperList: React.FC = () => {
                     <TextField source="title" />
                 </ReferenceField>
                 <ReferenceField reference="documents" source="document_id" label="Dated" link={false}>
-                    <DateField source="dated" />
+                    <ISODateField source="dated" />
                 </ReferenceField>
             </Datagrid>
             <Pagination />

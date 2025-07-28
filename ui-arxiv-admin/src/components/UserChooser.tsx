@@ -7,7 +7,6 @@ import {
     SortPayload,
     TextInput,
     Filter,
-    DateField,
     useRecordContext,
     Identifier,
 } from 'react-admin';
@@ -18,6 +17,7 @@ import PersonNameField from "../bits/PersonNameField";
 import Checkbox from '@mui/material/Checkbox';
 
 import {paths as adminApi} from '../types/admin-api';
+import ISODateField from "../bits/ISODateFiled";
 type UsersT = adminApi['/v1/users/']['get']['responses']['200']['content']['application/json'];
 
 
@@ -81,7 +81,7 @@ const UserChooserList = ({ onUsersSelected }: UserChooserListProps) => {
                 <PersonNameField source={"id"} label="Name" />
                 <TextField source="username" label={"Login name"}/>
                 <EmailField source="email"/>
-                <DateField source="joined_date"/>
+                <ISODateField source="joined_date" />
                 <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
                 <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
                 <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}

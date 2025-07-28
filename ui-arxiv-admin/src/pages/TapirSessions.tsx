@@ -4,7 +4,6 @@ import {
     BooleanInput,
     Create,
     Datagrid,
-    DateField,
     DateFieldProps,
     DateInput,
     Edit,
@@ -39,6 +38,7 @@ import React, {useContext, useEffect} from "react";
 import { useFormContext } from 'react-hook-form';
 // import SaveOnlyActions from "../bits/SaveOnlyActions";
 import SaveOnlyToolbar from "../bits/SaveOnlyToolbar";
+import ISODateField from "../bits/ISODateFiled";
 
 const presetOptions = [
     { id: 'last_1_day', name: 'Last 1 Day' },
@@ -117,9 +117,9 @@ export const TapirSessionList = () => {
                         <TextField source={"username"} />
                         {")"}
                     </ReferenceField>
-                    <DateField source="last_reissue" showTime />
-                    <DateField source="start_time" showTime />
-                    <DateField source="end_time" showTime />
+                    <ISODateField source="last_reissue" showTime />
+                    <ISODateField source="start_time" showTime />
+                    <ISODateField source="end_time" showTime />
                 </Datagrid>
             )}
         </List>
@@ -188,11 +188,11 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
                         <TableRow>
                             <TableCell>Start time</TableCell>
                             <TableCell>
-                                <DateField source="start_time" showTime />
+                                <ISODateField source="start_time" showTime />
                             </TableCell>
                             <TableCell>End time</TableCell>
                             <TableCell>
-                                <DateField source="end_time" showTime />
+                                <ISODateField source="end_time" showTime />
                             </TableCell>
                         </TableRow>
                         <TableRow>
