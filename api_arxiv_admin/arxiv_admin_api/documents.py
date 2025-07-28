@@ -123,7 +123,7 @@ class DocumentModel(BaseModel):
         if last_submission_id != 0:
             self.last_submission_id = last_submission_id
 
-        metadata = session.query(Metadata).filter(
+        metadata: Metadata | None = session.query(Metadata).filter(
             and_(Metadata.document_id == self.id,
                  Metadata.is_current == 1,
                  Metadata.is_withdrawn == 0)).order_by(desc(Metadata.metadata_id)).first()

@@ -209,6 +209,26 @@ class adminApiDataProvider implements DataProvider {
             console.log("endorsees -> users");
             return this.dataProvider.getMany<T>("users/", params);
         }
+        else if (resource === 'document-metadata') {
+            const id = params.ids[0];
+            const url = `${this.api}/metadata/document_id/${id}`;
+            try {
+                const response = await retryHttpClient(url);
+                return {
+                    data: [await response.json] as T[],
+                };
+            }
+            catch (error) {
+                console.log("document-metadata: " + JSON.stringify(error));
+                return {
+                    data: [] as T[],
+                };
+            }
+            finally {
+                console.log("document-metadata: done");
+            }
+        }
+
         return this.dataProvider.getMany<T>(addTrailingSlash(resource), params);
     }
 

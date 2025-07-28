@@ -29,6 +29,7 @@ import {
 
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import CircularProgress from "@mui/material/CircularProgress";
 
 type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -152,13 +153,16 @@ const MetadataEditContents = () => {
     const [metadata, setMetadata] = useState<MetadataT | null>(null);
     const dataProvider =  useDataProvider();
     const [metadataVersions, setMetadataVersions] = useState<MetadataT[]>([]);
+    const [metadataVersionsLoading, setMetadataVersionsLoading] = useState<boolean>(false);
 
     useEffect(() => {
         async function getMetadataVersions() {
             if (!record?.document_id)
                 return;
 
+
             try {
+                setMetadataVersionsLoading(true);
                 const reply = await dataProvider.getList<MetadataT>('metadata',
                     {
                         filter: { document_id: record.document_id },
@@ -172,20 +176,26 @@ const MetadataEditContents = () => {
                 console.error('Error fetching metadata versions:', error);
             }
             finally {
+                setMetadataVersionsLoading(false);
             }
         }
 
         getMetadataVersions();
     }, [record?.document_id]);
 
-    const otherVersions = (record?.id ? (
-        <MetadataVersionSelector
-            metadataVersions={metadataVersions}
-            currentVersionId={record?.id}
-            label={`${record.id} `}
-        />
-        ) : null
-    );
+    const otherVersions = (metadataVersionsLoading ?
+        (<Box display="flex" alignItems="center" gap={1} sx={{ ml: 1 }}>
+            <Typography variant={"body1"}>Loading versions...</Typography>
+            <CircularProgress size={"20px"} sx={{ ml: 1 }}/>
+        </Box>)
+        : (
+            record?.id ? (
+                <MetadataVersionSelector
+                    metadataVersions={metadataVersions}
+                    currentVersionId={record?.id}
+                    label={`${record.id} `}
+                />
+            ) : (<Typography>No versions found</Typography>)));
 
     return (
         <SimpleForm toolbar={<MetadataEditToolbar />}>

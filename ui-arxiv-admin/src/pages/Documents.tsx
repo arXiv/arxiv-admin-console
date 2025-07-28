@@ -268,14 +268,9 @@ const DocumentContent = () => {
                     </TableRow>
 
                     <TableRow>
-                        <FieldNameCell>Latest V.</FieldNameCell>
+                        <FieldNameCell>Version</FieldNameCell>
                         <TableCell>
-                            <ReferenceField reference={"submissions"} source={"last_submission_id"}>
-                                <Typography>
-                                    {"version "}
-                                    <TextField source="version" variant="body1"/>
-                                </Typography>
-                            </ReferenceField>
+                            <Typography>{metadata?.version || "No metadata"}</Typography>
                         </TableCell>
                     </TableRow>
 
