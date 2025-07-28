@@ -192,11 +192,10 @@ def get_metadata_from_document_id(
     document_id:str,
     session: Session = Depends(get_db)) -> MetadataModel:
     """Display a paper."""
-    query = MetadataModel.base_select(session).filter(Metadata.document_id == document_id)
-    doc = query.one_or_none()
-    if not doc:
+    metadata = MetadataModel.base_select(session).filter(Metadata.document_id == document_id).order_by(Metadata.metadata_id.desc()).limit(1).all()
+    if not metadata:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return MetadataModel.model_validate(doc)
+    return MetadataModel.model_validate(metadata[0])
 
 
 @router.get("/{id:str}")

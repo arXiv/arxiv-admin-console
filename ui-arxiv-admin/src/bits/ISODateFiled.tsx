@@ -1,68 +1,48 @@
-/*
-import React from 'react';
-
-import { DateField, DateFieldProps } from 'react-admin';
-
-interface ISODateFieldProps extends Omit<DateFieldProps, 'transform'> {
-    source: string;
-    showTime?: boolean;
-}
-
-
- * A DateField component that formats dates in ISO format (YYYY-MM-DD)
- * with optional time display based on the showTime prop
-
-const ISODateField: React.FC<ISODateFieldProps> = ({
-                                                       source,
-                                                       showTime = false,
-                                                       ...props
-                                                   }) => {
-    return (
-        <DateField
-            source={source}
-            showTime={showTime}
-            locales="en-CA" // Canadian English uses YYYY-MM-DD format
-            options={{
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                ...(showTime ? {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false // Use 24-hour format
-                } : {})
-            }}
-            {...props}
-        />
-    );
-};
-
-export default ISODateField;
-*/
-
 import React from 'react';
 import { TextField, TextFieldProps, useRecordContext } from 'react-admin';
+import Box from '@mui/material/Box';
 
 interface ISODateFieldProps extends Omit<TextFieldProps, 'source'> {
     source: string;
     showTime?: boolean;
+    minWidth?: string | number;
 }
 
-const ISODateField: React.FC<ISODateFieldProps> = ({ source, showTime = false, ...props }) => {
+/**
+ * Display a date in ISO format (YYYY-MM-DD) with optional time
+ * 
+ * @example
+ * // Without time
+ * <ISODateField source="created_at" />
+ * // With time
+ * <ISODateField source="published_at" showTime />
+ */
+const ISODateField: React.FC<ISODateFieldProps> = ({ 
+    source, 
+    showTime = false, 
+    minWidth = showTime ? '11rem' : '5rem',
+    ...props 
+}) => {
     const record = useRecordContext();
 
     const formatValue = (value: any): string | null => {
         if (!value) return null;
         try {
             const date = new Date(value);
+            if (isNaN(date.getTime())) {
+                console.warn(`Invalid date value for ${source}: ${value}`);
+                return value?.toString() || null;
+            }
+            
             if (showTime) {
-                return date.toISOString().replace('T', ' ').replace('Z', '');
+                // Format with time: YYYY-MM-DD HH:MM:SS
+                return date.toISOString().replace('T', ' ').slice(0, 19);
             } else {
-                return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+                // Format date only: YYYY-MM-DD
+                return date.toISOString().split('T')[0];
             }
         } catch (error) {
-            console.warn('Invalid date value:', value);
+            console.error(`Error formatting date for ${source}:`, error);
             return value?.toString() || null;
         }
     };
@@ -70,11 +50,13 @@ const ISODateField: React.FC<ISODateFieldProps> = ({ source, showTime = false, .
     const formattedValue = record ? formatValue(record[source]) : null;
 
     return (
-        <TextField
-            source={source}
-            record={{ ...record, [source]: formattedValue }}
-            {...props}
-        />
+        <Box sx={{ minWidth, display: 'inline-block' }}>
+            <TextField
+                source={source}
+                record={{ ...record, [source]: formattedValue }}
+                {...props}
+            />
+        </Box>
     );
 };
 

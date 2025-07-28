@@ -69,7 +69,7 @@ export const AdminConsoleAppBar = () => {
             }
             else if (searchTerm.startsWith('d/')) {
                 const id = searchTerm.substring(2);
-                navigate(`/documents/${id}`);
+                navigate(`/documents/${id}/show`);
             }
             else if (searchTerm.includes('/') || searchTerm.includes('.')) {
                 console.log("doc search: " + searchTerm);

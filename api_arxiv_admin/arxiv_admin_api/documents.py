@@ -206,7 +206,7 @@ async def list_documents(
 
         if paper_id is not None:
             if len(paper_id) >= 5 and yymm_re.match(paper_id):
-                least_paper_id = paper_id + "0000.00000"[len(paper_id):]
+                least_paper_id = paper_id + "0000.0000"[len(paper_id):]
                 most_paper_id = paper_id + "9999.99999"[len(paper_id):]
                 query = query.filter(Document.paper_id.between(least_paper_id, most_paper_id))
             else:

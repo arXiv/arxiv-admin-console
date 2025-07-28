@@ -1,17 +1,5 @@
 import {
-    Card,
-    CardContent,
-    Paper,
-    Grid,
-    ToggleButton,
-    Typography,
-    useMediaQuery,
-    Switch,
-    FormControlLabel, IconButton
-} from '@mui/material';
-import {
     List,
-    SimpleList,
     Datagrid,
     TextField,
     NumberInput,
@@ -19,14 +7,14 @@ import {
     Edit,
     SimpleForm,
     TextInput,
-    ReferenceInput,
     Create,
     Filter,
     BooleanInput,
     ReferenceField,
     Show,
-    DateInput, useListContext, SelectInput, useShowContext, Identifier, useDataProvider,
-    Confirm, useRefresh, useNotify
+    DateInput, useListContext, SelectInput,
+    useDataProvider,
+    useRefresh, useNotify
 } from 'react-admin';
 
 import LinkIcon from '@mui/icons-material/Link';
@@ -35,15 +23,18 @@ import MetadataIcon from '@mui/icons-material/Edit';
 
 import {addDays} from 'date-fns';
 
-import React, {ReactNode, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import CircularProgress from "@mui/material/CircularProgress";
-import CategoryField from "../bits/CategoryField";
 import SubmissionCategoriesField from "../bits/SubmissionCategoriesField";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableRow from "@mui/material/TableRow";
-import TableCell, {TableCellProps} from "@mui/material/TableCell";
+import TableCell from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Link from "@mui/material/Link";
 import PaperOwnersList from "../components/PaperOwnersList";
 import SubmissionHistoryList from "../bits/SubmissionHistoryList";
@@ -107,6 +98,7 @@ const DocumentFilter = (props: any) => {
 
     return (
         <Filter {...props}>
+            <TextInput label="Document ID" source="id" alwaysOn/>
             <TextInput label="Paoper ID" source="paper_id" alwaysOn/>
             <TextInput label="Name" source="submitter_name" alwaysOn/>
             <TextInput label="Category" source="category" alwaysOn/>
@@ -147,7 +139,6 @@ const ShowArxivPdf = () => {
                     />
                 </Box>
             )
-
             : null
     );
 }
@@ -225,7 +216,7 @@ const DocumentContent = () => {
                             <Box gap={2} flexDirection={'row'} display="flex" alignItems="center">
                                 <TextField source={"paper_id"}/>
                                 <Link href={`https://arxiv.org/abs/${record?.paper_id}`}
-                                      target="_blank">Abstruct <LinkIcon/></Link>
+                                      target="_blank">Abstract <LinkIcon/></Link>
                                 <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon/></Link>
                                 <Button disabled={!metadata?.id} endIcon={<MetadataIcon/>}
                                         onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit
@@ -366,37 +357,29 @@ export const DocumentShow = () => {
 };
 
 export const DocumentList = () => {
-    const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
+    // const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <List filters={<DocumentFilter/>}>
-            {isSmall ? (
-                <SimpleList
-                    primaryText={record => record.name}
-                    secondaryText={record => record.documentname}
-                    tertiaryText={record => record.email}
-                />
-            ) : (
-                <Datagrid rowClick="show">
-                    <TextField source="id" label={"ID"}/>
-                    <ISODateField source="dated" label={"Date"}/>
+            <Datagrid rowClick="show">
+                <TextField source="id" label={"ID"}/>
+                <ISODateField source="dated" label={"Date"}/>
 
-                    <TextField source="paper_id" label={"Paper ID"}/>
+                <TextField source="paper_id" label={"Paper ID"}/>
 
-                    <TextField source="title" label={"Title"}/>
+                <TextField source="title" label={"Title"}/>
 
-                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
-                                    link={(record, reference) => `/${reference}/${record.id}`}>
-                        <TextField source={"last_name"}/>
-                        {", "}
-                        <TextField source={"first_name"}/>
-                    </ReferenceField>
+                <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
+                                link={(record, reference) => `/${reference}/${record.id}`}>
+                    <TextField source={"last_name"}/>
+                    {", "}
+                    <TextField source={"first_name"}/>
+                </ReferenceField>
 
-                    <TextField source="authors"/>
-                    <TextField source="abs_categories" label={"Categories"}/>
-                    <ISODateField source="created" label={"Created"}/>
+                <TextField source="authors"/>
+                <TextField source="abs_categories" label={"Categories"}/>
+                <ISODateField source="created" label={"Created"}/>
 
-                </Datagrid>
-            )}
+            </Datagrid>
         </List>
     );
 };
@@ -408,42 +391,11 @@ const DocumentTitle = () => {
 };
 
 
-const DocumentEditContent = () => {
-    const record = useRecordContext();
-    const [openAddOwnerDialog, setOpenAddOwnerDialog] = React.useState(false);
-    const navigate = useNavigate();
-    const [metadata, setMetadata] = useState<MetadataT | null>(null);
-    const dataProvider = useDataProvider();
-
-    useEffect(() => {
-        async function getMetadata() {
-            if (record?.id) {
-                try {
-                    const response = await dataProvider.getOne('document-metadata', {
-                        id: record.id,
-                    });
-                    setMetadata(response.data);
-                    console.log('Metadata:', JSON.stringify(response.data));
-                } catch (error) {
-                    console.error('Error fetching submission categories:', error);
-                } finally {
-                }
-            }
-        }
-
-        getMetadata();
-    }, [record?.id]);
-
-    return (
+export const DocumentEdit = () => (
+    <Edit title={<DocumentTitle/>}>
         <SimpleForm>
             <DocumentContent/>
         </SimpleForm>
-    );
-};
-
-export const DocumentEdit = () => (
-    <Edit title={<DocumentTitle/>}>
-        <DocumentEditContent/>
     </Edit>
 );
 
