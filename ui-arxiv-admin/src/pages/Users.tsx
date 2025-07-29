@@ -38,6 +38,7 @@ import {
     useDataProvider,
     SaveButton,
     DeleteButton, Toolbar, useNotify, useEditContext, useRefresh,
+    Confirm
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -51,6 +52,7 @@ import OwnedPaperList from "../bits/OwnedPaperList";
 import {AdminAuditList} from "../bits/TapirAdminLogs";
 import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
+import SuspendIcon from '@mui/icons-material/Pause';
 import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import { useLocation, useNavigate } from 'react-router-dom';
 import EmailLinkField from "../bits/EmailLinkField";
@@ -95,7 +97,7 @@ interface VisibleColumns {
 }
 
 export const UserList = () => {
-    const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
+    const _isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     const location = useLocation();
     const navigate = useNavigate();
     
@@ -169,36 +171,27 @@ export const UserList = () => {
 
 
     return (
-                <List filters={<UserFilter/>}>
-                {isSmall ? (
-                    <SimpleList
-                        primaryText={record => record.name}
-                        secondaryText={record => record.username}
-                        tertiaryText={record => record.email}
-                    />
-                ) : (
-
-                    <Datagrid rowClick="edit" bulkActionButtons={false}>
-                        <TextField source={"id"} label="ID" />
-                        <PersonNameField source={"last_name"} label="Name" />
-                        <TextField source="username" label={"Login name"}/>
-                        <EmailField source="email"/>
-                        <ISODateField source="joined_date"/>
-                        <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
-                        <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
-                        <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
-                                      TrueIcon={DoDisturbOnIcon}/>
-                        <BooleanField source="flag_suspect" label={"Suspect"} FalseIcon={null}
-                                      TrueIcon={DoDisturbOnIcon}/>
-                        <ReferenceField source="moderator_id" reference="moderators"
-                                        link={(record, reference) => `/${reference}/${record.moderator_id}`} >
-                            <TextField source={"archive"} />
-                            {"/"}
-                            <TextField source={"subject_class"} />
-                        </ReferenceField>
-                    </Datagrid>
-                )}
-            </List>
+        <List filters={<UserFilter/>}>
+            <Datagrid rowClick="edit" bulkActionButtons={false}>
+                <TextField source={"id"} label="ID" />
+                <PersonNameField source={"last_name"} label="Name" />
+                <TextField source="username" label={"Login name"}/>
+                <EmailField source="email"/>
+                <ISODateField source="joined_date"/>
+                <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
+                <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
+                <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
+                              TrueIcon={DoDisturbOnIcon} />
+                <BooleanField source="flag_suspect" label={"Suspect"} FalseIcon={null}
+                              TrueIcon={DoDisturbOnIcon}/>
+                <ReferenceField source="moderator_id" reference="moderators"
+                                link={(record, reference) => `/${reference}/${record.moderator_id}`} >
+                    <TextField source={"archive"} />
+                    {"/"}
+                    <TextField source={"subject_class"} />
+                </ReferenceField>
+            </Datagrid>
+        </List>
     );
 };
 
@@ -517,6 +510,10 @@ const UserEditToolbar = () => {
     const record = useRecordContext();
     const runtimeProps = useContext(RuntimeContext);
 
+    const handleBan = async () => {
+        if (!record?.id) return;
+
+    }
 
     const handleMasquerade = async () => {
         if (!record?.id) return;
@@ -569,11 +566,21 @@ const UserEditToolbar = () => {
                 Become This User
             </Button>
             <Box sx={{ flexGrow: 1 }} />
+            <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<SuspendIcon />}
+                onClick={handleBan}
+                sx={{ ml: 2 }}
+            >
+                Suspend
+            </Button>
             <DeleteButton />
         </Toolbar>
     );
 };
 
+type statusInputType = {source: string, label: string, disabled?: boolean} | null;
 
 export const UserEdit = () => {
     const [isEndorsementsOpen, setIsEndorsementsOpen] = useState(false);
@@ -591,10 +598,10 @@ export const UserEdit = () => {
         size: "small",
     };
 
-    const statusInputs = [
+    const statusInputs: statusInputType[][] = [
         [
-            {source: "flag_banned", label: "Suspended"},
-            {source: "flag_deleted", label: "Deleted"},
+            {source: "flag_banned", label: "Banned", disabled: true},
+            {source: "flag_deleted", label: "Deleted", disabled: true},
             {source: "flag_suspect", label: "Suspect"},
         ],
         [
@@ -609,7 +616,7 @@ export const UserEdit = () => {
         ]
     ];
 
-    const adminInputs = [
+    const adminInputs: statusInputType[][] = [
         [
             {source: "flag_edit_users", label: "Edit Users"},
             {source: "flag_edit_system", label: "Edit System"},
@@ -672,7 +679,9 @@ export const UserEdit = () => {
                                                 {
                                                     input === null ? null :
                                                         (<BooleanInput source={input.source} label={input.label}
-                                                                       helperText={false} sx={switchProps} size="small" />)
+                                                                       helperText={false} sx={switchProps} size="small"
+                                                                       disabled={input?.disabled}
+                                                        />)
 
                                                 }
                                             </TableCell>

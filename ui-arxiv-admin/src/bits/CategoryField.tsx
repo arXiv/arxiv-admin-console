@@ -45,10 +45,11 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ sourceCategory, sourceCla
     }, [hovered, categoryName, record, sourceCategory, sourceClass]);
 
     if (!record) return null;
+
     const categoryText = record[sourceCategory] + "." + (record[sourceClass] || '*');
 
     const renderContent = (): ReactNode => {
-        const label = <Typography fontWeight={primary ? "bolder" : "normal" } component={"span"} sx={{m:0, p:0}}>{categoryText}</Typography>;
+        const label = <Typography fontWeight={primary ? "bolder" : "normal" } component={"span"} sx={{m:0, p:0}}>{primary ? "(Primary) " : ""}{categoryText}</Typography>;
         switch (renderAs) {
             case 'chip':
                 return (

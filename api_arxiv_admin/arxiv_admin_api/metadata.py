@@ -1,8 +1,9 @@
 """arXiv paper display routes."""
+from arxiv.db import Base
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import Metadata
+from arxiv.db.models import Metadata, Document
 from arxiv.document.version import SOURCE_FORMAT
 
 from sqlalchemy.orm import Session
@@ -12,7 +13,7 @@ from datetime import datetime, date, timedelta, timezone
 import re
 
 from . import get_db, datetime_to_epoch, VERY_OLDE
-
+from .biz.metadata_biz import propagate_metadata_to_document
 
 logger = logging.getLogger(__name__)
 
@@ -208,25 +209,41 @@ def get_metadata_by_id(id:int,
         raise HTTPException(status_code=404, detail="Paper not found")
     return MetadataModel.model_validate(doc)
 
+
+
 @router.put("/{id:str}")
 def update_metadata_by_id(
         id:int,
         body: MetadataModel,
         session: Session = Depends(get_db)) -> MetadataModel:
     """Display a paper."""
-    md = session.query(Metadata).filter(Metadata.metadata_id == id).one_or_none()
+    md: Metadata | None = session.query(Metadata).filter(Metadata.metadata_id == id).one_or_none()
     if not md:
         raise HTTPException(status_code=404, detail="Paper not found")
+
+    doc: Document | None = None
+    if md.is_current:
+        doc = session.query(Document).filter(Document.document_id == md.document_id).one_or_none()
+
     updating = body.model_dump(exclude_unset=True, exclude_none=True, exclude={"id"})
     count = 0
+
     for key, value in updating.items():
         old_value = getattr(md, key)
         if old_value != value:
             count += 1
             setattr(md, key, value)
+            if not md.is_current:
+                continue
+
+            if propagate_metadata_to_document(session, md, key, doc):
+                count += 1
+        pass
+
     if count > 0:
         md.updated = datetime.now(timezone.utc)
         session.commit()
+
     metadata = MetadataModel.base_select(session).filter(Metadata.metadata_id == id).one_or_none()
     if not metadata:
         raise HTTPException(status_code=404, detail="Paper not found")

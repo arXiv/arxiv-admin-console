@@ -11,7 +11,7 @@ from arxiv.db.models import EndorsementRequest, \
 from arxiv_admin_api.biz.endorsement_biz import EndorsementBusiness
 from arxiv_admin_api.biz.endorsement_io import EndorsementDBAccessor
 from arxiv_admin_api.endorsements import EndorsementCodeModel
-from tests.scaffolding import setup_db_fixture, teardown_db_fixture
+from tests.conftest import setup_db_fixture, teardown_db_fixture
 
 HOST = "127.0.0.1"
 DB_PORT = 21601
