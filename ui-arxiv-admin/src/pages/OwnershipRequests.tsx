@@ -263,22 +263,22 @@ interface RequestedPaperListProps {
     workflowStatus: WorkflowStatusType; // Expecting a string prop for workflowStatus
     nameFragments: string[];
     documents: DocumentType[];
-    selectedDocuments: DocumentIdType[];
+    authoredDocuments: DocumentIdType[];
     setSelectedDocuments: (newSel: DocumentIdType[]) => void;
     ownedPapers: number[];
 }
 
 
-const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflowStatus, nameFragments, documents, selectedDocuments, setSelectedDocuments, ownedPapers}) => {
+const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflowStatus, nameFragments, documents, authoredDocuments, setSelectedDocuments, ownedPapers}) => {
     const {register, setValue} = useFormContext();
-    register('selected_documents');
-    setValue('selected_documents', selectedDocuments);
+    register('authored_documents');
+    setValue('authored_documents', authoredDocuments);
 
     const docSelectionChange = (doc: DocumentType) => {
-        const newSelection =  selectedDocuments.includes(doc.id) ?
-            selectedDocuments.filter( (id) => id !== doc.id)
+        const newSelection =  authoredDocuments.includes(doc.id) ?
+            authoredDocuments.filter( (id) => id !== doc.id)
             :
-            selectedDocuments.concat(doc.id);
+            authoredDocuments.concat(doc.id);
         setSelectedDocuments(newSelection);
     }
 
@@ -287,7 +287,7 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
             Requested papers - loading...
         </Typography>)
     }
-    console.log("docSelectionChange ", JSON.stringify(selectedDocuments));
+    console.log("docSelectionChange ", JSON.stringify(authoredDocuments));
 
     return (
         <>
@@ -310,23 +310,26 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
                 {documents.map((document, index) => (
                     <TableRow key={document.id}>
                         <TableCell>
-                            <Chip
-                                id={`owner-user_${userId}-doc_${document.id}`}
-                                label={document.id}
-                                variant={ownedPapers.includes(document.id) ? 'filled' : 'outlined'}
-                            />
-                        </TableCell>
-
-                        <TableCell>
                             <ToggleButton
                                 id={`author-user_${userId}-doc_${document.id}`}
                                 onClick={() => docSelectionChange(document)}
                                 value={`user_${userId}-doc_${document.id}`}
-                                selected={selectedDocuments.includes(document.id)}
+                                selected={authoredDocuments.includes(document.id)}
                                 sx={{minWidth: "5em"}}
                             >
-                                {selectedDocuments.includes(document.id) ? 'Yes' : 'No'}
+                                {authoredDocuments.includes(document.id) ? 'Yes' : 'No'}
                             </ToggleButton>
+                        </TableCell>
+
+                        <TableCell>
+                            <ReferenceField source="id" reference="documents" record={document} link="show">
+
+                            <Chip
+                                id={`owner-user_${userId}-doc_${document.id}`}
+                                label={ownedPapers.includes(document.id) ? 'Owns' : document.id}
+                                variant={ownedPapers.includes(document.id) ? 'filled' : 'outlined'}
+                            />
+                            </ReferenceField>
                         </TableCell>
 
                         <TableCell>
@@ -457,7 +460,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
  */
 
     const [documents, setDocuments] = useState<DocumentType[]>([]);
-    const [selectedDocuments, setSelectedDocuments] = useState<DocumentIdType[]>([]);
+    const [authoredDocuments, setSelectedDocuments] = useState<DocumentIdType[]>([]);
     const [isMentioned, setIsMentioned] = useState<boolean>(false);
 
 /*
@@ -510,7 +513,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                 const ownershipPromises = documents.map(async (doc) => {
                     const fake_id = `user_${user_id}-doc_${doc.id}`;
                     try {
-                        const response = await dataProvider.getOne<PaperOwnerType>('paper_owners_user_doc', { id: fake_id });
+                        const response = await dataProvider.getOne<PaperOwnerType>('paper_owners', { id: fake_id });
                         const data = {...response.data,
                             user_id: user_id,
                             document_id: doc.id,
@@ -534,6 +537,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                     .filter((result): result is PromiseFulfilledResult<PaperOwnerType> => result.status === 'fulfilled')
                     .map((result) => result.value);
 
+                console.log("successfulPaperOwners: " + JSON.stringify(successfulPaperOwners))
                 setPaperOwners(successfulPaperOwners);
             };
 
@@ -545,7 +549,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
         const validDocs = paperOwners.filter((paperOwner: PaperOwnerType) => paperOwner.valid);
         const mergedSelection = [...new Set([
             ...validDocs.map((doc) => doc.document_id),
-            ...selectedDocuments
+            ...authoredDocuments
         ])];
 
         setSelectedDocuments(mergedSelection);
@@ -583,12 +587,12 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
     const nextId = navigation?.next_request_ids ? navigation?.next_request_ids[0] : null;
 
     const ok_to_save = workflowStatus === 'pending';
-    const ownedPapers = paperOwners.map((paper) => paper.document_id);
+    const ownedPapers = paperOwners.filter((paper) => paper.valid).map((paper) => paper.document_id);
 
     return (
         <Edit title={<OwnershipRequestTitle />} redirect={false}>
-            <SimpleForm toolbar={<OwnershipRequestToolbar prevId={prevId} nextId={nextId} ok={ok_to_save} setWorkflowStatus={setWorkflowStatus} />}
-            >
+            <SimpleForm toolbar={<OwnershipRequestToolbar
+                prevId={prevId} nextId={nextId} ok={ok_to_save} setWorkflowStatus={setWorkflowStatus} />}>
                 <Paper >
                     <Table>
                         <TableHead>
@@ -625,7 +629,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                         userId={ownershipRequest.user_id}
                         workflowStatus={workflowStatus} nameFragments={nameFragments}
                         documents={documents}
-                        selectedDocuments={selectedDocuments}
+                        authoredDocuments={authoredDocuments}
                         setSelectedDocuments={selectionChanged}
                         ownedPapers={ownedPapers}
                     />

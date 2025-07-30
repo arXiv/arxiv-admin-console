@@ -914,26 +914,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ownership_requests/{request_id}/documents/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Paper Ownership Decision
-         * @description Ownership creation
-         */
-        post: operations["create_paper_ownership_decision_v1_ownership_requests__request_id__documents__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/ownership_requests_audit/": {
         parameters: {
             query?: never;
@@ -2486,6 +2466,11 @@ export interface components {
         /**
          * OwnershipRequestSubmit
          * @example {
+         *       "authored_documents": [
+         *         2125897,
+         *         2123675,
+         *         2130529
+         *       ],
          *       "document_ids": [
          *         2123367,
          *         2123675,
@@ -2502,11 +2487,6 @@ export interface components {
          *         "2208.11535",
          *         "2209.00613"
          *       ],
-         *       "selected_documents": [
-         *         2125897,
-         *         2123675,
-         *         2130529
-         *       ],
          *       "user_id": 1129053,
          *       "workflow_status": "accepted"
          *     }
@@ -2521,14 +2501,14 @@ export interface components {
             workflow_status: components["schemas"]["WorkflowStatus"];
             /**
              * Document Ids
-             * @description List of IDs of the documents involved in the ownership request.
+             * @description List of IDs of the documents in the ownership request.
              */
             document_ids: number[];
             /**
-             * Selected Documents
-             * @description Optional list of document IDs that were selected for approval.
+             * Authored Documents
+             * @description List of document IDs that the requester is the author.
              */
-            selected_documents?: number[] | null;
+            authored_documents?: number[] | null;
             /**
              * Paper Ids
              * @description Optional list of paper IDs associated with the ownership request.
@@ -2586,14 +2566,6 @@ export interface components {
             valid?: boolean | null;
             /** Auto */
             auto?: boolean | null;
-        };
-        /** PaperOwnershipDecisionModel */
-        PaperOwnershipDecisionModel: {
-            workflow_status: components["schemas"]["WorkflowStatus"];
-            /** Rejected Document Ids */
-            rejected_document_ids: number[];
-            /** Accepted Document Ids */
-            accepted_document_ids: number[];
         };
         /** PaperOwnershipUpdateRequest */
         PaperOwnershipUpdateRequest: {
@@ -2886,10 +2858,7 @@ export interface components {
         UserModel: {
             /** Id */
             id?: number | null;
-            /**
-             * Email
-             * Format: email
-             */
+            /** Email */
             email: string;
             /** First Name */
             first_name: string;
@@ -3035,10 +3004,7 @@ export interface components {
         UserUpdateModel: {
             /** Id */
             id?: number | null;
-            /**
-             * Email
-             * Format: email
-             */
+            /** Email */
             email: string;
             /** First Name */
             first_name: string;
@@ -5258,41 +5224,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnershipRequestNavi"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_paper_ownership_decision_v1_ownership_requests__request_id__documents__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                request_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PaperOwnershipDecisionModel"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OwnershipRequestModel"];
                 };
             };
             /** @description Validation Error */

@@ -3,12 +3,12 @@ from __future__ import annotations
 import re
 import datetime
 from enum import Enum
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Generic, TypeVar, Set
 import hashlib
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.bizmodels.user_model import UserModel
-from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_authn
+from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from sqlalchemy.exc import IntegrityError
 
@@ -24,6 +24,10 @@ from . import get_db, is_any_user, get_current_user, datetime_to_epoch, VERY_OLD
     TapirSessionData
 from .documents import DocumentModel
 from .paper_owners import ownership_combo_key
+
+T = TypeVar('T')
+class Partial(Generic[T]):
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -122,18 +126,18 @@ class UpdateOwnershipRequestModel(BaseModel):
     workflow_status: WorkflowStatus = WorkflowStatus.pending
 
 
-class PaperOwnershipDecisionModel(BaseModel):
-    workflow_status: WorkflowStatus # Literal['pending', 'accepted', 'rejected']
-    rejected_document_ids: List[int]
-    accepted_document_ids: List[int]
+# class PaperOwnershipDecisionModel(BaseModel):
+#     workflow_status: WorkflowStatus # Literal['pending', 'accepted', 'rejected']
+#     accepted_document_ids: List[int]   # is author
+#     nonauthor_document_ids: List[int]  # is not author
 
 
 class OwnershipRequestSubmit(BaseModel):
     user_id: int = Field(..., description="The ID of the user associated with the ownership request.")
     workflow_status: WorkflowStatus = Field(..., description="The status of the workflow ('pending', 'accepted', 'rejected').")
-    document_ids: List[int] = Field(..., description="List of IDs of the documents involved in the ownership request.")
-    selected_documents: Optional[List[int]] = Field(
-        None, description="Optional list of document IDs that were selected for approval."
+    document_ids: List[int] = Field(..., description="List of IDs of the documents in the ownership request.")
+    authored_documents: Optional[List[int]] = Field(
+        None, description="List of document IDs that the requester is the author."
     )
     paper_ids: Optional[List[str]] = Field(
         None, description="Optional list of paper IDs associated with the ownership request."
@@ -145,7 +149,7 @@ class OwnershipRequestSubmit(BaseModel):
                 "user_id": 1129053,
                 "workflow_status": "accepted",
                 "document_ids": [2123367, 2123675, 2125897, 2130529, 2134610, 2612674, 2618378],
-                "selected_documents": [2125897, 2123675, 2130529],
+                "authored_documents": [2125897, 2123675, 2130529],
                 "paper_ids": ["2208.04373", "2208.04681", "2208.06903", "2208.11535", "2209.00613"]
             }
         }
@@ -350,7 +354,7 @@ async def navigate(
 async def create_ownership_request(
         request: Request,
         ownership_request: CreateOwnershipRequestModel,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         current_tapir_session: TapirSessionData | None = Depends(get_tapir_session),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Create ownership request.
@@ -442,8 +446,7 @@ async def update_ownership_request(
         id: int,
         request: Request,
         payload: OwnershipRequestSubmit,
-        current_user: ArxivUserClaims = Depends(get_authn),
-        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         remote_addr: str = Depends(get_client_host),
         remote_host: str = Depends(get_client_host_name),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
@@ -541,8 +544,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
   "paper_ids":["2208.04373","2208.04681","2208.06903","2208.11535","2209.00613"]
   "selected_documents":[2125897,2123675,2130529]}
     """
-    if not current_tapir_session:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tapir session is missing")
+    current_tapir_session_id = current_user.tapir_session_id
 
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update ownership requests.")
@@ -553,137 +555,90 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     if workflow_status is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is required.")
 
-    document_ids = payload.document_ids
-    if document_ids is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document ids is required.")
-
-    ownership_request: OwnershipRequest | None = session.query(OwnershipRequest).filter(OwnershipRequest.request_id == req_id).one_or_none()
-    if ownership_request is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Ownership request id %s does not exist." % req_id)
-
-    non_existing_documents = []
-    existing_documents = []
-    for document_id in document_ids:
-        document = session.query(Document).filter(Document.document_id == document_id).one_or_none()
-        if document is None:
-            non_existing_documents.append(document_id)
-            # raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document id %s does not exist." % document_id)
-        else:
-            existing_documents.append(document_id)
-
-    if non_existing_documents:
-        logger.warning(f"Docs don't exist - {non_existing_documents!r}")
-        document_ids = existing_documents
+    if workflow_status == WorkflowStatus.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is pending. It needs to be rejected or accepted.")
 
     user_id = payload.user_id
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User id is required.")
 
-    if workflow_status in ["rejected", "pending"]:
-        #  $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='rejected' WHERE request_id=$request->request_id");
-        ownership_request.workflow_status = workflow_status
-        return OwnershipRequestModel.to_model(ownership_request, session)
+    document_ids = payload.document_ids
+    if document_ids is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Document ids is required.")
 
-    # Accepted
+    # Get the ownership request
+    ownership_request: OwnershipRequest | None = session.query(OwnershipRequest).filter(OwnershipRequest.request_id == req_id).one_or_none()
+    if ownership_request is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Ownership request id %s does not exist." % req_id)
 
-    accepted_documents = payload.selected_documents
+    # The ownership request must be in pending statue
+    if ownership_request.workflow_status != WorkflowStatus.pending.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Ownership request id %s has been decided as {ownership_request.workflow_status }." % req_id)
 
-    if not accepted_documents:
-        #       if($approved_count==0) {
-        #          if($bulk_mode) {
-        #             include "ownership-bulk-none-approved-screen.php";
-        #             exit();
-        #          }
-        #
-        #          $auth->conn->query("UPDATE arXiv_ownership_requests SET workflow_status='accepted' WHERE request_id=$request->request_id");
-        #          include "ownership-none-approved-screen.php";
-        #          exit();
-        #       }
-        #
-        # If none accepted, this makes no sense. Think of this as NOP and do nothing.
-        return OwnershipRequestModel.to_model(ownership_request, session)
+    # Make sure all of the docs in the request exist
+    existing_document_ids: Set[int] = set([
+        doc.document_id for doc in session.query(Document.document_id).filter(Document.document_id.in_(document_ids)).all()
+    ])
+    if len(existing_document_ids) != len(document_ids):
+        nonexistng_ids = set(document_ids)
+        nonexistng_ids.remove(set(existing_document_ids))
+        bads = list(nonexistng_ids)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Ownership request id %s - the some documents {bads!r} IDs doss not exist" % req_id)
 
-    #       $id_list="(".join(",",$document_ids).")";
-    #       $already_owns=$auth->conn->select_keys_and_values("SELECT document_id,1 FROM arXiv_paper_owners
-    #                                                    WHERE user_id=$user->user_id
-    #                                                    AND document_id IN $id_list FOR UPDATE");
-    #
-    #       if(count($already_owns) == count($document_ids)) {
-    #          include "ownership-all-owned-screen.php";
-    #          exit();
-    #       }
-    # I think this is wrong. You need to be able to update the individual paper owner state but this counts the
-    # existing records regardless of flag change.
-    # You need to go through individual owner/not-owner and update accordingly.
+    # Existing ownerships - Ignore them. This is a submit and only interested in making new ownerships.
+    # If you want to change existing ownerships, use the ownership's update endpoint.
 
-    #         if ($_POST["approve_$i"]) {
-    #            $_document_id=addslashes($_POST["document_id_$i"]);
-    #            $paper_id=$paper_ids[$_document_id];
-    #            if($already_owns[$_document_id]) {
-    #               array_push($owned_list,$paper_id);
-    #            } else {
-    #               $_remote_addr=addslashes($_SERVER["REMOTE_ADDR"]);
-    #               $_remote_host=addslashes($_SERVER["REMOTE_HOST"]);
-    #               $_tracking_cookie=addslashes($_COOKIE["M4_TRACKING_COOKIE_NAME"]);
-    #               array_push($paper_list,$paper_id);
-    #               $auth->conn->query("INSERT INTO arXiv_paper_owners (document_id,user_id,date,added_by,remote_addr,remote_host,tracking_cookie,valid,flag_author,flag_auto) VALUES ($_document_id,$user_id,$auth->timestamp,$auth->user_id,'$_remote_addr','$_remote_host','$_tracking_cookie',1,$flag_author,0)");
-    #               tapir_audit_admin($user_id,"add-paper-owner-2",$_document_id);
+    existing_ownership_document_ids: Set[int] = set([
+        po.document_id for po in session.query(PaperOwner.document_id).filter(and_(PaperOwner.document_id.in_(document_ids), PaperOwner.user_id == user_id)).all()
+    ])
 
-    judgements = {document_id: document_id in accepted_documents for document_id in document_ids }
-
-    existing_records: List[PaperOwner] = session.query(PaperOwner).filter(and_(PaperOwner.document_id.in_(document_ids),
-                                                                               PaperOwner.user_id == user_id)).all()
-
-    owners_record = {ownership_combo_key(existing_record.user_id, existing_record.document_id): existing_record for existing_record in existing_records}
     requester = UserModel.one_user(session, user_id)
     date = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
-
     ownership_request.workflow_status = workflow_status
 
+    tracking_cookie = requester.tracking_cookie
+    if len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
+        # ntai: 2025-03-30
+        # When the tracking cookie is longer than the column size (32), adding tracking cookie
+        # to the record fails as it is too long.
+        # There are two options - one is to chop it, or hash it. I chose to hash it since the original
+        # value cannot match anyway, and by hashing it, it has a chance to match it to the original
+        # value.
+        # The root cause is that the tapir_users' tracking_cookie has 255, and somehow, PaperOwner
+        # does not follow the original design, which is a mistake.
+        # I checked the database and 110+k tapir_users has the tracking cookie longer than 32 and thus,
+        # I don't understand how this has been working.
+        tracking_cookie = hashlib.md5(tracking_cookie.encode()).hexdigest()
+
+    authored_documents = set(payload.authored_documents)
+
     try:
-        for document_id, judgement in judgements.items():
-            paper_owner_r = owners_record.get(ownership_combo_key(user_id, document_id))
-            if paper_owner_r is None:
-                tracking_cookie = requester.tracking_cookie
-                if len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
-                    # ntai: 2025-03-30
-                    # When the tracking cookie is longer than the column size (32), adding tracking cookie
-                    # to the record fails as it is too long.
-                    # There are two options - one is to chop it, or hash it. I chose to hash it since the original
-                    # value cannot match anyway, and by hashing it, it has a chance to match it to the original
-                    # value.
-                    # The root cause is that the tapir_users' tracking_cookie has 255, and somehow, PaperOwner
-                    # does not follow the original design, which is a mistake.
-                    # I checked the database and 110+k tapir_users has the tracking cookie longer than 32 and thus,
-                    # I don't understand how this hase been working.
-                    tracking_cookie = hashlib.md5(tracking_cookie.encode()).hexdigest()
-                paper_owner_r = PaperOwner(
-                    document_id = document_id,
-                    user_id = user_id,
-                    date = date,
-                    added_by = current_user.user_id,
-                    remote_addr = remote_addr,
-                    remote_host = remote_host,
-                    tracking_cookie = tracking_cookie,
-                    valid = True,
-                    flag_author = judgement,
-                    flag_auto = False
-                )
-                session.add(paper_owner_r)
-            else:
-                paper_owner_r.date = date
-                # paper_owner_r.added_by = current_user.user_id
-                paper_owner_r.valid = True
-                paper_owner_r.flag_author = judgement
-                paper_owner_r.flag_auto = False
-                pass
+        for document_id in document_ids:
+            if document_id in existing_ownership_document_ids:
+                continue
+            is_author = document_id in authored_documents
+            paper_owner_r = PaperOwner(
+                document_id = document_id,
+                user_id = user_id,
+                date = date,
+                added_by = current_user.user_id,
+                remote_addr = remote_addr,
+                remote_host = remote_host,
+                tracking_cookie = tracking_cookie,
+                valid = True,
+                flag_author = is_author,
+                flag_auto = False
+            )
+            session.add(paper_owner_r)
 
         audit: OwnershipRequestsAudit | None = session.query(OwnershipRequestsAudit).filter(OwnershipRequestsAudit.request_id == req_id).one_or_none()
         if audit is None:
             audit = OwnershipRequestsAudit(
                 request_id = req_id,
-                session_id = int(current_tapir_session.session_id),
+                session_id = int(current_tapir_session_id),
                 remote_addr = remote_addr,
                 remote_host = remote_host,
                 tracking_cookie = requester.tracking_cookie,
@@ -693,7 +648,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         else:
             # ??? The judgement has been made but the status is still penning. Rather than burf, update the
             # audit to match with this judgement
-            audit.session_id = int(current_tapir_session.session_id)
+            audit.session_id = int(current_tapir_session_id)
             audit.remote_addr = remote_addr
             audit.remote_host = remote_host
             audit.tracking_cookie = requester.tracking_cookie
@@ -705,68 +660,68 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     except IntegrityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The database operation failed due to integrity error. " + str(exc)) from exc
 
-
-@router.post('/{request_id:int}/documents/')
-async def create_paper_ownership_decision(
-        request: Request,
-        request_id: int,
-        decision: PaperOwnershipDecisionModel,
-        current_user: ArxivUserClaims = Depends(get_authn),
-        remote_addr: str = Depends(get_client_host),
-        session: Session = Depends(get_db)) -> OwnershipRequestModel:
-    """Ownership creation
-
-    """
-    if not current_user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-
-    ownership_request = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == request_id).one_or_none()
-
-    if ownership_request is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ownership request not found")
-
-    if ownership_request.workflow_status not in [ws.value for ws in WorkflowStatus]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"workflow_status {ownership_request.workflow_status} is invalid")
-
-    if ownership_request.workflow_status != WorkflowStatus.pending:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"workflow_status {ownership_request.workflow_status} is not pending")
-
-    user_id = ownership_request.user_id
-    admin_id = current_user.user_id
-
-    current_request: OwnershipRequestModel = OwnershipRequestModel.to_model(None, ownership_request)
-    docs = set(current_request.document_ids)
-    decided_docs = set(decision.accepted_document_ids) | set(decision.rejected_document_ids)
-    if docs != decided_docs:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not all papers decided")
-
-    if decision.workflow_status == WorkflowStatus.accepted and not decision.accepted_document_ids:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No accepted documents")
-
-    ownership_request.workflow_status = decision.workflow_status
-
-    already_owns: [int] = [po.document_id for po in session.query(PaperOwner).filter(PaperOwner.user_id == user_id).all()]
-
-    accepting = set(decision.accepted_document_ids)
-    accepting.remove(set(already_owns))
-
-    user: TapirUser = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
-
-    t_now = datetime.datetime.now(datetime.UTC)
-    for doc_id in accepting:
-        po = PaperOwner(
-            document_id=doc_id,
-            user_id=user_id,
-            date=t_now,
-            added_by=admin_id,
-            remote_addr=remote_addr,
-            tracking_cookie=user.tracking_cookie,
-            valid=True,
-            flag_auto=False,
-            flag_author=True
-        )
-        session.add(po)
-
-    session.commit()
-    session.refresh(ownership_request)
-    return OwnershipRequestModel.to_model(ownership_request, session)
+#
+# @router.post('/{request_id:int}/documents/')
+# async def post_ownership_request_decision(
+#         request: Request,
+#         request_id: int,
+#         decision: PaperOwnershipDecisionModel,
+#         current_user: ArxivUserClaims = Depends(get_authn_user),
+#         remote_addr: str = Depends(get_client_host),
+#         session: Session = Depends(get_db)) -> OwnershipRequestModel:
+#     """Ownership creation
+#
+#     """
+#     if not current_user.is_admin:
+#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+#
+#     ownership_request = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == request_id).one_or_none()
+#
+#     if ownership_request is None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ownership request not found")
+#
+#     if decision.workflow_status not in [ws.value for ws in WorkflowStatus]:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"The decision's workflow_status {ownership_request.workflow_status} is invalid")
+#
+#     if ownership_request.workflow_status != WorkflowStatus.pending:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Existing ownership request workflow_status {ownership_request.workflow_status} is not pending")
+#
+#     if decision.workflow_status == WorkflowStatus.pending:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"The decision's workflow_status {decision.workflow_status} shound not be pending")
+#
+#     user_id = ownership_request.user_id
+#     admin_id = current_user.user_id
+#
+#     current_request: OwnershipRequestModel = OwnershipRequestModel.to_model(None, ownership_request)
+#     docs = set(current_request.document_ids)
+#     decided_docs = set(decision.accepted_document_ids) | set(decision.nonauthor_document_ids)
+#     if docs != decided_docs:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not all papers decided")
+#
+#     ownership_request.workflow_status = decision.workflow_status
+#
+#     already_owns: [int] = [po.document_id for po in session.query(PaperOwner).filter(PaperOwner.user_id == user_id).all()]
+#
+#     decided_docs.remove(set(already_owns))
+#
+#     user: TapirUser = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
+#
+#     t_now = datetime.datetime.now(datetime.UTC)
+#     for doc_id in decided_docs:
+#         is_author = doc_id in decision.accepted_document_ids
+#         po = PaperOwner(
+#             document_id=doc_id,
+#             user_id=user_id,
+#             date=t_now,
+#             added_by=admin_id,
+#             remote_addr=remote_addr,
+#             tracking_cookie=user.tracking_cookie,
+#             valid=True,
+#             flag_auto=False,
+#             flag_author=is_author
+#         )
+#         session.add(po)
+#
+#     session.commit()
+#     session.refresh(ownership_request)
+#     return OwnershipRequestModel.to_model(ownership_request, session)

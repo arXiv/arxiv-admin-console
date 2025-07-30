@@ -66,8 +66,12 @@ export interface paths {
          *     :type user_id: str
          *     :param session: Database session dependency used for fetching user data.
          *     :type session: sqlalchemy.orm.Session
-         *     :param client_ip: Client IP address retrieved from the request.
-         *     :type client_ip: str
+         *     :param remote_ip: Client IP address retrieved from the request.
+         *     :type remote_ip: str
+         *     :param remote_ip: Client Hostname retrieved from the request.
+         *     :type remote_hostname: str
+         *     :param tracking_cookie: Tapir tracking cookie, if any.
+         *     :type tracking_cookie: str
          *     :param current_user: Current authenticated user making the impersonation request. This
          *         parameter can be None, indicating that the user is not authenticated.
          *     :type current_user: Optional[ArxivUserClaims]
