@@ -1,4 +1,5 @@
 """arXiv user routes."""
+import re
 from typing import Optional, List
 from datetime import date, timedelta, datetime, timezone
 
@@ -120,6 +121,7 @@ async def list_users(
         is_non_academic: Optional[bool] = Query(None, description="non-academic"),
         username: Optional[str] = Query(None),
         email: Optional[str] = Query(None),
+        name: Optional[str] = Query(None),
         last_name: Optional[str] = Query(None),
         first_name: Optional[str] = Query(None),
         flag_edit_users: Optional[bool] = Query(None),
@@ -208,14 +210,38 @@ async def list_users(
             query = query.join(nick1, nick1.user_id == TapirUser.user_id)
             query = query.filter(nick1.nickname.like(username + "%"))
 
+        if name and first_name is None and last_name is None:
+            if "," in name:
+                names = name.split(",")
+                if len(names) > 1:
+                    last_name = names[0].strip()
+                    first_name = names[1].strip()
+                else:
+                    last_name = names[0].strip()
+            elif " " in name:
+                names = [elem.strip() for elem in name.split(' ') if elem.strip()]
+                if len(names) > 1:
+                    last_name = names[0]
+                    first_name = names[1]
+                else:
+                    last_name = names[0]
+                pass
+            elif re.match(r"^[0-9]+$", name):
+                query = query.filter(TapirUser.user_id == name)
+            else:
+                last_name = name.strip()
+                pass
+            pass
+
+
         if first_name:
-            query = query.filter(TapirUser.first_name.contains(first_name))
+            query = query.filter(TapirUser.first_name.startswith(first_name))
 
         if last_name:
-            query = query.filter(TapirUser.last_name.contains(last_name))
+            query = query.filter(TapirUser.last_name.startswith(last_name))
 
         if email:
-            query = query.filter(TapirUser.email.contains(email))
+            query = query.filter(TapirUser.email.startswith(email))
 
         if flag_email_verified is not None:
             query = query.filter(TapirUser.flag_email_verified == flag_email_verified)

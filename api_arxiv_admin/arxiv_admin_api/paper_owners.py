@@ -121,6 +121,8 @@ async def list_ownerships(
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         flag_valid: Optional[bool] = Query(None),
+        flag_author: Optional[bool] = Query(None),
+        flag_auto: Optional[bool] = Query(None),
         user_id: Optional[str] = Query(None),
         document_id: Optional[int] = Query(None),
         filter: Optional[str] = Query(None, description="MUI datagrid filter"),
@@ -205,6 +207,12 @@ async def list_ownerships(
         else:
             if current_user and not current_user.is_admin:
                 query = query.filter(PaperOwner.valid == 1)
+
+        if flag_auto is not None:
+            query = query.filter(PaperOwner.flag_auto == flag_auto)
+
+        if flag_author is not None:
+            query = query.filter(PaperOwner.flag_author == flag_author)
 
         if datagrid_filter:
             query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)

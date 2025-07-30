@@ -64,7 +64,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import AcceptIcon from '@mui/icons-material/PermIdentity';
+import AcceptIcon from '@mui/icons-material/Star';
 import YesIcon from '@mui/icons-material/Check';
 import RejectIcon from '@mui/icons-material/DoNotDisturb';
 import Paper from "@mui/material/Paper";

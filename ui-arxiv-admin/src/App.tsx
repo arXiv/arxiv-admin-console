@@ -9,6 +9,7 @@ import DocumentIcon from '@mui/icons-material/Book';
 import CategoryIcon from '@mui/icons-material/List';
 import ModeratorIcon from '@mui/icons-material/Policy';
 import OwnershipRequestIcon from '@mui/icons-material/Star';
+import OwnershipIcon from '@mui/icons-material/DoneOutline';
 import SubmissionIcon from '@mui/icons-material/Draw';
 import TapirSessionIcon from '@mui/icons-material/ConfirmationNumberSharp';
 import MembershipInstitutionIcon from '@mui/icons-material/School';
@@ -162,6 +163,12 @@ const AdminConsole: React.FC = () => {
                 />
 
                 <Resource
+                    name="paper_owners"
+                    list={OwnershipList}
+                    icon={OwnershipIcon}
+                />
+
+                <Resource
                     name="submissions"
                     list={SubmissionList}
                     edit={SubmissionEdit}
@@ -216,7 +223,6 @@ const AdminConsole: React.FC = () => {
                     recordRepresentation="id"
                 />
 
-                <Resource name="paper_owners" />
                 <Resource name="membership_institutions" />
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>
