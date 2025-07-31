@@ -655,7 +655,7 @@ async def update_authorship(
                 raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                                     detail=f"Invalid id {po_primary_key}")
 
-            if not current_user.is_admin and uid != current_user.user_id:
+            if not current_user.is_admin and str(uid) != str(current_user.user_id):
                 raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
                                     detail="You can only work on your own.")
 
