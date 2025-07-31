@@ -574,24 +574,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper_owners/update-authorship": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update Authorship */
-        put: operations["update_authorship_v1_paper_owners_update_authorship_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/paper_owners/update-paper-owners/{id}": {
+    "/v1/paper_owners/authorship/{action}": {
         parameters: {
             query?: never;
             header?: never;
@@ -600,16 +583,17 @@ export interface paths {
         };
         get?: never;
         /**
-         * Update Paper Owners
+         * Update Authorship
          * @description Handles the process of updating paper ownership by modifying existing ownership records or adding
          *     new ones based on the provided data, user authentication, and permissions. This endpoint is
          *     restricted to authenticated users, with additional constraints for non-admin users.
          *
          *     Parameters
          *     ----------
-         *     id : identifier
-         *         The identifier of the paper to be updated. "upsert" is a special ID for bulk upsert
-         *     body : PaperOwnersUpdateRequest
+         *     action : str
+         *         upsert: is for bulk upsert. "update" for update only - no insert
+         *         When upserting, you need to provide auto
+         *     body : PaperOwnershipUpdateRequest
          *         The request payload containing document ID, ownership details, and optional flags.
          *     session : Session, default: Depends(get_db)
          *         The database session for querying and committing changes.
@@ -631,11 +615,11 @@ export interface paths {
          *
          *     Returns
          *     -------
-         *     None
+         *     ReactAdminUpdateResult
          *         react-admin update result is returned but it is not very kosher. It may come back to
          *         bite me.
          */
-        put: operations["update_paper_owners_v1_paper_owners_update_paper_owners__id__put"];
+        put: operations["update_authorship_v1_paper_owners_authorship__action__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -643,7 +627,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper_owners/pwc_link": {
+    "/v1/paper_owners/pwc_link/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -651,7 +635,7 @@ export interface paths {
             cookie?: never;
         };
         /** Pwc Link */
-        get: operations["pwc_link_v1_paper_owners_pwc_link_get"];
+        get: operations["pwc_link_v1_paper_owners_pwc_link__id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2546,31 +2530,8 @@ export interface components {
             /** Is Author */
             is_author: boolean;
         };
-        /** PaperOwnersUpdateRequest */
-        PaperOwnersUpdateRequest: {
-            /** Document Id */
-            document_id: string;
-            /**
-             * Owners
-             * @default []
-             */
-            owners: string[];
-            /**
-             * Nonowners
-             * @default []
-             */
-            nonowners: string[];
-            /** Timestamp */
-            timestamp?: string | null;
-            /** Valid */
-            valid?: boolean | null;
-            /** Auto */
-            auto?: boolean | null;
-        };
         /** PaperOwnershipUpdateRequest */
         PaperOwnershipUpdateRequest: {
-            /** User Id */
-            user_id: string;
             /**
              * Authored
              * @default []
@@ -3755,6 +3716,7 @@ export interface operations {
                 is_non_academic?: boolean | null;
                 username?: string | null;
                 email?: string | null;
+                name?: string | null;
                 last_name?: string | null;
                 first_name?: string | null;
                 flag_edit_users?: boolean | null;
@@ -4611,6 +4573,8 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 flag_valid?: boolean | null;
+                flag_author?: boolean | null;
+                flag_auto?: boolean | null;
                 user_id?: string | null;
                 document_id?: number | null;
                 /** @description MUI datagrid filter */
@@ -4806,51 +4770,18 @@ export interface operations {
             };
         };
     };
-    update_authorship_v1_paper_owners_update_authorship_put: {
+    update_authorship_v1_paper_owners_authorship__action__put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                action: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PaperOwnershipUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_paper_owners_v1_paper_owners_update_paper_owners__id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PaperOwnersUpdateRequest"];
             };
         };
         responses: {
@@ -4874,7 +4805,7 @@ export interface operations {
             };
         };
     };
-    pwc_link_v1_paper_owners_pwc_link_get: {
+    pwc_link_v1_paper_owners_pwc_link__id__get: {
         parameters: {
             query?: never;
             header?: never;

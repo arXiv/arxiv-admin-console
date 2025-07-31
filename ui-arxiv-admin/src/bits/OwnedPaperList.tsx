@@ -23,9 +23,12 @@ import Button from '@mui/material/Button';
 import {paths as adminApi} from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
 import ISODateField from "./ISODateFiled";
-type PaperAuthoredRequestType = adminApi['/v1/paper_owners/update-authorship']['put']['requestBody']['content']['application/json'];
+import { PaperOwnerBulkActionButtons } from '../components/PaperOwnersList';
 
 // Create a separate component for bulk actions to properly use hooks
+/*
+type PaperAuthoredRequestType = adminApi['/v1/paper_owners/authorship/{action}']['put']['requestBody']['content']['application/json'];
+
 const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
     const listContext = useListContext();
     const runtimeProps = React.useContext(RuntimeContext);
@@ -35,7 +38,6 @@ const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
     async function setAuthored(selectedIds: string[], authored: boolean) {
 
         const body: PaperAuthoredRequestType = {
-            user_id: userId.toString(),
             authored: authored ? selectedIds : [],
             not_authored: !authored ? selectedIds : [],
         }
@@ -95,7 +97,7 @@ const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
             </Button>
         </Box>
     );
-};
+};*/
 
 const OwnedPaperList: React.FC = () => {
     const record = useRecordContext();
@@ -117,7 +119,7 @@ const OwnedPaperList: React.FC = () => {
             <Datagrid
                 rowClick="edit"
                 empty={<p><b>User owns none of papers</b></p>}
-                bulkActionButtons={<BulkActionButtons userId={record.id} />}
+                bulkActionButtons={<PaperOwnerBulkActionButtons  />}
             >
                 <BooleanField source="flag_author" label={"Author"} />
                 <ReferenceField reference="documents" source="document_id" label="arXiv ID">

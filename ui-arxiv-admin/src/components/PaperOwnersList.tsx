@@ -21,30 +21,26 @@ import Button from '@mui/material/Button';
 import {paths as adminApi} from "../types/admin-api";
 import UserNameField from "../bits/UserNameField";
 
-type UpdatePaperOwnersRequestType = adminApi['/v1/paper_owners/update-paper-owners/{id}']['put']['requestBody']['content']['application/json'];
+type UpdatePaperOwnersRequestType = adminApi['/v1/paper_owners/authorship/{action}']['put']['requestBody']['content']['application/json'];
 
 // Create a separate component for bulk actions to properly use hooks
-const PaperOwnerBulkActionButtons: React.FC<{documentId: Identifier}> = ({documentId}) => {
+export const PaperOwnerBulkActionButtons: React.FC = () => {
     const listContext = useListContext();
     const notify = useNotify();
     const refresh = useRefresh();
     const dataProvider = useDataProvider();
 
     async function setPaperOwners(selectedIds: string[], is_owner: boolean, valid: boolean) {
-        if (!documentId)
-            return;
-
         const body: UpdatePaperOwnersRequestType = {
-            document_id: documentId.toString(),
-            owners: is_owner ? selectedIds : [],
-            nonowners: !is_owner ? selectedIds : [],
+            authored: is_owner ? selectedIds : [],
+            not_authored: !is_owner ? selectedIds : [],
             valid: valid,
         }
 
         try {
-            const response = await dataProvider.update("paper_owners/update-paper-owners",
+            const response = await dataProvider.update("paper_owners/authorship",
                 {
-                    id: "upsert",
+                    id: "update",  // This becomes "paper_owners/authorship/update"
                     data: body,
                     previousData: {}
                 });
@@ -141,7 +137,7 @@ const PaperOwnersList: React.FC<{document_id?: Identifier}> = ({document_id}) =>
             <Datagrid
                 size={"small"}
                 rowClick="edit"
-                bulkActionButtons={<PaperOwnerBulkActionButtons documentId={document_id} />}
+                bulkActionButtons={<PaperOwnerBulkActionButtons />}
                 empty={<p><b>No owners for this paper</b></p>}
             >
                 <BooleanField source="flag_author" label={"Owner"} />

@@ -17,7 +17,7 @@ import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormGroup from "@mui/material/FormGroup";
 
-type UpdatePaperOwnersRequestT = adminApi['/v1/paper_owners/update-paper-owners/{id}']['put']['requestBody']['content']['application/json'];
+type UpdatePaperOwnersRequestT = adminApi['/v1/paper_owners/authorship/{action}']['put']['requestBody']['content']['application/json'];
 type UsersT = adminApi['/v1/users/']['get']['responses']['200']['content']['application/json'];
 type UserT = UsersT[0];
 
@@ -47,15 +47,14 @@ const PaperAdminAddUserDialog: React.FC<
 
         let data: UpdatePaperOwnersRequestT =
             {
-                document_id: documentId.toString(),
-                owners: isOwner ? ids : [],
-                nonowners: isOwner ? [] : ids,
+                authored: isOwner ? ids : [],
+                not_authored: isOwner ? [] : ids,
                 auto: false
             };
 
         try {
             // Use update method for upsert operation
-            await dataProvider.update('paper_owners/update-paper-owners', {
+            await dataProvider.update('paper_owners/authorship', {
                 id: 'upsert',
                 data: data,
                 previousData: {}
