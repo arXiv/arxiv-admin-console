@@ -1,8 +1,13 @@
 import React from "react";
-import { useRecordContext } from "react-admin";
+import {FieldProps, useRecordContext } from "react-admin";
 import Tooltip from "@mui/material/Tooltip";
 
-const UserNameField: React.FC = () => {
+interface UserNameFieldProps {
+    withEmail?: boolean;
+    withUsername?: boolean;
+}
+
+const UserNameField: React.FC<UserNameFieldProps> = ({withEmail, withUsername}) => {
     const record = useRecordContext();
 
     if (!record) return null;
@@ -13,6 +18,8 @@ const UserNameField: React.FC = () => {
         <Tooltip title={`${username} <${email}> (${id})`} arrow>
             <span>
                 {first_name} {last_name}
+                {withEmail && email ? ` <${email}>` : ""}
+                {withUsername && username ? ` (${username})` : ""}
             </span>
         </Tooltip>
     );

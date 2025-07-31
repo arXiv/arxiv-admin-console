@@ -247,7 +247,7 @@ export const EndorsementEdit = () => (
                     <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
                                 link={(record, reference) => `/${reference}/${record.id}`} >
                         <UserNameField />
-                        <UserStatusField />
+                        <UserStatusField source={"id"} />
                     </ReferenceField>
                 </Box>
 
@@ -261,7 +261,7 @@ export const EndorsementEdit = () => (
                     <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
                                     link={(record, reference) => `/${reference}/${record.id}`} >
                         <UserNameField />
-                        <UserStatusField />
+                        <UserStatusField source={"id"} />
                     </ReferenceField>
                 </Box>
 

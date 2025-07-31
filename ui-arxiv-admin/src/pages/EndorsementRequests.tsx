@@ -369,25 +369,25 @@ export const EndorsementRequestEdit = () => {
     return (
         <Edit title={<EndorsementRequestTitle />}>
             <Grid container>
-                <Grid item xs={6}>
+                <Grid size={6}>
                     <SimpleForm>
-                        <Grid container item xs={12}>
-                            <Grid item xs={4}>
+                        <Grid  size={12}>
+                            <Grid size={4}>
                                 <BooleanInput name={"flag-Valid"} source={"flag_valid"} label={"Valid"} />
                             </Grid>
-                            <Grid item xs={4}>
+                            <Grid size={4}>
                                 <BooleanInput name={"flag-Open"} source={"flag_open"} label={"Open"} />
                             </Grid>
                         </Grid>
-                        <Grid container item xs={12}>
-                            <Grid item xs={2}>ID:</Grid>
-                            <Grid item xs={4}><TextField source="id" /></Grid>
-                            <Grid item xs={2}>Category:</Grid>
-                            <Grid item xs={4}>
+                        <Grid  size={12}>
+                            <Grid size={2}>ID:</Grid>
+                            <Grid size={4}><TextField source="id" /></Grid>
+                            <Grid size={2}>Category:</Grid>
+                            <Grid size={4}>
                                 <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} label={"Category"}/>
                             </Grid>
                         </Grid>
-                        <Grid container item xs={12}>
+                        <Grid  size={12}>
                             <ReferenceField source="endorsee_id" reference="users"
                                             link={(record, reference) => `/${reference}/${record.id}`} >
                                 <TextField source={"last_name"} fontStyle={{fontSize: '1rem'}} />
@@ -396,13 +396,13 @@ export const EndorsementRequestEdit = () => {
                             </ReferenceField>
                         </Grid>
 
-                        <Grid container item xs={12}>
+                        <Grid container size={12}>
                             <ReferenceInput source="endorser_id" reference="users">
                                 <TextField source={"last_name"} fontStyle={{fontSize: '1rem'}} />
                                 <TextField source={"first_name"} fontStyle={{fontSize: '1rem'}} />
                             </ReferenceInput>
                         </Grid>
-                        <Grid container item xs={12}>
+                        <Grid container size={12}>
                             Issued when: <ISODateField source="issued_when"  label={"Issued"}/>
                         </Grid>
                     </SimpleForm>
@@ -410,7 +410,7 @@ export const EndorsementRequestEdit = () => {
                         <ListEndorsements />
                     </Grid>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                     <ShowDemographic />
                 </Grid>
             </Grid>

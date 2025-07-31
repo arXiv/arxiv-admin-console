@@ -37,7 +37,7 @@ interface UserSelectDialogProps {
     selectedUserId?: number;
 }
 
-const UserSelectDialog: React.FC<UserSelectDialogProps> = ({
+export const UserSelectDialog: React.FC<UserSelectDialogProps> = ({
     open,
     onClose,
     onUserSelect,

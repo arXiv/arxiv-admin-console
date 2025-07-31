@@ -4,7 +4,7 @@ import {
 
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Grid from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableRow from '@mui/material/TableRow';

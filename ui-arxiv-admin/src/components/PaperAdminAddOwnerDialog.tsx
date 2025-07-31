@@ -9,13 +9,17 @@ import Box from '@mui/material/Box';
 // import Checkbox from '@mui/material/Checkbox';
 
 import {paths as adminApi} from '../types/admin-api';
-import {Identifier, useDataProvider, useNotify, useRefresh} from "react-admin";
+import {Identifier, RecordContextProvider, useDataProvider, useNotify, useRefresh} from "react-admin";
 // import MuiTextField from "@mui/material/TextField";
 import CircularProgress from "@mui/material/CircularProgress";
 import UserChooser from "./UserChooser";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormGroup from "@mui/material/FormGroup";
+import SingleUserInputField, { UserSelectDialog } from "./SingleUserInputField";
+import Typography from "@mui/material/Typography";
+import UserNameField from "../bits/UserNameField";
+import UserStatusField from "../bits/UserStatusField";
 
 type UpdatePaperOwnersRequestT = adminApi['/v1/paper_owners/authorship/{action}']['put']['requestBody']['content']['application/json'];
 type UsersT = adminApi['/v1/users/']['get']['responses']['200']['content']['application/json'];
@@ -33,9 +37,10 @@ const PaperAdminAddUserDialog: React.FC<
     const dataProvider = useDataProvider();
     const notify = useNotify();
     const refresh = useRefresh();
-    const [paperOwners, setPaperOwners] = useState<string[]>([]);
+    const [paperOwners, setPaperOwners] = useState<UserT[]>([]);
     const [isOwner, setIsOwner] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUserSelectOpen, setIsUserSelectOpen] = useState(true);
 
     const handleSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
@@ -43,7 +48,7 @@ const PaperAdminAddUserDialog: React.FC<
         // Set saving state to disable the button
         setIsSaving(true);
 
-        const ids = paperOwners.map((user_id) => `user_${user_id}-doc_${documentId}`);
+        const ids = paperOwners.map((user) => `user_${user.id}-doc_${documentId}`);
 
         let data: UpdatePaperOwnersRequestT =
             {
@@ -77,19 +82,37 @@ const PaperAdminAddUserDialog: React.FC<
         }
     };
 
-    const onUsersSelected = (selectedUsers: UsersT) => {
-        // @ts-ignore
-        const owners = selectedUsers.filter((user: UserT) => user.id).map((user: UserT) => user.id.toString());
-        console.log("Selected users:", JSON.stringify(selectedUsers));
-        setPaperOwners(owners);
+    const onUsersSelected = (user: UserT) => {
+        setPaperOwners([user]);
     }
 
     return (
-        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
-            <DialogTitle>Add Paper Owners</DialogTitle>
+        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+            <UserSelectDialog
+                open={isUserSelectOpen}
+                onUserSelect={onUsersSelected}
+                onClose={() => setIsUserSelectOpen(false)}
+            />
+
+            <DialogTitle>Add Paper Owner</DialogTitle>
             <DialogContent>
                 <Box sx={{display: 'flex', flexDirection: 'column'}}>
-                    <UserChooser onUsersSelected={onUsersSelected}/>
+                    <Box display="flex" flexDirection="row" sx={{gap: 1, flexWrap: 'wrap'}}>
+                        <Button variant={"outlined"}  onClick={() => setIsUserSelectOpen(true)} disabled={isSaving} >User...</Button>
+
+                    {
+                        paperOwners.map((user) => {
+                            return (
+                                <RecordContextProvider value={user}>
+                                    <UserNameField withEmail withUsername/>
+                                    <UserStatusField source={"id"} />
+                                </RecordContextProvider>
+                            )
+                        })
+                    }
+                    </Box>
+
+
                     <FormGroup>
                         <FormControlLabel
                             control={<Switch value={"isOwner"} checked={isOwner} onChange={() => setIsOwner(!isOwner)} />}

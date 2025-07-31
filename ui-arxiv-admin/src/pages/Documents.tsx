@@ -295,7 +295,7 @@ const DocumentContent = () => {
                     </Typography>
                     <Button variant={"contained"} sx={{ml: 3}}
                             onClick={() => setOpenAddOwnerDialog(true)}
-                    >Add Owners</Button>
+                    >Add Owner</Button>
                 </Box>
                 <Box maxWidth={"sm"}>
                     <PaperOwnersList document_id={record?.id}/>

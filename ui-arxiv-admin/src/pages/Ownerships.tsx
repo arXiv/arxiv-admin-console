@@ -156,12 +156,7 @@ export const OwnershipList = () => {
                 </ReferenceField>
 
                 <ReferenceField reference={"users"} source={"user_id"} label={"Owner"} link={"edit"}>
-                    <UserNameField />
-                    {" <"}
-                    <EmailField source={"email"} />
-                    {"> ("}
-                    <TextField source={"username"} />
-                    {")"}
+                    <UserNameField withEmail withUsername/>
                 </ReferenceField>
 
                 <ISODateField source={"date"} />

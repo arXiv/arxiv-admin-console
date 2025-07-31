@@ -140,7 +140,7 @@ const PaperOwnersList: React.FC<{document_id?: Identifier}> = ({document_id}) =>
                 bulkActionButtons={<PaperOwnerBulkActionButtons />}
                 empty={<p><b>No owners for this paper</b></p>}
             >
-                <BooleanField source="flag_author" label={"Owner"} />
+                <BooleanField source="flag_author" label={"Author"} />
                 <BooleanField source="valid" label={"Valid"} />
                 <ReferenceField reference="users" source="user_id" label="Name">
                     <UserNameField />

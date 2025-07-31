@@ -151,8 +151,8 @@ export const SubmissionEdit = () => {
 
     return(
 <Grid container>
-        <Grid item xs={12}>
-            <Grid item xs={2} alignItems={"center"}>
+        <Grid size={12}>
+            <Grid size={2} alignItems={"center"}>
                 <ToggleButton value="showAdminLogs" selected={showLogs} onClick={() => setShowLogs(!showLogs)} >
                     {showLogs ? "Hide Admin Logs" : "Show Admin Logs"}
                 </ToggleButton>
@@ -160,11 +160,11 @@ export const SubmissionEdit = () => {
         <Edit aside={<AdminLogs showLogs={showLogs} />}>
             <SimpleForm>
                 <Grid container>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                         {"submit/"}
                         <TextField source="id" />
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                         {"source format: "}
                         <TextField source="source_format" />
                         {" - "}
@@ -172,14 +172,14 @@ export const SubmissionEdit = () => {
                         {" bytes"}
 
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid size={2}>
                         <SelectInput source="status" choices={submissionStatusOptions} />
                     </Grid>
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             User Identity
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid size={4}>
                             <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                             link={(record, reference) => `/${reference}/${record.id}`} >
                                 <TextField source={"last_name"} />
@@ -187,90 +187,90 @@ export const SubmissionEdit = () => {
                                 <TextField source={"first_name"} />
                             </ReferenceField>
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid size={4}>
                             <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
                                 <EmailField source={"email"} />
                             </ReferenceField>
                         </Grid>
                     </Grid>
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             From
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid size={4}>
                             <TextInput source="submitter_name" />
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid size={4}>
                             <TextInput source="submitter_email" />
                         </Grid>
                     </Grid>
 
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             Date created:
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid size={2}>
                             <ISODateField source="created" label="Created"/>
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid size={2}>
                             Date updated:
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid size={2}>
                             <ISODateField source="updated" />
                         </Grid>
                     </Grid>
 
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             Categories:
                         </Grid>
-                        <Grid item xs={10}>
+                        <Grid size={10}>
                             <CategoryInputField source="id" sourceCategory="archive" sourceClass="subject_class" />
                         </Grid>
                     </Grid>
 
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             Title
                         </Grid>
-                        <Grid item xs={10}>
+                        <Grid size={10}>
                             <TextInput source="title" />
                         </Grid>
 
                     </Grid>
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             Authors
                         </Grid>
-                        <Grid item xs={10}>
+                        <Grid size={10}>
                             <TextInput source="authors" />
                         </Grid>
 
                     </Grid>
 
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             Comments
                         </Grid>
-                        <Grid item xs={10}>
+                        <Grid size={10}>
                             <TextInput source="comments" />
                         </Grid>
 
                     </Grid>
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             License
                         </Grid>
-                        <Grid item xs={10}>
+                        <Grid size={10}>
                             <TextField source="license" />
                         </Grid>
 
                     </Grid>
-                    <Grid container item xs={12}>
-                        <Grid item xs={2}>
+                    <Grid container size={12}>
+                        <Grid size={2}>
                             Abstract
                         </Grid>
-                        <Grid item xs={10}>
+                        <Grid size={10}>
                             <TextInput source="abstract" multiline rows={20} />
                         </Grid>
 
@@ -320,29 +320,29 @@ export const SubmissionShow = () => {
     return (
         <Show>
             <Grid container>
-                <Grid container item xs={12}>
-                    <Grid item xs={3}>
+                <Grid container size={12}>
+                    <Grid size={3}>
                         <TextField source="id"/>
                         {" / "}
                         <TextField source="document_id"/>
                     </Grid>
-                    <Grid item xs={9}>
+                    <Grid size={9}>
                         <TextField source="title" />
                     </Grid>
                 </Grid>
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
+                <Grid container size={12}>
+                    <Grid size={2}>
                         Authors:
                     </Grid>
-                    <Grid item xs={10}>
+                    <Grid size={10}>
                         <TextField source="authors" />
                     </Grid>
                 </Grid>
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
+                <Grid container size={12}>
+                    <Grid size={2}>
                         Submitter:
                     </Grid>
-                    <Grid item xs={10}>
+                    <Grid size={10}>
                         <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                         link={(record, reference) => `/${reference}/${record.id}`} >
                             <TextField source={"last_name"} />
@@ -351,35 +351,35 @@ export const SubmissionShow = () => {
                         </ReferenceField>
                     </Grid>
                 </Grid>
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
+                <Grid container size={12}>
+                    <Grid size={2}>
                         Submission date:
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                         <ISODateField source="submit_time" />
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid size={2}>
                         Release time:
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid size={3}>
                         <ISODateField source="release_time" />
                     </Grid>
                 </Grid>
 
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
+                <Grid container size={12}>
+                    <Grid size={2}>
                         Comments
                     </Grid>
-                    <Grid item xs={10}>
+                    <Grid size={10}>
                         <TextField source="comments" />
                     </Grid>
                 </Grid>
 
-                <Grid container item xs={12}>
-                    <Grid item xs={2}>
+                <Grid container size={12}>
+                    <Grid size={2}>
                         Abstract
                     </Grid>
-                    <Grid item xs={10}>
+                    <Grid size={10}>
                         <TextField source="abstract" />
                     </Grid>
                 </Grid>
