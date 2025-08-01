@@ -15,17 +15,16 @@ import React from 'react';
 import ISODateField from "./ISODateFiled";
 
 
-const AdminLogList: React.FC<{paper_id?: string}> = ({paper_id}) => {
-    if (!paper_id) return null;
-
+const AdminLogList: React.FC<{paper_id?: string, submission_id?: string}> = ({paper_id, submission_id}) => {
     const controllerProps = useListController({
         resource: 'admin_logs',
-        filter: { paper_id: paper_id },
+        filter: { paper_id: paper_id, submission_id: submission_id },
         sort: { field: 'id', order: 'DESC' },
         perPage: 5,
         disableSyncWithLocation: true,
     });
 
+    if (!paper_id && !submission_id) return null;
     if (controllerProps.isLoading) return null;
     if (controllerProps.error) return <p>Error loading paper ownership data.</p>;
 

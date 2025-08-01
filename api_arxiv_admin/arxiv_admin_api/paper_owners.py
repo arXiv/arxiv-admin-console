@@ -173,6 +173,8 @@ async def list_ownerships(
         t0 = datetime.now()
 
         order_columns = []
+        query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)
+
         if _sort:
             keys = _sort.split(",")
             for key in keys:
@@ -181,12 +183,23 @@ async def list_ownerships(
                     order_columns.append(getattr(PaperOwner, "user_id"))
                     order_columns.append(getattr(PaperOwner, "document_id"))
                 else:
-                    try:
-                        order_column = getattr(PaperOwner, key)
-                        order_columns.append(order_column)
-                    except AttributeError:
-                        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
-                                            detail="Invalid start or end index")
+                    joined_key = key.split('.')
+                    if len(joined_key) == 1:
+                        # Cannot handle joined key here. It needs to be done after join
+                        try:
+                            order_column = getattr(PaperOwner, key)
+                            order_columns.append(order_column)
+                        except AttributeError:
+                            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                                detail=f"Invalid sort key {key}")
+                    elif len(joined_key) == 2:
+                        if joined_key[0] == "document":
+                            try:
+                                order_column = getattr(Document, joined_key[1])
+                                order_columns.append(order_column)
+                            except AttributeError:
+                                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                                    detail=f"Invalid sort key {key}")
 
         if preset is not None:
             matched = re.search(r"last_(\d+)_days", preset)
@@ -216,7 +229,7 @@ async def list_ownerships(
             query = query.filter(PaperOwner.flag_author == flag_author)
 
         if datagrid_filter:
-            query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)
+            # query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)
             field_name = datagrid_filter.field_name
             if field_name == "id":
                 field_name = "document_id"

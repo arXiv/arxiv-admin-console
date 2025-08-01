@@ -66,7 +66,7 @@ async def list_admin_logs(
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0),
         _end: Optional[int] = Query(100),
-        submission_id: Optional[int] = Query(None),
+        submission_id: Optional[int] = Query(None, description="arXid Submission ID"),
         paper_id: Optional[str] = Query(None, description="arXid Paper ID"),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),

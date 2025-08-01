@@ -5,7 +5,7 @@ import {useRecordContext, FieldProps, TextField} from 'react-admin';
 interface SubmissionStatusFieldProps extends FieldProps {
     record?: any;
 }
-
+/*
 export const submissionStatusOptions = [
     {"id": 0, "name": "Working" },
     {"id": 1, "name": "Submitted"},
@@ -26,6 +26,17 @@ export const submissionStatusOptions = [
     {"id": 29, "name": "Deleted(removed)"},
     {"id": 30, "name": 'Deleted(user deleted)'},
 ];
+*/
+
+export const submissionStatusOptions = [
+    {"id": 0, "name": "Working" },
+    {"id": 1, "name": "Submitted"},
+    {"id": 2, "name": "On hold"},
+    {"id": 4, "name": "Next"},
+    {"id": 8, "name": "Stuck"},
+    {"id": 9, "name": "Removed"},
+];
+
 
 
 const SubmissionStatusField: React.FC<SubmissionStatusFieldProps> = (props) => {

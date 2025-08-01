@@ -1,22 +1,22 @@
 """arXiv paper display routes."""
+import re
+from datetime import datetime, date, timedelta
+from enum import Enum, IntEnum
+from typing import Optional, List, Union
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv.base import logging
+from arxiv.db.models import Submission, SubmissionCategory
 from arxiv_bizlogic.fastapi_helpers import get_authn
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
-from typing import Optional, List
-from arxiv.base import logging
-from arxiv.db.models import Submission, SubmissionCategory
+from pydantic import BaseModel, field_validator
+from sqlalchemy import text, cast, LargeBinary, Row  # select, update, func, case, Select, distinct, exists, and_
 from sqlalchemy.orm import Session
-from sqlalchemy import text, cast, LargeBinary  # select, update, func, case, Select, distinct, exists, and_
-from pydantic import BaseModel
-from datetime import datetime, date, timedelta
 
+from . import get_db, VERY_OLDE, is_any_user
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .submission_categories import SubmissionCategoryModel
-import re
-
-from . import get_db, VERY_OLDE, get_current_user, is_any_user
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +29,26 @@ class SubmissionStatusModel(BaseModel):
     group: str
 
 _VALID_STATUS_LIST: List[SubmissionStatusModel] = [
+    # WORKING
     SubmissionStatusModel(id=0, name="Working", group="current"),
+
+    # SUBMITTED
     SubmissionStatusModel(id=1, name="Submitted", group="current"),
+
+    # ON_HOLD
     SubmissionStatusModel(id=2, name="On hold", group="current"),
     SubmissionStatusModel(id=3, name="Unused", group="unuesd"),
+
+    # NEXT = "4"
     SubmissionStatusModel(id=4, name="Next", group="current"),
     SubmissionStatusModel(id=5, name="Processing", group="processing"),
     SubmissionStatusModel(id=6, name="Needs_email", group="processing"),
     SubmissionStatusModel(id=7, name="Published", group="accepted"),
-    SubmissionStatusModel(id=8, name="Processing(submitting)", group="accepted"),
+
+    # STUCK = "8"
+    SubmissionStatusModel(id=8, name="Stuck", group="accepted"),
+
+    # REMOVED = "9"
     SubmissionStatusModel(id=9, name="Removed", group="invalid"),
     SubmissionStatusModel(id=10, name="User deleted", group="invalid"),
     SubmissionStatusModel(id=19, name="Error state", group="invalid"),
@@ -53,15 +64,28 @@ _VALID_STATUS_LIST: List[SubmissionStatusModel] = [
 VALID_STATUS_LIST = {entry.id : entry.name for entry in _VALID_STATUS_LIST}
 
 
+class SubmissionType(str, Enum):
+    cross = "cross"
+    jref = "jref"
+    new = "new"
+    rep = "rep"
+    wdr = "wdr"
+
+class IsAuthorEnum(IntEnum):
+    unknown = 0
+    original_submitter = 1
+    proxy_submitter = 2
+
+
 class SubmissionModel(BaseModel):
     id: int  # submission_id: intpk]
     document_id: Optional[int] = None #  = mapped_column(ForeignKey('arXiv_documents.document_id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     doc_paper_id: Optional[str] = None # = mapped_column(String(20), index=True)
     sword_id: Optional[int] = None  # = mapped_column(ForeignKey('arXiv_tracking.sword_id'), index=True)
     userinfo: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
-    is_author: int # = mapped_column(Integer, nullable=False, server_default=text("'0'"))
-    agree_policy: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
-    viewed: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
+    is_author: IsAuthorEnum # = mapped_column(Integer, nullable=False, server_default=text("'0'"))
+    agree_policy: Optional[bool] = None  # = mapped_column(Integer, server_default=FetchedValue())
+    viewed: Optional[bool] = None  # = mapped_column(Integer, server_default=FetchedValue())
     stage: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
     submitter_id: Optional[int] = None  # = mapped_column(ForeignKey('tapir_users.user_id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     submitter_name: Optional[str] = None  # = mapped_column(String(64))
@@ -70,14 +94,14 @@ class SubmissionModel(BaseModel):
     updated: Optional[datetime] = None
     status: int # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
     sticky_status: Optional[int] = None  # = mapped_column(Integer)
-    must_process: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
+    must_process: Optional[bool] = None  # = mapped_column(Integer, server_default=FetchedValue())
     submit_time: Optional[datetime] = None
     release_time: Optional[datetime] = None
     source_size: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
     source_format: Optional[str] = None  # = mapped_column(String(12))
     source_flags: Optional[str] = None  # = mapped_column(String(12))
-    has_pilot_data: Optional[int] = None  # = mapped_column(Integer)
-    is_withdrawn: int # = mapped_column(Integer, nullable=False, server_default=text("'0'"))
+    has_pilot_data: Optional[bool] = None  # = mapped_column(Integer)
+    is_withdrawn: bool # = mapped_column(Integer, nullable=False, server_default=text("'0'"))
     title: Optional[str] = None  # = mapped_column(Text)
     authors: Optional[str] = None  # = mapped_column(Text)
     comments: Optional[str] = None  # = mapped_column(Text)
@@ -90,19 +114,28 @@ class SubmissionModel(BaseModel):
     abstract: Optional[str] = None  # = mapped_column(Text)
     license: Optional[str] = None  # = mapped_column(ForeignKey('arXiv_licenses.name', onupdate='CASCADE'), index=True)
     version: int # = mapped_column(Integer, nullable=False, server_default=text("'1'"))
-    type: Optional[str] = None  # = mapped_column(String(8), index=True)
-    is_ok: Optional[int] = None  # = mapped_column(Integer, index=True)
-    admin_ok: Optional[int] = None  # = mapped_column(Integer)
-    allow_tex_produced: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
-    is_oversize: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
+    type: Optional[SubmissionType] = None  # = mapped_column(String(8), index=True)
+    is_ok: Optional[bool] = None  # = mapped_column(Integer, index=True)
+    admin_ok: Optional[bool] = None  # = mapped_column(Integer)
+    allow_tex_produced: Optional[bool] = None  # = mapped_column(Integer, server_default=FetchedValue())
+    is_oversize: Optional[bool] = None  # = mapped_column(Integer, server_default=FetchedValue())
     remote_addr: str # = mapped_column(String(16), nullable=False, server_default=FetchedValue())
     remote_host: str # = mapped_column(String(255), nullable=False, server_default=FetchedValue())
     package: str # = mapped_column(String(255), nullable=False, server_default=FetchedValue())
     rt_ticket_id: Optional[int] = None  # = mapped_column(Integer, index=True)
-    auto_hold: Optional[int] = None  # = mapped_column(Integer, server_default=FetchedValue())
+    auto_hold: Optional[bool] = None  # = mapped_column(Integer, server_default=FetchedValue())
     is_locked: int # = mapped_column(Integer, nullable=False, index=True, server_default=text("'0'"))
     agreement_id: Optional[int] = None  # mapped_column(ForeignKey('arXiv_submission_agreements.agreement_id'), index=True)
     submission_categories: Optional[List[SubmissionCategoryModel]] = None
+
+    data_version: Optional[int] = None
+    metadata_version: int
+    data_needed: bool
+    data_version_queued: bool
+    metadata_version_queued: bool
+    data_queued_time: Optional[datetime] = None
+    metadata_queued_time: Optional[datetime] = None
+    preflight: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -157,19 +190,44 @@ class SubmissionModel(BaseModel):
             Submission.rt_ticket_id,
             Submission.auto_hold,
             Submission.is_locked,
-            Submission.agreement_id
+            Submission.agreement_id,
+            Submission.data_version,
+            Submission.metadata_version,
+            Submission.data_needed,
+            Submission.data_version_queued,
+            Submission.metadata_version_queued,
+            Submission.data_queued_time,
+            Submission.metadata_queued_time,
+            Submission.preflight,
         )
 
     @staticmethod
-    def to_model(sub: Submission, session: Session) -> "SubmissionModel":
-        row = sub._asdict()
+    def to_model(sub: Submission | Row, session: Session) -> "SubmissionModel":
+        if hasattr(sub, "_asdict"):  # It's a Row
+            row = sub._asdict()
+        else:  # It's a model instance
+            row = sub.__dict__.copy()
         for field in ["submitter_name", "title", "authors", "comments", "abstract"]:
             row[field] = convert_latex_accents(row[field].decode("utf-8")) if row[field] else None
+        sub_id = row.get("id")
         subm = SubmissionModel.model_validate(row)
         subm.submission_categories = [SubmissionCategoryModel.model_validate(cat) for cat in
                                       SubmissionCategoryModel.base_select(session).filter(
-                                      SubmissionCategory.submission_id == sub.id).all()]
+                                      SubmissionCategory.submission_id == sub_id).all()]
         return subm
+
+    @field_validator('is_author')
+    @classmethod
+    def validate_is_author(cls, value):
+        if isinstance(value, (str, int)) and not isinstance(value, IsAuthorEnum):
+            try:
+                return IsAuthorEnum(value)
+            except ValueError:
+                try:
+                    return IsAuthorEnum[value]
+                except KeyError:
+                    raise ValueError(f"Invalid is_author value: {value}")
+        return value
 
 
 @router.get('/')
@@ -183,9 +241,10 @@ async def list_submissions(
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
         stage: Optional[List[int]] = Query(None, description="Stage"),
-        status: Optional[List[str] | str] = Query(None, description="Status"),
+        submission_status: Optional[Union[int,List[int]]] = Query(
+            None, description="Submission status"),
         title_like: Optional[str]= Query(None, description="Title"),
-        submission_status: Optional[List[int]] = Query(None, description="Submission status"),
+        type: Optional[List[str]] = Query(None, description="Submission Type list"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         document_id: Optional[int] = Query(None, description="Document ID"),
         submitter_id: Optional[int] = Query(None, description="Submitter ID"),
@@ -227,20 +286,20 @@ async def list_submissions(
         elif end_submission_id is not None:
             query = query.filter(Submission.submission_id <= end_submission_id)
 
-        if submission_status is not None:
-            if isinstance(submission_status, list):
-                query = query.filter(Submission.status.in_(submission_status))
-            else:
-                query = query.filter(Submission.status == submission_status)
-
         if stage is not None:
             query = query.filter(Submission.stage.in_(stage))
 
-        if status is not None:
+        if submission_status is not None:
             status_list = []
-            status_codes = status if isinstance(status, list) else [status]
+            status_codes = submission_status if isinstance(submission_status, list) else [submission_status]
             status_all = False
             for status_code in status_codes:
+                if isinstance(status_code, int):
+                    status_list.append(status_code)
+                    continue
+                if not isinstance(status_code, str):
+                    continue
+
                 if status_code == "all":
                     status_all = True
                     break
@@ -278,6 +337,12 @@ async def list_submissions(
                 # t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
                 t_end = end_date if end_date else datetime.now()
                 query = query.filter(Submission.submit_time.between(t_begin, t_end))
+
+        if type is not None:
+            if isinstance(type, list):
+                query = query.filter(Submission.type.in_(type))
+            else:
+                query = query.filter(Submission.type == type)
 
         if datagrid_filter:
             field_name = datagrid_filter.field_name

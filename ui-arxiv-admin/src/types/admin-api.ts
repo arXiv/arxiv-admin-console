@@ -2268,6 +2268,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * IsAuthorEnum
+         * @enum {integer}
+         */
+        IsAuthorEnum: 0 | 1 | 2;
         /** LicenseModel */
         LicenseModel: {
             /** Id */
@@ -2666,12 +2671,11 @@ export interface components {
             sword_id?: number | null;
             /** Userinfo */
             userinfo?: number | null;
-            /** Is Author */
-            is_author: number;
+            is_author: components["schemas"]["IsAuthorEnum"];
             /** Agree Policy */
-            agree_policy?: number | null;
+            agree_policy?: boolean | null;
             /** Viewed */
-            viewed?: number | null;
+            viewed?: boolean | null;
             /** Stage */
             stage?: number | null;
             /** Submitter Id */
@@ -2689,7 +2693,7 @@ export interface components {
             /** Sticky Status */
             sticky_status?: number | null;
             /** Must Process */
-            must_process?: number | null;
+            must_process?: boolean | null;
             /** Submit Time */
             submit_time?: string | null;
             /** Release Time */
@@ -2701,9 +2705,9 @@ export interface components {
             /** Source Flags */
             source_flags?: string | null;
             /** Has Pilot Data */
-            has_pilot_data?: number | null;
+            has_pilot_data?: boolean | null;
             /** Is Withdrawn */
-            is_withdrawn: number;
+            is_withdrawn: boolean;
             /** Title */
             title?: string | null;
             /** Authors */
@@ -2728,16 +2732,15 @@ export interface components {
             license?: string | null;
             /** Version */
             version: number;
-            /** Type */
-            type?: string | null;
+            type?: components["schemas"]["SubmissionType"] | null;
             /** Is Ok */
-            is_ok?: number | null;
+            is_ok?: boolean | null;
             /** Admin Ok */
-            admin_ok?: number | null;
+            admin_ok?: boolean | null;
             /** Allow Tex Produced */
-            allow_tex_produced?: number | null;
+            allow_tex_produced?: boolean | null;
             /** Is Oversize */
-            is_oversize?: number | null;
+            is_oversize?: boolean | null;
             /** Remote Addr */
             remote_addr: string;
             /** Remote Host */
@@ -2747,13 +2750,29 @@ export interface components {
             /** Rt Ticket Id */
             rt_ticket_id?: number | null;
             /** Auto Hold */
-            auto_hold?: number | null;
+            auto_hold?: boolean | null;
             /** Is Locked */
             is_locked: number;
             /** Agreement Id */
             agreement_id?: number | null;
             /** Submission Categories */
             submission_categories?: components["schemas"]["SubmissionCategoryModel"][] | null;
+            /** Data Version */
+            data_version?: number | null;
+            /** Metadata Version */
+            metadata_version: number;
+            /** Data Needed */
+            data_needed: boolean;
+            /** Data Version Queued */
+            data_version_queued: boolean;
+            /** Metadata Version Queued */
+            metadata_version_queued: boolean;
+            /** Data Queued Time */
+            data_queued_time?: string | null;
+            /** Metadata Queued Time */
+            metadata_queued_time?: string | null;
+            /** Preflight */
+            preflight?: boolean | null;
         };
         /** SubmissionStatusModel */
         SubmissionStatusModel: {
@@ -2764,6 +2783,11 @@ export interface components {
             /** Group */
             group: string;
         };
+        /**
+         * SubmissionType
+         * @enum {string}
+         */
+        SubmissionType: "cross" | "jref" | "new" | "rep" | "wdr";
         /** TapirAdminAuditModel */
         TapirAdminAuditModel: {
             /** Id */
@@ -3149,6 +3173,7 @@ export interface operations {
                 _order?: string | null;
                 _start?: number | null;
                 _end?: number | null;
+                /** @description arXid Submission ID */
                 submission_id?: number | null;
                 /** @description arXid Paper ID */
                 paper_id?: string | null;
@@ -5910,12 +5935,12 @@ export interface operations {
                 end_date?: string | null;
                 /** @description Stage */
                 stage?: number[] | null;
-                /** @description Status */
-                status?: string[] | string | null;
+                /** @description Submission status */
+                status?: string[] | null;
                 /** @description Title */
                 title_like?: string | null;
-                /** @description Submission status */
-                submission_status?: number[] | null;
+                /** @description Submission Type list */
+                type?: string[] | null;
                 /** @description List of user IDs to filter by */
                 id?: number[] | null;
                 /** @description Document ID */
