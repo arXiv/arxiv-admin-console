@@ -4,7 +4,8 @@ from typing import Optional, List, Tuple, Literal
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.audit_event import AdminAudit_GotNegativeEndorsement, admin_audit
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import and_
@@ -231,128 +232,28 @@ async def update_endorsement(
     return EndorsementModel.model_validate(data)
 
 
-# class EndorsementUpdateModel(BaseModel):
-#     positive: bool
-#     category: str
-#     flag_seen_paper: bool
-#     flag_knows_personally: bool
-#     comment: Optional[str]
-#
-# class EndorsementsUpdateModel(BaseModel):
-#     endorser_id: str
-#     endorsee_id: str
-#     endorsements: List[EndorsementUpdateModel]
-#
-#
-# @router.put('/upsert')
-# async def upsert_endorsement(
-#         request: Request,
-#         body: EndorsementsUpdateModel,
-#         current_user: Optional[ArxivUserClaims] = Depends(get_authn),
-#         session: Session = Depends(get_db),
-#         remote_addr: str = Depends(get_client_host),
-#         remote_host: str = Depends(get_client_host_name),
-#         tracking_cookie: str = Depends(get_tracking_cookie),
-#
-#         ) -> List[EndorsementModel]:
-#     if current_user is None:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-#     if not current_user.is_admin:
-#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-#                             detail="You are not authorized to update endorsements.")
-#
-#     endorsements: List[Tuple[Endorsement, EndorsementUpdateModel]] = []
-#     issued_when = datetime_to_epoch(None, datetime.now(UTC))
-#
-#     for item in body.endorsements:
-#         [archive, subject_class] = item.category.split(".")
-#         point_value = 10 if item.positive else 0
-#         flag_valid = item.positive
-#
-#         endorsement: Endorsement | None = session.query(Endorsement).filter(and_(
-#             Endorsement.endorsee_id == body.endorsee_id,
-#             Endorsement.archive == archive,
-#             Endorsement.subject_class == subject_class
-#         )).one_or_none()
-#
-#         if endorsement is not None:
-#             if endorsement.point_value == 0:
-#                 endorsement.flag_valid = flag_valid
-#                 endorsement.point_value = point_value
-#                 endorsements.append((endorsement, item))
-#                 pass
-#             else:
-#                 if item.positive:
-#                     if point_value > endorsement.point_value:
-#                         endorsement.point_value = point_value
-#                         endorsement.flag_valid = flag_valid
-#                         endorsements.append((endorsement, item))
-#                         pass
-#                     pass
-#                 else:
-#                     if point_value != endorsement.point_value:
-#                         endorsement.point_value = point_value
-#                         endorsement.flag_valid = flag_valid
-#                         endorsements.append((endorsement, item))
-#                         pass
-#                     pass
-#                 pass
-#             pass
-#         else:
-#             endorsement = Endorsement(
-#                 endorser_id = body.endorser_id,
-#                 endorsee_id = body.endorsee_id,
-#                 archive = archive,
-#                 subject_class = subject_class,
-#                 flag_valid = flag_valid,
-#                 type_ = "admin",
-#                 point_value = point_value,
-#                 issued_when = issued_when
-#             )
-#             session.add(endorsement)
-#             session.flush()
-#             endorsements.append((endorsement, item))
-#             pass
-#         pass
-#
-#     if len(endorsements) == 0:
-#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No changes to update")
-#
-#     positives = []
-#     for endorsement, item in endorsements:
-#         if endorsement.flag_valid:
-#             positives.append(endorsement)
-#         audit = EndorsementsAudit(
-#             endorsement_id = endorsement.endorsement_id,
-#             session_id = current_user.session_id,
-#             remote_addr = remote_addr,
-#             remote_host = remote_host,
-#             tracking_cookie = tracking_cookie,
-#             flag_knows_personally = item.flag_knows_personally,
-#             flag_seen_paper = item.flag_seen_paper,
-#             comment = item.comment
-#         )
-#         session.add(audit)
-#     session.commit()
-#
-#     #  notify ensorsee - how can I do that?
-#
-#     return [EndorsementModel.model_validate(EndorsementModel.base_select(session).filter(Endorsement.endorsement_id == endorsement.endorsement_id).first()) for endorsement, _ in endorsements]
-
-
-async def _endorse(
-        session: Session,
+@router.post(
+    '/endorse',
+    description="Create endorsement by a user",
+    responses={
+        200: {"model": EndorsementOutcomeModel, "description": "Successful endorsement"},
+        405: {"model": EndorsementOutcomeModel, "description": "Endorsement not allowed"},
+        400: {"description": "Bad request"},
+        404: {"description": "Invalid endorsement code"},
+    }
+)
+async def endorse(
         request: Request,
         response: Response,
         endorsement_code: EndorsementCodeModel,
-        current_user: ArxivUserClaims,
-        current_tapir_session: TapirSessionData,
-        tracking_cookie: str | None,
-        client_host: str | None,
-        client_host_name: str | None,
-        audit_timestamp: datetime,
-        show_email: bool = False
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db),
+        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
+        tracking_cookie: str | None = Depends(get_tracking_cookie),
+        client_host: str | None = Depends(get_client_host),
+        client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
+    audit_timestamp = datetime.now(UTC)
     preflight = endorsement_code.preflight
     proto_endorser = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_code.endorser_id).one_or_none()
     if proto_endorser is None:
@@ -368,6 +269,9 @@ async def _endorse(
     if proto_endorsee is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses not found")
     endorsee = PublicUserModel.model_validate(proto_endorsee)
+
+    # Admin can see the email (mod too?)
+    show_email = current_user.is_admin
 
     accessor = EndorsementDBAccessor(session)
 
@@ -401,10 +305,12 @@ async def _endorse(
 
     if not business.public_reason:
         logging.info("reason %s is emptied as it is not public", business.outcome.reason)
+        # Make sure the reason is empty if it is not public
         business.outcome.reason = ""
 
     if preflight:
-        return business.outcome
+        outcome = business.outcome
+        return outcome
 
     if not acceptable:
         response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
@@ -414,6 +320,7 @@ async def _endorse(
         endorsement = business.submit_endorsement()
         if endorsement:
             business.outcome.endorsement = endorsement
+            session.commit()
             return business.outcome
         else:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -431,30 +338,6 @@ async def _endorse(
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Endorsement criteria is met but failed on database operation")
 
 
-@router.post(
-    '/endorse',
-    description="Create endorsement by a user",
-    responses={
-        200: {"model": EndorsementOutcomeModel, "description": "Successful endorsement"},
-        405: {"model": EndorsementOutcomeModel, "description": "Endorsement not allowed"},
-        400: {"description": "Bad request"},
-        404: {"description": "Invalid endorsement code"},
-    }
-)
-async def endorse(
-        request: Request,
-        response: Response,
-        endorsement_code: EndorsementCodeModel,
-        current_user: ArxivUserClaims = Depends(get_authn),
-        session: Session = Depends(get_db),
-        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
-        tracking_cookie: str | None = Depends(get_tracking_cookie),
-        client_host: str | None = Depends(get_client_host),
-        client_host_name: str | None = Depends(get_client_host_name)
-        ) -> EndorsementOutcomeModel:
-    audit_timestamp = datetime.now(UTC)
-    return await _endorse(session, request, response, endorsement_code, current_user, current_tapir_session, tracking_cookie, client_host, client_host_name, audit_timestamp, show_email=current_user.is_admin)
-
 
 class EndorsementCreationModel(BaseModel):
     endorser_id: str
@@ -462,16 +345,17 @@ class EndorsementCreationModel(BaseModel):
     archive: str
     subject_class: str
     type_: Literal["user", "admin", "auto"]
-    point_value: int
+    point_value: int # This is rather be boolean?
     flag_valid: bool
     flag_seen_paper: bool
     flag_knows_personally: bool
     comment: Optional[str] = None
 
+
 @router.post('/', description="Create a new endorsement (admin user only)")
 async def create_endorsement(
         body: EndorsementCreationModel,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
@@ -517,7 +401,7 @@ async def create_endorsement(
                               remote_host_ip=client_host,
                               remote_host_name=client_host_name,
                               tracking_cookie=tracking_cookie)
-    outcome = biz.admin_approve()
+    outcome = biz.admin_approve(current_user)
     if outcome:
         return biz.submit_endorsement()
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=biz.reason)

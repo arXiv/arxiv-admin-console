@@ -1,8 +1,9 @@
 import abc
 from typing import Optional, List, Tuple
 
+from arxiv.auth.user_claims import ArxivUserClaims
 from dulwich.porcelain import archive
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, aliased
 from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNickname, QuestionableCategory,)
 from datetime import datetime, timedelta
@@ -104,7 +105,9 @@ class EndorsementAccessor:
                           data: str = "",
                           comment: str = "",
                           user_id: Optional[int] = None,
-                          session_id: Optional[int] = None) -> None:
+                          session_id: Optional[int] = None,
+                          request_id: Optional[int] = None,
+                          category: str = "") -> None:
         """
         Logs administrative actions in the `tapir_admin_audit` table.
 
@@ -127,6 +130,10 @@ class EndorsementAccessor:
         :type user_id: Optional[int], optional
         :param session_id: The ID of the session in which the action occurred.
         :type session_id: Optional[int], optional
+        :param request_id: The ID of endorsement request
+        :type request_id: Optional[int], optional
+        :param category: Canon pretty category
+        :type category: str
 
         :return: None
         """
@@ -595,10 +602,12 @@ class EndorsementBusiness:
         return self.reject(reason, public_reason=True, request_acceptable=True, endorser_n_papers=non_author_n_papers)
 
 
-    def admin_approve(self) -> bool:
+    def admin_approve(self, admin: ArxivUserClaims) -> bool:
         """
-        This is about the endorser is ablet to submit an endorsement.
+        This is about the endorser is able to submit an endorsement.
         """
+        if not admin.is_admin:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only for admin user")
 
         category = self.accessor.get_category(self.canon_archive, self.canon_subject_class)
         if not category:

@@ -1,9 +1,12 @@
 """arXiv user routes."""
 import re
-from typing import Optional, List
+from typing import Optional, List, Type
 from datetime import date, timedelta, datetime, timezone
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.audit_event import AdminAudit_ChangeStatus, AdminAudit_AddComment, admin_audit
+from arxiv_bizlogic.user_status import UserVetoStatus
+
 from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn, get_client_host, get_client_host_name, \
     get_tapir_tracking_cookie, get_authn_user
 from fastapi import APIRouter, Query, status, Depends, Request
@@ -19,6 +22,7 @@ from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demog
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
+from .audit import record_user_prop_admin_action
 from .biz import canonicalize_category
 from .biz.document_biz import document_summary
 from .biz.endorsement_biz import can_user_submit_to, can_user_endorse_for, EndorsementAccessor
@@ -29,6 +33,21 @@ router = APIRouter(prefix="/users")
 
 class UserUpdateModel(UserModel):
     pass
+
+class UserPropertyUpdateRequest(BaseModel):
+    property_name: str
+    property_value: str | bool
+    comment: Optional[str]
+
+
+class UserVetoStatusRequest(BaseModel):
+    status_before: UserVetoStatus
+    status_after: UserVetoStatus
+    comment: Optional[str]
+
+
+class UserCommentRequest(BaseModel):
+    comment: str
 
 
 @router.get("/{user_id:int}")
@@ -302,20 +321,6 @@ async def list_users(
     return result
 
 
-audit_registry = {
-    "flag_banned": {
-    },
-    "flag_edit_users": {
-
-    },
-    "flag_edit_system": {
-
-    },
-    "flag_suspect": {
-
-    },
-}
-
 def sanitize_user_update_data(update_data: dict) -> dict:
     for key in ["id", "user_id", "username", "moderated_categories", "moderated_archives", "tapir_policy_classes", "orcid_id", "flag_is_mod"]:
         if key in update_data:
@@ -323,70 +328,106 @@ def sanitize_user_update_data(update_data: dict) -> dict:
     return update_data
 
 
-@router.put('/{user_id:int}')
-async def update_user(
+
+@router.put('/{user_id:int}/property')
+async def update_user_property(
         request: Request,
         user_id: int,
-        user_update: UserUpdateModel,
+        body: UserPropertyUpdateRequest,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         remote_ip: Optional[str] = Depends(get_client_host),
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> UserModel:
-    """Update user - by PUT"""
-    check_authnz(None, current_user, user_id)
-    user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).first()
+    """Update user property - by PUT"""
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update user properties")
+
+    user = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    demographic = session.query(Demographic).filter(Demographic.user_id == user_id).first()
-    update_data = user_update.model_dump(exclude_unset=True)  # Exclude fields that were not provided
-
-    update_data = sanitize_user_update_data(update_data)
-
-    # check new category
-    if hasattr(update_data, 'archive'):
-        if hasattr(update_data, 'subject_class'):
-            new_category = session.query(Category).filter(and_(
-                Category.archive == update_data.archive,
-                Category.subject_class == update_data.subject_class
-            )).one_or_none()
-            if new_category is None:
-                raise HTTPException(status_code=404, detail="Category not found")
-        else:
-            raise HTTPException(status_code=404, detail="Need archive and subject_class")
-    elif hasattr(update_data, 'subject_class'):
-        raise HTTPException(status_code=404, detail="Need archive and subject_class")
-
-    props = {}
-    for instance in [user, demographic]:
-        if instance is not None:  # Check if instance exists
-            for column in instance.__table__.columns:
-                column_name = column.name
-                props[column_name] = instance
-
-    del props['user_id']
-
-    for prop, instance in props.items():
-        if prop in update_data:
-            old_value = getattr(instance, prop)
-            new_value = update_data[prop]
-            if isinstance(new_value, datetime):
-                new_value.replace(tzinfo=timezone.utc)
-                new_value = datetime_to_epoch(None, new_value)
-            if old_value != new_value:
-                setattr(instance, prop, new_value)
-                audit_func = audit_registry.get(prop)
-                if audit_func:
-                    audit_func(session, user_id, old_value, new_value)
-            del update_data[prop]
-
-    if update_data:
-        raise HTTPException(status_code=400, detail="Invalid update data")
-
+    if hasattr(user, body.property_name):
+        old_value = getattr(user, body.property_name)
+        if old_value is None or old_value != body.property_value:
+            setattr(user, body.property_name, body.property_value)
+            record_user_prop_admin_action(session, current_user.user_id,
+                                          body.property_name, user_id, old_value, body.property_value, body.comment,
+                                          remote_ip, remote_hostname, tracking_cookie)
     session.commit()
-    session.refresh(user)  # Refresh the instance with the updated data
-    return UserModel.one_user(session, user.user_id)
+    return UserModel.one_user(session, user_id)
+
+
+@router.post('/{user_id:int}/comment')
+async def create_user_comment(
+        response: Response,
+        user_id: int,
+        body: UserCommentRequest,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> Response:
+    """Add comment to a user by POST"""
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update user properties")
+
+    user = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    admin_audit(AdminAudit_AddComment(
+            str(current_user.user_id),
+            str(user_id),
+            str(current_user.session_id),
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+            comment=body.comment,
+    ))
+    response.status_code = status.HTTP_201_CREATED
+    return response
+
+
+
+@router.put('/{user_id:int}/veto-status/')
+async def update_user_veto_status(
+        request: Request,
+        user_id: int,
+        body: UserVetoStatusRequest,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> UserModel:
+    """Update user veto status - by PUT"""
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update user properties")
+
+    demographic: Demographic | None = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
+    if demographic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if demographic.veto_status != body.status_after.value:
+        demographic.veto_status = body.status_after.value
+        admin_audit(AdminAudit_ChangeStatus(
+            current_user.user_id,
+            user_id,
+            current_user.session_id,
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+            status_before=demographic.veto_status,
+            status_after=body.status_after.value,
+            comment=body.comment,
+        ))
+        session.commit()
+    else:
+        raise HTTPException(status_code=status.HTTP_208_ALREADY_REPORTED, detail="No change")
+    return UserModel.one_user(session, user_id)
 
 
 @router.post('/')
@@ -470,8 +511,7 @@ def get_user_can_submit_to(
     from .biz.endorsement_io import EndorsementDBAccessor
     check_authnz(None, current_user, user_id)
 
-
-    categories: List[Category] = session.query(Category).all()
+    categories = session.query(Category).all()
     accessor = EndorsementDBAccessor(session)
 
     result = []

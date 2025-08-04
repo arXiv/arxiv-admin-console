@@ -66,6 +66,8 @@ import PolicClassField from "../bits/PolicClassField";
 import EmailHistoryList from "../bits/EmailHistoryList";
 import ChangeEmailDialog from "../components/ChangeEmailDialog";
 import ISODateField from "../bits/ISODateFiled";
+import FlaggedToggle from "../components/FlaggedToggle";
+import EndorsementRequestListField from '../bits/EndorsementRequestListField';
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -80,7 +82,7 @@ const UserFilter = (props: any) => (
         <TextInput label="Search by First name" source="first_name"/>
         <TextInput label="Search by Last Name" source="last_name"/>
         <BooleanInput label="Email bouncing" source="email_bouncing" defaultValue={true} />
-        <BooleanInput label="Suspect" source="suspect" defaultValue={true} />
+        <BooleanInput label="Flagged" source="suspect" defaultValue={true} />
         <BooleanInput label="Non-academit email" source="is_non_academic" defaultValue={true} />
         <BooleanInput label="Email verified" source="flag_email_verified" defaultValue={true} />
         <DateInput label="Start joined date" source="start_joined_date" />
@@ -182,7 +184,7 @@ export const UserList = () => {
                 <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
                 <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
                               TrueIcon={DoDisturbOnIcon} />
-                <BooleanField source="flag_suspect" label={"Suspect"} FalseIcon={null}
+                <BooleanField source="flag_suspect" label={"Flagged"} FalseIcon={null}
                               TrueIcon={DoDisturbOnIcon}/>
                 <ReferenceField source="moderator_id" reference="moderators"
                                 link={(record, reference) => `/${reference}/${record.moderator_id}`} >
@@ -575,12 +577,11 @@ const UserEditToolbar = () => {
             >
                 Suspend
             </Button>
-            <DeleteButton />
         </Toolbar>
     );
 };
 
-type statusInputType = {source: string, label: string, disabled?: boolean} | null;
+type statusInputType = {source: string, label: string, disabled?: boolean, component?: string} | null;
 
 export const UserEdit = () => {
     const [isEndorsementsOpen, setIsEndorsementsOpen] = useState(false);
@@ -600,9 +601,9 @@ export const UserEdit = () => {
 
     const statusInputs: statusInputType[][] = [
         [
-            {source: "flag_banned", label: "Banned", disabled: true},
-            {source: "flag_deleted", label: "Deleted", disabled: true},
-            {source: "flag_suspect", label: "Suspect"},
+            {source: "flag_banned", label: "Banned", disabled: false, component: "FlaggedToggle"},
+            {source: "flag_deleted", label: "Deleted", disabled: false, component: "FlaggedToggle"},
+            {source: "flag_suspect", label: "Flagged", disabled: false, component: "FlaggedToggle"},
         ],
         [
             {source: "flag_approved", label: "Approved"},
@@ -678,11 +679,21 @@ export const UserEdit = () => {
                                             <TableCell>
                                                 {
                                                     input === null ? null :
-                                                        (<BooleanInput source={input.source} label={input.label}
-                                                                       helperText={false} sx={switchProps} size="small"
-                                                                       disabled={input?.disabled}
-                                                        />)
-
+                                                        input.component === "FlaggedToggle" ? (
+                                                            <FlaggedToggle 
+                                                                source={input.source} 
+                                                                label={input.label}
+                                                                helperText={false} 
+                                                                sx={switchProps} 
+                                                                size="small"
+                                                                disabled={input?.disabled}
+                                                            />
+                                                        ) : (
+                                                            <BooleanInput source={input.source} label={input.label}
+                                                                          helperText={false} sx={switchProps} size="small"
+                                                                          disabled={input?.disabled}
+                                                            />
+                                                        )
                                                 }
                                             </TableCell>
 
@@ -714,10 +725,18 @@ export const UserEdit = () => {
                     </Table>
 
                     <Box >
+                        <EndorsementRequestListField source={"id"}  />
+                    </Box>
+
+                    <Divider />
+
+                    <Box >
                         <Button onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
                         <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen} />
                     </Box>
+
                     <Divider />
+
                     <Box >
                         <Button onClick={() => setIsModOpen(true)}>Moderator for</Button>
                         <UserModerationCategories  open={isModOpen} setOpen={setIsModOpen} />

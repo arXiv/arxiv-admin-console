@@ -85,45 +85,37 @@ const EndorsementRequestFilter = (props: any) => {
 
 
 export const EndorsementRequestList = () => {
-    const sorter: SortPayload = {field: 'endorsementRequest_id', order: 'ASC'};
-    const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
+    const sorter: SortPayload = {field: 'endorsementRequest_id', order: 'DESC'};
     return (
         <List filters={<EndorsementRequestFilter />}
               filterDefaultValues={{positive: false}}
-              sort={{field: 'id', order: 'DESC'}}>
-            {isSmall ? (
-                <SimpleList
-                    primaryText={record => record.name}
-                    secondaryText={record => record.endorsementRequestname}
-                    tertiaryText={record => record.email}
-                />
-            ) : (
-                <Datagrid rowClick="edit" sort={sorter} >
-                    <NumberField source="id" label={"ID"}/>
-                    <ReferenceField source="endorsee_id" reference="users"
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
-                        {"  ("}
-                        <TextField source={"username"} />
-                        {") <"}
-                        <TextField source={"email"} />
-                        {">"}
-                    </ReferenceField>
+              sort={sorter}
+              >
+            <Datagrid rowClick="edit" bulkActionButtons={false} >
+                <NumberField source="id" label={"ID"}/>
+                <ReferenceField source="endorsee_id" reference="users"
+                                link={(record, reference) => `/${reference}/${record.id}`} >
+                    <TextField source={"last_name"} />
+                    {", "}
+                    <TextField source={"first_name"} />
+                    {"  ("}
+                    <TextField source={"username"} />
+                    {") <"}
+                    <TextField source={"email"} />
+                    {">"}
+                </ReferenceField>
 
-                    <CategoryField label={"Category"} source="id" sourceCategory="archive" sourceClass="subject_class" />
-                    <ISODateField source="issued_when" label={"Issued"}/>
+                <CategoryField label={"Category"} source="archive" sourceCategory="archive" sourceClass="subject_class" />
+                <ISODateField source="issued_when" label={"Issued"}/>
 
-                    <TextField source={"secret"} />
+                <TextField source={"secret"} />
 
-                    <ReferenceField source="id" reference="endorsement_requests_audit" label={"Remote host"}>
-                        <TextField source={"remote_host"} label={"Remote host"}/>
-                    </ReferenceField>
-                    <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null} />
-                    <PointValueBooleanField source="point_value" label={"Open"} />
-                </Datagrid>
-            )}
+                <ReferenceField source="id" reference="endorsement_requests_audit" label={"Remote host"}>
+                    <TextField source={"remote_host"} label={"Remote host"}/>
+                </ReferenceField>
+                <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null} />
+                <PointValueBooleanField source="point_value" label={"Open"} />
+            </Datagrid>
         </List>
     );
 };

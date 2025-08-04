@@ -2,13 +2,15 @@ import logging
 from datetime import datetime, UTC
 from typing import Optional, List, Tuple
 
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_SetSuspect, AdminAudit_EndorsedBySuspect, \
+    AdminAudit_GotNegativeEndorsement
 from fastapi import HTTPException, status
 from sqlalchemy import and_, or_, between, text, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from arxiv.db.models import (
     Endorsement, EndorsementsAudit, Demographic, EndorsementRequest,
-    TapirAdminAudit, t_arXiv_moderators, Category, EndorsementDomain, TapirUser,
+    t_arXiv_moderators, Category, EndorsementDomain, TapirUser,
     QuestionableCategory, Document, t_arXiv_in_category, PaperOwner,
     t_arXiv_black_email, t_arXiv_white_email
 )
@@ -147,7 +149,9 @@ class EndorsementDBAccessor(EndorsementAccessor):
                           data: str = "",
                           comment: str = "",
                           user_id: Optional[int] = None,
-                          session_id: Optional[int] = None):
+                          session_id: Optional[int] = None,
+                          request_id: Optional[int] = None,
+                          category: str = ""):
         """
         Logs administrative actions in the `tapir_admin_audit` table.
 
@@ -200,19 +204,43 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 };
         """
 
-        audit_entry = TapirAdminAudit(
-            log_date = datetime_to_epoch(endorsement.audit_timestamp, datetime.now(UTC)),
-            session_id=session_id,
-            ip_addr=endorsement.remote_host_ip,
-            admin_user=endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
-            affected_user=affected_user,
-            tracking_cookie=endorsement.tracking_cookie,
-            action=action,
-            data=data,
-            comment=comment,
-            remote_host=endorsement.remote_host_name
-        )
-        self.session.add(audit_entry)
+        if action == "endorsed-by-suspect":
+            admin_audit(
+                self.session,
+                AdminAudit_EndorsedBySuspect(
+                    endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
+                    str(affected_user),
+                    session_id,
+                    str(endorsement.endorseR.id),
+                    str(request_id) if request_id else None,
+                    category,
+                    remote_ip=endorsement.remote_host_ip,
+                    remote_hostname=endorsement.remote_host_name,
+                    tracking_cookie=endorsement.tracking_cookie,
+                    comment=comment,
+                )
+            )
+
+        elif action == "got-negative-endorsement":
+            admin_audit(
+                self.session,
+                AdminAudit_GotNegativeEndorsement(
+                    endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
+                    str(affected_user),
+                    session_id,
+                    str(endorsement.endorseR.id),
+                    str(request_id) if request_id else None,
+                    category,
+                    remote_ip=endorsement.remote_host_ip,
+                    remote_hostname=endorsement.remote_host_name,
+                    tracking_cookie=endorsement.tracking_cookie,
+                    comment=comment,
+                )
+            )
+        else:
+            assert False, "Invalid action"
+
+        pass
 
 
     def arxiv_endorse(self, endorsement: EndorsementBusiness) -> EndorsementModel | None:
@@ -311,29 +339,28 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
             demographic: Demographic | None = session.query(Demographic).filter(
                 Demographic.user_id == endorsement.endorseE.id).one_or_none()
 
-            if endorsement.endorsement_code.positive and endorser_is_suspect:
-                if demographic and demographic.flag_suspect != 1:
-                    demographic.flag_suspect = 1
-                    session.add(demographic)
-                    session.flush()
-                    session.refresh(demographic)
+            if endorsement.endorsement_code.positive and endorser_is_suspect and (demographic and demographic.flag_suspect != 1):
+                demographic.flag_suspect = 1
+                session.add(demographic)
+                session.flush()
+                session.refresh(demographic)
 
                 self.tapir_audit_admin(
                     endorsement,
                     affected_user=endorsement.endorseE.id,
                     action="endorsed-by-suspect",
-                    data=f"{endorsement.endorseE.id} {canonical_category} {new_endorsement.endorsement_id}",
+                    data=f"{endorsement.endorseR.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=endorsement.endorseR.id,
                     session_id=session_id,
+                    category=canonical_category,
                 )
 
-            if not endorsement.endorsement_code.positive:
-                if demographic and demographic.flag_suspect != 1:
-                    demographic.flag_suspect = 1
-                    session.add(demographic)
-                    session.flush()
-                    session.refresh(demographic)
+            if (not endorsement.endorsement_code.positive) and demographic and demographic.flag_suspect != 1:
+                demographic.flag_suspect = 1
+                session.add(demographic)
+                session.flush()
+                session.refresh(demographic)
 
                 self.tapir_audit_admin(
                     endorsement,
@@ -343,6 +370,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     comment="",
                     user_id=-1,
                     session_id=session_id,
+                    category=canonical_category,
                 )
 
             # Update request if applicable
