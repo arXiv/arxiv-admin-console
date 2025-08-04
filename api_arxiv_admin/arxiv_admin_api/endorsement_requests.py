@@ -89,6 +89,7 @@ async def list_endorsement_requests(
         positive: Optional[bool] = Query(None, description="positive point value"),
         suspected: Optional[bool] = Query(None, description="Suspected user"),
         secret_code: Optional[str] = Query(None, description="Endorsement request secret"),
+        endorsee_id: Optional[str] = Query(None, description="Endorsement request endorsee ID"),
         endorsee_first_name: Optional[str] = Query(None, description="Endorsement request endorsee first_name"),
         endorsee_last_name: Optional[str] = Query(None, description="Endorsement request endorsee last_name"),
         endorsee_email: Optional[str] = Query(None, description="Endorsement request endorsee email"),
@@ -146,6 +147,9 @@ async def list_endorsement_requests(
 
         if suspected is not None:
             query = query.filter(Demographic.flag_suspect == suspected)
+
+        if endorsee_id is not None:
+            query = query.filter(EndorsementRequest.endorsee_id == endorsee_id)
 
         if endorsee_first_name is not None or endorsee_last_name is not None or endorsee_email is not None:
             query = query.join(TapirUser, EndorsementRequest.endorsee_id == TapirUser.user_id)
