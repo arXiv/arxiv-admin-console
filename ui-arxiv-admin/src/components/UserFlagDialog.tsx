@@ -152,7 +152,7 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
 
                 const message = `Comment added for user ${userName}`;
 
-                notify(message, { type: 'comment added' });
+                notify(message, { type: 'info' });
 
                 // Call callback if provided
                 if (onUpdated) {
