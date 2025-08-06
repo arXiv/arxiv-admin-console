@@ -10,8 +10,10 @@ from arxiv_bizlogic.audit_event import (admin_audit, AdminAuditEvent, AdminAudit
                                         AdminAudit_ChangeEmail, AdminAudit_SuspendUser, AdminAudit_UnuspendUser,
                                         AdminAudit_SetGroupTest, AdminAudit_SetProxy, AdminAudit_SetXml,
                                         AdminAudit_SetEndorsementValid, AdminAudit_SetPointValue,
-                                        AdminAudit_SetEndorsementRequestsValid, AdminAudit_SetEmailBouncing)
+                                        AdminAudit_SetEndorsementRequestsValid, AdminAudit_SetEmailBouncing,
+                                        AdminAudit_ChangeStatus)
 from typing import Type
+from arxiv_bizlogic.user_status import UserVetoStatus
 
 def audit_event_maker_positional(cls: Type[AdminAuditEvent],
                                  admin_id: str, session_id: str,
@@ -34,15 +36,15 @@ def audit_event_maker_positional(cls: Type[AdminAuditEvent],
     )
 
 
-
 def audit_event_maker_kwarg(cls: Type[AdminAuditEvent],
                             admin_id: str, session_id: str,
-                            _prop_name: str, user_id: str, _old_value: Any, new_value: Any,
+                            _prop_name: str, user_id: str,
+                            old_value: Any, new_value: Any,
                             comment: Optional[str] = None,
                             remote_ip: Optional[str] = None,
                             remote_hostname: Optional[str] = None,
                             tracking_cookie: Optional[str] = None,
-                            arg_name: str = None,
+                            arg_name: Optional[str | tuple[str]] = None,
                             ) -> AdminAuditEvent:
     kwargs = {
         "comment": comment,
@@ -52,7 +54,13 @@ def audit_event_maker_kwarg(cls: Type[AdminAuditEvent],
     }
 
     if arg_name is not None:
-        kwargs[arg_name] = new_value
+        if isinstance(arg_name, str):
+            kwargs[arg_name] = new_value
+        elif isinstance(arg_name, tuple) and len(arg_name) == 2:
+            kwargs[arg_name[0]] = old_value
+            kwargs[arg_name[1]] = new_value
+        else:
+            assert False, f"Invalid arg_name: {arg_name}"
 
     return cls(
         admin_id,
@@ -60,6 +68,28 @@ def audit_event_maker_kwarg(cls: Type[AdminAuditEvent],
         session_id,
         **kwargs
     )
+
+
+def audit_event_maker_veto_status(
+        cls: Type[AdminAuditEvent],
+        admin_id: str, session_id: str,
+        _prop_name: str, user_id: str,
+        old_value: Any, new_value: Any,
+        comment: Optional[str] = None,
+        remote_ip: Optional[str] = None,
+        remote_hostname: Optional[str] = None,
+        tracking_cookie: Optional[str] = None,
+        _arg_name: Optional[str | tuple[str]] = None,
+        ) -> AdminAuditEvent:
+    kwargs = {
+        "comment": comment,
+        "remote_ip": remote_ip,
+        "remote_hostname": remote_hostname,
+        "tracking_cookie": tracking_cookie,
+        "status_before": UserVetoStatus(old_value),
+        "status_after": UserVetoStatus(new_value),
+    }
+    return cls(admin_id, user_id, session_id, **kwargs)
 
 
 user_prop_audit_registry = {
@@ -94,6 +124,8 @@ user_prop_audit_registry = {
     "flag_edit_system": (AdminAudit_SetEditSystem, audit_event_maker_positional),
     "flag_edit_users": (AdminAudit_SetEditUsers, audit_event_maker_positional),
     "email_verified": (AdminAudit_SetEmailVerified, audit_event_maker_positional),
+
+    "veto_status": (AdminAudit_ChangeStatus, audit_event_maker_veto_status),
 }
 
 

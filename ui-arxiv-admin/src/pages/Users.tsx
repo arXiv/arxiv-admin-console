@@ -1,4 +1,5 @@
 import {
+    SxProps,
     useMediaQuery,
 } from '@mui/material';
 
@@ -212,10 +213,23 @@ const policyClassChoices = [
 ];
 
 const vetoStatusChoices = [
+    { id: 'ok', name: 'OK' },
     { id: 'no-endorse', name: 'No Endorse' },
     { id: 'no-upload', name: 'No Upload' },
     { id: 'no-replace', name: 'No Replace' },
 ];
+
+const getVetoStatusName = (vetoStatus: string) => {
+    const choice = vetoStatusChoices.find(c => c.id === vetoStatus);
+    return choice ? choice.name : vetoStatus;
+};
+
+const VetoStatusField = ({ source }: { source: string }) => {
+    const record = useRecordContext();
+    if (!record) return null;
+    const vetoStatus = record[source] || 'ok';
+    return <Typography variant="body2">{getVetoStatusName(vetoStatus)}</Typography>;
+};
 
 function UserDemographic() {
     /*
@@ -607,14 +621,16 @@ export const UserEdit = () => {
     const [canSubmitToOpen, setCanSubmitToOpen] = useState(false);
     const [changeEmailOpen, setChangeEmailOpen] = useState(false);
     const [addCommentOpen, setAddCommentOpen] = useState(false);
+    const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
 
-    const switchProps = {
+    const switchProps: SxProps = {
         '& .MuiSwitch-root': {
             transform: 'scale(0.7)', // smaller than small
         },
         flex: 4,
         size: "small",
+        my: 0
     };
 
     const statusInputs: statusInputType[][] = [
@@ -637,13 +653,13 @@ export const UserEdit = () => {
 
     const adminInputs: statusInputType[][] = [
         [
-            {source: "flag_edit_users", label: "Edit Users"},
-            {source: "flag_edit_system", label: "Edit System"},
+            {source: "flag_edit_users", label: "Admin", component: "FlaggedToggle"},
+            {source: "flag_edit_system", label: "SysAdmin", component: "FlaggedToggle"},
             {source: "flag_group_test", label: "Test"},
         ],
         [
-            {source: "flag_internal", label: "Internal"},
-            {source: "flag_can_lock", label: "Can Lock"},
+            {source: "flag_internal", label: "Internal", component: "FlaggedToggle"},
+            {source: "flag_can_lock", label: "Can Lock", component: "FlaggedToggle"},
             null,
         ],
     ];
@@ -656,6 +672,11 @@ export const UserEdit = () => {
         refresh();
     };
 
+    const handleVetoStatusChanged = () => {
+        refresh();
+    };
+
+    const buhchOfInputs = [...statusInputs, ...adminInputs];
 
     return (
     <Edit title={<UserTitle />} actions={false}>
@@ -694,7 +715,7 @@ export const UserEdit = () => {
 
                     <Table size="small" padding={"none"} >
                         {
-                            statusInputs.map((inputs) => (
+                            buhchOfInputs.map((inputs) => (
                                 <TableRow key={inputs[0]?.source} >
                                     {
                                         inputs.map((input) => (
@@ -702,8 +723,8 @@ export const UserEdit = () => {
                                                 {
                                                     input === null ? null :
                                                         input.component === "FlaggedToggle" ? (
-                                                            <FlaggedToggle 
-                                                                source={input.source} 
+                                                            <FlaggedToggle
+                                                                source={input.source}
                                                                 label={input.label}
                                                                 helperText={false} 
                                                                 sx={switchProps} 
@@ -724,38 +745,18 @@ export const UserEdit = () => {
                                 </TableRow>
                             ))
                         }
-
-                        {
-                            adminInputs.map((inputs) => (
-                                <TableRow>
-                                    {
-                                        inputs.map((input) => (
-                                            <TableCell>
-                                                {
-                                                    input === null ? null :
-                                                        (<BooleanInput source={input.source} label={input.label}
-                                                                      helperText={false} sx={switchProps} size="small" />)
-
-                                                }
-                                            </TableCell>
-
-                                        ))
-                                    }
-                                </TableRow>
-                            ))
-                        }
                     </Table>
 
-                    <Box >
-                        <SelectInput
-                            source={"veto_status"}
-                            label={"Veto Status"}
-                            choices={vetoStatusChoices}
-                            helperText={false}
+                    <Box display="flex" flexDirection="row" gap={2} alignItems="center">
+                        <Typography variant="body2" sx={{ minWidth: '100px' }}>Veto Status:</Typography>
+                        <VetoStatusField source="veto_status" />
+                        <Button 
+                            variant="outlined" 
                             size="small"
-                            emptyValue={"ok"}
-                            emptyText={"Ok"}
-                        />
+                            onClick={() => setVetoStatusOpen(true)}
+                        >
+                            Change
+                        </Button>
                     </Box>
 
                     <Box >
@@ -799,6 +800,11 @@ export const UserEdit = () => {
         <UserFlagDialog
             open={addCommentOpen} setOpen={setAddCommentOpen} flagOptions={[]}
             title={"Add comment"} initialFlag={undefined} onUpdated={handleFCommentAdded}
+        />
+        <UserFlagDialog
+            open={vetoStatusOpen} setOpen={setVetoStatusOpen} 
+            title={"Change Veto Status"} onUpdated={handleVetoStatusChanged}
+            vetoStatusMode={true} vetoStatusChoices={vetoStatusChoices}
         />
     </Edit>
 )

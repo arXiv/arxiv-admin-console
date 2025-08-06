@@ -1,7 +1,9 @@
 export enum UserVetoStatus {
+    UNKNOWN = "",
     OK = "ok",
     NO_UPLOAD = "no-upload",
     NO_REPLACE = "no-replace",
+    NO_ENDORSE = "no-endorse",
 }
 
 export enum UserFlags {

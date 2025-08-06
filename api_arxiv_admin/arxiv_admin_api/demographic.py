@@ -1,8 +1,7 @@
 """arXiv paper display routes."""
-from enum import Enum
-
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.user_status import UserVetoStatus
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
@@ -17,11 +16,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/demographics")
 
-class UserVetoStatus(str, Enum):
-    ok = "ok"
-    no_endorse = "no-endorse"
-    no_upload = "no-upload"
-    no_replace = "no-replace"
 
 
 class DemographicModel(BaseModel):

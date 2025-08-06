@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useRecordContext, useRefresh } from "react-admin";
-import { Switch, FormControlLabel, FormControl } from "@mui/material";
+import {Switch, FormControlLabel, FormControl, SxProps} from "@mui/material";
 import UserFlagDialog, { UserFlagOption } from "./UserFlagDialog";
 
 interface FlaggedToggleProps {
     source: string;
     label?: string;
     helperText?: boolean;
-    sx?: any;
+    sx?: SxProps;
     size?: string;
     disabled?: boolean;
     dialogTitle?: string;

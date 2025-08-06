@@ -32,6 +32,8 @@ interface UserFlagDialogProps {
     initialFlag?: string;
     flagOptions?: UserFlagOption[];
     pendingValue?: boolean | null;
+    vetoStatusMode?: boolean;
+    vetoStatusChoices?: Array<{id: string, name: string}>;
 }
 
 const defaultFlagOptions: UserFlagOption[] = [
@@ -60,10 +62,13 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
     title = "Update User Flag",
     initialFlag = "",
     flagOptions = defaultFlagOptions,
-    pendingValue = null
+    pendingValue = null,
+    vetoStatusMode = false,
+    vetoStatusChoices = []
 }) => {
     const [selectedFlag, setSelectedFlag] = useState<string>("");
     const [flagValue, setFlagValue] = useState<boolean>(true);
+    const [vetoStatus, setVetoStatus] = useState<string>("");
     const [comment, setComment] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -77,10 +82,15 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
         if (open) {
             setSelectedFlag(initialFlag);
             setFlagValue(pendingValue !== null ? pendingValue : true);
+            if (vetoStatusMode && record) {
+                setVetoStatus(record.veto_status || "ok");
+            } else {
+                setVetoStatus("");
+            }
             setComment("");
             setError(null);
         }
-    }, [open, initialFlag, pendingValue]);
+    }, [open, initialFlag, pendingValue, vetoStatusMode, record]);
 
     if (!record) return null;
     const userId = record.id as Identifier;
@@ -115,7 +125,30 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
         setError(null);
 
         try {
-            if (flagOptions.length > 0) {
+            if (vetoStatusMode) {
+                // Prepare payload for veto status change
+                const payload = {
+                    property_name: "veto_status",
+                    property_value: vetoStatus,
+                    comment: comment.trim()
+                };
+
+                // Use dataProvider's custom method to call: PUT /users/{id}/demographic
+                await dataProvider.update('users', {
+                    id: `${userId}/demographic`,
+                    data: payload,
+                    previousData: record
+                });
+
+                const vetoChoiceName = vetoStatusChoices.find(c => c.id === vetoStatus)?.name || vetoStatus;
+                const message = `User ${userName} veto status changed to '${vetoChoiceName}'`;
+                notify(message, { type: 'success' });
+
+                // Call callback if provided
+                if (onUpdated) {
+                    onUpdated();
+                }
+            } else if (flagOptions.length > 0) {
                 // Prepare payload for custom endpoint
                 const payload =
                     {
@@ -195,7 +228,23 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
                             </Alert>
                         )}
 
-                        {flagOptions.length > 0 && (
+                        {vetoStatusMode ? (
+                            <FormControl fullWidth margin="normal">
+                                <InputLabel>Veto Status</InputLabel>
+                                <Select
+                                    value={vetoStatus}
+                                    onChange={(e) => setVetoStatus(e.target.value)}
+                                    label="Veto Status"
+                                    disabled={isLoading}
+                                >
+                                    {vetoStatusChoices.map((choice) => (
+                                        <MenuItem key={choice.id} value={choice.id}>
+                                            {choice.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        ) : flagOptions.length > 0 && (
                             <FormControl fullWidth margin="normal">
                                 <InputLabel>Flag to Update</InputLabel>
                                 <Select
@@ -216,7 +265,7 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
                             </FormControl>
                         )}
 
-                        {selectedFlag && (
+                        {!vetoStatusMode && selectedFlag && (
                             <FormControl fullWidth margin="normal">
                                 <InputLabel>Flag Value</InputLabel>
                                 <Select
@@ -266,7 +315,9 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
                         disabled={isLoading || !comment.trim()}
                         startIcon={isLoading ? <CircularProgress size={20} /> : null}
                     >
-                        {isLoading ? "Updating..." : selectedFlag ? "Update Flag" : "Add Comment"}
+                        {isLoading ? "Updating..." : 
+                         vetoStatusMode ? "Update Veto Status" :
+                         selectedFlag ? "Update Flag" : "Add Comment"}
                     </Button>
                 </DialogActions>
             </form>

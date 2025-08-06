@@ -895,7 +895,7 @@ export class AdminAudit_ChangeStatus extends AdminAuditEvent {
     }
 
     static getInitParams(audit_record: TapirAdminAudit): Record<string, any> {
-        const match = audit_record.data.match(/^([\w\-]+) -> ([\w\-]+)$/);
+        const match = audit_record.data.match(/^([\w\-]*) -> ([\w\-]+)$/);
         if (!match) {
             throw new Error(`Invalid status change format: ${audit_record.data}`);
         }
@@ -915,6 +915,48 @@ export class AdminAudit_ChangeStatus extends AdminAuditEvent {
             status_before,
             status_after,
         };
+    }
+
+    describe(): React.ReactElement {
+        try {
+            const elements = this.data.split('->');
+            if (elements.length === 2) {
+                const status_before = elements[0].trim();
+                const status_after = elements[1].trim();
+                return (
+                    <Box component="span">
+                        <ReferenceField reference="users" source="admin_user">
+                            <UserNameField />
+                        </ReferenceField>
+                        {` changed the veto status of `}
+                        <ReferenceField reference="users" source="affected_user">
+                            <UserNameField />
+                        </ReferenceField>
+                        {status_before ? (
+                            <>
+                                {" from "}
+                                <Typography component="span" fontWeight="bold" color="secondary">
+                                    {status_before}
+                                </Typography>
+                            </>
+                        ) : null}
+                        {" to "}
+                        <Typography component="span" fontWeight="bold" color="secondary">
+                            {status_after}
+                        </Typography>
+
+                        <Typography component="span" >
+                            {" "}
+                            {this.comment}
+                        </Typography>
+                    </Box>
+                );
+            }
+        }
+        catch (e) {
+            console.error(e);
+        }
+        return <Typography>{this.data}</Typography>;
     }
 }
 
