@@ -397,7 +397,7 @@ async def create_endorsement(
                               subject_class=body.subject_class,
                               endorsement_code=endorse,
                               endorsement_request=endorsement_request,
-                              session_id=current_tapir_session.session_id if current_tapir_session else None,
+                              session_id=current_tapir_session.tapir_session_id if current_tapir_session else None,
                               remote_host_ip=client_host,
                               remote_host_name=client_host_name,
                               tracking_cookie=tracking_cookie)

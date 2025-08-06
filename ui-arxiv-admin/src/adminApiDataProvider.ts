@@ -7,7 +7,7 @@ import {
     RaRecord,
     GetManyParams,
     GetManyResult, GetOneParams, GetOneResult, UpdateResult, UpdateParams,
-    HttpError,
+    HttpError, CreateResult, CreateParams,
 } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
 import {paths as aaaApi} from "./types/aaa-api";
@@ -291,10 +291,57 @@ class adminApiDataProvider implements DataProvider {
         return this.dataProvider.update(resource, params);
     }
 
-
     getManyReference: typeof this.dataProvider.getManyReference = (resource, params) => this.dataProvider.getManyReference(resource, params);
-    create: typeof this.dataProvider.create = (resource, params) => this.dataProvider.create(resource, params);
     updateMany: typeof this.dataProvider.updateMany= (resource, params) => this.dataProvider.updateMany(resource, params);
+
+    async create<T extends RaRecord>(resource: string, params: CreateParams):  Promise<CreateResult<T>> {
+        if (resource === "user-comment") {
+            const {data, meta} = params;
+            const url = `${this.api}/users/${meta.userId}/comment`;
+
+            try {
+                const response = await retryHttpClient(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                });
+
+                return {data: response.json as T};
+            }
+            catch (error) {
+                if (error && typeof error === 'object') {
+                    // Check if it has a status property (like HttpError)
+                    if ('status' in error && error.status) {
+                        throw error;
+                    }
+
+                    // Create a new HttpError with type-safe property access
+                    const errorObj = error as Record<string, any>;
+                    const errorMessage =
+                        'message' in errorObj && typeof errorObj.message === 'string'
+                            ? errorObj.message
+                            : 'An unknown error occurred';
+
+                    const httpError = new HttpError(
+                        errorMessage,
+                        'status' in errorObj && typeof errorObj.status === 'number' ? errorObj.status : 500,
+                        'body' in errorObj ? errorObj.body : {}
+                    );
+
+                    throw httpError;
+                }
+
+                // If error is not an object or doesn't have expected properties
+                throw new HttpError(
+                    'An unknown error occurred',
+                    500,
+                    {}
+                );
+            }
+
+        }
+        return this.dataProvider.create(resource, params);
+    }
+
     delete: typeof this.dataProvider.delete = (resource, params) => this.dataProvider.delete(resource, params);
     deleteMany: typeof this.dataProvider.deleteMany = (resource, params) => this.dataProvider.deleteMany(resource, params);
 }

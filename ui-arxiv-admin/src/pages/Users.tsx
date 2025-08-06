@@ -2,10 +2,10 @@ import {
     useMediaQuery,
 } from '@mui/material';
 
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+// import ToggleButton from '@mui/material/ToggleButton';
+// import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Grid from '@mui/material/Grid';
-import Link from '@mui/material/Link';
+// import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
@@ -53,6 +53,7 @@ import {AdminAuditList} from "../bits/TapirAdminLogs";
 import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
 import SuspendIcon from '@mui/icons-material/Pause';
+import CommentIcon from '@mui/icons-material/Comment';
 import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import { useLocation, useNavigate } from 'react-router-dom';
 import EmailLinkField from "../bits/EmailLinkField";
@@ -68,6 +69,7 @@ import ChangeEmailDialog from "../components/ChangeEmailDialog";
 import ISODateField from "../bits/ISODateFiled";
 import FlaggedToggle from "../components/FlaggedToggle";
 import EndorsementRequestListField from '../bits/EndorsementRequestListField';
+import UserFlagDialog from '../components/UserFlagDialog';
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -207,6 +209,12 @@ const policyClassChoices = [
     { id: 1, name: 'Admin' },
     { id: 2, name: 'Public user' },
     { id: 3, name: 'Legacy user' },
+];
+
+const vetoStatusChoices = [
+    { id: 'no-endorse', name: 'No Endorse' },
+    { id: 'no-upload', name: 'No Upload' },
+    { id: 'no-replace', name: 'No Replace' },
 ];
 
 function UserDemographic() {
@@ -507,20 +515,17 @@ function UserModerationCategories({open, setOpen} : {open: boolean, setOpen: (op
 }
 
 
-const UserEditToolbar = () => {
+const UserEditToolbar: React.FC<{setAddCommentOpen: (open: boolean) => void}> = ({ setAddCommentOpen }) => {
     const notify = useNotify();
     const record = useRecordContext();
     const runtimeProps = useContext(RuntimeContext);
 
     const handleBan = async () => {
         if (!record?.id) return;
-
     }
 
     const handleMasquerade = async () => {
         if (!record?.id) return;
-
-        console.log( "aaa: " + runtimeProps.AAA_URL);
 
         try {
             const response = await fetch(`${runtimeProps.AAA_URL}/impersonate/${record.id}/`, {
@@ -567,8 +572,19 @@ const UserEditToolbar = () => {
             >
                 Become This User
             </Button>
-            <Box sx={{ flexGrow: 1 }} />
+
             <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<CommentIcon />}
+                onClick={() => setAddCommentOpen(true)}
+                sx={{ ml: 2 }}
+            >
+                Add comment
+            </Button>
+
+            <Box sx={{ flexGrow: 1 }} />
+            {/*             <Button
                 variant="contained"
                 color="secondary"
                 startIcon={<SuspendIcon />}
@@ -577,6 +593,7 @@ const UserEditToolbar = () => {
             >
                 Suspend
             </Button>
+ */}
         </Toolbar>
     );
 };
@@ -589,6 +606,7 @@ export const UserEdit = () => {
     const [canEndorseForOpen, setCanEndorseForOpen] = useState(false);
     const [canSubmitToOpen, setCanSubmitToOpen] = useState(false);
     const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+    const [addCommentOpen, setAddCommentOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
 
     const switchProps = {
@@ -607,8 +625,8 @@ export const UserEdit = () => {
         ],
         [
             {source: "flag_approved", label: "Approved"},
-            {source: "flag_veto_status", label: "Veto status"},
             {source: "flag_proxy", label: "Proxy"},
+            null,
             ],
         [
             {source: "flag_xml", label: "XML"},
@@ -634,12 +652,16 @@ export const UserEdit = () => {
         refresh(); // Refresh the form to show the updated email
     };
 
+    const handleFCommentAdded = () => {
+        refresh();
+    };
+
 
     return (
     <Edit title={<UserTitle />} actions={false}>
-        <SimpleForm toolbar={<UserEditToolbar />}>
-            <Grid container>
-                <Grid size={{xs: 6}} >
+        <SimpleForm toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen} />}>
+            <Grid container >
+                <Grid size={{xs: 12, md: 6}}  >
                     <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
                         <Button
                             variant="outlined"
@@ -670,10 +692,10 @@ export const UserEdit = () => {
                     </Box>
                     <Divider />
 
-                    <Table size="small">
+                    <Table size="small" padding={"none"} >
                         {
                             statusInputs.map((inputs) => (
-                                <TableRow>
+                                <TableRow key={inputs[0]?.source} >
                                     {
                                         inputs.map((input) => (
                                             <TableCell>
@@ -725,6 +747,18 @@ export const UserEdit = () => {
                     </Table>
 
                     <Box >
+                        <SelectInput
+                            source={"veto_status"}
+                            label={"Veto Status"}
+                            choices={vetoStatusChoices}
+                            helperText={false}
+                            size="small"
+                            emptyValue={"ok"}
+                            emptyText={"Ok"}
+                        />
+                    </Box>
+
+                    <Box >
                         <EndorsementRequestListField source={"id"}  />
                     </Box>
 
@@ -753,17 +787,19 @@ export const UserEdit = () => {
                     <AdminAuditList />
                 </Grid>
 
-                <Grid size={{xs: 6}}>
+                <Grid size={{xs: 12, md: 6}}>
                     <UserDemographic />
                     <EmailHistoryList />
                     <Grid size={{xs: 12}}>
                         <OwnedPaperList />
                     </Grid>
                 </Grid>
-
-
             </Grid>
         </SimpleForm>
+        <UserFlagDialog
+            open={addCommentOpen} setOpen={setAddCommentOpen} flagOptions={[]}
+            title={"Add comment"} initialFlag={undefined} onUpdated={handleFCommentAdded}
+        />
     </Edit>
 )
 };

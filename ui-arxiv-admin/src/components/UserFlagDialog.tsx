@@ -27,7 +27,7 @@ export interface UserFlagOption {
 interface UserFlagDialogProps {
     open: boolean;
     setOpen: (open: boolean) => void;
-    onFlagUpdated?: () => void;
+    onUpdated?: () => void;
     title?: string;
     initialFlag?: string;
     flagOptions?: UserFlagOption[];
@@ -56,7 +56,7 @@ const defaultFlagOptions: UserFlagOption[] = [
 const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
     open,
     setOpen,
-    onFlagUpdated,
+    onUpdated,
     title = "Update User Flag",
     initialFlag = "",
     flagOptions = defaultFlagOptions,
@@ -115,30 +115,49 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
         setError(null);
 
         try {
-            // Prepare payload for custom endpoint
-            const payload = {
-                property_name: selectedFlag || null,
-                property_value: selectedFlag ? flagValue : null,
-                comment: comment.trim()
-            };
+            if (flagOptions.length > 0) {
+                // Prepare payload for custom endpoint
+                const payload =
+                    {
+                        property_name: selectedFlag || null,
+                        property_value: selectedFlag ? flagValue : null,
+                        comment: comment.trim()
+                    };
 
-            // Use dataProvider's custom method to call: PUT /users/{id}/property
-            await dataProvider.update('users', {
-                id: `${userId}/property`,
-                data: payload,
-                previousData: record
-            });
+                // Use dataProvider's custom method to call: PUT /users/{id}/demographic
+                await dataProvider.update('users', {
+                    id: `${userId}/demographic`,
+                    data: payload,
+                    previousData: record
+                });
 
-            const flagLabel = selectedFlag ? flagOptions.find(opt => opt.key === selectedFlag)?.label : null;
-            const message = selectedFlag 
-                ? `User ${userName} flag '${flagLabel}' set to ${flagValue ? 'ON' : 'OFF'}`
-                : `Comment added for user ${userName}`;
-                
-            notify(message, { type: 'success' });
+                const flagLabel = selectedFlag ? flagOptions.find(opt => opt.key === selectedFlag)?.label : null;
+                const message = `User ${userName} flag '${flagLabel}' set to ${flagValue ? 'ON' : 'OFF'}`;
+                notify(message, { type: 'success' });
 
-            // Call callback if provided
-            if (onFlagUpdated) {
-                onFlagUpdated();
+                // Call callback if provided
+                if (onUpdated) {
+                    onUpdated();
+                }
+            }
+            else {
+                // Prepare payload for custom endpoint
+                const payload = {comment: comment.trim()};
+
+                // Use dataProvider's custom method to call: PUT /users/{id}/demographic
+                await dataProvider.create('user-comment', {
+                    data: payload,
+                    meta: {userId: userId},
+                });
+
+                const message = `Comment added for user ${userName}`;
+
+                notify(message, { type: 'comment added' });
+
+                // Call callback if provided
+                if (onUpdated) {
+                    onUpdated();
+                }
             }
 
             setOpen(false);
@@ -176,24 +195,26 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
                             </Alert>
                         )}
 
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel>Flag to Update (Optional)</InputLabel>
-                            <Select
-                                value={selectedFlag}
-                                onChange={handleFlagChange}
-                                label="Flag to Update (Optional)"
-                                disabled={isLoading}
-                            >
-                                <MenuItem value="">
-                                    <em>No flag change - comment only</em>
-                                </MenuItem>
-                                {flagOptions.map((option) => (
-                                    <MenuItem key={option.key} value={option.key}>
-                                        {option.label}
+                        {flagOptions.length > 0 && (
+                            <FormControl fullWidth margin="normal">
+                                <InputLabel>Flag to Update</InputLabel>
+                                <Select
+                                    value={selectedFlag}
+                                    onChange={handleFlagChange}
+                                    label="Flag to Update (Optional)"
+                                    disabled={isLoading}
+                                >
+                                    <MenuItem value="">
+                                        <em>No flag change - comment only</em>
                                     </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                                    {flagOptions.map((option) => (
+                                        <MenuItem key={option.key} value={option.key}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
 
                         {selectedFlag && (
                             <FormControl fullWidth margin="normal">

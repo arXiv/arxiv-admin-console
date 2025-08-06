@@ -24,8 +24,8 @@ def audit_event_maker_positional(cls: Type[AdminAuditEvent],
 
     return cls(
         admin_id,
-        session_id,
         user_id,
+        session_id,
         new_value,
         comment=comment,
         remote_ip=remote_ip,
@@ -56,8 +56,8 @@ def audit_event_maker_kwarg(cls: Type[AdminAuditEvent],
 
     return cls(
         admin_id,
-        session_id,
         user_id,
+        session_id,
         **kwargs
     )
 
@@ -97,8 +97,13 @@ user_prop_audit_registry = {
 }
 
 
-def record_user_prop_admin_action(session: Session, admin_id: str, session_id: str,
-                                  prop_name: str, user_id: str, old_value: Any, new_value: Any,
+def record_user_prop_admin_action(session: Session,
+                                  admin_id: str = "",
+                                  session_id: str = "",
+                                  prop_name: str = "",
+                                  user_id: str = "",
+                                  old_value: Any = None,
+                                  new_value: Any = None,
                                   comment: Optional[str] = None,
                                   remote_ip: Optional[str] = None,
                                   remote_hostname: Optional[str] = None,

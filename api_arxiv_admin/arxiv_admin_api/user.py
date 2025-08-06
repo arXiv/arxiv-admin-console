@@ -26,9 +26,74 @@ from .audit import record_user_prop_admin_action
 from .biz import canonicalize_category
 from .biz.document_biz import document_summary
 from .biz.endorsement_biz import can_user_submit_to, can_user_endorse_for, EndorsementAccessor
-
+from .dao.react_admin import ReactAdminUpdateResult, ReactAdminCreateResult
 
 router = APIRouter(prefix="/users")
+
+
+# Things normal user can update
+DEMOGRAPHIC_FIELDS = {
+    "country", "archive", "subject_class",
+    "type", # Career status
+    "flag_group_physics",
+    "flag_group_math",
+    "flag_group_cs",
+    "flag_group_nlin",
+    "flag_group_q_bio",
+    "flag_group_q_fin",
+    "flag_group_stat",
+    "flag_group_eess",
+    "flag_group_econ"
+}
+
+ADMIN_DEMOGRAPHIC_FIELDS = {
+    "original_subject_classes",
+    "flag_proxy",
+    "flag_journal",
+    "flag_xml",
+    "dirty",
+}
+
+TAPIR_USER_FIELDS = {
+    "first_name",
+    "last_name",
+    "suffix_name",
+    "share_first_name",
+    "share_last_name",
+    # "email",
+    # "flag_email_verified",
+    "share_email",
+    "flag_wants_email",
+    "flag_html_email",
+}
+
+ADMIN_TAPIR_USER_FIELDS = {
+    "email_bouncing",
+    "policy_class",
+    "joined_date",
+    "joined_ip_num",
+    "joined_remote_host",
+    "flag_approved",
+    "flag_wants_email",
+    "flag_html_email",
+    "tracking_cookie",
+    "flag_allow_tex_produced",
+}
+
+ADMIN_AUDIT_TAPIR_USER_FIELDS = {
+    "flag_internal",
+    "flag_edit_users",
+    "flag_edit_system",
+    "flag_deleted",
+    "flag_banned",
+    "flag_can_lock"
+}
+
+ADMIN_AUDIT_DEMOGRAPHIC_FIELDS = {
+    "flag_suspect",
+    "veto_status",
+}
+
 
 
 class UserUpdateModel(UserModel):
@@ -328,8 +393,49 @@ def sanitize_user_update_data(update_data: dict) -> dict:
     return update_data
 
 
+@router.put('/{user_id:int}')
+async def update_user(
+        user_id: int,
+        body: UserModel,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)) -> UserModel:
+    """Update user property - by PUT"""
 
-@router.put('/{user_id:int}/property')
+    demographic: Demographic | None = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
+    tapir_user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
+
+    if not demographic:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
+    if not tapir_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    data = body.model_dump()
+
+    demographic_fields = DEMOGRAPHIC_FIELDS.copy()
+    tapir_user_fields = TAPIR_USER_FIELDS.copy()
+
+    if current_user.is_admin:
+        demographic_fields.update(ADMIN_DEMOGRAPHIC_FIELDS)
+        tapir_user_fields.update(ADMIN_TAPIR_USER_FIELDS)
+        # check only
+        demographic_fields.update(ADMIN_AUDIT_DEMOGRAPHIC_FIELDS)
+        tapir_user_fields.update(ADMIN_AUDIT_TAPIR_USER_FIELDS)
+
+    for target, fields in [(demographic, demographic_fields),
+                           (tapir_user, tapir_user_fields)]:
+        for field in fields:
+            old_value = getattr(target, field)
+            new_value = data.get(field)
+            if old_value != new_value:
+                if field in ADMIN_AUDIT_TAPIR_USER_FIELDS or field in ADMIN_AUDIT_DEMOGRAPHIC_FIELDS:
+                    raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+                                        detail=f"Cannot update {field} with this endpint")
+                setattr(target, field, new_value)
+    session.commit()
+    return UserModel.one_user(session, str(user_id))
+
+
+@router.put('/{user_id:int}/demographic')
 async def update_user_property(
         request: Request,
         user_id: int,
@@ -347,28 +453,49 @@ async def update_user_property(
     user = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    demographic = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
+    if Demographic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
 
-    if hasattr(user, body.property_name):
-        old_value = getattr(user, body.property_name)
-        if old_value is None or old_value != body.property_value:
-            setattr(user, body.property_name, body.property_value)
-            record_user_prop_admin_action(session, current_user.user_id,
-                                          body.property_name, user_id, old_value, body.property_value, body.comment,
-                                          remote_ip, remote_hostname, tracking_cookie)
-    session.commit()
+    tapir_fields = TAPIR_USER_FIELDS | ADMIN_TAPIR_USER_FIELDS | ADMIN_AUDIT_TAPIR_USER_FIELDS
+    demographic_fields = DEMOGRAPHIC_FIELDS | ADMIN_DEMOGRAPHIC_FIELDS |ADMIN_AUDIT_DEMOGRAPHIC_FIELDS
+
+    for it, fields in [(user, tapir_fields), (demographic, demographic_fields)]:
+        if body.property_name in fields:
+            if hasattr(it, body.property_name):
+                old_value = getattr(it, body.property_name)
+                if old_value is None or old_value != body.property_value:
+                    setattr(it, body.property_name, body.property_value)
+
+                    if body.property_name in ADMIN_AUDIT_TAPIR_USER_FIELDS or body.property_name in ADMIN_AUDIT_DEMOGRAPHIC_FIELDS:
+                        record_user_prop_admin_action(
+                            session,
+                            admin_id = str(current_user.user_id),
+                            session_id = current_user.tapir_session_id,
+                            prop_name = body.property_name,
+                            user_id = str(user_id),
+                            old_value = old_value,
+                            new_value = body.property_value,
+                            comment = body.comment,
+                            remote_ip = remote_ip,
+                            remote_hostname = remote_hostname,
+                            tracking_cookie = tracking_cookie)
+                    session.commit()
+            break
+    else:
+        raise HTTPException(status_code=status.HTTP_400, detail=f"Property {body.property_name} not a valid property name")
     return UserModel.one_user(session, user_id)
 
 
-@router.post('/{user_id:int}/comment')
+@router.post('/{user_id:int}/comment', status_code=status.HTTP_201_CREATED)
 async def create_user_comment(
-        response: Response,
         user_id: int,
         body: UserCommentRequest,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         remote_ip: Optional[str] = Depends(get_client_host),
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
-        session: Session = Depends(get_db)) -> Response:
+        session: Session = Depends(get_db)) -> ReactAdminCreateResult:
     """Add comment to a user by POST"""
 
     if not current_user.is_admin:
@@ -378,21 +505,22 @@ async def create_user_comment(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    admin_audit(AdminAudit_AddComment(
+    audit_record = admin_audit(
+        session,
+        AdminAudit_AddComment(
             str(current_user.user_id),
             str(user_id),
-            str(current_user.session_id),
+            str(current_user.tapir_session_id),
             remote_ip=remote_ip,
             remote_hostname=remote_hostname,
             tracking_cookie=tracking_cookie,
             comment=body.comment,
     ))
-    response.status_code = status.HTTP_201_CREATED
-    return response
+    session.commit()
+    return ReactAdminCreateResult(id=audit_record.entry_id)
 
 
-
-@router.put('/{user_id:int}/veto-status/')
+@router.put('/{user_id:int}/veto-status')
 async def update_user_veto_status(
         request: Request,
         user_id: int,
@@ -413,16 +541,18 @@ async def update_user_veto_status(
 
     if demographic.veto_status != body.status_after.value:
         demographic.veto_status = body.status_after.value
-        admin_audit(AdminAudit_ChangeStatus(
-            current_user.user_id,
-            user_id,
-            current_user.session_id,
-            remote_ip=remote_ip,
-            remote_hostname=remote_hostname,
-            tracking_cookie=tracking_cookie,
-            status_before=demographic.veto_status,
-            status_after=body.status_after.value,
-            comment=body.comment,
+        admin_audit(
+            session,
+            AdminAudit_ChangeStatus(
+                current_user.user_id,
+                user_id,
+                current_user.tapir_session_id,
+                remote_ip=remote_ip,
+                remote_hostname=remote_hostname,
+                tracking_cookie=tracking_cookie,
+                status_before=demographic.veto_status,
+                status_after=body.status_after.value,
+                comment=body.comment,
         ))
         session.commit()
     else:

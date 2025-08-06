@@ -162,7 +162,7 @@ async def create_admin_log_user_comment(
         AdminAudit_AddComment(
             current_user.user_id,
             body.user_id,
-            current_user.session_id,
+            current_user.tapir_session_id,
             comment=body.comment,
             remote_ip=remote_ip,
             remote_hostname=remote_hostname,

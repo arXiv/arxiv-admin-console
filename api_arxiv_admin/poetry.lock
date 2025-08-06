@@ -80,8 +80,8 @@ sphinx = ["sphinx", "sphinx-autodoc-typehints", "sphinxcontrib-websupport"]
 [package.source]
 type = "git"
 url = "https://github.com/arXiv/arxiv-base.git"
-reference = "9ca8d42b0fa85986e602875811c44735c1cbe4b8"
-resolved_reference = "9ca8d42b0fa85986e602875811c44735c1cbe4b8"
+reference = "4fb86966dcb9aaeb2238f317b139697102729696"
+resolved_reference = "4fb86966dcb9aaeb2238f317b139697102729696"
 
 [[package]]
 name = "arxiv-bizlogic"
@@ -106,7 +106,7 @@ postgres = []
 type = "git"
 url = "https://github.com/arXiv/arxiv-keycloak.git"
 reference = "master"
-resolved_reference = "148ac11fb621564bca4aad45aa6f83e37fcc1de7"
+resolved_reference = "af5e0d25a3bcb2f89d558d75b08aa0ed1ecfefac"
 subdirectory = "bizlogic"
 
 [[package]]
@@ -2512,4 +2512,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "d9b677b0650f214df1fed7f3be37ba44b5ab5ad6f5b8ae48965aed9be5145a78"
+content-hash = "80872505edbda8549f84675037deefbbba221bc7fcbebec8f7d2c2b4c60155aa"

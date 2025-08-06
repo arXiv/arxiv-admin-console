@@ -114,7 +114,7 @@ const FlaggedToggle: React.FC<FlaggedToggleProps> = ({
             <UserFlagDialog
                 open={dialogOpen}
                 setOpen={handleDialogClose}
-                onFlagUpdated={handleFlagUpdated}
+                onUpdated={handleFlagUpdated}
                 title={finalTitle}
                 initialFlag={finalFlagKey}
                 flagOptions={finalFlagOptions}

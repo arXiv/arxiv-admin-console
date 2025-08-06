@@ -613,7 +613,7 @@ export class AdminAudit_EndorsedBySuspect extends AdminAudit_EndorseEvent {
             const [endorser, category, endorsee] = data;
             return (
                 <Box component="span">
-                    {"A suspect "}
+                    {"A flagged user "}
                     <ReferenceField reference="users" source="endorser" record={{endorser}}>
                         <UserNameField />
                     </ReferenceField>
@@ -638,7 +638,7 @@ export class AdminAudit_GotNegativeEndorsement extends AdminAudit_EndorseEvent {
             const [endorser, category, endorsee] = data;
             return (
                 <Box component="span">
-                    {"A suspect "}
+                    {"A flagged user "}
                     <ReferenceField reference="users" source="endorser" record={{endorser}}>
                         <UserNameField />
                     </ReferenceField>
@@ -1119,11 +1119,11 @@ export class AdminAudit_SetSuspect extends AdminAudit_SetFlag {
                     <ReferenceField reference="users" source="admin_user">
                         <UserNameField />
                     </ReferenceField>
-                    {` made `}
+                    {parseInt(value1) ? " flagged " : " unflagged "}
                     <ReferenceField reference="users" source="affected_user">
                         <UserNameField />
                     </ReferenceField>
-                    {parseInt(value1) ? " suspect. " : " not suspect. "}
+                    {" "}
                     <TextField source="comment" />
                 </Box>
             );
