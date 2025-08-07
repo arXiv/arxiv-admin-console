@@ -11,6 +11,10 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // import ToggleButton from '@mui/material/ToggleButton';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
@@ -208,6 +212,7 @@ const PaperOwnerList: React.FC<{
     const [documents, setDocuments] = useState<DocumentType[] | undefined>(undefined);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(25);
+    const [expanded, setExpanded] = useState<boolean>(false);
 
     useEffect(() => {
         if (record?.user_id) {
@@ -245,6 +250,10 @@ const PaperOwnerList: React.FC<{
         setPage(0);
     };
 
+    const handleAccordionChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
+        setExpanded(isExpanded);
+    };
+
     if (documents === undefined) {
         return (<Typography>
             Other papers owned by the user - loading...
@@ -252,9 +261,51 @@ const PaperOwnerList: React.FC<{
     }
 
     return (
-            <Typography>
-                Other papers owned by the user -{` ${documents.length} documents`}
-            </Typography>
+        <Accordion expanded={expanded} onChange={handleAccordionChange}>
+            <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="paper-owner-list-content"
+                id="paper-owner-list-header"
+            >
+                <Typography>
+                    Other papers owned by the user -{` ${documents.length} documents`}
+                </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+                <Table>
+                    <TableHead>
+                        <TableCell>
+                            Owner
+                        </TableCell>
+                        <TableCell>Paper</TableCell>
+                        <TableCell>Title</TableCell>
+                        <TableCell>Authors</TableCell>
+                        <TableCell>Date</TableCell>
+                    </TableHead>
+                    {documents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((document, index) => (
+                        <TableRow key={`doc_${document.id}_row_${index}`}>
+                            <TableCell key={`doc_${document.id}_row_${index}_owner`}>
+                                {paperOwners[index]?.flag_author ? <YesIcon /> : null}
+                            </TableCell>
+                            <TableCell  key={`doc_${document.id}_row_${index}_doc`}>
+                                <ReferenceField source="id" reference="documents" record={document} link="show">
+                                    <TextField source="paper_id" />
+                                </ReferenceField>
+                            </TableCell>
+                            <TableCell key={`doc_${document.id}_row_${index}_title`}>
+                                {document.title}
+                            </TableCell>
+                            <TableCell key={`doc_${document.id}_row_${index}_authors`}>
+                                <HighlightText text={document.authors || ""} highlighters={nameFragments}/>
+                            </TableCell>
+                            <TableCell key={`doc_${document.id}_row_${index}_dated`}>
+                                {document.dated}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </Table>
+            </AccordionDetails>
+        </Accordion>
     );
 };
 
