@@ -692,7 +692,6 @@ export const UserEdit = () => {
 
     return (
         <Edit title={<UserTitle/>} actions={false} redirect={false}
-              mutationOptions={{onSuccess}}
         >
             <SimpleForm toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen}/>}>
                 <Grid container>
