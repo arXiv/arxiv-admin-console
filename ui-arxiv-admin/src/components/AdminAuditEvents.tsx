@@ -132,6 +132,28 @@ export abstract class AdminAuditEvent {
 }
 
 
+export class AdminAudit_AddComment extends AdminAuditEvent {
+    static readonly _action = AdminAuditActionEnum.ADD_COMMENT;
+
+    describe(): React.ReactElement {
+
+        return (
+            <Box >
+                <ReferenceField reference={"users"} source={"admin_user"} >
+                    <UserNameField />
+                </ReferenceField>
+                {" commented on "}
+                <ReferenceField reference={"users"} source={"affected_user"} >
+                    <UserNameField />
+                </ReferenceField>
+                {": "}
+                <TextField source={"comment"} />
+            </Box>
+        );
+    }
+}
+
+
 export abstract class AdminAudit_PaperEvent extends AdminAuditEvent {
     /**
      * Base class for audit events related to paper ownership and management.
@@ -174,30 +196,6 @@ export abstract class AdminAudit_PaperEvent extends AdminAuditEvent {
         };
     }
 }
-
-
-export class AdminAudit_AddComment extends AdminAudit_PaperEvent {
-    static readonly _action = AdminAuditActionEnum.ADD_COMMENT;
-
-    describe(): React.ReactElement {
-
-        return (
-            <Box >
-                <ReferenceField reference={"users"} source={"admin_user"} >
-                    <UserNameField />
-                </ReferenceField>
-                {" commented on "}
-                <ReferenceField reference={"users"} source={"affected_user"} >
-                    <UserNameField />
-                </ReferenceField>
-
-                {" as "}
-                <TextField source={"comment"} />
-            </Box>
-        );
-    }
-}
-
 
 
 export class AdminAudit_AddPaperOwner extends AdminAudit_PaperEvent {
@@ -287,6 +285,8 @@ export class AdminAudit_AdminChangePaperPassword extends AdminAudit_PaperEvent {
                 <ReferenceField reference="users" source="affected_user">
                     <UserNameField />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -309,6 +309,8 @@ export class AdminAudit_AdminMakeAuthor extends AdminAudit_PaperEvent {
                 <ReferenceField reference="documents" source="data">
                     <TextField source="paper_id" />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -331,6 +333,8 @@ export class AdminAudit_AdminMakeNonauthor extends AdminAudit_PaperEvent {
                 <ReferenceField reference="documents" source="data">
                     <TextField source="paper_id" />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -353,6 +357,8 @@ export class AdminAudit_AdminRevokePaperOwner extends AdminAudit_PaperEvent {
                 <ReferenceField reference="documents" source="data">
                     <TextField source="paper_id" />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -375,6 +381,8 @@ export class AdminAudit_AdminUnrevokePaperOwner extends AdminAudit_PaperEvent {
                 <ReferenceField reference="documents" source="data">
                     <TextField source="paper_id" />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -397,6 +405,8 @@ export class AdminAudit_RevokePaperOwner extends AdminAudit_PaperEvent {
                 <ReferenceField reference="documents" source="data">
                     <TextField source="paper_id" />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -506,6 +516,8 @@ export class AdminAudit_ChangeEmail extends AdminAuditEvent {
                 </ReferenceField>
                 {" to "}
                 <TextField source="data" />
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -524,6 +536,8 @@ export class AdminAudit_ChangePassword extends AdminAuditEvent {
                 <ReferenceField reference="users" source="affected_user">
                     <UserNameField />
                 </ReferenceField>
+                {" "}
+                <TextField source="comment" />
             </Box>
         );
     }
@@ -802,7 +816,7 @@ export class AdminAudit_SuspendUser extends AdminAuditEvent {
                 <ReferenceField reference="users" source="admin_user">
                     <UserNameField />
                 </ReferenceField>
-                {" suspended the account of "}
+                {" suspended/banned the account of "}
                 <ReferenceField reference="users" source="affected_user">
                     <UserNameField />
                 </ReferenceField>
@@ -1438,6 +1452,8 @@ export class AdminAudit_SetBanned extends AdminAudit_SetFlag {
                     <ReferenceField reference="users" source="affected_user">
                         <UserNameField />
                     </ReferenceField>
+                    {" "}
+                    <TextField source="comment" />
                 </Box>
             );
         }
@@ -1483,7 +1499,8 @@ export class AdminAudit_SetEditSystem extends AdminAudit_SetFlag {
                         <ReferenceField reference="users" source="affected_user">
                             <UserNameField />
                         </ReferenceField>
-                        {" a sysadmin"}
+                        {" a sysadmin."}
+                        <TextField source="comment" />
                     </Box>
                 );
             } else {
@@ -1496,6 +1513,8 @@ export class AdminAudit_SetEditSystem extends AdminAudit_SetFlag {
                         <ReferenceField reference="users" source="affected_user">
                             <UserNameField />
                         </ReferenceField>
+                        {" "}
+                        <TextField source="comment" />
                     </Box>
                 );
             }
@@ -1542,7 +1561,8 @@ export class AdminAudit_SetEditUsers extends AdminAudit_SetFlag {
                         <ReferenceField reference={"users"} source={"affected_user"} >
                             <UserNameField />
                         </ReferenceField>
-                        {" an administrator"}
+                        {" an administrator. "}
+                        <TextField source="comment" />
                     </Box>
                 );
             } else {
@@ -1555,6 +1575,8 @@ export class AdminAudit_SetEditUsers extends AdminAudit_SetFlag {
                         <ReferenceField reference={"users"} source={"affected_user"} >
                             <UserNameField />
                         </ReferenceField>
+                        {" "}
+                        <TextField source="comment" />
                     </Box>
                 );
             }

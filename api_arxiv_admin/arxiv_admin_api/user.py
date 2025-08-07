@@ -57,6 +57,7 @@ ADMIN_AUDIT_DEMOGRAPHIC_FIELDS = {
     "veto_status",
     "flag_proxy",
     "flag_xml",
+    "flag_group_test",
 }
 
 TAPIR_USER_FIELDS = {
@@ -73,7 +74,6 @@ TAPIR_USER_FIELDS = {
 }
 
 ADMIN_TAPIR_USER_FIELDS = {
-    "email_bouncing",
     "policy_class",
     "joined_date",
     "joined_ip_num",
@@ -85,6 +85,7 @@ ADMIN_TAPIR_USER_FIELDS = {
 }
 
 ADMIN_AUDIT_TAPIR_USER_FIELDS = {
+    "email_bouncing",
     "flag_edit_users",
     "flag_edit_system",
     "flag_deleted",

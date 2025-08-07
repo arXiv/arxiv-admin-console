@@ -111,10 +111,10 @@ user_prop_audit_registry = {
     "change_email": (AdminAudit_ChangeEmail, audit_event_maker_kwarg, "email"),
     "change_password": (AdminAudit_ChangePassword, audit_event_maker_kwarg),
 
-    # "flag_banned": (AdminAudit_SetBanned, audit_event_maker_positional),
+    "flag_banned": (AdminAudit_SetBanned, audit_event_maker_positional),
 
     "flag_suspect": (AdminAudit_SetSuspect, audit_event_maker_positional),
-    "group_test": (AdminAudit_SetGroupTest, audit_event_maker_positional),
+    "flag_group_test": (AdminAudit_SetGroupTest, audit_event_maker_positional),
 
     "flag_proxy": (AdminAudit_SetProxy, audit_event_maker_positional),
     "proxy": (AdminAudit_SetProxy, audit_event_maker_positional),
