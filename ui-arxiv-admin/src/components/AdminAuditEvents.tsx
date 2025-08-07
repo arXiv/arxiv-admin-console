@@ -572,14 +572,16 @@ export abstract class AdminAudit_EndorseEvent extends AdminAuditEvent {
     static getInitParams(audit_record: TapirAdminAudit): Record<string, any> {
         const data = audit_record.data.split(" ");
         if (data.length !== 3) {
-            throw new Error(`data '${audit_record.data}' is not valid`);
+            console.error(`data '${audit_record.data}' is not valid. ` + JSON.stringify(data));
+            throw new Error(`data format '${audit_record.data}' is not valid`);
         }
         const [endorser, category, endorsee] = data;
 
         if (!/^\d+$/.test(endorser) || 
             !/^\d+$/.test(endorsee) || 
-            !/[\w\-]+\..*/.test(category)) {
-            throw new Error(`data '${audit_record.data}' is not valid`);
+            !/[\w\-._\d]+/.test(category)) {
+            console.error(`data '${audit_record.data}' is not valid. ` + JSON.stringify(data));
+            throw new Error(`validation '${audit_record.data}' failed`);
         }
 
         return {
