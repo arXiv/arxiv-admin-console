@@ -133,7 +133,7 @@ const CategoryChooserDialog: React.FC<
                                         onClick={() => handleToggle(cat)}
                                         sx={{
                                             cursor: 'pointer',
-                                            borderRadius: 1,
+                                            borderRadius: 0,
                                             flex: '0 0 calc(50% - 8px)',
                                             '@media (min-width: 900px)': {
                                                 flex: '0 0 calc(33.333% - 8px)'
@@ -142,8 +142,9 @@ const CategoryChooserDialog: React.FC<
                                                 flex: '0 0 calc(25% - 8px)'
                                             },
                                             '&:hover': {
-                                                backgroundColor: '#888'
-                                            }
+                                                backgroundColor: '#8AF'
+                                            },
+                                            py: 0
                                         }}
                                     >
                                         <Checkbox
@@ -155,6 +156,9 @@ const CategoryChooserDialog: React.FC<
                                         <ListItemText
                                             primary={`${cat.archive}.${cat.subject_class}`}
                                             secondary={cat.category_name}
+                                            slotProps={{
+                                                root: {sx: {py: 0, my: "2px"}}
+                                            }}
                                         />
                                     </ListItem>
                                 ))}

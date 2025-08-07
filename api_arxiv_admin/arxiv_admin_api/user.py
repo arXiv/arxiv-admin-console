@@ -48,10 +48,15 @@ DEMOGRAPHIC_FIELDS = {
 
 ADMIN_DEMOGRAPHIC_FIELDS = {
     "original_subject_classes",
-    "flag_proxy",
     "flag_journal",
-    "flag_xml",
     "dirty",
+}
+
+ADMIN_AUDIT_DEMOGRAPHIC_FIELDS = {
+    "flag_suspect",
+    "veto_status",
+    "flag_proxy",
+    "flag_xml",
 }
 
 TAPIR_USER_FIELDS = {
@@ -74,14 +79,12 @@ ADMIN_TAPIR_USER_FIELDS = {
     "joined_ip_num",
     "joined_remote_host",
     "flag_approved",
-    "flag_wants_email",
-    "flag_html_email",
     "tracking_cookie",
     "flag_allow_tex_produced",
+    "flag_internal",
 }
 
 ADMIN_AUDIT_TAPIR_USER_FIELDS = {
-    "flag_internal",
     "flag_edit_users",
     "flag_edit_system",
     "flag_deleted",
@@ -89,10 +92,6 @@ ADMIN_AUDIT_TAPIR_USER_FIELDS = {
     "flag_can_lock"
 }
 
-ADMIN_AUDIT_DEMOGRAPHIC_FIELDS = {
-    "flag_suspect",
-    "veto_status",
-}
 
 
 
@@ -102,13 +101,13 @@ class UserUpdateModel(UserModel):
 class UserPropertyUpdateRequest(BaseModel):
     property_name: str
     property_value: str | bool
-    comment: Optional[str]
+    comment: Optional[str] = None
 
 
 class UserVetoStatusRequest(BaseModel):
     status_before: UserVetoStatus
     status_after: UserVetoStatus
-    comment: Optional[str]
+    comment: Optional[str] = None
 
 
 class UserCommentRequest(BaseModel):
@@ -393,69 +392,17 @@ def sanitize_user_update_data(update_data: dict) -> dict:
     return update_data
 
 
-@router.put('/{user_id:int}')
-async def update_user(
-        user_id: int,
-        body: UserModel,
-        current_user: ArxivUserClaims = Depends(get_authn_user),
-        session: Session = Depends(get_db)) -> UserModel:
-    """Update user property - by PUT"""
-
-    demographic: Demographic | None = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
-    tapir_user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
-
-    if not demographic:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
-    if not tapir_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    data = body.model_dump()
-
-    demographic_fields = DEMOGRAPHIC_FIELDS.copy()
-    tapir_user_fields = TAPIR_USER_FIELDS.copy()
-
-    if current_user.is_admin:
-        demographic_fields.update(ADMIN_DEMOGRAPHIC_FIELDS)
-        tapir_user_fields.update(ADMIN_TAPIR_USER_FIELDS)
-        # check only
-        demographic_fields.update(ADMIN_AUDIT_DEMOGRAPHIC_FIELDS)
-        tapir_user_fields.update(ADMIN_AUDIT_TAPIR_USER_FIELDS)
-
-    for target, fields in [(demographic, demographic_fields),
-                           (tapir_user, tapir_user_fields)]:
-        for field in fields:
-            old_value = getattr(target, field)
-            new_value = data.get(field)
-            if old_value != new_value:
-                if field in ADMIN_AUDIT_TAPIR_USER_FIELDS or field in ADMIN_AUDIT_DEMOGRAPHIC_FIELDS:
-                    raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-                                        detail=f"Cannot update {field} with this endpint")
-                setattr(target, field, new_value)
-    session.commit()
-    return UserModel.one_user(session, str(user_id))
-
-
-@router.put('/{user_id:int}/demographic')
-async def update_user_property(
-        request: Request,
+async def _update_user_property(
+        session: Session,
+        user: TapirUser,
+        demographic: Demographic,
         user_id: int,
         body: UserPropertyUpdateRequest,
-        current_user: ArxivUserClaims = Depends(get_authn_user),
-        remote_ip: Optional[str] = Depends(get_client_host),
-        remote_hostname: Optional[str] = Depends(get_client_host_name),
-        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
-        session: Session = Depends(get_db)) -> UserModel:
-    """Update user property - by PUT"""
-
-    if not current_user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update user properties")
-
-    user = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    demographic = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
-    if Demographic is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
+        current_user: ArxivUserClaims,
+        remote_ip: Optional[str] = None,
+        remote_hostname: Optional[str] = None,
+        tracking_cookie: Optional[str] = None) -> None:
+    """Update user property """
 
     tapir_fields = TAPIR_USER_FIELDS | ADMIN_TAPIR_USER_FIELDS | ADMIN_AUDIT_TAPIR_USER_FIELDS
     demographic_fields = DEMOGRAPHIC_FIELDS | ADMIN_DEMOGRAPHIC_FIELDS |ADMIN_AUDIT_DEMOGRAPHIC_FIELDS
@@ -471,7 +418,7 @@ async def update_user_property(
                         record_user_prop_admin_action(
                             session,
                             admin_id = str(current_user.user_id),
-                            session_id = current_user.tapir_session_id,
+                            session_id = str(current_user.tapir_session_id),
                             prop_name = body.property_name,
                             user_id = str(user_id),
                             old_value = old_value,
@@ -480,12 +427,104 @@ async def update_user_property(
                             remote_ip = remote_ip,
                             remote_hostname = remote_hostname,
                             tracking_cookie = tracking_cookie)
-                    session.commit()
             break
     else:
-        raise HTTPException(status_code=status.HTTP_400, detail=f"Property {body.property_name} not a valid property name")
-    return UserModel.one_user(session, user_id)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Property {body.property_name} not a valid property name")
 
+
+@router.put('/{user_id:int}/demographic')
+async def update_user_property(
+        user_id: int,
+        body: UserPropertyUpdateRequest,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> UserModel:
+    """Update user property - by PUT"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update user properties")
+
+    user = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    demographic = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
+    if Demographic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
+
+    await _update_user_property(
+        session,
+        user,
+        demographic,
+        user_id,
+        body,
+        current_user,
+        remote_ip,
+        remote_hostname,
+        tracking_cookie)
+    session.commit()
+    return UserModel.one_user(session, str(user_id))
+
+
+@router.put('/{user_id:int}')
+async def update_user(
+        user_id: int,
+        body: UserModel,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> UserModel:
+    """Update user property - by PUT"""
+
+    demographic: Demographic | None = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
+    tapir_user: TapirUser | None = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
+
+    if not demographic:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
+    if not tapir_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    data = body.model_dump()
+
+    if current_user.is_admin:
+        tapir_user_fields = TAPIR_USER_FIELDS | ADMIN_TAPIR_USER_FIELDS | ADMIN_AUDIT_TAPIR_USER_FIELDS
+        demographic_fields = DEMOGRAPHIC_FIELDS | ADMIN_DEMOGRAPHIC_FIELDS | ADMIN_AUDIT_DEMOGRAPHIC_FIELDS
+    else:
+        demographic_fields = DEMOGRAPHIC_FIELDS
+        tapir_user_fields = TAPIR_USER_FIELDS
+        pass
+
+    for target, fields in [(demographic, demographic_fields), (tapir_user, tapir_user_fields)]:
+        for field in fields:
+            old_value = getattr(target, field)
+            new_value = data.get(field)
+            if isinstance(new_value, bool) and isinstance(old_value, int):
+                # column is boolean but shows up as int
+                new_value = 1 if new_value else 0
+            if isinstance(new_value, datetime) and isinstance(old_value, int):
+                # column is boolean but shows up as int
+                new_value = datetime_to_epoch(None, new_value)
+            if old_value != new_value:
+                if current_user.is_admin:
+                    await _update_user_property(
+                        session,
+                        tapir_user,
+                        demographic,
+                        user_id,
+                        UserPropertyUpdateRequest(
+                            property_name=field,
+                            property_value=new_value,
+                            comment=None
+                        ),
+                        current_user,
+                        remote_ip,
+                        remote_hostname,
+                        tracking_cookie)
+                else:
+                    setattr(target, field, new_value)
+    session.commit()
+    return UserModel.one_user(session, str(user_id))
 
 @router.post('/{user_id:int}/comment', status_code=status.HTTP_201_CREATED)
 async def create_user_comment(

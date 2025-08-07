@@ -576,7 +576,7 @@ const UserEditToolbar: React.FC<{setAddCommentOpen: (open: boolean) => void}> = 
 
     return (
         <Toolbar sx={{gap: 1}}>
-            <SaveButton />
+            <SaveButton  />
             <Button
                 variant="contained"
                 color="secondary"
@@ -623,6 +623,7 @@ export const UserEdit = () => {
     const [addCommentOpen, setAddCommentOpen] = useState(false);
     const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
+    const notify = useNotify();
 
     const switchProps: SxProps = {
         '& .MuiSwitch-root': {
@@ -678,9 +679,21 @@ export const UserEdit = () => {
 
     const buhchOfInputs = [...statusInputs, ...adminInputs];
 
+    /*
+          mutationOptions={{onSuccess: () => {refresh();}}}
+     */
+    const onSuccess = () => {
+        notify(`WOOHOO! Changes saved`);
+        refresh();
+    };
+
     return (
-    <Edit title={<UserTitle />} actions={false}>
-        <SimpleForm toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen} />}>
+    <Edit title={<UserTitle />} actions={false} redirect={false}
+    >
+        <SimpleForm
+            toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen} />}
+            mutationOptions={{onSuccess}}
+        >
             <Grid container >
                 <Grid size={{xs: 12, md: 6}}  >
                     <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>

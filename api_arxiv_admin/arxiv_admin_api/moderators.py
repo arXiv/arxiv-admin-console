@@ -1,6 +1,10 @@
 """arXiv moderator routes."""
 from typing import Optional, List
 
+from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_MakeModerator, AdminAudit_UnmakeModerator
+from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_client_host_name, \
+    get_tapir_tracking_cookie
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
 from sqlalchemy import insert, func, and_, select # case, Select, distinct, exists, update,
@@ -267,7 +271,15 @@ async def update_moderator(request: Request, id: str,
 async def create_moderator(
         request: Request,
         body: ModeratorModel,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> ModeratorModel:
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
     data = body.model_dump()
     if "id" in data:
         del data["id"]
@@ -281,7 +293,7 @@ async def create_moderator(
     ).one_or_none()
 
     if existing:
-        raise HTTPException(status_code=409, detail="Moderator already exists.")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Moderator already exists.")
 
     stmt = insert(t_arXiv_moderators).values(**data)
 
@@ -300,6 +312,19 @@ async def create_moderator(
         if not item:
             raise HTTPException(status_code=500, detail="Failed to fetch inserted record")
 
+        admin_audit(
+            session,
+            AdminAudit_MakeModerator(
+                current_user.user_id,
+                body.user_id,
+                current_user.tapir_session_id,
+                category=f"{body.archive}.{body.subject_class}",
+                remote_ip=remote_ip,
+                remote_hostname=remote_hostname,
+                tracking_cookie=tracking_cookie,
+            )
+        )
+
         session.commit()
         return ModeratorModel.model_validate(item)
 
@@ -309,7 +334,11 @@ async def create_moderator(
 
 
 
-def _delete_moderator(session: Session, user_id: str, archive: str, subject_class: str) -> Response:
+def _delete_moderator(session: Session,
+                      current_user: ArxivUserClaims,
+                      user_id: str, archive: str, subject_class: str,
+                      remote_ip: str, remote_hostname: str, tracking_cookie: str
+    ) -> Response:
     result = session.execute(
         t_arXiv_moderators.delete().where(
             and_(
@@ -323,6 +352,19 @@ def _delete_moderator(session: Session, user_id: str, archive: str, subject_clas
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Moderator not found")
 
+    admin_audit(
+        session,
+        AdminAudit_UnmakeModerator(
+            current_user.user_id,
+            user_id,
+            current_user.tapir_session_id,
+            category=f"{archive}.{subject_class}",
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+        )
+    )
+
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -331,12 +373,18 @@ def _delete_moderator(session: Session, user_id: str, archive: str, subject_clas
                description="""parameter ID is user_id "+" archive "+" subject_class where + is a literal character.
  This is because react-admin's delete row must have a single ID, and I chose to use + as separator."""
                )
-async def delete_moderator(id: str, session: Session = Depends(get_db)) -> Response:
+async def delete_moderator(id: str,
+                           current_user: ArxivUserClaims = Depends(get_authn_user),
+                           remote_ip: Optional[str] = Depends(get_client_host),
+                           remote_hostname: Optional[str] = Depends(get_client_host_name),
+                           tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+                           session: Session = Depends(get_db)) -> Response:
     """
     delete_moderator:
     """
     [user_id, archive, subject_class] = id.split("+")
-    return _delete_moderator(session, user_id, archive, subject_class)
+    return _delete_moderator(session, current_user, user_id, archive, subject_class,
+                             remote_ip, remote_hostname, tracking_cookie)
 
 
 @router.delete('/user/{user_id:str}/archive/{archive:str}/subject_class/{subject_class:str}',
@@ -346,5 +394,11 @@ async def delete_moderator(id: str, session: Session = Depends(get_db)) -> Respo
 async def delete_moderator_2(user_id: str,
                              archive: str,
                              subject_class: str,
+                             current_user: ArxivUserClaims = Depends(get_authn_user),
+                             remote_ip: Optional[str] = Depends(get_client_host),
+                             remote_hostname: Optional[str] = Depends(get_client_host_name),
+                             tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
                              session: Session = Depends(get_db)) -> Response:
-    return _delete_moderator(session, user_id, archive, subject_class)
+    return _delete_moderator(session, current_user, user_id, archive, subject_class,
+                             remote_ip, remote_hostname, tracking_cookie)
+

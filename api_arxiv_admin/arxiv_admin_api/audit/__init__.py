@@ -115,8 +115,13 @@ user_prop_audit_registry = {
 
     "flag_suspect": (AdminAudit_SetSuspect, audit_event_maker_positional),
     "group_test": (AdminAudit_SetGroupTest, audit_event_maker_positional),
+
+    "flag_proxy": (AdminAudit_SetProxy, audit_event_maker_positional),
     "proxy": (AdminAudit_SetProxy, audit_event_maker_positional),
+
+    "flag_xml": (AdminAudit_SetXml, audit_event_maker_positional),
     "xml": (AdminAudit_SetXml, audit_event_maker_positional),
+
     "endorsement_valid": (AdminAudit_SetEndorsementValid, audit_event_maker_positional),
     "point_value": (AdminAudit_SetPointValue, audit_event_maker_positional),
     "endorsement_request_valid": (AdminAudit_SetEndorsementRequestsValid, audit_event_maker_positional),
