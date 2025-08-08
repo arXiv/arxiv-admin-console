@@ -1003,11 +1003,8 @@ export abstract class AdminAudit_SetFlag extends AdminAuditEvent {
 
     static getInitParams(audit_record: TapirAdminAudit): Record<string, any> {
         const data = audit_record.data.split('=');
-        if (data.length !== 2) {
-            throw new Error(`data '${audit_record.data}' is not a valid flag=value`);
-        }
-        const flag = data[0] as UserFlags;
-        const value = data[1];
+        const flag = (data.length === 2) ? data[0] as UserFlags : UserFlags.UNKNOWN_FLAG;
+        const value = (data.length === 2) ? data[1] : audit_record.data;
 
         return {
             admin_user: audit_record.admin_user?.toString() || '',

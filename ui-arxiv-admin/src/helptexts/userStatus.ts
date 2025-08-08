@@ -7,6 +7,7 @@ export enum UserVetoStatus {
 }
 
 export enum UserFlags {
+    UNKNOWN_FLAG = "?",
     ARXIV_FLAG_GROUP_TEST = "arXiv_demographics.flag_group_test",
     ARXIV_FLAG_PROXY = "arXiv_demographics.flag_proxy",
     ARXIV_FLAG_SUSPECT = "arXiv_demographics.flag_suspect",

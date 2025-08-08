@@ -41,7 +41,7 @@ import { SlidingPanelProvider } from './SlidingPanelContext';
 import { LinkPanel } from './components/LinkPanel';
 import { PanelToggleButton } from './components/PanelToggleButton';
 import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
-import {useNavigate} from "react-router-dom";
+import {useNavigate, Navigate, useParams} from "react-router-dom";
 import {MetadataEdit} from "./pages/Metadata";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
@@ -51,6 +51,11 @@ const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     }, [to]);
 
     return null;
+};
+
+const UserShowRedirect = () => {
+    const { id } = useParams();
+    return <Navigate to={`/users/${id}/edit`} replace />;
 };
 
 interface PingBackendProps {
@@ -127,7 +132,7 @@ const AdminConsole: React.FC = () => {
                 <Resource
                     name="users"
                     list={UserList}
-                    show={ShowGuesser}
+                    show={UserShowRedirect}
                     icon={UserIcon}
                     recordRepresentation="name"
                     edit={UserEdit}

@@ -481,18 +481,16 @@ async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
 
 
 @router.post('/')
-async def create_ownership(
-        request: Request,
-        current_user: ArxivUserClaims = Depends(get_authn),
-        session: Session = Depends(get_db)) -> OwnershipModel:
-    gate_admin_user(current_user)
-    body = await request.json()
-
-    item = PaperOwner(**body)
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    return OwnershipModel.model_validate(item)
+async def create_ownership() -> OwnershipModel:
+    raise HTTPException(status_code=http_status.HTTP_405_METHOD_NOT_ALLOWED, detail="Use /authorship instead")
+    # gate_admin_user(current_user)
+    # body = await request.json()
+    #
+    # item = PaperOwner(**body)
+    # session.add(item)
+    # session.commit()
+    # session.refresh(item)
+    # return OwnershipModel.model_validate(item)
 
 
 class PaperAuthRequest(BaseModel):
