@@ -203,14 +203,15 @@ async def list_endorsement_requests(
         if _sort:
             keys = _sort.split(",")
             for key in keys:
-                if key == "id":
+                if key in ["id", "endorsementRequest_id"]:
                     key = "request_id"
                 try:
                     order_column = getattr(EndorsementRequest, key)
                     order_columns.append(order_column)
                 except AttributeError:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                        detail="Invalid start or end index")
+                    logger.error(f"Invalid sort key {key}")
+                    # raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                    #                     detail="Invalid start or end index")
 
 
     for column in order_columns:
