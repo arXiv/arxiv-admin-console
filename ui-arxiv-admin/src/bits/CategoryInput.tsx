@@ -13,7 +13,7 @@ import {InputProps, useDataProvider, useInput} from "react-admin";
 import Typography from "@mui/material/Typography";
 
 export type CategoryType = adminApi["/v1/categories/{id}"]["get"]["responses"]["200"]["content"]["application/json"];
-export type SubmitRequestType = paths["/account/register/"]['post']['requestBody']['content']['application/json'];
+export type SubmitRequestType = paths["/account/register"]['post']['requestBody']['content']['application/json'];
 export type SelectedCategoryType = SubmitRequestType["default_category"] | null;
 
 

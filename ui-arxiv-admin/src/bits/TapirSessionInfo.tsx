@@ -14,7 +14,8 @@ const TapirSessionInfo: React.FC<LastLoginFieldProps> = ({index, isLoading, tota
     if (!tapirSessions || tapirSessions.length === 0) return null;
 
     const value = index >= 0 ? tapirSessions[index]?.start_time : total;
-    console.log("tapir session info: " + value + " (" + index + "/" + total );
+    if (index >= 0)
+        console.log(`tapir session info: ${JSON.stringify(tapirSessions[index])} ( ${index} / ${total} )` );
 
     return (<span> {value} </span>);
 };

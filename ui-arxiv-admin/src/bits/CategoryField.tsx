@@ -26,7 +26,7 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ sourceCategory, sourceCla
             setLoading(true);
 
             const fetchCategory = async () => {
-                const url = `${runtimeProps.ADMIN_API_BACKEND_URL}/categories/${record[sourceCategory]}/subject-class/${record[sourceClass] || "*"}`;
+                const url = `${runtimeProps.ADMIN_API_BACKEND_URL}/v1/categories/${record[sourceCategory]}/subject-class/${record[sourceClass] || "*"}`;
                 try {
                     const response = await fetch(url);
                     // const text = await response.clone().text()

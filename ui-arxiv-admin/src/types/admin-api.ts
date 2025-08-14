@@ -172,7 +172,11 @@ export interface paths {
         };
         /** Get One User */
         get: operations["get_one_user_v1_users__user_id__get"];
-        put?: never;
+        /**
+         * Update User
+         * @description Update user property - by PUT
+         */
+        put: operations["update_user_v1_users__user_id__put"];
         post?: never;
         /** Delete User */
         delete: operations["delete_user_v1_users__user_id__delete"];
@@ -245,7 +249,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/users/{user_id}/property": {
+    "/v1/users/{user_id}/demographic": {
         parameters: {
             query?: never;
             header?: never;
@@ -257,7 +261,7 @@ export interface paths {
          * Update User Property
          * @description Update user property - by PUT
          */
-        put: operations["update_user_property_v1_users__user_id__property_put"];
+        put: operations["update_user_property_v1_users__user_id__demographic_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -285,7 +289,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/users/{user_id}/veto-status/": {
+    "/v1/users/{user_id}/veto-status": {
         parameters: {
             query?: never;
             header?: never;
@@ -297,7 +301,7 @@ export interface paths {
          * Update User Veto Status
          * @description Update user veto status - by PUT
          */
-        put: operations["update_user_veto_status_v1_users__user_id__veto_status__put"];
+        put: operations["update_user_veto_status_v1_users__user_id__veto_status_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1234,7 +1238,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metadata/document_id/{document_id}": {
+    "/v1/metadata/document/{document_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1245,7 +1249,7 @@ export interface paths {
          * Get Metadata From Document Id
          * @description Display a paper.
          */
-        get: operations["get_metadata_from_document_id_v1_metadata_document_id__document_id__get"];
+        get: operations["get_metadata_from_document_id_v1_metadata_document__document_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2063,7 +2067,7 @@ export interface components {
             flag_group_eess: number;
             /** Flag Group Econ */
             flag_group_econ: number;
-            veto_status: components["schemas"]["UserVetoStatus-Output"];
+            veto_status: components["schemas"]["UserVetoStatus"];
             /** Orcid */
             orcid?: string | null;
             /** Author Id */
@@ -2666,6 +2670,11 @@ export interface components {
             /** Flag Group Econ */
             flag_group_econ: number | null;
         };
+        /** ReactAdminCreateResult */
+        ReactAdminCreateResult: {
+            /** Id */
+            id: string | number;
+        };
         /** ReactAdminUpdateResult */
         ReactAdminUpdateResult: {
             /** Id */
@@ -3053,25 +3062,20 @@ export interface components {
             /** Property Value */
             property_value: string | boolean;
             /** Comment */
-            comment: string | null;
+            comment?: string | null;
         };
         /**
          * UserVetoStatus
          * @description User status enum.
          * @enum {string}
          */
-        "UserVetoStatus-Input": "ok" | "no-upload" | "no-replace" | "no-endorse";
-        /**
-         * UserVetoStatus
-         * @enum {string}
-         */
-        "UserVetoStatus-Output": "ok" | "no-endorse" | "no-upload" | "no-replace";
+        UserVetoStatus: "ok" | "no-upload" | "no-replace" | "no-endorse";
         /** UserVetoStatusRequest */
         UserVetoStatusRequest: {
-            status_before: components["schemas"]["UserVetoStatus-Input"];
-            status_after: components["schemas"]["UserVetoStatus-Input"];
+            status_before: components["schemas"]["UserVetoStatus"];
+            status_after: components["schemas"]["UserVetoStatus"];
             /** Comment */
-            comment: string | null;
+            comment?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -3526,6 +3530,41 @@ export interface operations {
             };
         };
     };
+    update_user_v1_users__user_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_user_v1_users__user_id__delete: {
         parameters: {
             query?: never;
@@ -3708,7 +3747,7 @@ export interface operations {
             };
         };
     };
-    update_user_property_v1_users__user_id__property_put: {
+    update_user_property_v1_users__user_id__demographic_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -3759,12 +3798,12 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ReactAdminCreateResult"];
                 };
             };
             /** @description Validation Error */
@@ -3778,7 +3817,7 @@ export interface operations {
             };
         };
     };
-    update_user_veto_status_v1_users__user_id__veto_status__put: {
+    update_user_veto_status_v1_users__user_id__veto_status_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5831,7 +5870,7 @@ export interface operations {
             };
         };
     };
-    get_metadata_from_document_id_v1_metadata_document_id__document_id__get: {
+    get_metadata_from_document_id_v1_metadata_document__document_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5946,6 +5985,8 @@ export interface operations {
                 stage?: number[] | null;
                 /** @description Submission status */
                 submission_status?: number | number[] | null;
+                /** @description Submission status group [current|processing|accepted|expired] */
+                submission_status_group?: string[] | string | null;
                 /** @description Title */
                 title_like?: string | null;
                 /** @description Submission Type list */

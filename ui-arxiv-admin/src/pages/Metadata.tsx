@@ -31,7 +31,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import CircularProgress from "@mui/material/CircularProgress";
 
-type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
+type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
 
 interface MetadataVersionSelectorProps {

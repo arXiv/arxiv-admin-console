@@ -615,7 +615,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
         async function fetchNavigation() {
             if (id) {
                 try {
-                    const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + `/ownership_requests/navigate?id=${id}`);
+                    const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + `/v1/ownership_requests/navigate?id=${id}`);
                     if (response.ok) {
                         const navi: OwnershipRequestNavi = await response.json();
                         setNavigation(navi);

@@ -44,7 +44,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/impersonate/{user_id}/": {
+    "/impersonate/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -79,7 +79,7 @@ export interface paths {
          *         to a target URL if impersonation was successful.
          *     :rtype: Response
          */
-        post: operations["impersonate_impersonate__user_id___post"];
+        post: operations["impersonate_impersonate__user_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -229,7 +229,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/profile/{user_id}": {
+    "/account/{user_id}/profile": {
         parameters: {
             query?: never;
             header?: never;
@@ -237,28 +237,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get User Profile */
-        get: operations["get_user_profile_account_profile__user_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/profile/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
+        get: operations["get_user_profile_account__user_id__profile_get"];
         /**
          * Update Account Profile
          * @description Update the user account profile for both Keycloak and user in db
          */
-        put: operations["update_account_profile_account_profile__put"];
+        put: operations["update_account_profile_account__user_id__profile_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -266,7 +250,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/register/": {
+    "/account/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -274,20 +258,20 @@ export interface paths {
             cookie?: never;
         };
         /** Get Register */
-        get: operations["get_register_account_register__get"];
+        get: operations["get_register_account_register_get"];
         put?: never;
         /**
          * Register Account
          * @description Create a new user
          */
-        post: operations["register_account_account_register__post"];
+        post: operations["register_account_account_register_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/account/email/verify/": {
+    "/account/{user_id}/email/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -300,14 +284,14 @@ export interface paths {
          * Email Verify Requset
          * @description Request to send verify email
          */
-        post: operations["email_verify_requset_account_email_verify__post"];
+        post: operations["email_verify_requset_account__user_id__email_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/account/email/verified/": {
+    "/account/email/verified": {
         parameters: {
             query?: never;
             header?: never;
@@ -318,12 +302,8 @@ export interface paths {
          * Get Email Verified Status Current User
          * @description Is the email verified for this usea?
          */
-        get: operations["get_email_verified_status_current_user_account_email_verified__get"];
-        /**
-         * Set Email Verified Status
-         * @description Set the email verified status
-         */
-        put: operations["set_email_verified_status_account_email_verified__put"];
+        get: operations["get_email_verified_status_current_user_account_email_verified_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -331,7 +311,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/email/verified/{user_id}/": {
+    "/account/{user_id}/email/verified": {
         parameters: {
             query?: never;
             header?: never;
@@ -342,8 +322,12 @@ export interface paths {
          * Get Email Verified Status
          * @description Is the email verified for this usea?
          */
-        get: operations["get_email_verified_status_account_email_verified__user_id___get"];
-        put?: never;
+        get: operations["get_email_verified_status_account__user_id__email_verified_get"];
+        /**
+         * Set Email Verified Status
+         * @description Set the email verified status
+         */
+        put: operations["set_email_verified_status_account__user_id__email_verified_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -351,7 +335,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/email/": {
+    "/account/{user_id}/email": {
         parameters: {
             query?: never;
             header?: never;
@@ -363,7 +347,7 @@ export interface paths {
          * Change Email
          * @description Request to change email
          */
-        put: operations["change_email_account_email__put"];
+        put: operations["change_email_account__user_id__email_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -371,7 +355,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/email/history/{user_id}/": {
+    "/account/{user_id}/email/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -382,7 +366,7 @@ export interface paths {
          * Get Email History
          * @description Get the past email history
          */
-        get: operations["get_email_history_account_email_history__user_id___get"];
+        get: operations["get_email_history_account__user_id__email_history_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -391,7 +375,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/password/": {
+    "/account/{user_id}/password": {
         parameters: {
             query?: never;
             header?: never;
@@ -403,7 +387,7 @@ export interface paths {
          * Change User Password
          * @description Update user password
          */
-        put: operations["change_user_password_account_password__put"];
+        put: operations["change_user_password_account__user_id__password_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -411,7 +395,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/password/reset/": {
+    "/account/password/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -424,14 +408,14 @@ export interface paths {
          * Reset User Password
          * @description Reset user password
          */
-        post: operations["reset_user_password_account_password_reset__post"];
+        post: operations["reset_user_password_account_password_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/account/identifier/": {
+    "/account/identifier": {
         parameters: {
             query?: never;
             header?: never;
@@ -439,7 +423,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get User Profile With Query */
-        get: operations["get_user_profile_with_query_account_identifier__get"];
+        get: operations["get_user_profile_with_query_account_identifier_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -448,7 +432,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/orcid/": {
+    "/account/orcid": {
         parameters: {
             query?: never;
             header?: never;
@@ -460,7 +444,7 @@ export interface paths {
          * Upsert Orcid
          * @description Update ORCID
          */
-        put: operations["upsert_orcid_account_orcid__put"];
+        put: operations["upsert_orcid_account_orcid_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -468,7 +452,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/author_id/": {
+    "/account/author_id": {
         parameters: {
             query?: never;
             header?: never;
@@ -480,7 +464,7 @@ export interface paths {
          * Upsert Author Id
          * @description Update AUTHOR_ID
          */
-        put: operations["upsert_author_id_account_author_id__put"];
+        put: operations["upsert_author_id_account_author_id_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -488,7 +472,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/status/": {
+    "/account/{user_id}/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -500,7 +484,7 @@ export interface paths {
          * Update User Status
          * @description Update User flags
          */
-        put: operations["update_user_status_account_status__put"];
+        put: operations["update_user_status_account__user_id__status_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -809,15 +793,11 @@ export interface components {
         EmailChangedBy: "USER" | "ADMIN";
         /** EmailModel */
         EmailModel: {
-            /** User Id */
-            user_id: string;
             /** Email */
             email: string;
         };
         /** EmailUpdateModel */
         EmailUpdateModel: {
-            /** User Id */
-            user_id: string;
             /** Email */
             email: string;
             /** New Email */
@@ -857,8 +837,6 @@ export interface components {
         };
         /** PasswordUpdateModel */
         PasswordUpdateModel: {
-            /** User Id */
-            user_id: string;
             /** Old Password */
             old_password: string;
             /** New Password */
@@ -985,7 +963,7 @@ export interface operations {
             };
         };
     };
-    impersonate_impersonate__user_id___post: {
+    impersonate_impersonate__user_id__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1225,7 +1203,7 @@ export interface operations {
             };
         };
     };
-    get_user_profile_account_profile__user_id__get: {
+    get_user_profile_account__user_id__profile_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1256,11 +1234,13 @@ export interface operations {
             };
         };
     };
-    update_account_profile_account_profile__put: {
+    update_account_profile_account__user_id__profile_put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                user_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1289,7 +1269,7 @@ export interface operations {
             };
         };
     };
-    get_register_account_register__get: {
+    get_register_account_register_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1309,7 +1289,7 @@ export interface operations {
             };
         };
     };
-    register_account_account_register__post: {
+    register_account_account_register_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1360,11 +1340,13 @@ export interface operations {
             };
         };
     };
-    email_verify_requset_account_email_verify__post: {
+    email_verify_requset_account__user_id__email_verify_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                user_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1393,7 +1375,7 @@ export interface operations {
             };
         };
     };
-    get_email_verified_status_current_user_account_email_verified__get: {
+    get_email_verified_status_current_user_account_email_verified_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1413,40 +1395,7 @@ export interface operations {
             };
         };
     };
-    set_email_verified_status_account_email_verified__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmailVerifiedStatus"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmailVerifiedStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_email_verified_status_account_email_verified__user_id___get: {
+    get_email_verified_status_account__user_id__email_verified_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1477,11 +1426,48 @@ export interface operations {
             };
         };
     };
-    change_email_account_email__put: {
+    set_email_verified_status_account__user_id__email_verified_put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerifiedStatus"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailVerifiedStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_email_account__user_id__email_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1594,7 +1580,7 @@ export interface operations {
             };
         };
     };
-    get_email_history_account_email_history__user_id___get: {
+    get_email_history_account__user_id__email_history_get: {
         parameters: {
             query?: {
                 /** @description sort by */
@@ -1632,11 +1618,13 @@ export interface operations {
             };
         };
     };
-    change_user_password_account_password__put: {
+    change_user_password_account__user_id__password_put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                user_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1665,7 +1653,7 @@ export interface operations {
             };
         };
     };
-    reset_user_password_account_password_reset__post: {
+    reset_user_password_account_password_reset_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1698,7 +1686,7 @@ export interface operations {
             };
         };
     };
-    get_user_profile_with_query_account_identifier__get: {
+    get_user_profile_with_query_account_identifier_get: {
         parameters: {
             query?: {
                 /** @description User ID */
@@ -1734,7 +1722,7 @@ export interface operations {
             };
         };
     };
-    upsert_orcid_account_orcid__put: {
+    upsert_orcid_account_orcid_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -1803,7 +1791,7 @@ export interface operations {
             };
         };
     };
-    upsert_author_id_account_author_id__put: {
+    upsert_author_id_account_author_id_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -1872,11 +1860,13 @@ export interface operations {
             };
         };
     };
-    update_user_status_account_status__put: {
+    update_user_status_account__user_id__status_put: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                user_id: string;
+            };
             cookie?: never;
         };
         requestBody: {

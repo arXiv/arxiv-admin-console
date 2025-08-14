@@ -42,7 +42,7 @@ const BulkActionButtons: React.FC<{userId: Identifier}> = ({userId}) => {
             not_authored: !authored ? selectedIds : [],
         }
 
-        const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + "/paper_owners/update-authorship",
+        const response = await fetch(runtimeProps.ADMIN_API_BACKEND_URL + "/v1/paper_owners/update-authorship",
             {
                 method: "POST", headers: {"Content-Type": "application/json",}, body: JSON.stringify(body),
             });

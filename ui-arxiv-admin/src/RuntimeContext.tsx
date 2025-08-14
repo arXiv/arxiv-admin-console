@@ -1,6 +1,10 @@
 import React, { createContext, useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import {Box} from '@mui/material';
+import {paths} from "./types/aaa-api";
+import {paths as adminPaths} from "./types/admin-api";
+import { Fetcher } from 'openapi-typescript-fetch';
+
 
 export interface ArxiURLs
 {
@@ -28,11 +32,13 @@ export interface RuntimeProps
     ARXIV_CHECK: string;
     URLS: ArxiURLs;
     updateEnv: (key: string, value: string) => void;
+    aaaFetcher: ReturnType<typeof Fetcher.for<paths>>;
+    adminFetcher: ReturnType<typeof Fetcher.for<adminPaths>>;
 }
 
 const defaultRuntimeProps : RuntimeProps = {
     AAA_URL: 'http://localhost.arxiv.org:5000/aaa',
-    ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5000/admin-api/v1',
+    ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5000/admin-api',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
     ARXIV_COOKIE_NAME: "arxiv_oidc_session",
     TAPIR_COOKIE_NAME: "tapir_session",
@@ -40,6 +46,8 @@ const defaultRuntimeProps : RuntimeProps = {
     ARXIV_CHECK: "https://check.dev.arxiv.org",
     URLS: arXivURLs,
     updateEnv: (key, value) => { },
+    aaaFetcher: Fetcher.for<paths>(),
+    adminFetcher: Fetcher.for<adminPaths>(),
 };
 
 export const RuntimeContext = createContext<RuntimeProps>(defaultRuntimeProps);
@@ -70,9 +78,12 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 if ((window.location.port !== "80") && (window.location.port !== "") && (window.location.port !== "443"))
                     baseUrl = baseUrl + ":" + window.location.port;
                 baseUrl = baseUrl + "/";
+                const aaaUrl = baseUrl + "aaa";
+                const adminUrl = baseUrl + "admin-api";
+
                 const runtime1: Partial<RuntimeProps> = {
-                    AAA_URL: baseUrl + "aaa",
-                    ADMIN_API_BACKEND_URL: baseUrl + "admin-api/v1",
+                    AAA_URL: aaaUrl,
+                    ADMIN_API_BACKEND_URL: adminUrl,
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
                     ARXIV_COOKIE_NAME: defaultRuntimeProps.ARXIV_COOKIE_NAME,
                     TAPIR_COOKIE_NAME: defaultRuntimeProps.TAPIR_COOKIE_NAME,
@@ -83,12 +94,20 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 const cookie_names = await cookie_name_response.json();
                 console.log("cookie_names: " + JSON.stringify(cookie_names));
 
+                const aaaFetcher = Fetcher.for<paths>();
+                aaaFetcher.configure({baseUrl: aaaUrl});
+
+                const adminFetcher = Fetcher.for<paths>();
+                adminFetcher.configure({baseUrl: adminUrl});
+
                 const runtime2: Partial<RuntimeProps> = {
-                    AAA_URL: baseUrl + "aaa",
-                    ADMIN_API_BACKEND_URL: baseUrl + "admin-api/v1",
+                    AAA_URL: aaaUrl,
+                    ADMIN_API_BACKEND_URL: adminUrl,
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
                     ARXIV_COOKIE_NAME: cookie_names.session,
                     TAPIR_COOKIE_NAME: cookie_names.classic,
+                    aaaFetcher: aaaFetcher,
+                    adminFetcher: adminFetcher,
                 };
 
                 console.log("runtime-2: " + JSON.stringify(runtime2));
@@ -102,6 +121,19 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
         fetchRuntimeEnvironment().then(_r => null);
     }, []);
+
+    useEffect(() => {
+        const it = Fetcher.for<paths>();
+        it.configure({baseUrl: runtimeEnv.AAA_URL});
+        updateRuntimeEnv({aaaFetcher: it});
+    }, [runtimeEnv.AAA_URL]);
+
+    useEffect(() => {
+        const it = Fetcher.for<adminPaths>();
+        it.configure({baseUrl: runtimeEnv.ADMIN_API_BACKEND_URL});
+        updateRuntimeEnv({adminFetcher: it});
+    }, [runtimeEnv.ADMIN_API_BACKEND_URL]);
+
 
     if (loading) {
         return (<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>);

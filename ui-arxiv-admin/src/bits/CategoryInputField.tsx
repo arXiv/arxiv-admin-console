@@ -30,7 +30,7 @@ const CategoryInputField: React.FC<CategoryInputFieldProps> = ({ sourceCategory,
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const url = `${runtimeProps.ADMIN_API_BACKEND_URL}/categories/`;
+            const url = `${runtimeProps.ADMIN_API_BACKEND_URL}/v1/categories/`;
             try {
                 const response = await fetch(url);
                 const data = await response.json();
