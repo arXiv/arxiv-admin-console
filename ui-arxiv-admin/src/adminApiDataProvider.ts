@@ -11,11 +11,43 @@ import {
 } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
 import {paths as aaaApi} from "./types/aaa-api";
+import {RuntimeProps} from "./RuntimeContext";
 
-type EmailChangeRequestBodyT = aaaApi['/account/email/']['put']['requestBody']['content']['application/json'];
+type EmailChangeRequestBodyT = aaaApi['/account/{user_id}/email']['put']['requestBody']['content']['application/json'];
 
 const addTrailingSlash = (url: string) => {
     return url.endsWith('/') ? url : `${url}/`;
+};
+
+const handleHttpError = (error: any, defaultMessage: string = 'An error occurred') => {
+    if (error && typeof error === 'object') {
+        // Check if it has a status property (like HttpError)
+        if ('status' in error && error.status) {
+            throw error;
+        }
+
+        // Create a new HttpError with type-safe property access
+        const errorObj = error as Record<string, any>;
+        const errorMessage =
+            'message' in errorObj && typeof errorObj.message === 'string'
+                ? errorObj.message
+                : defaultMessage;
+
+        const httpError = new HttpError(
+            errorMessage,
+            'status' in errorObj && typeof errorObj.status === 'number' ? errorObj.status : 500,
+            'body' in errorObj ? errorObj.body : {}
+        );
+
+        throw httpError;
+    }
+
+    // If error is not an object or doesn't have expected properties
+    throw new HttpError(
+        defaultMessage,
+        500,
+        {}
+    );
 };
 
 
@@ -51,19 +83,18 @@ const retryHttpClient = (url: string, options: fetchUtils.Options = {}) => {
 
 class adminApiDataProvider implements DataProvider {
     private dataProvider: DataProvider;
-    private api: string;
-    private aaaApi: string;
+    private runtimeProps: RuntimeProps;
 
-    constructor(api: string, aaaApi: string) {
-        this.api = api;
-        this.dataProvider = jsonServerProvider(api, retryHttpClient);
-        this.aaaApi = aaaApi;
+    constructor(runtimeProps: RuntimeProps) {
+        this.runtimeProps = runtimeProps;
+        this.dataProvider = jsonServerProvider(runtimeProps.ADMIN_API_BACKEND_URL + "/v1", retryHttpClient);
     }
+
     async getList<T extends RaRecord>(resource: string, params: GetListParams): Promise<GetListResult<T>> {
 
         if (resource === 'subject_class' && params.filter.archive) {
             const { archive } = params.filter;
-            const url = `${this.api}/categories/${archive}/subject-class/`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/categories/${archive}/subject-class/`;
             console.log("subject_class API " +  url);
             try {
                 const response = await retryHttpClient(url);
@@ -73,10 +104,7 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
             catch (error) {
-                return {
-                    data: [] as T[],
-                    total: 0,
-                };
+                handleHttpError(error, 'Failed to load subject classes');
             }
         }
         else if (resource === 'endorsees') {
@@ -85,7 +113,7 @@ class adminApiDataProvider implements DataProvider {
         }
         else if (resource === 'paper_owners_user_doc') {
             const { user_id } = params.filter;
-            const url = `${this.api}/paper_owners/user/${user_id}`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/paper_owners/user/${user_id}`;
             try {
                 const response = await retryHttpClient(url);
                 return {
@@ -94,15 +122,12 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
             catch (error) {
-                return {
-                    data: [] as T[],
-                    total: 0,
-                };
+                handleHttpError(error, 'Failed to load paper owners');
             }
         }
         else if (resource === 'can_submit_to') {
             const { user_id } = params.filter;
-            const url = `${this.api}/users/${user_id}/can-submit-to`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/users/${user_id}/can-submit-to`;
             try {
                 const response = await retryHttpClient(url);
                 return {
@@ -111,15 +136,12 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
             catch (error) {
-                return {
-                    data: [] as T[],
-                    total: 0,
-                };
+                handleHttpError(error, 'Failed to load submission permissions');
             }
         }
         else if (resource === 'can_endorse_for') {
             const { user_id } = params.filter;
-            const url = `${this.api}/users/${user_id}/can-endorse-for`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/users/${user_id}/can-endorse-for`;
             try {
                 const response = await retryHttpClient(url);
                 return {
@@ -128,15 +150,12 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
             catch (error) {
-                return {
-                    data: [] as T[],
-                    total: 0,
-                };
+                handleHttpError(error, 'Failed to load endorsement permissions');
             }
         }
         else if (resource === 'user_email_history') {
             const { user_id } = params.filter;
-            const baseUrl = `${this.aaaApi}/account/email/history/${user_id}/`;
+            const baseUrl = `${this.runtimeProps.AAA_URL}/account/${user_id}/email/history`;
 
             const searchParams = new URLSearchParams();
 
@@ -173,10 +192,7 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
             catch (error) {
-                return {
-                    data: [] as T[],
-                    total: 0,
-                };
+                handleHttpError(error, 'Failed to load email history');
             }
         }
 
@@ -187,7 +203,7 @@ class adminApiDataProvider implements DataProvider {
     {
         if (resource === 'document-metadata') {
             const docId = params.id;
-            const url = `${this.api}/metadata/document_id/${docId}`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/metadata/document/${docId}`;
             try {
                 const response = await retryHttpClient(url);
                 return {
@@ -195,9 +211,7 @@ class adminApiDataProvider implements DataProvider {
                 };
             }
             catch (error) {
-                return {
-                    data: {} as T
-                };
+                handleHttpError(error, 'Failed to load document metadata');
             }
         }
 
@@ -211,7 +225,7 @@ class adminApiDataProvider implements DataProvider {
         }
         else if (resource === 'document-metadata') {
             const id = params.ids[0];
-            const url = `${this.api}/metadata/document_id/${id}`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/metadata/document/${id}`;
             try {
                 const response = await retryHttpClient(url);
                 return {
@@ -220,9 +234,7 @@ class adminApiDataProvider implements DataProvider {
             }
             catch (error) {
                 console.log("document-metadata: " + JSON.stringify(error));
-                return {
-                    data: [] as T[],
-                };
+                handleHttpError(error, 'Failed to load document metadata');
             }
             finally {
                 console.log("document-metadata: done");
@@ -237,54 +249,23 @@ class adminApiDataProvider implements DataProvider {
         if (resource === 'aaa_user_email') {
             console.log("Update user email via AAA API");
             const user_id = params.id;
-            const url = `${this.aaaApi}/account/email/`;
 
             const body : EmailChangeRequestBodyT = {
-                user_id: params.id,
                 email: params.data.email,
                 new_email: params.data.new_email,
             };
 
             try {
-                const response = await retryHttpClient(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(body),
+                const putEmailChange = this.runtimeProps.aaaFetcher.path('/account/{user_id}/email').method('put').create();
+                const response = await putEmailChange({
+                    user_id: user_id as string,
+                    ...body
                 });
 
-                return {data: response.json as T};
+                return {data: response.data as T};
             }
             catch (error) {
-                if (error && typeof error === 'object') {
-                    // Check if it has a status property (like HttpError)
-                    if ('status' in error && error.status) {
-                        throw error;
-                    }
-
-                    // Create a new HttpError with type-safe property access
-                    const errorObj = error as Record<string, any>;
-                    const errorMessage =
-                        'message' in errorObj && typeof errorObj.message === 'string'
-                            ? errorObj.message
-                            : 'An unknown error occurred';
-
-                    const httpError = new HttpError(
-                        errorMessage,
-                        'status' in errorObj && typeof errorObj.status === 'number' ? errorObj.status : 500,
-                        'body' in errorObj ? errorObj.body : {}
-                    );
-
-                    throw httpError;
-                }
-
-                // If error is not an object or doesn't have expected properties
-                throw new HttpError(
-                    'An unknown error occurred',
-                    500,
-                    {}
-                );
+                handleHttpError(error, 'Failed to update email');
             }
         }
 
@@ -297,7 +278,7 @@ class adminApiDataProvider implements DataProvider {
     async create<T extends RaRecord>(resource: string, params: CreateParams):  Promise<CreateResult<T>> {
         if (resource === "user-comment") {
             const {data, meta} = params;
-            const url = `${this.api}/users/${meta.userId}/comment`;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/users/${meta.userId}/comment`;
 
             try {
                 const response = await retryHttpClient(url, {
@@ -308,34 +289,7 @@ class adminApiDataProvider implements DataProvider {
                 return {data: response.json as T};
             }
             catch (error) {
-                if (error && typeof error === 'object') {
-                    // Check if it has a status property (like HttpError)
-                    if ('status' in error && error.status) {
-                        throw error;
-                    }
-
-                    // Create a new HttpError with type-safe property access
-                    const errorObj = error as Record<string, any>;
-                    const errorMessage =
-                        'message' in errorObj && typeof errorObj.message === 'string'
-                            ? errorObj.message
-                            : 'An unknown error occurred';
-
-                    const httpError = new HttpError(
-                        errorMessage,
-                        'status' in errorObj && typeof errorObj.status === 'number' ? errorObj.status : 500,
-                        'body' in errorObj ? errorObj.body : {}
-                    );
-
-                    throw httpError;
-                }
-
-                // If error is not an object or doesn't have expected properties
-                throw new HttpError(
-                    'An unknown error occurred',
-                    500,
-                    {}
-                );
+                handleHttpError(error, 'Failed to create user comment');
             }
 
         }

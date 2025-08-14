@@ -70,7 +70,7 @@ const PingBackend: React.FC<PingBackendProps> = ({ children }) => {
     useEffect(() => {
         const pingBackend = async () => {
             try {
-                const response = await fetch(`${runtimeProps.ADMIN_API_BACKEND_URL}/ping`);
+                const response = await fetch(`${runtimeProps.ADMIN_API_BACKEND_URL}/v1/ping`);
                 if (response.ok) {
                     setServerStatus('Online');
                 } else {
@@ -104,10 +104,7 @@ const WithNavigationLinkPanel: React.FC = () => {
 
 const AdminConsole: React.FC = () => {
     const runtimeProps = useContext(RuntimeContext);
-    const dataProvider = new adminApiDataProvider(
-        runtimeProps.ADMIN_API_BACKEND_URL,
-        runtimeProps.AAA_URL
-    );
+    const dataProvider = new adminApiDataProvider(runtimeProps);
     const authProvider = createAuthProvider(runtimeProps);
 
     return (

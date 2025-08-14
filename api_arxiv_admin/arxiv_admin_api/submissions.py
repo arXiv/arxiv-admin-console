@@ -243,6 +243,8 @@ async def list_submissions(
         stage: Optional[List[int]] = Query(None, description="Stage"),
         submission_status: Optional[Union[int,List[int]]] = Query(
             None, description="Submission status"),
+        submission_status_group: Optional[Union[str,List[str]]] = Query(
+            None, description="Submission status group [current|processing|accepted|expired]"),
         title_like: Optional[str]= Query(None, description="Title"),
         type: Optional[List[str]] = Query(None, description="Submission Type list"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
@@ -289,9 +291,18 @@ async def list_submissions(
         if stage is not None:
             query = query.filter(Submission.stage.in_(stage))
 
-        if submission_status is not None:
-            status_list = []
-            status_codes = submission_status if isinstance(submission_status, list) else [submission_status]
+        if submission_status is not None or submission_status_group is not None:
+            status_list: List[int] = []
+            status_codes: List[int|str] = []
+            if isinstance(submission_status, list):
+                status_codes.extend(submission_status)
+            if isinstance(submission_status, int):
+                status_codes.append(submission_status)
+            if isinstance(submission_status_group, list):
+                status_codes.extend(submission_status_group)
+            if isinstance(submission_status_group, str):
+                status_codes.append(submission_status_group)
+
             status_all = False
             for status_code in status_codes:
                 if isinstance(status_code, int):

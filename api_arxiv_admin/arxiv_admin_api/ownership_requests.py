@@ -7,6 +7,7 @@ from typing import Optional, Literal, List, Generic, TypeVar, Set
 import hashlib
 
 from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_AddPaperOwner2
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
@@ -21,7 +22,7 @@ from arxiv.db.models import OwnershipRequest, t_arXiv_ownership_requests_papers,
     TapirUser, Document
 
 from . import get_db, is_any_user, get_current_user, datetime_to_epoch, VERY_OLDE, get_client_host, get_tapir_session, \
-    TapirSessionData
+    TapirSessionData, get_tracking_cookie
 from .documents import DocumentModel
 from .paper_owners import ownership_combo_key
 
@@ -447,7 +448,7 @@ async def update_ownership_request(
         request: Request,
         payload: OwnershipRequestSubmit,
         current_user: ArxivUserClaims = Depends(get_authn_user),
-        remote_addr: str = Depends(get_client_host),
+        remote_ip: str = Depends(get_client_host),
         remote_host: str = Depends(get_client_host_name),
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Update ownership request.
@@ -625,7 +626,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
                 user_id = user_id,
                 date = date,
                 added_by = current_user.user_id,
-                remote_addr = remote_addr,
+                remote_addr = remote_ip,
                 remote_host = remote_host,
                 tracking_cookie = tracking_cookie,
                 valid = True,
@@ -634,12 +635,24 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
             )
             session.add(paper_owner_r)
 
+            admin_audit(
+                session,
+                AdminAudit_AddPaperOwner2(
+                    str(current_user.user_id),
+                    str(user_id),
+                    str(current_tapir_session_id),
+                    str(document_id),
+                    remote_ip=remote_ip,
+                    remote_hostname=remote_host,
+                    tracking_cookie=tracking_cookie,
+                ))
+
         audit: OwnershipRequestsAudit | None = session.query(OwnershipRequestsAudit).filter(OwnershipRequestsAudit.request_id == req_id).one_or_none()
         if audit is None:
             audit = OwnershipRequestsAudit(
                 request_id = req_id,
                 session_id = int(current_tapir_session_id),
-                remote_addr = remote_addr,
+                remote_addr = remote_ip,
                 remote_host = remote_host,
                 tracking_cookie = requester.tracking_cookie,
                 date = date
@@ -649,7 +662,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
             # ??? The judgement has been made but the status is still penning. Rather than burf, update the
             # audit to match with this judgement
             audit.session_id = int(current_tapir_session_id)
-            audit.remote_addr = remote_addr
+            audit.remote_addr = remote_ip
             audit.remote_host = remote_host
             audit.tracking_cookie = requester.tracking_cookie
             audit.date = date

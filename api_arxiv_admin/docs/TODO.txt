@@ -1,12 +1,12 @@
 Audit events
 
-        AdminAudit_AddPaperOwner,
+Done         AdminAudit_AddPaperOwner,
         AdminAudit_AddPaperOwner2,
-        AdminAudit_ChangePaperPassword,
-        AdminAudit_AdminMakeAuthor,
-        AdminAudit_AdminMakeNonauthor,
-        AdminAudit_AdminRevokePaperOwner,
-        AdminAudit_AdminUnrevokePaperOwner,
+Done         AdminAudit_ChangePaperPassword,
+Done         AdminAudit_AdminMakeAuthor,
+Done         AdminAudit_AdminMakeNonauthor,
+Done         AdminAudit_AdminRevokePaperOwner,
+Done         AdminAudit_AdminUnrevokePaperOwner,
         AdminAudit_BecomeUser,
         AdminAudit_ChangeEmail,
         AdminAudit_ChangePassword,

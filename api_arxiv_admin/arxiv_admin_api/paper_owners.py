@@ -8,7 +8,9 @@ from typing import Optional, List, Tuple, Dict
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_AdminChangePaperPassword
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_AdminChangePaperPassword, AdminAudit_AddPaperOwner, \
+    AdminAudit_AdminMakeAuthor, AdminAudit_AdminMakeNonauthor, AdminAudit_AdminUnrevokePaperOwner, \
+    AdminAudit_AdminRevokePaperOwner
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host, get_authn, ApiToken, is_admin_user, \
     get_authn_user
@@ -602,7 +604,7 @@ async def update_authorship(
         remote_addr: Optional[str] = Depends(get_client_host),
         remote_host: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
-        current_user: ArxivUserClaims | ApiToken = Depends(get_authn)  # Assumes user has an 'id' field
+        current_user: ArxivUserClaims | ApiToken = Depends(get_authn_user)  # Assumes user has an 'id' field
 ) -> ReactAdminUpdateResult:
     """
     Handles the process of updating paper ownership by modifying existing ownership records or adding
@@ -680,18 +682,21 @@ async def update_authorship(
             continue
         for po_primary_key in doc__list:
             uid, did = to_ids(po_primary_key)
-            if po_primary_key in existing_docs:
-                existing_ownership = existing_docs[po_primary_key]
-                existing_ownership.flag_author = flag
-                if body.auto is not None:
-                    existing_ownership.flag_auto = body.auto
-                if body.valid is not None:
-                    existing_ownership.valid = body.valid
-            else:
-                auto = False if body.auto is None else body.auto
-                valid = True if body.valid is None else body.valid
-                if valid == False and not current_user.is_admin:
-                    raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+            auto = 1 if body.auto else 0
+            valid = 1 if body.valid or body.valid is None else 0
+            valid_changed = False
+            flag_changed = False
+
+            if po_primary_key not in existing_docs:
+                if action == "update":
+                    logger.warning(f"New paper ownership record for {po_primary_key} is not created as action is update")
+                    continue
+
+                if not current_user.is_admin:
+                    logger.warning(f"New paper ownership record for {po_primary_key} is not created as non-admin user")
+                    raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
+                                        detail="Only admin can create ownership/authorship records.")
+
                 new_ownership = PaperOwner(
                     document_id=did,
                     user_id=int(uid),
@@ -706,6 +711,76 @@ async def update_authorship(
                 )
                 new_ownerships.append(new_ownership)
                 session.add(new_ownership)
+
+                admin_audit(
+                    session,
+                    AdminAudit_AddPaperOwner(
+                        str(current_user.user_id), str(uid), str(current_user.tapir_session_id), str(did),
+                        remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie, timestamp=timestamp))
+                session.flush()
+                valid_changed = True
+                flag_changed = True
+                pass
+
+            if po_primary_key in existing_docs:
+                existing_ownership = existing_docs[po_primary_key]
+                if existing_ownership.flag_author != flag:
+                    existing_ownership.flag_author = flag
+                    flag_changed = True
+                    pass
+
+                if body.auto is not None:
+                    auto = 1 if body.auto else 0
+                    if auto != existing_ownership.flag_auto:
+                        existing_ownership.flag_auto = auto
+                        pass
+                    pass
+
+                if body.valid is not None:
+                    if existing_ownership.valid != valid:
+                        existing_ownership.valid = valid
+                        valid_changed = True
+                        pass
+                    pass
+                pass
+
+            #
+            if current_user.is_admin:
+                if flag_changed:
+                    if flag:
+                        admin_audit(
+                            session,
+                            AdminAudit_AdminMakeAuthor(
+                                str(current_user.user_id), str(uid), str(current_user.tapir_session_id), str(did),
+                                remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie, timestamp=timestamp))
+                    else:
+                        admin_audit(
+                            session,
+                            AdminAudit_AdminMakeNonauthor(
+                                str(current_user.user_id), str(uid), str(current_user.tapir_session_id), str(did),
+                                remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie, timestamp=timestamp))
+                        pass
+                    pass
+
+                if valid_changed:
+                    if valid:
+                        admin_audit(
+                            session,
+                            AdminAudit_AdminUnrevokePaperOwner(
+                                str(current_user.user_id), str(uid), str(current_user.tapir_session_id), str(did),
+                                remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie, timestamp=timestamp))
+                    else:
+                        admin_audit(
+                            session,
+                            AdminAudit_AdminRevokePaperOwner(
+                                str(current_user.user_id), str(uid), str(current_user.tapir_session_id), str(did),
+                                remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie, timestamp=timestamp))
+                        pass
+                    pass
+                pass
+            pass
+        pass
+
     session.commit()
     rec: PaperOwner
     all_po = [OwnershipModel.rec_to_dict(rec) for rec in list(existing_docs.values()) + new_ownerships]
@@ -801,9 +876,10 @@ def renew_paper_password(
     admin_audit(
         session,
         AdminAudit_AdminChangePaperPassword(
-            current_user.user_id,
-            doc.submitter_id,
-            current_user.tapir_session_id,
+            str(current_user.user_id),
+            str(doc.submitter_id),
+            str(current_user.tapir_session_id),
+            str(document_id),
             remote_ip = remote_addr,
             remote_hostname = remote_host,
             tracking_cookie = tracking_cookie

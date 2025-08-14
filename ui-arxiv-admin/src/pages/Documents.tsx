@@ -47,7 +47,7 @@ import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
 import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
 import ISODateField from '../bits/ISODateFiled';
 
-type MetadataT = adminApi['/v1/metadata/document_id/{document_id}']['get']['responses']['200']['content']['application/json'];
+type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)

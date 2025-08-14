@@ -99,8 +99,9 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
             await dataProvider.update('aaa_user_email', {
                 id: userId,
                 data: {
-                    email: newEmail,
-                    reason: reason
+                    email: currentEmail,
+                    new_email: newEmail,
+                    comment: reason
                 },
                 previousData: {
                     email: currentEmail
@@ -116,8 +117,12 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
 
             setOpen(false);
         } catch (error: any) {
-            console.error("Error changing email:", error);
-            setError(error.message || "An error occurred while changing the email");
+            let message = error.message || "An error occurred while changing the email";
+            if (error?.body?.detail) {
+                message = message + ": " + error.body.detail;
+            }
+            console.error("Error changing email:", JSON.stringify(error));
+            setError(message || "An error occurred while changing the email");
         } finally {
             setIsLoading(false);
         }

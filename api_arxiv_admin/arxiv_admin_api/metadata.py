@@ -188,7 +188,7 @@ def get_metadata_ancient(category:str, numeric_id:str,
     return MetadataModel.model_validate(doc)
 
 
-@router.get("/document_id/{document_id:str}")
+@router.get("/document/{document_id:str}")
 def get_metadata_from_document_id(
     document_id:str,
     session: Session = Depends(get_db)) -> MetadataModel:
