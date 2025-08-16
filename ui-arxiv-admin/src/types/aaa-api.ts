@@ -891,6 +891,152 @@ export interface components {
             /** Comment */
             comment?: string | null;
         };
+        /** UserModel */
+        UserModel: {
+            /** Id */
+            id?: number | null;
+            /** Email */
+            email: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Suffix Name */
+            suffix_name?: string | null;
+            /**
+             * Share First Name
+             * @default true
+             */
+            share_first_name: boolean;
+            /**
+             * Share Last Name
+             * @default true
+             */
+            share_last_name: boolean;
+            /** Username */
+            username: string;
+            /**
+             * Share Email
+             * @default 8
+             */
+            share_email: number;
+            /**
+             * Email Bouncing
+             * @default false
+             */
+            email_bouncing: boolean;
+            /** Policy Class */
+            policy_class: number;
+            /**
+             * Joined Date
+             * Format: date-time
+             */
+            joined_date: string;
+            /** Joined Ip Num */
+            joined_ip_num?: string | null;
+            /** Joined Remote Host */
+            joined_remote_host: string;
+            /**
+             * Flag Internal
+             * @default false
+             */
+            flag_internal: boolean;
+            /**
+             * Flag Edit Users
+             * @default false
+             */
+            flag_edit_users: boolean;
+            /**
+             * Flag Edit System
+             * @default false
+             */
+            flag_edit_system: boolean;
+            /**
+             * Flag Email Verified
+             * @default false
+             */
+            flag_email_verified: boolean;
+            /**
+             * Flag Approved
+             * @default true
+             */
+            flag_approved: boolean;
+            /**
+             * Flag Deleted
+             * @default false
+             */
+            flag_deleted: boolean;
+            /**
+             * Flag Banned
+             * @default false
+             */
+            flag_banned: boolean;
+            /** Flag Wants Email */
+            flag_wants_email?: boolean | null;
+            /** Flag Html Email */
+            flag_html_email?: boolean | null;
+            /** Tracking Cookie */
+            tracking_cookie?: string | null;
+            /** Flag Allow Tex Produced */
+            flag_allow_tex_produced?: boolean | null;
+            /** Flag Can Lock */
+            flag_can_lock?: boolean | null;
+            /** Country */
+            country?: string | null;
+            /** Affiliation */
+            affiliation?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Type */
+            type?: number | null;
+            /** Archive */
+            archive?: string | null;
+            /** Subject Class */
+            subject_class?: string | null;
+            /** Original Subject Classes */
+            original_subject_classes: string;
+            /** Flag Group Physics */
+            flag_group_physics?: number | null;
+            /** Flag Group Math */
+            flag_group_math: number | null;
+            /** Flag Group Cs */
+            flag_group_cs?: number | null;
+            /** Flag Group Nlin */
+            flag_group_nlin: number | null;
+            /** Flag Proxy */
+            flag_proxy?: number | null;
+            /** Flag Journal */
+            flag_journal?: number | null;
+            /** Flag Xml */
+            flag_xml?: number | null;
+            /** Dirty */
+            dirty?: number | null;
+            /** Flag Group Test */
+            flag_group_test?: number | null;
+            /** Flag Suspect */
+            flag_suspect?: number | null;
+            /** Flag Group Q Bio */
+            flag_group_q_bio?: number | null;
+            /** Flag Group Q Fin */
+            flag_group_q_fin?: number | null;
+            /** Flag Group Stat */
+            flag_group_stat?: number | null;
+            /** Flag Group Eess */
+            flag_group_eess?: number | null;
+            /** Flag Group Econ */
+            flag_group_econ?: number | null;
+            veto_status?: components["schemas"]["VetoStatusEnum"] | null;
+            /** Flag Is Mod */
+            flag_is_mod?: boolean | null;
+            /** Moderated Categories */
+            moderated_categories?: string[] | null;
+            /** Moderated Archives */
+            moderated_archives?: string[] | null;
+            /** Tapir Policy Classes */
+            tapir_policy_classes?: number[] | null;
+            /** Orcid Id */
+            orcid_id?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1492,7 +1638,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["UserModel"];
                 };
             };
             /** @description Old and new email are the same. Or bad new email address */
@@ -1891,7 +2037,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccountInfoModel"];
+                    "application/json": components["schemas"]["UserModel"];
                 };
             };
             /** @description Request data is not valid */

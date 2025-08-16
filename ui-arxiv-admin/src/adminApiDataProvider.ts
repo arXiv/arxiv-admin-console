@@ -261,7 +261,7 @@ class adminApiDataProvider implements DataProvider {
                     ...body
                 });
 
-                return {data: response.data as T};
+                return {data: response.data as unknown as T};
             }
             catch (error) {
                 handleHttpError(error, 'Failed to update email');
@@ -283,7 +283,7 @@ class adminApiDataProvider implements DataProvider {
                     ...body
                 });
 
-                return {data: response.data as T};
+                return {data: response.data as unknown as T};
             }
             catch (error) {
                 handleHttpError(error, 'Failed to update authorization');
