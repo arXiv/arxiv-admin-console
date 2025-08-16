@@ -22,6 +22,7 @@ export interface UserFlagOption {
     key: string;
     label: string;
     description?: string;
+    authorizationName?: string;
 }
 
 interface UserFlagDialogProps {
@@ -36,23 +37,23 @@ interface UserFlagDialogProps {
     vetoStatusChoices?: Array<{id: string, name: string}>;
 }
 
-const defaultFlagOptions: UserFlagOption[] = [
+export const defaultFlagOptions: UserFlagOption[] = [
     { key: "flag_suspect", label: "Flagged/Suspect", description: "Mark user as suspect for review" },
-    { key: "flag_banned", label: "Banned", description: "Ban user from the system" },
-    { key: "flag_deleted", label: "Deleted", description: "Mark user as deleted" },
-    { key: "flag_approved", label: "Approved", description: "Mark user as approved" },
+    { key: "flag_banned", label: "Banned", description: "Ban user from the system", authorizationName: "suspend" },
+    { key: "flag_deleted", label: "Deleted", description: "Mark user as deleted", authorizationName: "deleted" },
+    { key: "flag_approved", label: "Approved", description: "Mark user as approved", authorizationName: "approved" },
     { key: "flag_veto_status", label: "Veto Status", description: "Set veto status" },
     { key: "flag_proxy", label: "Proxy", description: "Mark as proxy user" },
     { key: "flag_xml", label: "XML", description: "XML processing flag" },
     { key: "flag_allow_tex_produced", label: "Allow TeX", description: "Allow TeX produced submissions" },
-    { key: "flag_edit_users", label: "Edit Users", description: "Can edit users (admin)" },
-    { key: "flag_edit_system", label: "Edit System", description: "Can edit system (admin)" },
+    { key: "flag_edit_users", label: "Admin", description: "Can edit users (admin)", authorizationName: "administrator" },
+    { key: "flag_edit_system", label: "Owner", description: "Can edit system (owner)", authorizationName: "owner" },
     { key: "flag_group_test", label: "Test", description: "Test group member" },
     { key: "flag_internal", label: "Internal", description: "Internal user" },
-    { key: "flag_can_lock", label: "Can Lock", description: "Can lock submissions" },
+    { key: "flag_can_lock", label: "Can Lock", description: "Can lock submissions", authorizationName: "can_lock" },
     { key: "flag_email_verified", label: "Email Verified", description: "Email address verified" },
     { key: "email_bouncing", label: "Email Bouncing", description: "Email address is bouncing" },
-    { key: "flag_is_mod", label: "Moderator", description: "User is a moderator" }
+    { key: "flag_is_mod", label: "Moderator", description: "User is a moderator", authorizationName: "moderator" }
 ];
 
 const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
@@ -150,19 +151,40 @@ const UserFlagDialog: React.FC<UserFlagDialogProps> = ({
                 }
             } else if (flagOptions.length > 0) {
                 // Prepare payload for custom endpoint
-                const payload =
-                    {
-                        property_name: selectedFlag || null,
-                        property_value: selectedFlag ? flagValue : null,
-                        comment: comment.trim()
-                    };
+                const authorizationName = flagOptions.find(opt => opt.key === selectedFlag)?.authorizationName;
+                if (authorizationName) {
+                    // This changes user authorization and need to call into AAA.
+                    const payload =
+                        {
+                            authorizationName: authorizationName || null,
+                            authorizationValue: selectedFlag ? flagValue : null,
+                            comment: comment.trim()
+                        };
 
-                // Use dataProvider's custom method to call: PUT /users/{id}/demographic
-                await dataProvider.update('users', {
-                    id: `${userId}/demographic`,
-                    data: payload,
-                    previousData: record
-                });
+                    console.log("selectedFlag: ", selectedFlag, "authorizationName: ", authorizationName, "flagValue: ", flagValue, "payload: ", payload, "options:", flagOptions);
+                    // Use dataProvider's custom method to call: PUT aaa/users/{user-id}/authorization
+                    await dataProvider.update("user-authorization", {
+                        id: userId,
+                        data: payload,
+                        previousData: record,
+                    });
+                }
+                else {
+                    const payload =
+                        {
+                            property_name: selectedFlag || null,
+                            property_value: selectedFlag ? flagValue : null,
+                            comment: comment.trim()
+                        };
+
+                    // Use dataProvider's custom method to call: PUT /users/{id}/demographic
+                    await dataProvider.update('users', {
+                        id: `${userId}/demographic`,
+                        data: payload,
+                        previousData: record
+                    });
+
+                }
 
                 const flagLabel = selectedFlag ? flagOptions.find(opt => opt.key === selectedFlag)?.label : null;
                 const message = `User ${userName} flag '${flagLabel}' set to ${flagValue ? 'ON' : 'OFF'}`;

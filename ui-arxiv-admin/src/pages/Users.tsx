@@ -1,6 +1,9 @@
 import {
     SxProps,
     useMediaQuery,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
 } from '@mui/material';
 
 // import ToggleButton from '@mui/material/ToggleButton';
@@ -43,6 +46,7 @@ import {
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import React, {useContext, useEffect, useState} from "react";
 import CategoryField from "../bits/CategoryField";
 import PersonNameField from "../bits/PersonNameField";
@@ -658,7 +662,7 @@ export const UserEdit = () => {
     const adminInputs: statusInputType[][] = [
         [
             {source: "flag_edit_users", label: "Admin", component: "FlaggedToggle"},
-            {source: "flag_edit_system", label: "SysAdmin", component: "FlaggedToggle"},
+            {source: "flag_edit_system", label: "Owner", component: "FlaggedToggle"},
             {source: "flag_group_test", label: "Test"},
         ],
         [
@@ -689,6 +693,8 @@ export const UserEdit = () => {
         notify(`WOOHOO! Changes saved`);
         refresh();
     };
+
+    const erpandedSummaryHeight = '18px';
 
     return (
         <Edit title={<UserTitle/>} actions={false} redirect={false}
@@ -807,11 +813,34 @@ export const UserEdit = () => {
                     </Grid>
 
                     <Grid size={{xs: 12, md: 6}}>
-                        <UserDemographic/>
-                        <EmailHistoryList/>
-                        <Grid size={{xs: 12}}>
-                            <OwnedPaperList/>
-                        </Grid>
+                        <Accordion defaultExpanded>
+                             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '8px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                                <Typography variant="h6">User Demographics</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <UserDemographic/>
+                            </AccordionDetails>
+                        </Accordion>
+                        
+                        <Accordion >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '8px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                                <Typography variant="h6">Email History</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <EmailHistoryList/>
+                            </AccordionDetails>
+                        </Accordion>
+                        
+                        <Accordion >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '8px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                                <Typography variant="h6">Owned Papers</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Grid size={{xs: 12}}>
+                                    <OwnedPaperList/>
+                                </Grid>
+                            </AccordionDetails>
+                        </Accordion>
                     </Grid>
                 </Grid>
             </SimpleForm>

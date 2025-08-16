@@ -1628,6 +1628,67 @@ export class AdminAudit_SetEmailVerified extends AdminAudit_SetFlag {
     }
 }
 
+export class AdminAudit_SetCanLock extends AdminAudit_SetFlag {
+    static readonly _flag = UserFlags.TAPIR_FLAG_CAN_LOCK;
+    static readonly _value_name = 'can_lock';
+    static readonly _value_type = 'boolean' as const;
+
+    constructor(
+        admin_id: string,
+        affected_user: string,
+        session_id: string,
+        options: {
+            cal_lock: boolean | string | number;
+            remote_ip?: string | null;
+            remote_hostname?: string | null;
+            tracking_cookie?: string | null;
+            comment?: string | null;
+            timestamp?: number | null;
+        }
+    ) {
+        const { cal_lock, ...restOptions } = options;
+        const normalized = normalizeBoolean(cal_lock);
+        const data = `${AdminAudit_SetCanLock._flag}=${normalized ? 1 : 0}`;
+        super(admin_id, affected_user, session_id, data, restOptions);
+    }
+
+    describe(): React.ReactElement {
+        const elements = this.data.split('=');
+        if (elements.length === 2) {
+            const value1 = elements[1];
+            if (parseInt(value1)) {
+                return (
+                    <Box component={"span"}>
+                        <ReferenceField reference={"users"} source={"admin_user"} >
+                            <UserNameField />
+                        </ReferenceField>
+                        {" made "}
+                        <ReferenceField reference={"users"} source={"affected_user"} >
+                            <UserNameField />
+                        </ReferenceField>
+                        {" a can-lock. "}
+                        <TextField source="comment" />
+                    </Box>
+                );
+            } else {
+                return (
+                    <Box component={"span"}>
+                        <ReferenceField reference={"users"} source={"admin_user"} >
+                            <UserNameField />
+                        </ReferenceField>
+                        {" cleared can-lock of "}
+                        <ReferenceField reference={"users"} source={"affected_user"} >
+                            <UserNameField />
+                        </ReferenceField>
+                        {" "}
+                        <TextField source="comment" />
+                    </Box>
+                );
+            }
+        }
+        return <Typography>{this.data}</Typography>;
+    }
+}
 
 const setFlagEventClasses: Record<string, any> = {
     [UserFlags.ARXIV_FLAG_GROUP_TEST]: AdminAudit_SetGroupTest,
@@ -1642,6 +1703,7 @@ const setFlagEventClasses: Record<string, any> = {
     [UserFlags.TAPIR_FLAG_EDIT_SYSTEM]: AdminAudit_SetEditSystem,
     [UserFlags.TAPIR_FLAG_EDIT_USERS]: AdminAudit_SetEditUsers,
     [UserFlags.TAPIR_FLAG_EMAIL_VERIFIED]: AdminAudit_SetEmailVerified,
+    [UserFlags.TAPIR_FLAG_CAN_LOCK]: AdminAudit_SetCanLock,
 };
 
 function adminAuditFlipFlagInstantiator(audit_record: TapirAdminAudit): AdminAuditEvent {

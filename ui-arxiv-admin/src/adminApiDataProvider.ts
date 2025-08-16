@@ -14,6 +14,7 @@ import {paths as aaaApi} from "./types/aaa-api";
 import {RuntimeProps} from "./RuntimeContext";
 
 type EmailChangeRequestBodyT = aaaApi['/account/{user_id}/email']['put']['requestBody']['content']['application/json'];
+type UserAuthzT = aaaApi['/account/{user_id}/authorization']['put']['requestBody']['content']['application/json'];
 
 const addTrailingSlash = (url: string) => {
     return url.endsWith('/') ? url : `${url}/`;
@@ -33,13 +34,11 @@ const handleHttpError = (error: any, defaultMessage: string = 'An error occurred
                 ? errorObj.message
                 : defaultMessage;
 
-        const httpError = new HttpError(
+        throw new HttpError(
             errorMessage,
             'status' in errorObj && typeof errorObj.status === 'number' ? errorObj.status : 500,
             'body' in errorObj ? errorObj.body : {}
         );
-
-        throw httpError;
     }
 
     // If error is not an object or doesn't have expected properties
@@ -267,6 +266,29 @@ class adminApiDataProvider implements DataProvider {
             catch (error) {
                 handleHttpError(error, 'Failed to update email');
             }
+        }
+        else if (resource === 'user-authorization') {
+            console.log("Update user authorization via AAA API");
+            const user_id = params.id;
+
+            const body : UserAuthzT = {
+                [params.data.authorizationName]: params.data.authorizationValue,
+                comment: params.data.comment,
+            };
+
+            try {
+                const putUserAuthorization = this.runtimeProps.aaaFetcher.path('/account/{user_id}/authorization').method('put').create();
+                const response = await putUserAuthorization({
+                    user_id: user_id as string,
+                    ...body
+                });
+
+                return {data: response.data as T};
+            }
+            catch (error) {
+                handleHttpError(error, 'Failed to update authorization');
+            }
+
         }
 
         return this.dataProvider.update(resource, params);

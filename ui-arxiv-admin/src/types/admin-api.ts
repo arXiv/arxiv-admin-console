@@ -503,7 +503,16 @@ export interface paths {
         };
         /** Get Endorsement Request */
         get: operations["get_endorsement_request_v1_endorsement_requests__id__get"];
-        /** Update Endorsement Request */
+        /**
+         * Update Endorsement Request
+         * @description Update an endorsement request.
+         *                 - flag_valid: set to 1 to activate the request, 0 to deactivate it.
+         *                 - flag_open: set to 1 to open the request, 0 to close it.
+         *                 - archive: set to the archive name to change the archive.
+         *                 - subject_class: set to the subject class to change the subject class.
+         *                 - endorsee_id: set to the endorsee ID to change the endorsee.
+         *                 - endorsee_username: set to the endorsee username to change the endorsee.
+         */
         put: operations["update_endorsement_request_v1_endorsement_requests__id__put"];
         post?: never;
         /** Delete Endorsement Request */
@@ -4303,6 +4312,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Endorsement failed due to database operation error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementOutcomeModel"];
                 };
             };
         };

@@ -300,7 +300,7 @@ export interface paths {
         };
         /**
          * Get Email Verified Status Current User
-         * @description Is the email verified for this usea?
+         * @description Is the email verified for this user?
          */
         get: operations["get_email_verified_status_current_user_account_email_verified_get"];
         put?: never;
@@ -472,7 +472,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/{user_id}/status": {
+    "/account/{user_id}/authorization": {
         parameters: {
             query?: never;
             header?: never;
@@ -481,10 +481,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * Update User Status
-         * @description Update User flags
+         * Update User Authorization
+         * @description Update User authorization
          */
-        put: operations["update_user_status_account__user_id__status_put"];
+        put: operations["update_user_authorization_account__user_id__authorization_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -872,14 +872,24 @@ export interface components {
             /** Refresh */
             refresh: string;
         };
-        /** UserStatusModel */
-        UserStatusModel: {
-            /** User Id */
-            user_id: string;
+        /** UserAuthorizationModel */
+        UserAuthorizationModel: {
             /** Deleted */
-            deleted: boolean | null;
-            /** Banned */
-            banned: boolean | null;
+            deleted?: boolean | null;
+            /** Administrator */
+            administrator?: boolean | null;
+            /** Approved */
+            approved?: boolean | null;
+            /** Suspend */
+            suspend?: boolean | null;
+            /** Can Lock */
+            can_lock?: boolean | null;
+            /** Moderator */
+            moderator?: boolean | null;
+            /** Owner */
+            owner?: boolean | null;
+            /** Comment */
+            comment?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1860,7 +1870,7 @@ export interface operations {
             };
         };
     };
-    update_user_status_account__user_id__status_put: {
+    update_user_authorization_account__user_id__authorization_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -1871,7 +1881,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UserStatusModel"];
+                "application/json": components["schemas"]["UserAuthorizationModel"];
             };
         };
         responses: {

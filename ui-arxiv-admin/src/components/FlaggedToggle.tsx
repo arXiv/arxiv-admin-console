@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useRecordContext, useRefresh } from "react-admin";
 import {Switch, FormControlLabel, FormControl, SxProps} from "@mui/material";
-import UserFlagDialog, { UserFlagOption } from "./UserFlagDialog";
+import UserFlagDialog, { UserFlagOption, defaultFlagOptions } from "./UserFlagDialog";
 
 interface FlaggedToggleProps {
     source: string;
@@ -62,32 +62,11 @@ const FlaggedToggle: React.FC<FlaggedToggleProps> = ({
 
     // Default configuration based on source if not provided
     const getDefaultConfig = () => {
-        switch (source) {
-            case 'flag_suspect':
-                return {
-                    title: "Update User Suspect Status",
-                    flagKey: "flag_suspect",
-                    options: [{ key: "flag_suspect", label: "Flagged/Suspect", description: "Mark user as suspect for administrative review" }]
-                };
-            case 'flag_banned':
-                return {
-                    title: "Update User Ban Status",
-                    flagKey: "flag_banned",
-                    options: [{ key: "flag_banned", label: "Banned", description: "Ban user from the system" }]
-                };
-            case 'flag_deleted':
-                return {
-                    title: "Update User Deleted Status", 
-                    flagKey: "flag_deleted",
-                    options: [{ key: "flag_deleted", label: "Deleted", description: "Mark user as deleted" }]
-                };
-            default:
-                return {
-                    title: `Update ${label}`,
-                    flagKey: source,
-                    options: [{ key: source, label: label, description: `Update ${label} status` }]
-                };
-        }
+        return {
+            title: "Update User status",
+            flagKey: source,
+            options: defaultFlagOptions.filter(option => option.key === source)
+        };
     };
 
     const config = getDefaultConfig();

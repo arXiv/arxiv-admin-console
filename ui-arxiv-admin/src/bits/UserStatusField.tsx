@@ -31,7 +31,7 @@ const UserStatusField: React.FC<UserStatusFieldProps> = ({variant}) => {
             {flag_banned ? <Tooltip title={"Banned"}><BannedIcon /></Tooltip> : null}
             {veto_status != "ok" ? <Tooltip title={veto_status}><VetoIcon/></Tooltip> : null}
             {flag_edit_users ? <Tooltip title={"Can edit users"}><AdminIcon /></Tooltip> : null}
-            {flag_edit_system ? <Tooltip title={"Can edit system"}><SystemIcon /></Tooltip> : null}
+            {flag_edit_system ? <Tooltip title={"Owner"}><SystemIcon /></Tooltip> : null}
             {flag_is_mod ? <Tooltip title={"Is moderator"}><ModIcon /></Tooltip> : null}
         </span>
     );
