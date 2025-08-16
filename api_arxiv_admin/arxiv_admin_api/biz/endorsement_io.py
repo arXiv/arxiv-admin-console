@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, UTC
 from typing import Optional, List, Tuple
 
-from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_SetSuspect, AdminAudit_EndorsedBySuspect, \
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_EndorsedBySuspect, \
     AdminAudit_GotNegativeEndorsement
 from fastapi import HTTPException, status
 from sqlalchemy import and_, or_, between, text, select
@@ -20,7 +20,7 @@ from ..dao.endorsement_model import EndorsementType, EndorsementModel
 from ..user import UserModel
 
 from .endorsement_biz import (EndorsementAccessor, EndorsementWithEndorser, PaperProps,
-                              pretty_category, EndorsementBusiness)
+                              pretty_category, EndorsementBusiness, EndorsementNegativeAction)
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
             )
         ).all()
 
-    def get_papers_by_user(self, user_id: str, domain: str, window: [datetime | None], require_author: bool = True) -> List[PaperProps]:
+    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime] | None, require_author: bool = True) -> List[PaperProps]:
         query = (
             self.session.query(
                 PaperOwner.document_id,
@@ -101,7 +101,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
         if require_author:
             query = query.filter(PaperOwner.flag_author.is_(True))
 
-        if window[0] or window[1]:
+        if window and (window[0] or window[1]):
             query = query.filter(between(Document.dated,
                                          datetime_to_epoch(window[0], VERY_OLDE),
                                          datetime_to_epoch(window[1], datetime.now(UTC))))
@@ -145,8 +145,8 @@ class EndorsementDBAccessor(EndorsementAccessor):
     def tapir_audit_admin(self,
                           endorsement: EndorsementBusiness,
                           affected_user: int = 0,
-                          action: str = "",
-                          data: str = "",
+                          action: EndorsementNegativeAction = EndorsementNegativeAction.unknown,
+                          _data: str = "",  # This is constructed by the event
                           comment: str = "",
                           user_id: Optional[int] = None,
                           session_id: Optional[int] = None,
@@ -203,14 +203,14 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 	$auth->conn->query("INSERT INTO tapir_admin_audit (log_date,session_id,ip_addr,admin_user,affected_user,tracking_cookie,action,data,comment,remote_host) VALUES ($auth->timestamp,$_session_id,'$_ip_addr',$_admin_user,'$_affected_user','$_tracking_cookie','$_action','$_data','$_comment','$_remote_host')");
 };
         """
-
-        if action == "endorsed-by-suspect":
+        tapir_session_id = str(session_id if session_id else 0)
+        if action is EndorsementNegativeAction.endorsed_by_suspect:
             admin_audit(
                 self.session,
                 AdminAudit_EndorsedBySuspect(
                     endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
                     str(affected_user),
-                    session_id,
+                    tapir_session_id,
                     str(endorsement.endorseR.id),
                     str(request_id) if request_id else None,
                     category,
@@ -221,13 +221,13 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 )
             )
 
-        elif action == "got-negative-endorsement":
+        elif action is EndorsementNegativeAction.got_negative_endorsement:
             admin_audit(
                 self.session,
                 AdminAudit_GotNegativeEndorsement(
                     endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
                     str(affected_user),
-                    session_id,
+                    tapir_session_id,
                     str(endorsement.endorseR.id),
                     str(request_id) if request_id else None,
                     category,
@@ -238,7 +238,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 )
             )
         else:
-            assert False, "Invalid action"
+            assert False, f"Invalid action {action!r}"
 
         pass
 
@@ -348,7 +348,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 self.tapir_audit_admin(
                     endorsement,
                     affected_user=endorsement.endorseE.id,
-                    action="endorsed-by-suspect",
+                    action=EndorsementNegativeAction.endorsed_by_suspect,
                     data=f"{endorsement.endorseR.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=endorsement.endorseR.id,
@@ -365,7 +365,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 self.tapir_audit_admin(
                     endorsement,
                     affected_user=endorsement.endorseE.id,
-                    action="got-negative-endorsement",
+                    action=EndorsementNegativeAction.got_negative_endorsement,
                     data=f"{endorsement.endorseR.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=-1,

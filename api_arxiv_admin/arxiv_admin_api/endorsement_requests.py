@@ -5,7 +5,7 @@ from sqlite3 import IntegrityError
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
 from sqlalchemy import case, and_  # select, update, func, Select, distinct, exists, and_, or_
@@ -244,11 +244,21 @@ async def get_endorsement_request(id: int,
     return EndorsementRequestModel.model_validate(item)
 
 
-@router.put('/{id:int}', dependencies=[Depends(is_any_user)])
+@router.put('/{id:int}',
+            dependencies=[Depends(is_any_user)],
+            description='''
+            Update an endorsement request.
+            - flag_valid: set to 1 to activate the request, 0 to deactivate it.
+            - flag_open: set to 1 to open the request, 0 to close it.
+            - archive: set to the archive name to change the archive.
+            - subject_class: set to the subject class to change the subject class.
+            - endorsee_id: set to the endorsee ID to change the endorsee.
+            - endorsee_username: set to the endorsee username to change the endorsee.'''
+            )
 async def update_endorsement_request(
         id: int,
         body: EndorsementRequestModel,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> EndorsementRequestModel:
 
     item: EndorsementRequest | None = session.query(EndorsementRequest).filter(EndorsementRequest.request_id == id).one_or_none()
@@ -275,7 +285,7 @@ async def update_endorsement_request(
                 item.subject_class = body.subject_class
             else:
                 item.subject_class = ""
-    session.add(item)
+    # session.add(item)
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
     updated = EndorsementRequestModel.base_select(session).filter(EndorsementRequest.request_id == id).one_or_none()

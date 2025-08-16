@@ -39,7 +39,15 @@ const EmailHistoryList: React.FC = () => {
                 <TextField source={"changed_by"} label={"By"}/>
                 <BooleanField source={"used"} />
             </Datagrid>
-            <Pagination  />
+            <Pagination sx={{ 
+                '& .MuiTablePagination-toolbar': { 
+                    minHeight: '32px',
+                    padding: '2px 8px'
+                },
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                    fontSize: '0.8rem'
+                }
+            }} />
         </ListContextProvider>
     );
 };

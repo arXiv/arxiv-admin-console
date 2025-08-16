@@ -104,14 +104,17 @@ user_prop_audit_registry = {
 
     # AdminAudit_AdminNotArxivRevokePaperOwner - There are two versions of "revoke" and I am not sure.
 
-    "become_user": (AdminAudit_BecomeUser, audit_event_maker_kwarg),
-    "suspend_user": (AdminAudit_SuspendUser, audit_event_maker_kwarg),
-    "unsuspend_user": (AdminAudit_UnuspendUser, audit_event_maker_kwarg),
+    # "become_user": (AdminAudit_BecomeUser, audit_event_maker_kwarg),
+
+    # "suspend_user": (AdminAudit_SuspendUser, audit_event_maker_kwarg),
+    # "unsuspend_user": (AdminAudit_UnuspendUser, audit_event_maker_kwarg),
+    # -> This needs to talk to AAA server
 
     "change_email": (AdminAudit_ChangeEmail, audit_event_maker_kwarg, "email"),
     "change_password": (AdminAudit_ChangePassword, audit_event_maker_kwarg),
 
-    "flag_banned": (AdminAudit_SetBanned, audit_event_maker_positional),
+    # "flag_banned": (AdminAudit_SetBanned, audit_event_maker_positional),
+    # -> This needs to talk to AAA server
 
     "flag_suspect": (AdminAudit_SetSuspect, audit_event_maker_positional),
     "flag_group_test": (AdminAudit_SetGroupTest, audit_event_maker_positional),
@@ -126,8 +129,11 @@ user_prop_audit_registry = {
     "point_value": (AdminAudit_SetPointValue, audit_event_maker_positional),
     "endorsement_request_valid": (AdminAudit_SetEndorsementRequestsValid, audit_event_maker_positional),
     "email_bouncing": (AdminAudit_SetEmailBouncing, audit_event_maker_positional),
-    "flag_edit_system": (AdminAudit_SetEditSystem, audit_event_maker_positional),
-    "flag_edit_users": (AdminAudit_SetEditUsers, audit_event_maker_positional),
+
+    # "flag_edit_system": (AdminAudit_SetEditSystem, audit_event_maker_positional),
+    # "flag_edit_users": (AdminAudit_SetEditUsers, audit_event_maker_positional),
+    # -> This needs to talk to AAA server
+
     "email_verified": (AdminAudit_SetEmailVerified, audit_event_maker_positional),
 
     "veto_status": (AdminAudit_ChangeStatus, audit_event_maker_veto_status),

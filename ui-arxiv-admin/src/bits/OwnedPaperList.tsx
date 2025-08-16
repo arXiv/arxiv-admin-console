@@ -137,7 +137,15 @@ const OwnedPaperList: React.FC = () => {
                     <ISODateField source="dated" />
                 </ReferenceField>
             </Datagrid>
-            <Pagination />
+            <Pagination sx={{ 
+                '& .MuiTablePagination-toolbar': { 
+                    minHeight: '32px',
+                    padding: '2px 8px'
+                },
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                    fontSize: '0.8rem'
+                }
+            }} />
         </ListContextProvider>
     );
 };

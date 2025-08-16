@@ -31,7 +31,15 @@ export const AdminAuditList: React.FC = () => {
                 <ISODateField source="log_date" />
                 <AdminAuditField source={"id"} />
             </Datagrid>
-            <Pagination />
+            <Pagination sx={{ 
+                '& .MuiTablePagination-toolbar': { 
+                    minHeight: '32px',
+                    padding: '2px 8px'
+                },
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                    fontSize: '0.8rem'
+                }
+            }} />
         </ListContextProvider>
     );
 };

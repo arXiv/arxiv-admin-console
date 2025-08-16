@@ -347,7 +347,7 @@ class MockEndorsementAccessor(EndorsementAccessor):
             QuestionableCategory(archive="ptysics", subject_class="gen-ph"),
         ]
 
-    def get_papers_by_user(self, user_id: str, domain: str, window: [datetime | None], require_author: bool = True) -> List[PaperProps]:
+    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime] | None, require_author: bool = True) -> List[PaperProps]:
         return {
             "800": [
                 PaperProps(document_id=8001, flag_author=True, title="Paper 8001",

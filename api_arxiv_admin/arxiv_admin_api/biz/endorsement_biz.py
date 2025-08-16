@@ -1,10 +1,11 @@
 import abc
+from enum import Enum
 from typing import Optional, List, Tuple
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from dulwich.porcelain import archive
+# from dulwich.porcelain import archive
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, Query
 from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNickname, QuestionableCategory,)
 from datetime import datetime, timedelta
 from pydantic import BaseModel
@@ -14,6 +15,12 @@ from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, Endor
 from ..public_users import PublicUserModel
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 from . import canonicalize_category, pretty_category
+
+
+class EndorsementNegativeAction(str, Enum):
+    unknown = ""
+    endorsed_by_suspect = "endorsed-by-suspect"
+    got_negative_endorsement = "got-negative-endorsement"
 
 
 class EndorsementWithEndorser(BaseModel):
@@ -34,7 +41,7 @@ class EndorsementWithEndorser(BaseModel):
     endorser_username: str | None
 
     @staticmethod
-    def base_select(db: Session):
+    def base_select(db: Session) -> Query:
         nick = aliased(TapirNickname)
         return db.query(
             Endorsement.endorsement_id,
@@ -86,7 +93,7 @@ class EndorsementAccessor:
         raise Exception("Not implemented")
 
     @abc.abstractmethod
-    def get_papers_by_user(self, user_id: str, domain: str, window: [datetime | None],require_author: bool = True) -> List[PaperProps]:
+    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime] | None, require_author: bool = True) -> List[PaperProps]:
         raise Exception("Not implemented")
 
     @abc.abstractmethod
@@ -169,7 +176,7 @@ class EndorsementAccessor:
 
 
 # Some magic values
-arXiv_endorsement_window: [timedelta] = [timedelta(days=365 * 5 + 1), timedelta(days=30 * 3)]
+arXiv_endorsement_window: List[timedelta] = [timedelta(days=365 * 5 + 1), timedelta(days=30 * 3)]
 
 
 def is_user_vetoed(user: UserModel) -> bool:
@@ -291,7 +298,7 @@ class EndorsementBusiness:
         return self.outcome.reason
 
     @reason.setter
-    def reason(self, reason):
+    def reason(self, reason) -> None:
         self.outcome.reason = reason
 
     @property
@@ -306,8 +313,10 @@ class EndorsementBusiness:
     def endorser_is_proxy_submitter(self) -> bool:
         return bool(self.endorseR.flag_proxy)
 
-    def _is_owner_in_domain(self, user_id: int, domain: str, flag1: bool, flag2: bool):
-        pass  # Implement check for owned papers
+    # arxiv-tapir/site-src/lib/arXiv/endorsement-policy.php.m4
+    # It appears I'm not using this. May need an investigation
+    def _is_owner_in_domain(self, user_id: int, domain: str, flag1: bool, flag2: bool) -> bool:
+        return False  # Implement check for owned papers
 
     def N_papers_to_endorse(self, archive: str, subject_class: str) -> int:
         pass  # Implement the required number of papers for endorsement
@@ -401,7 +410,6 @@ class EndorsementBusiness:
         self._find_existing_endorsement()
 
         if self.submitted:
-            self.endorser_capability = False
             vote = "positive" if self.endorsement.point_value else "negative"
             return self.reject("You have submitted a {} endorsement.".format(vote), public_reason=True,
                                endorser_capability=EndorserCapabilityType.credited)
@@ -412,13 +420,11 @@ class EndorsementBusiness:
 
        # Check if the endorseR has a veto status
         if self.is_endorser_vetoed:
-            self.endorser_capability = False
             return self.reject("This endorsing user's ability to endorse has been suspended by administrative action.",
                                endorser_capability=EndorserCapabilityType.prohibited,
                                public_reason=True,)
 
         if self.endorser_is_proxy_submitter:
-            self.endorser_capability = False
             return self.reject("Proxy submitters are not allowed to endorse.",
                                endorser_capability=EndorserCapabilityType.uncredited,)
 

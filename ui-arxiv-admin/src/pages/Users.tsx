@@ -4,6 +4,8 @@ import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
+    Switch,
+    FormControlLabel,
 } from '@mui/material';
 
 // import ToggleButton from '@mui/material/ToggleButton';
@@ -42,7 +44,8 @@ import {
     useDataProvider,
     SaveButton,
     DeleteButton, Toolbar, useNotify, useEditContext, useRefresh,
-    Confirm
+    Confirm,
+    useGetRecordId
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -621,6 +624,57 @@ const UserEditToolbar: React.FC<{ setAddCommentOpen: (open: boolean) => void }> 
 
 type statusInputType = { source: string, label: string, disabled?: boolean, component?: string } | null;
 
+interface EmailVerificationSwitchProps {
+    onUpdateEmailVerified: (verified: boolean, userId: string) => void;
+}
+
+const EmailVerificationSwitch: React.FC<EmailVerificationSwitchProps> = ({ onUpdateEmailVerified }) => {
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [pendingVerified, setPendingVerified] = useState<boolean | null>(null);
+    const record = useRecordContext();
+
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = event.target.checked;
+        setPendingVerified(newValue);
+        setConfirmOpen(true);
+    };
+
+    const handleConfirm = () => {
+        if (pendingVerified !== null && record?.id) {
+            onUpdateEmailVerified(pendingVerified, record.id as string);
+        }
+        setConfirmOpen(false);
+        setPendingVerified(null);
+    };
+
+    const handleCancel = () => {
+        setConfirmOpen(false);
+        setPendingVerified(null);
+    };
+
+    return (
+        <>
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={Boolean(record?.flag_email_verified)}
+                        onChange={handleChange}
+                        size="small"
+                    />
+                }
+                label="Email verified"
+            />
+            <Confirm
+                isOpen={confirmOpen}
+                title="Confirm Email Verification Change"
+                content={`Are you sure you want to ${pendingVerified ? 'verify' : 'unverify'} this user's email address? This will clear off the existing log-in session if the user is being logged in.`}
+                onConfirm={handleConfirm}
+                onClose={handleCancel}
+            />
+        </>
+    );
+};
+
 export const UserEdit = () => {
     const [isEndorsementsOpen, setIsEndorsementsOpen] = useState(false);
     const [isModOpen, setIsModOpen] = useState(false);
@@ -631,6 +685,7 @@ export const UserEdit = () => {
     const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
     const notify = useNotify();
+    const runtimeProps = useContext(RuntimeContext);
 
     const switchProps: SxProps = {
         '& .MuiSwitch-root': {
@@ -684,6 +739,30 @@ export const UserEdit = () => {
         refresh();
     };
 
+    const updateEmailVerified = async (verified: boolean, userId: string) => {
+        console.info(' updating email verification:', verified);
+
+        if (!userId) {
+            console.info(' no userId provided');
+            return;
+        }
+
+        try {
+            const putEmailVerified = runtimeProps.aaaFetcher.path('/account/{user_id}/email/verified').method('put').create();
+            await putEmailVerified({
+                user_id: userId,
+                email_verified: verified
+            });
+            
+            notify(`Email verification ${verified ? 'enabled' : 'disabled'}`, { type: 'success' });
+            refresh();
+        } catch (error) {
+            notify('Failed to update email verification status', { type: 'error' });
+            console.error('Error updating email verification:', error);
+        }
+    };
+
+
     const buhchOfInputs = [...statusInputs, ...adminInputs];
 
     /*
@@ -720,8 +799,7 @@ export const UserEdit = () => {
 
                         </Box>
                         <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
-                            <BooleanInput source="flag_email_verified" label={"Email verified"} helperText={false}
-                                          options={{size: "small"}}/>
+                            <EmailVerificationSwitch onUpdateEmailVerified={updateEmailVerified} />
                             <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false}
                                           options={{size: "small"}}/>
                         </Box>
@@ -813,29 +891,29 @@ export const UserEdit = () => {
                     </Grid>
 
                     <Grid size={{xs: 12, md: 6}}>
-                        <Accordion defaultExpanded>
-                             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '8px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                        <Accordion defaultExpanded  sx={{my: 0, py: 0}}>
+                             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '4px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
                                 <Typography variant="h6">User Demographics</Typography>
                             </AccordionSummary>
-                            <AccordionDetails>
+                            <AccordionDetails  sx={{my: 0, py: 0}}>
                                 <UserDemographic/>
                             </AccordionDetails>
                         </Accordion>
                         
-                        <Accordion >
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '8px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                        <Accordion  sx={{my: 0, py: 0}}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '4px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
                                 <Typography variant="h6">Email History</Typography>
                             </AccordionSummary>
-                            <AccordionDetails>
+                            <AccordionDetails  sx={{my: 0, py: 0}}>
                                 <EmailHistoryList/>
                             </AccordionDetails>
                         </Accordion>
                         
-                        <Accordion >
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '8px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                        <Accordion sx={{my: 0, py: 0}}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '4px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
                                 <Typography variant="h6">Owned Papers</Typography>
                             </AccordionSummary>
-                            <AccordionDetails>
+                            <AccordionDetails  sx={{my: 0, py: 0}}>
                                 <Grid size={{xs: 12}}>
                                     <OwnedPaperList/>
                                 </Grid>

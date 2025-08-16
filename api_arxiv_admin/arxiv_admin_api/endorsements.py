@@ -240,6 +240,7 @@ async def update_endorsement(
         405: {"model": EndorsementOutcomeModel, "description": "Endorsement not allowed"},
         400: {"description": "Bad request"},
         404: {"description": "Invalid endorsement code"},
+        500: {"model": EndorsementOutcomeModel, "description": "Endorsement failed due to database operation error"},
     }
 )
 async def endorse(
@@ -248,11 +249,11 @@ async def endorse(
         endorsement_code: EndorsementCodeModel,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db),
-        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name)
         ) -> EndorsementOutcomeModel:
+    current_tapir_session = current_user.tapir_session_id
     audit_timestamp = datetime.now(UTC)
     preflight = endorsement_code.preflight
     proto_endorser = UserModel.base_select(session).filter(TapirUser.user_id == endorsement_code.endorser_id).one_or_none()
