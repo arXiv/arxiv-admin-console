@@ -357,7 +357,6 @@ class EndorsementCreationModel(BaseModel):
 async def create_endorsement(
         body: EndorsementCreationModel,
         current_user: ArxivUserClaims = Depends(get_authn_user),
-        current_tapir_session: TapirSessionData = Depends(get_tapir_session),
         tracking_cookie: str | None = Depends(get_tracking_cookie),
         client_host: str | None = Depends(get_client_host),
         client_host_name: str | None = Depends(get_client_host_name),
@@ -398,7 +397,7 @@ async def create_endorsement(
                               subject_class=body.subject_class,
                               endorsement_code=endorse,
                               endorsement_request=endorsement_request,
-                              session_id=current_tapir_session.tapir_session_id if current_tapir_session else None,
+                              session_id=current_user.tapir_session_id,
                               remote_host_ip=client_host,
                               remote_host_name=client_host_name,
                               tracking_cookie=tracking_cookie)
