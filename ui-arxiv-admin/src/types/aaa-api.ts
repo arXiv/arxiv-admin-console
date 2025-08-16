@@ -320,7 +320,7 @@ export interface paths {
         };
         /**
          * Get Email Verified Status
-         * @description Is the email verified for this usea?
+         * @description Is the email verified for this user?
          */
         get: operations["get_email_verified_status_account__user_id__email_verified_get"];
         /**
@@ -809,10 +809,10 @@ export interface components {
         };
         /** EmailVerifiedStatus */
         EmailVerifiedStatus: {
-            /** User Id */
-            user_id: string;
             /** Email Verified */
             email_verified: boolean;
+            /** User Id */
+            user_id?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1891,6 +1891,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["AccountInfoModel"];
+                };
+            };
+            /** @description Request data is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /** @example {
+                     *       "detail": "Invalid request data"
+                     *     } */
                     "application/json": unknown;
                 };
             };
