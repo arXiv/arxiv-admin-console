@@ -25,7 +25,7 @@ from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_current_user, get_session_cookie
 # from arxiv_admin_api.authentication import router as auth_router
 from arxiv_admin_api.admin_logs import router as admin_log_router
-from arxiv_admin_api.categories import router as categories_router
+from arxiv_admin_api.categories import router as categories_router, archive_group_router
 from arxiv_admin_api.email_template import router as email_template_router
 from arxiv_admin_api.endorsement_requests import router as endorsement_request_router
 from arxiv_admin_api.endorsement_requests_audit import router as endorsement_request_audit_router
@@ -244,6 +244,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     # app.include_router(auth_router)
     app.include_router(admin_log_router, prefix="/v1")
     app.include_router(categories_router, prefix="/v1")
+    app.include_router(archive_group_router, prefix="/v1")
     app.include_router(demographic_router, prefix="/v1")
     app.include_router(user_router, prefix="/v1")
     app.include_router(email_template_router, prefix="/v1")

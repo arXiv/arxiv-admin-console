@@ -41,6 +41,7 @@ import { SlidingPanelProvider } from './SlidingPanelContext';
 import { LinkPanel } from './components/LinkPanel';
 import { PanelToggleButton } from './components/PanelToggleButton';
 import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
+import { MessageDialogProvider } from './components/MessageDialog';
 import {useNavigate, Navigate, useParams} from "react-router-dom";
 import {MetadataEdit} from "./pages/Metadata";
 
@@ -120,9 +121,11 @@ const AdminConsole: React.FC = () => {
                 darkTheme={darkTheme}
 
                 layout={ props => (
-                    <PersistentDrawerLayout  panel={<WithNavigationLinkPanel />}>
-                        <AdminConsoleLayout {...props} />
-                    </PersistentDrawerLayout>
+                    <MessageDialogProvider>
+                        <PersistentDrawerLayout  panel={<WithNavigationLinkPanel />}>
+                            <AdminConsoleLayout {...props} />
+                        </PersistentDrawerLayout>
+                    </MessageDialogProvider>
                 )}
             >
                 {/* Your existing resources */}

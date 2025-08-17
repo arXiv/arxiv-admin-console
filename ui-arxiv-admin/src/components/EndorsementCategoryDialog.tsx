@@ -1,8 +1,10 @@
 import React, {useEffect, useState} from "react";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
 
 import { paths as adminApi } from '../types/admin-api';
-import {useDataProvider, useRefresh} from "react-admin";
+import {useDataProvider, useNotify, useRefresh} from "react-admin";
 import CategoryChooserDialog from "./CategoryChooserDialog";
+import { useMessageDialog } from "./MessageDialog";
 
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementCreateT = adminApi['/v1/endorsements/']['post']['requestBody']['content']['application/json'];
@@ -20,6 +22,8 @@ const EndorsementCategoryDialog: React.FC<
     const [comment, setComment] = useState<string >("");
     const dataProvider = useDataProvider();
     const refresh = useRefresh();
+    const notify = useNotify();
+    const { showMessage } = useMessageDialog();
 
     useEffect(() => {
         if (open && userId) {
@@ -85,20 +89,36 @@ const EndorsementCategoryDialog: React.FC<
             }
         }
 
+        const errors: string[] = [];
         if (deleteOperations.length > 0) {
             try {
                 await dataProvider.deleteMany('endorsements', { ids: deleteOperations });
-            } catch (error) {
+            } catch (error: any) {
+                const errorDetail = error?.body?.detail as string | undefined;
+                if (errorDetail) {
+                    errors.push(`Error removing endorsements: ` + errorDetail);
+                } else {
+                    errors.push(`Error removing endorsements`);
+                }
                 console.error("Error deleting endorsements:", error);
             }
         }
 
         for (const endorsement of createOperations) {
             try {
-                await dataProvider.create('endorsements', { data: endorsement },);
-            } catch (error) {
-                console.error("Error creating moderator:", error);
+                const _response = await dataProvider.create('endorsements', { data: endorsement },);
+            } catch (error: any) {
+                const errorDetail = error?.body?.detail as string | undefined;
+                if (errorDetail)
+                    errors.push(`Error creating endorsement of ${endorsement.archive}.${endorsement.subject_class || '*'}: ` + errorDetail);
+                else
+                    errors.push(`Error creating endorsement of ${endorsement.archive}.${endorsement.subject_class || '*'}`);
+                console.error("Error creating endorsement:", JSON.stringify(error));
             }
+        }
+
+        if (errors.length > 0) {
+            showMessage("Endorsement Errors", errors.join("\n"));
         }
 
         refresh();

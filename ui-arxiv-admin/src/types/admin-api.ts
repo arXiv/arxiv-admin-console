@@ -126,6 +126,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/archive_group/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Archive Groups */
+        get: operations["list_archive_groups_v1_archive_group__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/demographics/": {
         parameters: {
             query?: never;
@@ -430,7 +447,11 @@ export interface paths {
         /** Update Endorsement */
         put: operations["update_endorsement_v1_endorsements__id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Endorsement
+         * @description Delete an endorsement (admin user only)
+         */
+        delete: operations["delete_endorsement_v1_endorsements__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -451,26 +472,6 @@ export interface paths {
          */
         post: operations["endorse_v1_endorsements_endorse_post"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/endorsements/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Endorsement
-         * @description Delete an endorsement (admin user only)
-         */
-        delete: operations["delete_endorsement_v1_endorsements__id___delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1940,6 +1941,13 @@ export interface components {
             start_date: string;
             /** End Date */
             end_date?: string | null;
+        };
+        /** ArchiveGroupModel */
+        ArchiveGroupModel: {
+            /** Archive */
+            archive: string;
+            /** Group */
+            group: string;
         };
         /** AuthorIDModel */
         AuthorIDModel: {
@@ -3439,6 +3447,44 @@ export interface operations {
             };
         };
     };
+    list_archive_groups_v1_archive_group__get: {
+        parameters: {
+            query?: {
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                archive?: string | null;
+                group?: string | null;
+                /** @description active */
+                active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveGroupModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_demographics_v1_demographics__get: {
         parameters: {
             query?: {
@@ -4260,6 +4306,37 @@ export interface operations {
             };
         };
     };
+    delete_endorsement_v1_endorsements__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     endorse_v1_endorsements_endorse_post: {
         parameters: {
             query?: never;
@@ -4321,37 +4398,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EndorsementOutcomeModel"];
-                };
-            };
-        };
-    };
-    delete_endorsement_v1_endorsements__id___delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

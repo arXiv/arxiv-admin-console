@@ -12,11 +12,7 @@ interface LastLoginFieldProps extends TextFieldProps {
 const TapirSessionInfo: React.FC<LastLoginFieldProps> = ({index, isLoading, total, tapirSessions}) => {
     if (isLoading) return <Typography variant="body1">Loading...</Typography>;
     if (!tapirSessions || tapirSessions.length === 0) return null;
-
     const value = index >= 0 ? tapirSessions[index]?.start_time : total;
-    if (index >= 0)
-        console.log(`tapir session info: ${JSON.stringify(tapirSessions[index])} ( ${index} / ${total} )` );
-
     return (<span> {value} </span>);
 };
 

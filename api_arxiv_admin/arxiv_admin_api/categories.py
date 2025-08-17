@@ -9,13 +9,14 @@ from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db.models import Category
+from arxiv.db.models import Category, ArchiveGroup
 
 from . import get_db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/categories", tags=["user_portal"])
+router = APIRouter(prefix="/categories", tags=["metadata"])
+archive_group_router = APIRouter(prefix="/archive_group", tags=["metadata"])
 
 class EndorseOption(str, Enum):
     y = 'y'
@@ -208,3 +209,46 @@ async def delete_category(
     session.delete(item)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+class ArchiveGroupModel(BaseModel):
+    archive: str
+    group: str
+
+    @classmethod
+    def base_query(cls, db: Session) -> Query:
+        return db.query(
+            ArchiveGroup.archive_id.label("archive"),
+            ArchiveGroup.group_id.label("group"),
+        )
+
+@archive_group_router.get('/')
+async def list_archive_groups(
+        response: Response,
+        _order: Optional[str] = Query("ASC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        archive: Optional[str] = Query(""),
+        group: Optional[str] = Query(""),
+        active: Optional[bool] = Query(None, description="active"),
+        db: Session = Depends(get_db)
+) -> List[ArchiveGroupModel]:
+    if _start < 0 or _end < _start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid start or end index")
+
+    query = ArchiveGroupModel.base_query(db)
+    if archive:
+        query = query.filter(ArchiveGroup.archive_id == archive)
+
+    if _order == "DESC":
+        query = query.order_by(ArchiveGroup.archive_id.desc())
+        query = query.order_by(ArchiveGroup.group_id.desc())
+    else:
+        query = query.order_by(ArchiveGroup.archive_id.asc())
+        query = query.order_by(ArchiveGroup.group_id.asc())
+
+    count = query.count()
+    response.headers['X-Total-Count'] = str(count)
+    results = query.offset(_start).limit(_end - _start).all()
+    return [ArchiveGroupModel(archive=row.archive, group=row.group) for row in results]
