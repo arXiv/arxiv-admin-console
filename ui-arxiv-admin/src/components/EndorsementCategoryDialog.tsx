@@ -95,7 +95,7 @@ const EndorsementCategoryDialog: React.FC<
 
         for (const endorsement of createOperations) {
             try {
-                await dataProvider.create('endorsements', { data: endorsement });
+                await dataProvider.create('endorsements', { data: endorsement },);
             } catch (error) {
                 console.error("Error creating moderator:", error);
             }
@@ -109,7 +109,7 @@ const EndorsementCategoryDialog: React.FC<
 
     return (
         <CategoryChooserDialog
-            title="Moderation Categories"
+            title="Endorsement Categories"
             open={open}
             setOpen={setOpen}
             currentCategories={endorsementCategories}

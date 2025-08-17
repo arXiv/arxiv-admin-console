@@ -315,7 +315,7 @@ class adminApiDataProvider implements DataProvider {
             }
 
         }
-        return this.dataProvider.create(resource, params);
+        return this.dataProvider.create(addTrailingSlash(resource), params);
     }
 
     delete: typeof this.dataProvider.delete = (resource, params) => this.dataProvider.delete(resource, params);
