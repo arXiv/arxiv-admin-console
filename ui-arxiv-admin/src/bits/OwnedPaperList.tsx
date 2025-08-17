@@ -117,7 +117,7 @@ const OwnedPaperList: React.FC = () => {
     return (
         <ListContextProvider value={controllerProps}>
             <Datagrid
-                rowClick="edit"
+                rowClick={(id, resource, record) => `/documents/${record.document_id}/show`}
                 empty={<p><b>User owns none of papers</b></p>}
                 bulkActionButtons={<PaperOwnerBulkActionButtons  />}
             >
