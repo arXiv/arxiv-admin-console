@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/endorsements")
 
 
-@router.get('/')
+@router.get('')
 async def list_endorsements(
         response: Response,
         _sort: Optional[str] = Query("issued_when", description="sort by"),
@@ -353,7 +353,7 @@ class EndorsementCreationModel(BaseModel):
     comment: Optional[str] = None
 
 
-@router.post('/', description="Create a new endorsement (admin user only)")
+@router.post('', description="Create a new endorsement (admin user only)")
 async def create_endorsement(
         body: EndorsementCreationModel,
         current_user: ArxivUserClaims = Depends(get_authn_user),
@@ -407,7 +407,7 @@ async def create_endorsement(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=biz.reason)
 
 
-@router.delete('/{id}/', description="Delete an endorsement (admin user only)")
+@router.delete('/{id}', description="Delete an endorsement (admin user only)")
 async def delete_endorsement(
         id: str,
         current_user: TapirSessionData = Depends(get_authn),
