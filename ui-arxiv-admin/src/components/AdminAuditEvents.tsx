@@ -9,7 +9,7 @@ import { UserVetoStatus, UserFlags } from '../helptexts/userStatus';
 import {paths as adminApi} from '../types/admin-api';
 import React from "react";
 import Typography from "@mui/material/Typography";
-import {RaRecord, ReferenceField, TextField, Identifier} from "react-admin";
+import {RaRecord, ReferenceField, TextField, Identifier, NumberField} from "react-admin";
 import UserNameField from "../bits/UserNameField";
 import {Box} from "@mui/material";
 type TapirAdminAudit = adminApi['/v1/tapir_admin_audit/{id}']['get']['responses']['200']['content']['application/json'];

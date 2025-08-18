@@ -325,8 +325,24 @@ export const ShowDemographic = () => {
             <TableRow>
                 <TableCell>Session ID</TableCell>
                 <TableCell>
-                    <ReferenceField source={"id"} reference="endorsement_requests_audit">
+                    <ReferenceField source={"id"} reference="endorsement_requests_audit" link={(record, reference) => `/tapir_sessions/${record.id}/edit`}>
                         <TextField source={"session_id"}/>
+                    </ReferenceField>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Session Start/End</TableCell>
+                <TableCell>
+                    <ReferenceField source={"id"} reference="endorsement_requests_audit" >
+                        <ReferenceField source={"id"} reference="tapir_sessions">
+                            <ISODateField source={"start_time"} showTime />
+                        </ReferenceField>
+                    </ReferenceField>
+                    {" ->  "}
+                    <ReferenceField source={"id"} reference="endorsement_requests_audit" >
+                        <ReferenceField source={"id"} reference="tapir_sessions">
+                            <ISODateField source={"end_time"} showTime />
+                        </ReferenceField>
                     </ReferenceField>
                 </TableCell>
             </TableRow>

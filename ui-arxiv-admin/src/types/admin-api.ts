@@ -1503,7 +1503,8 @@ export interface paths {
          * @description Display a paper.
          */
         get: operations["get_tapir_session_v1_tapir_sessions__id__get"];
-        put?: never;
+        /** Close Tapir Session */
+        put: operations["close_tapir_session_v1_tapir_sessions__id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1524,23 +1525,6 @@ export interface paths {
          */
         get: operations["get_tapir_session_for_user_v1_tapir_sessions_user__user_id__get"];
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tapir_sessions/{id}/close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Close Tapir Session */
-        put: operations["close_tapir_session_v1_tapir_sessions__id__close_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2920,7 +2904,7 @@ export interface components {
         /** TapirSessionModel */
         TapirSessionModel: {
             /** Id */
-            id: number;
+            id?: number | null;
             /** User Id */
             user_id: number;
             /** Last Reissue */
@@ -2929,6 +2913,11 @@ export interface components {
             start_time: string | null;
             /** End Time */
             end_time: string | null;
+            /** Close Session */
+            close_session: boolean;
+        };
+        /** TapirSessionUpdateModel */
+        TapirSessionUpdateModel: {
             /** Close Session */
             close_session: boolean;
         };
@@ -6509,6 +6498,8 @@ export interface operations {
                 _end?: number | null;
                 /** @description User id */
                 user_id?: number | null;
+                /** @description Open sessions */
+                is_open?: boolean | null;
                 /** @description List of user IDs to filter by */
                 id?: number[] | null;
                 preset?: string | null;
@@ -6574,6 +6565,41 @@ export interface operations {
             };
         };
     };
+    close_tapir_session_v1_tapir_sessions__id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TapirSessionUpdateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TapirSessionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_tapir_session_for_user_v1_tapir_sessions_user__user_id__get: {
         parameters: {
             query?: {
@@ -6599,37 +6625,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TapirSessionModel"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    close_tapir_session_v1_tapir_sessions__id__close_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TapirSessionModel"];
                 };
             };
             /** @description Validation Error */

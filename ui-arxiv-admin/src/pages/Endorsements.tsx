@@ -206,100 +206,115 @@ const EndorsementTitle = () => {
 
 };
 
-export const EndorsementEdit = () => (
-    <Edit title={ <EndorsementTitle />}  >
-        <SimpleForm>
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gridTemplateRows: 'repeat(2, 1fr)',
-                height: '100%',
-                minWidth: '60%',
-                gap: '0px 8px',
-            }}>
+export const EndorsementEdit = () => {
+    const leftWidth = "80px";
+
+    return (
+        <Edit title={<EndorsementTitle/>}>
+            <SimpleForm>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gridTemplateRows: 'repeat(2, 1fr)',
+                    height: '100%',
+                    minWidth: '60%',
+                    gap: '0px 8px',
+                }}>
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"ID: "}</Typography>
+                        <NumberField source="id"/>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Request ID: "}</Typography>
+                        <ReferenceField source="request_id" reference="endorsement_requests"
+                                        label={"Endorsement Request"}
+                                        link={(record, reference) => `/${reference}/${record.id}`}>
+                            <NumberField source={"id"}/>
+                        </ReferenceField>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Category: "}</Typography>
+                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"
+                                       label="Category"/>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Issued on: "}</Typography>
+                        <ISODateField source="issued_when"/>
+                    </Box>
+
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Endorser: "}</Typography>
+
+                        <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
+                                        link={(record, reference) => `/${reference}/${record.id}`}>
+                            <UserNameField/>
+                            <UserStatusField source={"id"}/>
+                        </ReferenceField>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Session ID: "}</Typography>
+                        <ReferenceField source="session_id" reference="tapir_sessions" label={"Session ID"}
+                                        link={(record, reference) => `/${reference}/${record.id}/edit`}>
+                            <NumberField source="id"/>
+                        </ReferenceField>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Endorsee: "}</Typography>
+                        <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
+                                        link={(record, reference) => `/${reference}/${record.id}`}>
+                            <UserNameField/>
+                            <UserStatusField source={"id"}/>
+                        </ReferenceField>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Remote Hostname: "}</Typography>
+                        <TextField source={"remote_host"}/>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <BooleanInput source="flag_valid" label={"Valid"} size={"small"} helperText={false}/>
+                        <BooleanInput source="positive_endorsement" label={"Positive"} size={"small"} helperText={false}/>
+                    </Box>
+
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Remote Address: "}</Typography>
+                        <TextField source={"remote_addr"}/>
+                    </Box>
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Endorsement type: "}</Typography>
+                        <SelectField source="type" choices={endorsementTypeOptions}/>
+                    </Box>
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Tracking Cookie: "}</Typography>
+                        <TextField source="tracking_cookie"/>
+                    </Box>
+                    <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                        <Typography minWidth={leftWidth}>{"Knows Presonally: "}</Typography>
+                        <BooleanField source="flag_knows_personally"/>
+                        <Typography minWidth={leftWidth}>{"Seen Paper: "}</Typography>
+                        <BooleanField source="flag_seen_paper"/>
+                    </Box>
+                </div>
                 <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"ID: "}</Typography>
-                    <NumberField source="id" />
+                    <Typography minWidth={leftWidth}>{"Comment: "}</Typography>
+                    <TextField source={"comment"}/>
+                </Box>
+                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                    <Typography minWidth={leftWidth}>{"Point Value: "}</Typography>
+                    <NumberField source={"point_value"}/>
                 </Box>
 
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Request ID: "}</Typography>
-                    <ReferenceField source="request_id" reference="endorsement_requests" label={"Endorsement Request"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <NumberField source={"id"} />
-                    </ReferenceField>
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Category: "}</Typography>
-                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category" />
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Issued on: "}</Typography>
-                    <ISODateField source="issued_when"/>
-                </Box>
-
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Endorser: "}</Typography>
-
-                    <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                                link={(record, reference) => `/${reference}/${record.id}`} >
-                        <UserNameField />
-                        <UserStatusField source={"id"} />
-                    </ReferenceField>
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Session ID: "}</Typography>
-                    <NumberField source="session_id"/>
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Endorsee: "}</Typography>
-                    <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <UserNameField />
-                        <UserStatusField source={"id"} />
-                    </ReferenceField>
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Remote Hostname: "}</Typography>
-                    <TextField source={"remote_host"} />
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <BooleanInput source="flag_valid" label={"Valid"} size={"small"} />
-                    <BooleanInput source="positive_endorsement" label={"Positive"} size={"small"} />
-                    <SelectField source="type" choices={endorsementTypeOptions}  />
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Remote Address: "}</Typography>
-                    <TextField source={"remote_addr"} />
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Knows Presonally: "}</Typography>
-                    <BooleanField source="flag_knows_personally"/>
-                    <Typography>{"Seen Paper: "}</Typography>
-                    <BooleanField source="flag_seen_paper"/>
-                </Box>
-
-                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                    <Typography>{"Tracking Cookie: "}</Typography>
-                    <TextField source="tracking_cookie"/>
-                </Box>
-            </div>
-            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                <Typography>{"Comment: "}</Typography>
-                <TextField source={"comment"} />
-            </Box>
-        </SimpleForm>
-    </Edit>
-);
+            </SimpleForm>
+        </Edit>
+    );
+}
 
 export const EndorsementCreate = () => (
     <Create>
