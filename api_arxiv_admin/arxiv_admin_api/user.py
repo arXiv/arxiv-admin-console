@@ -1,4 +1,5 @@
 """arXiv user routes."""
+from __future__ import annotations
 import re
 from typing import Optional, List, Type
 from datetime import date, timedelta, datetime, timezone
@@ -12,14 +13,15 @@ from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn, get_clie
 from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
-from sqlalchemy import select, distinct, and_, inspect
+from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row
 from sqlalchemy.orm import Session, aliased
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
-                             t_arXiv_black_email, Category)
-from arxiv_bizlogic.bizmodels.user_model import UserModel
+                             t_arXiv_black_email, Category, OrcidIds)
+from arxiv_bizlogic.bizmodels.user_model import UserModel, VetoStatusEnum, _tapir_user_utf8_fields_, \
+    _demographic_user_utf8_fields_, list_mod_cats_n_arcs
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
 from .audit import record_user_prop_admin_action
@@ -27,8 +29,12 @@ from .biz import canonicalize_category
 from .biz.document_biz import document_summary
 from .biz.endorsement_biz import can_user_submit_to, can_user_endorse_for, EndorsementAccessor
 from .dao.react_admin import ReactAdminUpdateResult, ReactAdminCreateResult
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 router = APIRouter(prefix="/users")
+users_by_username_router = APIRouter(prefix="/users-by-username")
 
 
 # Things normal user can update
@@ -738,4 +744,237 @@ def get_user_can_endorse_for(
         result.append(from_can_endorse_for_to_category_yes_no(accessor, cat, user))
 
     response.headers['X-Total-Count'] = str(len(result))
+    return result
+
+
+
+class UserByUsernameModel(BaseModel):
+    class Config:
+        from_attributes = True
+
+    id: str
+    user_id: int
+    email: str
+    first_name: str
+    last_name: str
+    suffix_name: Optional[str] = None
+    share_first_name: bool = True
+    share_last_name: bool = True
+    share_email: int = 8
+    email_bouncing: bool = False
+    joined_date: datetime
+    joined_ip_num: Optional[str] = None
+    joined_remote_host: str
+    flag_internal: bool = False
+    flag_edit_users: bool = False
+    flag_edit_system: bool = False
+    flag_email_verified: bool = False
+    flag_approved: bool = True
+    flag_deleted: bool = False
+    flag_banned: bool = False
+    flag_wants_email: Optional[bool] = None
+    flag_html_email: Optional[bool] = None
+    tracking_cookie: Optional[str] = None
+    flag_allow_tex_produced: Optional[bool] = None
+    flag_can_lock: Optional[bool] = None
+
+    @field_validator('first_name', 'last_name', 'suffix_name', 'id')
+    @classmethod
+    def strip_field_value(cls, value: str | None) -> str | None:
+        return value.strip() if value else value
+
+
+    @staticmethod
+    def base_select(session: Session):
+
+        return (session.query(
+            TapirNickname.nickname.label("id"),
+            TapirUser.user_id,
+            cast(TapirUser.email, LargeBinary).label("email"),
+            cast(TapirUser.first_name, LargeBinary).label("first_name"),
+            cast(TapirUser.last_name, LargeBinary).label("last_name"),
+            cast(TapirUser.suffix_name, LargeBinary).label("suffix_name"),
+            TapirUser.share_first_name,
+            TapirUser.share_last_name,
+            TapirUser.share_email,
+            TapirUser.email_bouncing,
+            TapirUser.joined_date,
+            TapirUser.joined_ip_num,
+            TapirUser.joined_remote_host,
+            TapirUser.flag_internal,
+            TapirUser.flag_edit_users,
+            TapirUser.flag_edit_system,
+            TapirUser.flag_email_verified,
+            TapirUser.flag_approved,
+            TapirUser.flag_deleted,
+            TapirUser.flag_banned,
+            TapirUser.flag_wants_email,
+            TapirUser.flag_html_email,
+            TapirUser.tracking_cookie,
+            TapirUser.flag_allow_tex_produced,
+            TapirUser.flag_can_lock,
+        )
+        .join(TapirUser, TapirUser.user_id == TapirNickname.user_id))
+
+    @property
+    def is_admin(self) -> bool:
+        return self.flag_edit_users or self.flag_edit_system
+
+
+    @staticmethod
+    def to_model(user: UserByUsernameModel | Row | dict, session: Optional[Session] = None) -> 'UserByUsernameModel':
+        """
+        Given data to user model data.
+        :param user:  DB row, dict or UserByUsernameModel.
+        :param session: SQLAlchemy db session
+        :return: result: UserByUsernameModel data
+        """
+        # If the incoming is already a dict, to_model is equivalet of calling model_validate
+        if isinstance(user, dict):
+            result = UserByUsernameModel.model_validate(user)
+        elif isinstance(user, UserByUsernameModel):
+            # This is just a copy
+            return UserByUsernameModel.model_validate(user.model_dump())
+        elif isinstance(user, Row):
+            row = user._asdict()
+            for field in _tapir_user_utf8_fields_ + _demographic_user_utf8_fields_:
+                if field == "username":
+                    field = "id"
+                if field not in row:
+                    continue
+                if row[field] is None:
+                    continue
+                if isinstance(row[field], bytes):
+                    row[field] = row[field].decode("utf-8") if row[field] is not None else None
+                elif isinstance(row[field], str):
+                    logger.warning(f"Field {field} is unexpectedly string. value = '{row[field]}'. You may need to fix it")
+                    pass
+                else:
+                    raise ValueError(f"Field {field} needs to be BLOB access")
+            result = UserByUsernameModel.model_validate(row)
+        else:
+            raise ValueError("Not Row, UserByUsernameModel or dict")
+        return result
+
+
+@users_by_username_router.get("/")
+async def list_users_by_username(
+        response: Response,
+        _sort: Optional[str] = Query("last_name,first_name", description="sort by"),
+        _order: Optional[str] = Query("ASC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        flag_is_mod: Optional[bool] = Query(None, description="moderator"),
+        email: Optional[str] = Query(None),
+        name: Optional[str] = Query(None),
+        last_name: Optional[str] = Query(None),
+        first_name: Optional[str] = Query(None),
+        flag_edit_users: Optional[bool] = Query(None),
+        flag_email_verified: Optional[bool] = Query(None),
+        start_joined_date: Optional[date] = Query(None, description="Start date for filtering"),
+        end_joined_date: Optional[date] = Query(None, description="End date for filtering"),
+        id: Optional[List[str]] = Query(None, description="List of username  to filter by"),
+        db: Session = Depends(get_db),
+        _is_admin: bool = Depends(is_admin_user),
+) -> List[UserByUsernameModel]:
+    """
+    List users
+    """
+    if _start < 0 or _end < _start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid start or end index")
+
+    order_columns = []
+    sort_nickname_alias = None
+    if _sort:
+        keys = _sort.split(",")
+        for key in keys:
+            if key == "id":
+                key = "user_id"
+            if key == "username":
+                if sort_nickname_alias is None:
+                    sort_nickname_alias = aliased(TapirNickname)
+                order_columns.append(sort_nickname_alias.nickname)
+            else:
+                try:
+                    order_column = getattr(TapirUser, key)
+                    order_columns.append(order_column)
+                except AttributeError:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                        detail="Invalid sort field")
+
+    query = UserByUsernameModel.base_select(db)
+
+    # Join with TapirNickname if needed for sorting by username
+    if sort_nickname_alias is not None:
+        query = query.join(sort_nickname_alias, TapirUser.user_id == sort_nickname_alias.user_id)
+
+    if id is not None:
+        nick1: TapirNickname = aliased(TapirNickname)
+        query = query.join(nick1, nick1.user_id == TapirUser.user_id)
+        query = query.filter(nick1.nickname.in_(id))
+
+    else:
+        if flag_edit_users is not None:
+            query = query.filter(TapirUser.flag_edit_users == flag_edit_users)
+
+        if flag_is_mod is not None:
+            subquery = select(distinct(t_arXiv_moderators.c.user_id))
+            if flag_is_mod:
+                # I think this is faster but I cannot make it work...
+                # query = query.join(t_arXiv_moderators, TapirUser.user_id == t_arXiv_moderators.c.user_id)
+                query = query.filter(TapirUser.user_id.in_(subquery))
+            else:
+                query = query.filter(~TapirUser.user_id.in_(subquery))
+
+        if name and first_name is None and last_name is None:
+            if "," in name:
+                names = name.split(",")
+                if len(names) > 1:
+                    last_name = names[0].strip()
+                    first_name = names[1].strip()
+                else:
+                    last_name = names[0].strip()
+            elif " " in name:
+                names = [elem.strip() for elem in name.split(' ') if elem.strip()]
+                if len(names) > 1:
+                    last_name = names[0]
+                    first_name = names[1]
+                else:
+                    last_name = names[0]
+                pass
+            elif re.match(r"^[0-9]+$", name):
+                query = query.filter(TapirUser.user_id == name)
+            else:
+                last_name = name.strip()
+                pass
+            pass
+
+        if first_name:
+            query = query.filter(TapirUser.first_name.startswith(first_name))
+
+        if last_name:
+            query = query.filter(TapirUser.last_name.startswith(last_name))
+
+        if email:
+            query = query.filter(TapirUser.email.startswith(email))
+
+        if flag_email_verified is not None:
+            query = query.filter(TapirUser.flag_email_verified == flag_email_verified)
+
+        if start_joined_date or end_joined_date:
+            t_begin = datetime_to_epoch(start_joined_date, VERY_OLDE)
+            t_end = datetime_to_epoch(end_joined_date, date.today(), hour=23, minute=59, second=59)
+            query = query.filter(TapirUser.joined_date.between(t_begin, t_end))
+
+
+    for column in order_columns:
+        if _order == "DESC":
+            query = query.order_by(column.desc())
+        else:
+            query = query.order_by(column.asc())
+
+    count = query.count()
+    response.headers['X-Total-Count'] = str(count)
+    result = [UserByUsernameModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result

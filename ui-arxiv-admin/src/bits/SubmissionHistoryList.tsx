@@ -13,7 +13,6 @@ import {
 
     ReferenceField,
     Pagination,
-    BooleanField,
     useListContext, useNotify, Identifier,
     useRefresh, DateTimeInput, EmailField
 } from 'react-admin';

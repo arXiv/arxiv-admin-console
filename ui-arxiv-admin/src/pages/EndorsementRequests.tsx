@@ -7,7 +7,6 @@ import {
     SimpleList,
     Datagrid,
     TextField,
-    BooleanField,
     NumberField,
     SortPayload,
     useRecordContext,
@@ -26,6 +25,7 @@ import {
     SimpleShowLayout, useGetOne, RecordContextProvider, Identifier,
 } from 'react-admin';
 
+import BooleanField from "../bits/BooleanNumberField";
 import CategoryField from "../bits/CategoryField";
 
 import PointValueBooleanField from "../bits/PointValueBooleanField";

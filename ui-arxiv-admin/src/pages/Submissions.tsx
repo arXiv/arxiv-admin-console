@@ -1,6 +1,5 @@
 import {Grid, ToggleButton, useMediaQuery} from '@mui/material';
 import {
-    BooleanField,
     BooleanInput,
     Create,
     Datagrid,

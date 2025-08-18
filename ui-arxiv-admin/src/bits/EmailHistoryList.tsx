@@ -5,8 +5,8 @@ import {
     TextField,
     useRecordContext,
     Pagination,
-    BooleanField,
 } from 'react-admin';
+import BooleanField from "../bits/BooleanNumberField";
 import React from 'react';
 import ISODateField from "./ISODateFiled";
 

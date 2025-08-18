@@ -39,7 +39,7 @@ from arxiv_admin_api.ownership_requests_audit import router as ownership_request
 from arxiv_admin_api.paper_owners import router as paper_owner_router, paper_pw_router
 from arxiv_admin_api.submissions import router as submission_router, meta_router as submission_meta_router
 from arxiv_admin_api.submission_categories import router as submission_categories_router
-from arxiv_admin_api.user import router as user_router
+from arxiv_admin_api.user import router as user_router, users_by_username_router
 from arxiv_admin_api.tapir_sessions import router as tapir_session_router
 from arxiv_admin_api.member_institutions import router as member_institution_router
 from arxiv_admin_api.countries import router as countries_router
@@ -247,6 +247,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(archive_group_router, prefix="/v1")
     app.include_router(demographic_router, prefix="/v1")
     app.include_router(user_router, prefix="/v1")
+    app.include_router(users_by_username_router, prefix="/v1")
     app.include_router(email_template_router, prefix="/v1")
     app.include_router(endorsement_router, prefix="/v1")
     app.include_router(endorsement_request_router, prefix="/v1")

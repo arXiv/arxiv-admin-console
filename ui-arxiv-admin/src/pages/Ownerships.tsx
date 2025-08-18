@@ -4,7 +4,6 @@ import {
     SimpleList,
     Datagrid,
     TextField,
-    BooleanField,
     SortPayload,
     NumberInput,
     useRecordContext,
@@ -22,6 +21,8 @@ import {
     useListContext as useListContextForActions,
     TopToolbar, EmailField
 } from 'react-admin';
+
+import BooleanField from "../bits/BooleanNumberField";
 
 import { addDays } from 'date-fns';
 

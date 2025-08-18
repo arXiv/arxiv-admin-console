@@ -12,10 +12,11 @@ import {
     useRecordContext,
     ReferenceField,
     Pagination,
-    BooleanField,
     useListContext, useNotify, Identifier,
     useRefresh
 } from 'react-admin';
+import BooleanField from "../bits/BooleanNumberField";
+
 import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';

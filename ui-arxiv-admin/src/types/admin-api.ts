@@ -377,6 +377,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users-by-username/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users By Username
+         * @description List users
+         */
+        get: operations["list_users_by_username_v1_users_by_username__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/email_templates/": {
         parameters: {
             query?: never;
@@ -2912,6 +2932,95 @@ export interface components {
             /** Close Session */
             close_session: boolean;
         };
+        /** UserByUsernameModel */
+        UserByUsernameModel: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: number;
+            /** Email */
+            email: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Suffix Name */
+            suffix_name?: string | null;
+            /**
+             * Share First Name
+             * @default true
+             */
+            share_first_name: boolean;
+            /**
+             * Share Last Name
+             * @default true
+             */
+            share_last_name: boolean;
+            /**
+             * Share Email
+             * @default 8
+             */
+            share_email: number;
+            /**
+             * Email Bouncing
+             * @default false
+             */
+            email_bouncing: boolean;
+            /**
+             * Joined Date
+             * Format: date-time
+             */
+            joined_date: string;
+            /** Joined Ip Num */
+            joined_ip_num?: string | null;
+            /** Joined Remote Host */
+            joined_remote_host: string;
+            /**
+             * Flag Internal
+             * @default false
+             */
+            flag_internal: boolean;
+            /**
+             * Flag Edit Users
+             * @default false
+             */
+            flag_edit_users: boolean;
+            /**
+             * Flag Edit System
+             * @default false
+             */
+            flag_edit_system: boolean;
+            /**
+             * Flag Email Verified
+             * @default false
+             */
+            flag_email_verified: boolean;
+            /**
+             * Flag Approved
+             * @default true
+             */
+            flag_approved: boolean;
+            /**
+             * Flag Deleted
+             * @default false
+             */
+            flag_deleted: boolean;
+            /**
+             * Flag Banned
+             * @default false
+             */
+            flag_banned: boolean;
+            /** Flag Wants Email */
+            flag_wants_email?: boolean | null;
+            /** Flag Html Email */
+            flag_html_email?: boolean | null;
+            /** Tracking Cookie */
+            tracking_cookie?: string | null;
+            /** Flag Allow Tex Produced */
+            flag_allow_tex_produced?: boolean | null;
+            /** Flag Can Lock */
+            flag_can_lock?: boolean | null;
+        };
         /** UserCommentRequest */
         UserCommentRequest: {
             /** Comment */
@@ -3987,6 +4096,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryYesNo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_by_username_v1_users_by_username__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description moderator */
+                flag_is_mod?: boolean | null;
+                email?: string | null;
+                name?: string | null;
+                last_name?: string | null;
+                first_name?: string | null;
+                flag_edit_users?: boolean | null;
+                flag_email_verified?: boolean | null;
+                /** @description Start date for filtering */
+                start_joined_date?: string | null;
+                /** @description End date for filtering */
+                end_joined_date?: string | null;
+                /** @description List of username  to filter by */
+                id?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserByUsernameModel"][];
                 };
             };
             /** @description Validation Error */

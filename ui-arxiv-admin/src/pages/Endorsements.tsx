@@ -6,7 +6,6 @@ import {
     Datagrid,
     TextField,
     EmailField,
-    BooleanField,
     SortPayload,
     NumberInput,
     useRecordContext,
@@ -23,6 +22,7 @@ import {
     NullableBooleanInput
 } from 'react-admin';
 
+import BooleanField from "../bits/BooleanNumberField";
 import React from "react";
 import CategoryField from "../bits/CategoryField";
 import Box from "@mui/material/Box";

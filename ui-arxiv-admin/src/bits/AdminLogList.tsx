@@ -10,9 +10,11 @@ import {
     TextField,
     ReferenceField,
     Pagination,
+    Link,
 } from 'react-admin';
 import React from 'react';
 import ISODateField from "./ISODateFiled";
+import UserNameField from "./UserNameField";
 
 
 const AdminLogList: React.FC<{paper_id?: string, submission_id?: string}> = ({paper_id, submission_id}) => {
@@ -32,8 +34,8 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: string}> = ({pa
         <ListContextProvider value={controllerProps}>
             <Datagrid
                 bulkActionButtons={false}
-                rowClick="edit"
-                empty={<p><b>No admin logs???</b></p>}
+                rowClick={false}
+                empty={<p><b>No admin logs</b></p>}
             >
                 {
                     /*
@@ -46,7 +48,9 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: string}> = ({pa
                      */
                 }
                 <ISODateField source={"created"} label={"Time"} showTime={true} />
-                <TextField source="username" label={"Username"} />
+                <ReferenceField reference={'users-by-username'} source={'username'} label={'User'} link={(record) => `/users/${record.user_id}/edit`} >
+                    <UserNameField withUsername />
+                </ReferenceField>
                 <TextField source="program" label={"Program"} />
                 <TextField source="command" label={"Command"} />
                 <ReferenceField reference="submissions" source="submission_id" label="SubID">

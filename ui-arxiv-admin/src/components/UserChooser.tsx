@@ -3,7 +3,6 @@ import {
     Datagrid,
     TextField,
     EmailField,
-    BooleanField,
     SortPayload,
     TextInput,
     Filter,
@@ -11,6 +10,7 @@ import {
     Identifier,
 } from 'react-admin';
 
+import BooleanField from "../bits/BooleanNumberField";
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
 import React, { useState, useCallback } from "react";
 import PersonNameField from "../bits/PersonNameField";

@@ -27,7 +27,6 @@ import {
     Datagrid,
     TextField,
     EmailField,
-    BooleanField,
     SortPayload,
     useRecordContext,
     Edit,
@@ -78,6 +77,8 @@ import ISODateField from "../bits/ISODateFiled";
 import FlaggedToggle from "../components/FlaggedToggle";
 import EndorsementRequestListField from '../bits/EndorsementRequestListField';
 import UserFlagDialog from '../components/UserFlagDialog';
+import BooleanField from '../bits/BooleanNumberField';
+import UserNameField from "../bits/UserNameField";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -186,15 +187,13 @@ export const UserList = () => {
         <List filters={<UserFilter/>}>
             <Datagrid rowClick="edit" bulkActionButtons={false}>
                 <TextField source={"id"} label="ID"/>
-                <PersonNameField source={"last_name"} label="Name"/>
-                <TextField source="username" label={"Login name"}/>
+                <UserNameField />
+                <BooleanField source="flag_suspect" label={"Flagged"} FalseIcon={null} TrueIcon={DoDisturbOnIcon} />
                 <EmailField source="email"/>
                 <ISODateField source="joined_date"/>
                 <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
                 <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
                 <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
-                              TrueIcon={DoDisturbOnIcon}/>
-                <BooleanField source="flag_suspect" label={"Flagged"} FalseIcon={null}
                               TrueIcon={DoDisturbOnIcon}/>
                 <ReferenceField source="moderator_id" reference="moderators"
                                 link={(record, reference) => `/${reference}/${record.moderator_id}`}>

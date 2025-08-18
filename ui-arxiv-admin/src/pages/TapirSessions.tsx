@@ -1,6 +1,5 @@
 import {Grid, Table, TableCell, TableRow, useMediaQuery} from '@mui/material';
 import {
-    BooleanField,
     BooleanInput,
     Create,
     Datagrid,

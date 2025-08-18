@@ -9,8 +9,11 @@ interface UserNameFieldProps {
 
 const UserNameField: React.FC<UserNameFieldProps> = ({withEmail, withUsername}) => {
     const record = useRecordContext();
-
-    if (!record) return null;
+    if (!record) return (
+        <span>
+            {'?'}
+        </span>
+    );
 
     const { first_name, last_name, username, email, id } = record;
 

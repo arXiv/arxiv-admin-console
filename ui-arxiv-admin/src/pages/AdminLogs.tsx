@@ -5,7 +5,6 @@ import {
     Datagrid,
     TextField,
     EmailField,
-    BooleanField,
     SortPayload,
     NumberInput,
     useRecordContext,
