@@ -6,6 +6,7 @@ import { paths as adminApi } from '../types/admin-api';
 import {RuntimeContext} from "../RuntimeContext";
 import {useDataProvider, useRefresh} from "react-admin";
 import CategoryChooserDialog from "./CategoryChooserDialog";
+import {useMessageDialog} from "./MessageDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 
@@ -20,6 +21,7 @@ const ModerationCategoryDialog: React.FC<
     const [moderatingCategories, setModeratingCategories] = useState<Map<string, boolean>>(new Map<string, boolean>());
     const dataProvider = useDataProvider();
     const refresh = useRefresh();
+    const messageDialog = useMessageDialog()
 
     useEffect(() => {
         if (open && userId) {
@@ -85,17 +87,28 @@ const ModerationCategoryDialog: React.FC<
         if (deleteOperations.length > 0) {
             try {
                 await dataProvider.deleteMany('moderators', { ids: deleteOperations });
-            } catch (error) {
+            } catch (error: any) {
+                let errorDetail = `Error removing the moderation domains ${deleteOperations.join(", ")} `;
+                errorDetail = errorDetail + error?.body?.detail as string | "";
+                messageDialog.showMessage("Error removing moderators", errorDetail);
                 console.error("Error deleting moderators:", error);
             }
         }
 
+        const errors: string[] = [];
         for (const mod of createOperations) {
             try {
                 await dataProvider.create('moderators', { data: mod });
-            } catch (error) {
+            } catch (error: any) {
+                let errorDetail = `Error adding domain ${mod.archive}.${mod.subject_class || "*"} `;
+                errorDetail = errorDetail + error?.body?.detail as string | "";
+                errors.push(errorDetail);
                 console.error("Error creating moderator:", error);
             }
+        }
+
+        if (errors.length > 0) {
+            messageDialog.showMessage("Error removing moderators", errors.join("\n\n"));
         }
 
         refresh();

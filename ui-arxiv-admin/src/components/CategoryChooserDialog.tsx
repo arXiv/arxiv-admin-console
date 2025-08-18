@@ -57,7 +57,7 @@ const CategoryChooserDialog: React.FC<
                     const {data} = await dataProvider.getList<CategoryT>('categories', {
                         pagination: {page: 1, perPage: 10000},
                         sort: {field: 'id', order: 'ASC'},
-                        filter: {}
+                        filter: {active: true},
                     });
 
                     const catMap = new Map<string, CategoryT>();
@@ -89,7 +89,7 @@ const CategoryChooserDialog: React.FC<
         try {
             if (onSaveUpdates)
                 await onSaveUpdates(currentCategories);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error during save operations:", error);
         } finally {
             // Re-enable the button regardless of success or failure

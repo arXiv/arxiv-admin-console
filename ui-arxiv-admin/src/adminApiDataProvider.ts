@@ -7,7 +7,7 @@ import {
     RaRecord,
     GetManyParams,
     GetManyResult, GetOneParams, GetOneResult, UpdateResult, UpdateParams,
-    HttpError, CreateResult, CreateParams,
+    HttpError, CreateResult, CreateParams, DeleteResult, DeleteParams, DeleteManyResult, DeleteManyParams,
 } from 'react-admin';
 import jsonServerProvider from 'ra-data-json-server';
 import {paths as aaaApi} from "./types/aaa-api";
@@ -68,16 +68,32 @@ const retryHttpClient = (url: string, options: fetchUtils.Options = {}) => {
             : options.user, // Keep original user if no token
     };
 
-    return fetchUtils.fetchJson(url, optionsWithToken).catch((error: HttpError) => {
-        if (error.status === 500 && retryCount < 3) {
-            retryCount += 1;
-            // Optionally retry the request or handle it gracefully
-            return fetchUtils.fetchJson(url, optionsWithToken);
-        } else {
-            retryCount = 0;
-            throw error;
-        }
-    });
+    return fetchUtils.fetchJson(url, optionsWithToken)
+        .then(response => {
+            // Handle 204 No Content responses by providing expected structure
+            if (response.status === 204) {
+                console.log('🔄 Handling 204 No Content response for:', url);
+                // For DELETE operations, provide an appropriate response structure
+                if (options.method === 'DELETE') {
+                    return {
+                        ...response,
+                        json: [], // Empty array for deleteMany operations
+                        status: 200, // Convert to 200 so ra-data-json-server doesn't complain
+                    };
+                }
+            }
+            return response;
+        })
+        .catch((error: HttpError) => {
+            if (error.status === 500 && retryCount < 3) {
+                retryCount += 1;
+                // Optionally retry the request or handle it gracefully
+                return fetchUtils.fetchJson(url, optionsWithToken);
+            } else {
+                retryCount = 0;
+                throw error;
+            }
+        });
 };
 
 class adminApiDataProvider implements DataProvider {
@@ -318,8 +334,19 @@ class adminApiDataProvider implements DataProvider {
         return this.dataProvider.create(addTrailingSlash(resource), params);
     }
 
-    delete: typeof this.dataProvider.delete = (resource, params) => this.dataProvider.delete(resource, params);
-    deleteMany: typeof this.dataProvider.deleteMany = (resource, params) => this.dataProvider.deleteMany(resource, params);
+    async delete<T extends RaRecord>(resource: string, params: DeleteParams): Promise<DeleteResult<T>> {
+        console.log(`🗑️ DELETE ${resource}:`, params);
+        const result = await this.dataProvider.delete(resource, params);
+        console.log(`✅ DELETE ${resource} succeeded:`, result);
+        return result;
+    }
+
+    async deleteMany<T extends RaRecord>(resource: string, params: DeleteManyParams): Promise<DeleteManyResult<T>> {
+        console.log(`🗑️ DELETE_MANY ${resource}:`, params);
+        const result = await this.dataProvider.deleteMany(resource, params);
+        console.log(`✅ DELETE_MANY ${resource} succeeded:`, result);
+        return result;
+    }
 }
 
 export default adminApiDataProvider;

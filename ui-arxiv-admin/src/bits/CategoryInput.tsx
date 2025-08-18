@@ -9,7 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { paths } from "../types/aaa-api";
 import { paths as adminApi } from "../types/admin-api";
 import {RuntimeContext} from "../RuntimeContext";
-import {InputProps, useDataProvider, useInput} from "react-admin";
+import {InputProps, useDataProvider, useInput, useNotify} from "react-admin";
 import Typography from "@mui/material/Typography";
 
 export type CategoryType = adminApi["/v1/categories/{id}"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -31,6 +31,7 @@ const CategoryInput: React.FC<CategoryInputProps> = ({source, ...inputProps}) =>
     const [categoryList, setCategoryList] = useState<CategoryType[]>([]);
     const [categories, setCategories] = useState<CategoryGroupType[]>([]);
     const dataProvider = useDataProvider();
+    const notify = useNotify();
     
     // Use react-admin's useInput hook to handle form state
     const {
@@ -55,12 +56,14 @@ const CategoryInput: React.FC<CategoryInputProps> = ({source, ...inputProps}) =>
                 const response = await dataProvider.getList("categories", {
                     pagination: { page: 1, perPage: 1000 },
                     sort: { field: 'archive', order: 'ASC' },
-                    filter: {}
+                    filter: {active: true}
                 });
                 setCategoryList(response.data);
             }
-            catch (error) {
-                console.error("Error fetching categories:", error);
+            catch (error: any) {
+                const msg = "Error fetching categories: " + error?.data?.detali;
+                notify(msg, {type: "warning"});
+                console.error(msg);
             }
         }
         getCategories();
