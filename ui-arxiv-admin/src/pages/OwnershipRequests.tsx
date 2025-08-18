@@ -157,7 +157,7 @@ const OwnershipRequestFilter = (props: any) => {
 export const OwnershipRequestList = () => {
     return (
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
-            <Datagrid sort={{field: 'id', order: 'ASC'}} rowClick="edit">
+            <Datagrid rowClick="edit">
                 <NumberField source="id" label={"Req ID"}/>
                 <ISODateField source="date" label={"Date"}/>
                 <ReferenceField source="user_id" reference="users"
@@ -457,7 +457,7 @@ const OwnershipRequestToolbar = ({ prevId, nextId, setWorkflowStatus, ok }: {
                 disabled={!ok} nextId={nextId}
                 setWorkflowStatus={setWorkflowStatus}
                 conclusion={"accepted"}
-                buttonLabel={"Accept"}
+                buttonLabel={nextId ? `Accept then ${nextId}` : "Accept"}
                 startIcon={<AcceptIcon />}
                 variant="contained"
             />

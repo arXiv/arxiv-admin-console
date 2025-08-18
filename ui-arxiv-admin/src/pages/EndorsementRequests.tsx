@@ -1,10 +1,8 @@
 import React, {useState, useEffect} from 'react';
 
-import {Grid, useMediaQuery, Table, TableRow, TableCell} from '@mui/material';
 import {
     useDataProvider,
     List,
-    SimpleList,
     Datagrid,
     TextField,
     NumberField,
@@ -23,13 +21,28 @@ import {
     ReferenceField,
     Show,
     SimpleShowLayout, useGetOne, RecordContextProvider, Identifier,
+    Toolbar,
+    SaveButton,
+    useNotify,
+    useRefresh,
+    useUnselectAll,
 } from 'react-admin';
+
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Table from "@mui/material/Table";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import Typography from "@mui/material/Typography";
 
 import BooleanField from "../bits/BooleanNumberField";
 import CategoryField from "../bits/CategoryField";
 
 import PointValueBooleanField from "../bits/PointValueBooleanField";
 import ISODateField from "../bits/ISODateFiled";
+import UserNameField from "../bits/UserNameField";
 
 interface Category {
     id: string;
@@ -48,6 +61,153 @@ const presetOptions = [
     { id: 'last_7_days', name: 'Last 7 Days' },
     { id: 'last_28_days', name: 'Last 28 Days' },
 ];
+
+const EndorsementRequestBulkActionButtons = () => {
+    const listContext = useListContext();
+    const notify = useNotify();
+    const refresh = useRefresh();
+    const unselectAll = useUnselectAll('endorsement_requests');
+    const dataProvider = useDataProvider();
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [currentAction, setCurrentAction] = useState('');
+
+    const handleBulkUpdate = async (
+        actionName: string,
+        updateData: Record<string, any>,
+        previousData?: Record<string, any>
+    ) => {
+        const selectedIds = listContext.selectedIds;
+        console.log(`${actionName} - Selected IDs:`, selectedIds);
+        
+        if (selectedIds.length === 0) {
+            notify("No endorsement requests selected", { type: 'warning' });
+            return;
+        }
+
+        setIsUpdating(true);
+        setCurrentAction(`Marking as ${actionName.toLowerCase()}`);
+        setProgress(0);
+
+        const successes: string[] = [];
+        const errors: string[] = [];
+        const total = selectedIds.length;
+        
+        for (let i = 0; i < selectedIds.length; i++) {
+            const id = selectedIds[i];
+            try {
+                await dataProvider.update('endorsement_requests', {
+                    id: id,
+                    data: updateData,
+                    previousData: previousData || {},
+                });
+                successes.push(id);
+            } catch (error) {
+                errors.push(id);
+            }
+            
+            // Update progress
+            const completed = i + 1;
+            const progressPercent = Math.round((completed / total) * 100);
+            setProgress(progressPercent);
+        }
+        
+        // Show final results
+        if (successes.length > 0) {
+            notify(`Marked ${successes.length} endorsement requests as ${actionName.toLowerCase()}`, { type: 'info' });
+        }
+        if (errors.length > 0) {
+            notify(`Failed to mark ${errors.length} endorsement requests as ${actionName.toLowerCase()}`, { type: 'warning' });
+        }
+        
+        // Clean up
+        setIsUpdating(false);
+        setProgress(0);
+        setCurrentAction('');
+        unselectAll();
+        refresh();
+    };
+
+    const handleMarkValid = () => handleBulkUpdate(
+        'Valid',
+        { flag_valid: true },
+        { flag_valid: false }
+    );
+
+    const handleMarkInvalid = () => handleBulkUpdate(
+        'Invalid',
+        { flag_valid: false },
+        { flag_valid: true }
+    );
+
+    const handleMarkOpen = () => handleBulkUpdate(
+        'Open',
+        { flag_open: true },
+        { flag_open: false }
+    );
+
+    const handleMarkClosed = () => handleBulkUpdate(
+        'Closed',
+        { flag_open: false },
+        { flag_open: true }
+    );
+
+    return (
+        <Box display="flex" flexDirection="column" sx={{ gap: 1, m: 1 }}>
+            {/* Progress Indicator */}
+            {isUpdating && (
+                <Box sx={{ width: '100%', mb: 2 }}>
+                    <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+                        <Typography variant="body2" sx={{ mr: 1 }}>
+                            {currentAction}... ({progress}%)
+                        </Typography>
+                    </Box>
+                    <LinearProgress 
+                        variant="determinate" 
+                        value={progress} 
+                        sx={{ height: 6, borderRadius: 3 }}
+                    />
+                </Box>
+            )}
+            
+            {/* Action Buttons */}
+            <Box display="flex" flexDirection="row" sx={{ gap: 1 }}>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleMarkValid}
+                    disabled={isUpdating}
+                >
+                    Mark Valid
+                </Button>
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleMarkInvalid}
+                    disabled={isUpdating}
+                >
+                    Mark Invalid
+                </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleMarkOpen}
+                    disabled={isUpdating}
+                >
+                    Mark Open
+                </Button>
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleMarkClosed}
+                    disabled={isUpdating}
+                >
+                    Mark Closed
+                </Button>
+            </Box>
+        </Box>
+    );
+};
 
 const EndorsementRequestFilter = (props: any) => {
     const { setFilters, filterValues } = useListContext();
@@ -91,18 +251,11 @@ export const EndorsementRequestList = () => {
               filterDefaultValues={{positive: false}}
               sort={sorter}
               >
-            <Datagrid rowClick="edit" bulkActionButtons={false} >
+            <Datagrid rowClick="edit" bulkActionButtons={<EndorsementRequestBulkActionButtons />}>
                 <NumberField source="id" label={"ID"}/>
                 <ReferenceField source="endorsee_id" reference="users"
                                 link={(record, reference) => `/${reference}/${record.id}`} >
-                    <TextField source={"last_name"} />
-                    {", "}
-                    <TextField source={"first_name"} />
-                    {"  ("}
-                    <TextField source={"username"} />
-                    {") <"}
-                    <TextField source={"email"} />
-                    {">"}
+                    <UserNameField withEmail withUsername />
                 </ReferenceField>
 
                 <CategoryField label={"Category"} source="archive" sourceCategory="archive" sourceClass="subject_class" />
@@ -168,7 +321,7 @@ export const ShowDemographic = () => {
 
 
     return (
-        <Table>
+        <Table size="small" >
             <TableRow>
                 <TableCell>Session ID</TableCell>
                 <TableCell>
@@ -296,6 +449,12 @@ export const ListEndorsements = () => {
 
 
 
+const EndorsementRequestEditToolbar = () => (
+    <Toolbar>
+        <SaveButton />
+    </Toolbar>
+);
+
 export const EndorsementRequestEdit = () => {
     const record = useRecordContext();
     const dataProvider = useDataProvider();
@@ -359,44 +518,66 @@ export const EndorsementRequestEdit = () => {
 
 
     return (
-        <Edit title={<EndorsementRequestTitle />}>
+        <Edit title={<EndorsementRequestTitle />} actions={false} >
             <Grid container>
                 <Grid size={6}>
-                    <SimpleForm>
-                        <Grid  size={12}>
-                            <Grid size={4}>
-                                <BooleanInput name={"flag-Valid"} source={"flag_valid"} label={"Valid"} />
-                            </Grid>
-                            <Grid size={4}>
-                                <BooleanInput name={"flag-Open"} source={"flag_open"} label={"Open"} />
-                            </Grid>
-                        </Grid>
-                        <Grid  size={12}>
-                            <Grid size={2}>ID:</Grid>
-                            <Grid size={4}><TextField source="id" /></Grid>
-                            <Grid size={2}>Category:</Grid>
-                            <Grid size={4}>
-                                <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} label={"Category"}/>
-                            </Grid>
-                        </Grid>
-                        <Grid  size={12}>
-                            <ReferenceField source="endorsee_id" reference="users"
-                                            link={(record, reference) => `/${reference}/${record.id}`} >
-                                <TextField source={"last_name"} fontStyle={{fontSize: '1rem'}} />
-                                {", "}
-                                <TextField source={"first_name"} fontStyle={{fontSize: '1rem'}} />
-                            </ReferenceField>
-                        </Grid>
+                    <SimpleForm toolbar={<EndorsementRequestEditToolbar />}>
+                        <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="space-between">
+                                <BooleanInput source={"flag_valid"} label={"Valid"} />
+                                <BooleanInput source={"flag_open"} label={"Open"} />
+                        </Box>
+                        <Table size={"small"}>
+                            <TableRow>
+                                <TableCell>
+                                    ID
+                                </TableCell>
+                                <TableCell>
+                                    <TextField source="id" />
+                                </TableCell>
+                            </TableRow>
 
-                        <Grid container size={12}>
-                            <ReferenceInput source="endorser_id" reference="users">
-                                <TextField source={"last_name"} fontStyle={{fontSize: '1rem'}} />
-                                <TextField source={"first_name"} fontStyle={{fontSize: '1rem'}} />
-                            </ReferenceInput>
-                        </Grid>
-                        <Grid container size={12}>
-                            Issued when: <ISODateField source="issued_when"  label={"Issued"}/>
-                        </Grid>
+                            <TableRow>
+                                <TableCell>
+                                    Category
+                                </TableCell>
+                                <TableCell>
+                                    <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} label={"Category"}/>
+                                </TableCell>
+                            </TableRow>
+
+                            <TableRow>
+                                <TableCell>
+                                    Endorsee
+                                </TableCell>
+                                <TableCell>
+                                    <ReferenceField source="endorsee_id" reference="users"
+                                                    link={(record, reference) => `/${reference}/${record.id}`} >
+                                        <UserNameField withEmail withUsername />
+                                    </ReferenceField>
+                                </TableCell>
+                            </TableRow>
+
+                            <TableRow>
+                                <TableCell>
+                                    Endorser
+                                </TableCell>
+                                <TableCell>
+                                    <ReferenceInput source="endorser_id" reference="users">
+                                        <UserNameField withEmail withUsername />
+                                    </ReferenceInput>
+                                </TableCell>
+                            </TableRow>
+
+                            <TableRow>
+                                <TableCell>
+                                    Issued when
+                                </TableCell>
+                                <TableCell>
+                                    <ISODateField source="issued_when"  label={"Issued"}/>
+                                </TableCell>
+                            </TableRow>
+
+                        </Table>
                     </SimpleForm>
                     <Grid >
                         <ListEndorsements />

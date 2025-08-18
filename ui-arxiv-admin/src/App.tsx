@@ -140,16 +140,6 @@ const AdminConsole: React.FC = () => {
                 />
 
                 <Resource
-                    name="endorsements"
-                    list={EndorsementList}
-                    show={ShowGuesser}
-                    icon={EndorsedEcon}
-                    recordRepresentation="name"
-                    edit={EndorsementEdit}
-                    create={EndorsementCreate}
-                />
-
-                <Resource
                     name="endorsement_requests"
                     list={EndorsementRequestList}
                     show={EndorsementRequestShow}
@@ -157,6 +147,16 @@ const AdminConsole: React.FC = () => {
                     edit={EndorsementRequestEdit}
                     create={EndorsementRequestCreate}
                     recordRepresentation="id"
+                />
+
+                <Resource
+                    name="endorsements"
+                    list={EndorsementList}
+                    show={ShowGuesser}
+                    icon={EndorsedEcon}
+                    recordRepresentation="name"
+                    edit={EndorsementEdit}
+                    create={EndorsementCreate}
                 />
 
                 <Resource
