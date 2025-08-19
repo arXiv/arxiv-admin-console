@@ -1,4 +1,4 @@
-import {Grid, ToggleButton, useMediaQuery, Box, Table, TableRow, TableCell, Accordion, AccordionSummary, AccordionDetails, Typography} from '@mui/material';
+import {Box, Table, TableRow, TableCell, Accordion, AccordionSummary, AccordionDetails, Typography} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
     BooleanInput,
@@ -12,30 +12,27 @@ import {
     NumberField,
     NumberInput,
     ReferenceField,
-    ReferenceInput,
     SelectInput,
     SelectArrayInput,
     SelectField,
     Show,
     SimpleForm,
     SimpleShowLayout,
-    SimpleList,
-    SortPayload,
     TextField,
     TextInput,
     useListContext,
     useRecordContext,
     Toolbar,
     SaveButton,
+    EditButton,
+    TopToolbar,
 } from 'react-admin';
 
 
-import LinkIcon from '@mui/icons-material/Link';
-
 import {addDays} from 'date-fns';
 
-import React, {useState, useContext} from "react";
-import SubmissionStateField, {submissionStatusOptions} from "../bits/SubmissionStateField";
+import React, {useState, useContext, useEffect} from "react";
+import {submissionStatusOptions} from "../bits/SubmissionStateField";
 import {AdminLogs, AdminLogFilter} from "./AdminLogs";
 import CategoryInputField from "../bits/CategoryInputField";
 // import SubmissionCategoriesField, {CategoriesField, CategoryList} from "../bits/SubmissionCategoriesField";
@@ -45,6 +42,9 @@ import ArxivCheckSubmissionLink from "../bits/ArxivCheckSubmissionLink";
 import ISODateField from '../bits/ISODateFiled';
 import UriTemplate from 'uri-templates';
 import Button from '@mui/material/Button';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { useNavigate } from 'react-router-dom';
 
 import {paths as adminApi, components as adminComponents} from "../types/admin-api";
 import UserNameField from "../bits/UserNameField";
@@ -55,6 +55,8 @@ import Divider from "@mui/material/Divider";
 
 type SubmissionModel = adminComponents['schemas']['SubmissionModel'];
 type SubmissionType = adminComponents['schemas']['SubmissionType'];
+
+type SubmissionNavi = adminApi['/v1/submissions/navigate']['get']['responses']['200']['content']['application/json'];
 
 
 const presetOptions = [
@@ -345,129 +347,201 @@ export const SubmissionCreate = () => (
 
 /*
  */
+const SubmissionShowActions = () => {
+    const record = useRecordContext();
+    const navigate = useNavigate();
+    const runtimeProps = useContext(RuntimeContext);
+    const [navigation, setNavigation] = useState<SubmissionNavi | null>(null);
+    const id = record?.id;
+
+    useEffect(() => {
+        const getNavigation = runtimeProps.adminFetcher.path('/v1/submissions/navigate').method('get').create();
+        async function fetchNavigation() {
+            if (id) {
+                try {
+                    const response = await getNavigation({id: Number(id)});
+                    if (response.ok) {
+                        setNavigation(response.data);
+                    }
+                }
+                catch (error: any) {
+                    console.error('Error fetching navigation:', error);
+                }
+            }
+        }
+
+        fetchNavigation();
+    }, [id, runtimeProps.adminFetcher]);
+
+    const handlePrevious = () => {
+        if (navigation?.prev_id) {
+            const prevId = navigation.prev_id;
+            navigate(`/submissions/${prevId}/show`);
+        }
+    };
+
+    const handleNext = () => {
+        if (navigation?.next_id && navigation.next_id) {
+            const nextId = navigation.next_id;
+            navigate(`/submissions/${nextId}/show`);
+        }
+    };
+
+    return (
+        <TopToolbar>
+            <EditButton />
+            <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={handlePrevious}
+                disabled={!navigation?.prev_id}
+            >
+                Previous
+            </Button>
+            <Button
+                variant="outlined"
+                endIcon={<ArrowForwardIcon />}
+                onClick={handleNext}
+                disabled={!navigation?.next_id}
+            >
+                Next
+            </Button>
+        </TopToolbar>
+    );
+};
+
+const SubmissionRecordContent = () => {
+
+
+    return (
+        <Table size="small">
+            <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>
+                    <ArxivCheckSubmissionLink source={"id"} />
+                    {" / "}
+                    <TextField source="document_id"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Source Format</TableCell>
+                <TableCell>
+                    <TextField source="source_format"/>
+                    {" - "}
+                    <NumberField source="source_size"/>
+                    {" bytes"}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Status</TableCell>
+                <TableCell>
+                    <SelectField source="status" choices={submissionStatusOptions}/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>User Identity</TableCell>
+                <TableCell>
+                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <TextField source={"last_name"}/>
+                        {", "}
+                        <TextField source={"first_name"}/>
+                    </ReferenceField>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Email</TableCell>
+                <TableCell>
+                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
+                        <EmailField source={"email"}/>
+                    </ReferenceField>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>From Name</TableCell>
+                <TableCell>
+                    <TextField source="submitter_name"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>From Email</TableCell>
+                <TableCell>
+                    <TextField source="submitter_email"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Date Created</TableCell>
+                <TableCell>
+                    <ISODateField source="created" label="Created"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Date Updated</TableCell>
+                <TableCell>
+                    <ISODateField source="updated"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Submission Date</TableCell>
+                <TableCell>
+                    <ISODateField source="submit_time"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Release Time</TableCell>
+                <TableCell>
+                    <ISODateField source="release_time"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Categories</TableCell>
+                <TableCell colSpan={3}>
+                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Title</TableCell>
+                <TableCell colSpan={3}>
+                    <TextField source="title"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Authors</TableCell>
+                <TableCell colSpan={3}>
+                    <TextField source="authors"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Comments</TableCell>
+                <TableCell colSpan={3}>
+                    <TextField source="comments"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>License</TableCell>
+                <TableCell colSpan={3}>
+                    <TextField source="license"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell>Abstract</TableCell>
+                <TableCell colSpan={3}>
+                    <TextField source="abstract"/>
+                </TableCell>
+            </TableRow>
+        </Table>
+
+    );
+}
+
 
 export const SubmissionShow = () => {
     return (
         <Box display={"flex"} flexDirection={"column"}>
-            <Show>
+            <Show actions={<SubmissionShowActions />}>
                 <SubmissionAdminLogAccordion />
                 <SimpleShowLayout>
-                    <Table size="small">
-                        <TableRow>
-                            <TableCell>ID</TableCell>
-                            <TableCell>
-                                <ArxivCheckSubmissionLink source={"id"} />
-                                {" / "}
-                                <TextField source="document_id"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Source Format</TableCell>
-                            <TableCell>
-                                <TextField source="source_format"/>
-                                {" - "}
-                                <NumberField source="source_size"/>
-                                {" bytes"}
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Status</TableCell>
-                            <TableCell>
-                                <SelectField source="status" choices={submissionStatusOptions}/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>User Identity</TableCell>
-                            <TableCell>
-                                <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
-                                                link={(record, reference) => `/${reference}/${record.id}`}>
-                                    <TextField source={"last_name"}/>
-                                    {", "}
-                                    <TextField source={"first_name"}/>
-                                </ReferenceField>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Email</TableCell>
-                            <TableCell>
-                                <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
-                                    <EmailField source={"email"}/>
-                                </ReferenceField>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>From Name</TableCell>
-                            <TableCell>
-                                <TextField source="submitter_name"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>From Email</TableCell>
-                            <TableCell>
-                                <TextField source="submitter_email"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Date Created</TableCell>
-                            <TableCell>
-                                <ISODateField source="created" label="Created"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Date Updated</TableCell>
-                            <TableCell>
-                                <ISODateField source="updated"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Submission Date</TableCell>
-                            <TableCell>
-                                <ISODateField source="submit_time"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Release Time</TableCell>
-                            <TableCell>
-                                <ISODateField source="release_time"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Categories</TableCell>
-                            <TableCell colSpan={3}>
-                                <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Title</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextField source="title"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Authors</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextField source="authors"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Comments</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextField source="comments"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>License</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextField source="license"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Abstract</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextField source="abstract"/>
-                            </TableCell>
-                        </TableRow>
-                    </Table>
+                    <SubmissionRecordContent />
                 </SimpleShowLayout>
             </Show>
         </Box>

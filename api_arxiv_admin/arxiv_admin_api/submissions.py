@@ -435,17 +435,14 @@ async def list_submission_status() -> List[SubmissionStatusModel]:
     return _VALID_STATUS_LIST
 
 class SubmissionNavi(BaseModel):
-    first_id: Optional[int]
-    prev_ids: List[int]
-    next_ids: List[int]
-    last_id: Optional[int]
+    prev_id: Optional[int]
+    next_id: Optional[int]
 
 
 @router.get("/navigate")
 async def navigate(
         id: int,
         submission_status: Optional[List[int]] = Query(None, description="Submission status list"),
-        count: Optional[int] = Query(default=2, description="Number of prev/next IDs" ),
         session: Session = Depends(get_db),
     ) -> SubmissionNavi:
 
@@ -454,29 +451,25 @@ async def navigate(
     else:
         status_list = submission_status
 
-    first_pending = session.query(Submission) \
-        .filter(Submission.status.in_(status_list)) \
-        .order_by(Submission.submission_id.asc()) \
-        .first()
+    quota = 10000
+    largest_id = session.query(Submission.submission_id).order_by(Submission.submission_id.desc()).first()[0]
 
-    last_pending = session.query(Submission) \
-        .filter(Submission.status.in_(status_list)) \
-        .order_by(Submission.submission_id.desc()) \
-        .first()
-
-    next_pending: List[Submission] = session.query(Submission) \
-        .filter(and_(Submission.submission_id > id, Submission.status.in_(status_list))) \
-        .order_by(Submission.submission_id.asc()) \
-        .limit(count).all()
-
-    prev_pending: List[Submission] = session.query(Submission) \
-        .filter(and_(Submission.submission_id < id, Submission.status.in_(status_list))) \
-        .order_by(Submission.submission_id.desc()) \
-        .limit(count).all()
+    def submission_walker(idx: int, step: int) -> int | None:
+        nonlocal quota, largest_id, session, status_list
+        idx += step
+        while 0 < idx <= largest_id:
+            sub = session.query(Submission).filter(Submission.submission_id == idx).one_or_none()
+            if sub is None:
+                return None
+            if sub.status in status_list:
+                return idx
+            idx += step
+            quota -= 1
+            if quota <= 0:
+                break
+        return None
 
     return SubmissionNavi(
-        first_id=first_pending.submission_id if first_pending else None,
-        last_id=last_pending.submission_id if last_pending else None,
-        next_ids=[req0.submission_id for req0 in next_pending],
-        prev_ids=[req1.submission_id for req1 in reversed(prev_pending)],
+        next_id=submission_walker(id, 1),
+        prev_id=submission_walker(id, -1),
     )

@@ -2879,14 +2879,10 @@ export interface components {
         };
         /** SubmissionNavi */
         SubmissionNavi: {
-            /** First Id */
-            first_id: number | null;
-            /** Prev Ids */
-            prev_ids: number[];
-            /** Next Ids */
-            next_ids: number[];
-            /** Last Id */
-            last_id: number | null;
+            /** Prev Id */
+            prev_id: number | null;
+            /** Next Id */
+            next_id: number | null;
         };
         /** SubmissionStatusModel */
         SubmissionStatusModel: {
@@ -6369,8 +6365,6 @@ export interface operations {
                 id: number;
                 /** @description Submission status list */
                 submission_status?: number[] | null;
-                /** @description Number of prev/next IDs */
-                count?: number | null;
             };
             header?: never;
             path?: never;
