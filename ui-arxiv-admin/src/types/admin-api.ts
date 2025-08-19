@@ -497,6 +497,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/endorsements/ids/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Endorsement Ids */
+        get: operations["list_endorsement_ids_v1_endorsements_ids__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/endorsement_requests/": {
         parameters: {
             query?: never;
@@ -4570,6 +4587,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EndorsementOutcomeModel"];
+                };
+            };
+        };
+    };
+    list_endorsement_ids_v1_endorsements_ids__get: {
+        parameters: {
+            query?: {
+                _start?: number | null;
+                _end?: number | null;
+                preset?: string | null;
+                /** @description Start date for filtering */
+                start_date?: string | null;
+                /** @description End date for filtering */
+                end_date?: string | null;
+                /** @description user, auto, admin */
+                type?: string[] | string | null;
+                /** @description Valid endorsements only */
+                flag_valid?: boolean | null;
+                endorsee_id?: number | null;
+                endorser_id?: number | null;
+                by_suspect?: boolean | null;
+                positive_endorsement?: boolean | null;
+                request_id?: number | null;
+                /** @description Category */
+                category?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

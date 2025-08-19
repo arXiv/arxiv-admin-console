@@ -442,3 +442,94 @@ async def delete_endorsement(
 
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get('/ids/')
+async def list_endorsement_ids(
+        response: Response,
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(10000, alias="_end"),
+        preset: Optional[str] = Query(None),
+        start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
+        end_date: Optional[datetime] = Query(None, description="End date for filtering"),
+        type: Optional[List[str] | str] = Query(None, description="user, auto, admin"),
+        flag_valid: Optional[bool] = Query(True, description="Valid endorsements only"),
+        endorsee_id: Optional[int] = Query(None),
+        endorser_id: Optional[int] = Query(None),
+        by_suspect: Optional[bool] = Query(None),
+        positive_endorsement: Optional[bool] = Query(None),
+        request_id: Optional[int] = Query(None),
+        category: Optional[str] = Query(None, description="Category"),
+        current_user: Optional[ArxivUserClaims] = Depends(get_authn),
+        db: Session = Depends(get_db)
+    ) -> List[int]:
+
+    query = db.query(Endorsement)
+
+    if _start < 0 or _end < _start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid start or end index")
+    t0 = datetime.now()
+
+
+    if not current_user.is_admin:
+        query = query.filter(Endorsement.endorsee_id == current_user.user_id)
+
+    if endorsee_id is not None:
+        query = query.filter(Endorsement.endorsee_id == endorsee_id)
+
+    if endorser_id is not None:
+        query = query.filter(Endorsement.endorser_id == endorser_id)
+
+    if request_id is not None:
+        query = query.filter(Endorsement.request_id == request_id)
+
+    if preset is not None:
+        matched = re.search(r"last_(\d+)_day", preset)
+        if matched:
+            t_begin = datetime_to_epoch(None, t0 - timedelta(days=int(matched.group(1))))
+            t_end = datetime_to_epoch(None, t0)
+            query = query.filter(Endorsement.issued_when.between(t_begin, t_end))
+            pass
+        pass
+    else:
+        if start_date or end_date:
+            t_begin = datetime_to_epoch(start_date, VERY_OLDE)
+            t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
+            query = query.filter(Endorsement.issued_when.between(t_begin, t_end))
+
+    if flag_valid is not None:
+        query = query.filter(Endorsement.flag_valid == flag_valid)
+
+    if type is not None:
+        if isinstance(type, str):
+            query = query.filter(Endorsement.type == type)
+        elif isinstance(type, list):
+            query = query.filter(Endorsement.type.in_(type))
+
+    if positive_endorsement is not None:
+        if positive_endorsement:
+            query = query.filter(Endorsement.point_value > 0)
+        else:
+            query = query.filter(Endorsement.point_value <= 0)
+
+    if by_suspect is not None:
+        query = query.join(Demographic, Endorsement.endorser_id == Demographic.user_id)
+        query = query.filter(Demographic.flag_suspect == by_suspect)
+        pass
+
+    if category is not None:
+        elems = category.split(".")
+        if len(elems) > 1 and elems[1]:
+            query = query.filter(Endorsement.archive.like(elems[0].strip() + "%"))
+            query = query.filter(Endorsement.subject_class.like(elems[1].strip() + "%"))
+        else:
+            query = query.filter(Endorsement.archive.like(elems[0].strip() + "%"))
+            pass
+        pass
+
+    count = query.count()
+    response.headers['X-Total-Count'] = str(count)
+    endorsement: Endorsement
+    result = [endorsement.endorsement_id for endorsement in query.offset(_start).limit(_end - _start).all()]
+    return result

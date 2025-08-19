@@ -1,11 +1,9 @@
 import React from 'react';
 import { TextField, TextFieldProps, useRecordContext } from 'react-admin';
-import Box from '@mui/material/Box';
 
 interface ISODateFieldProps extends Omit<TextFieldProps, 'source'> {
     source: string;
     showTime?: boolean;
-    minWidth?: string | number;
 }
 
 /**
@@ -19,8 +17,7 @@ interface ISODateFieldProps extends Omit<TextFieldProps, 'source'> {
  */
 const ISODateField: React.FC<ISODateFieldProps> = ({ 
     source, 
-    showTime = false, 
-    minWidth = showTime ? '11rem' : '5rem',
+    showTime = false,
     ...props 
 }) => {
     const record = useRecordContext();
@@ -50,13 +47,11 @@ const ISODateField: React.FC<ISODateFieldProps> = ({
     const formattedValue = record ? formatValue(record[source]) : null;
 
     return (
-        <Box sx={{ minWidth, display: 'inline-block' }}>
-            <TextField
-                source={source}
-                record={{ ...record, [source]: formattedValue }}
-                {...props}
-            />
-        </Box>
+        <TextField
+            source={source}
+            record={{ ...record, [source]: formattedValue }}
+            {...props}
+        />
     );
 };
 
