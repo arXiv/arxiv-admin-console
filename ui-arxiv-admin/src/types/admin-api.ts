@@ -1389,6 +1389,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/submissions/navigate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Navigate */
+        get: operations["navigate_v1_submissions_navigate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/submissions/metadata/status-list": {
         parameters: {
             query?: never;
@@ -2859,6 +2876,17 @@ export interface components {
             metadata_queued_time?: string | null;
             /** Preflight */
             preflight?: boolean | null;
+        };
+        /** SubmissionNavi */
+        SubmissionNavi: {
+            /** First Id */
+            first_id: number | null;
+            /** Prev Ids */
+            prev_ids: number[];
+            /** Next Ids */
+            next_ids: number[];
+            /** Last Id */
+            last_id: number | null;
         };
         /** SubmissionStatusModel */
         SubmissionStatusModel: {
@@ -6322,6 +6350,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmissionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    navigate_v1_submissions_navigate_get: {
+        parameters: {
+            query: {
+                id: number;
+                /** @description Submission status list */
+                submission_status?: number[] | null;
+                /** @description Number of prev/next IDs */
+                count?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionNavi"];
                 };
             };
             /** @description Validation Error */

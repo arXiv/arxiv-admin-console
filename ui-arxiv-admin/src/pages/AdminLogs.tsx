@@ -20,37 +20,11 @@ import {
     DateInput, useListContext, SelectInput, ListContextProvider, useDataProvider, useGetList
 } from 'react-admin';
 
-import { addDays } from 'date-fns';
-
 import React from "react";
 import ISODateField from "../bits/ISODateFiled";
 
 
-const calculatePresetDates = (preset: string) => {
-    const today = new Date();
-    switch (preset) {
-        case 'last_1_day':
-            return { startDate: addDays(today, -1), endDate: today };
-        case 'last_7_days':
-            return { startDate: addDays(today, -7), endDate: today };
-        case 'last_28_days':
-            return { startDate: addDays(today, -28), endDate: today };
-        default:
-            return { startDate: null, endDate: null };
-    }
-};
-
-const AdminLogFilter = (props: any) => {
-    const { setFilters, filterValues } = useListContext();
-    const handlePresetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const { startDate, endDate } = calculatePresetDates("");
-        setFilters({
-            ...filterValues,
-            startDate: startDate ? startDate.toISOString().split('T')[0] : '',
-            endDate: endDate ? endDate.toISOString().split('T')[0] : '',
-        });
-    };
-
+export const AdminLogFilter = (props: any) => {
     return (
         <Filter {...props}>
             <DateInput label="Start Date" source="start_date" />

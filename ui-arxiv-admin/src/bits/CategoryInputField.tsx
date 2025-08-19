@@ -66,6 +66,7 @@ const CategoryInputField: React.FC<CategoryInputFieldProps> = ({ sourceCategory,
                     choices={categories} // Use fetched categories
                     optionText="name" // Display category name
                     optionValue="id" // Use category ID for selection
+                    helperText={false}
                 />
             )}
         </>

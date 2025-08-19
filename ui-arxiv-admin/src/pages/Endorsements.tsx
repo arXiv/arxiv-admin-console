@@ -119,8 +119,6 @@ const WithTooltip = ({ children }: { children: ReactNode }) => {
 
 
 export const EndorsementList = () => {
-    const sorter: SortPayload = {field: 'endorsement_id', order: 'ASC'};
-    const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <List
             filters={<EndorsementFilter />}
@@ -128,46 +126,33 @@ export const EndorsementList = () => {
                 type: "user",
                 positive_endorsement: false
             }}
-            sort={{ field: 'id', order: 'DESC' }}
         >
-            {isSmall ? (
-                <SimpleList
-                    primaryText={record => record.name}
-                    secondaryText={record => record.endorsementname}
-                    tertiaryText={record => record.email}
-                />
-            ) : (
-                <Datagrid rowClick="edit" >
-                    <WithTooltip>
-                        <NumberField source={"id"} />
-                    </WithTooltip>
-                    <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
-                    </ReferenceField>
+            <Datagrid rowClick="edit" bulkActionButtons={false}>
+                <WithTooltip>
+                    <NumberField source={"id"} />
+                </WithTooltip>
+                <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
+                                link={(record, reference) => `/${reference}/${record.id}`} >
+                    <UserNameField withUsername />
+                </ReferenceField>
 
-                    <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
-                    </ReferenceField>
+                <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
+                                link={(record, reference) => `/${reference}/${record.id}`} >
+                    <UserNameField withUsername />
+                </ReferenceField>
 
-                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category" />
-                    <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null} />
+                <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category" />
+                <ISODateField source="issued_when" label={"Issued"} showTime />
+                <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null} />
 
-                    <TextField source="type" />
-                    <NumberField source="point_value" label={"Point"} />
-                    <ISODateField source="issued_when" label={"Issued"} />
+                <TextField source="type" />
+                <NumberField source="point_value" label={"Point"} />
 
-                    <ReferenceField source="request_id" reference="endorsement_requests" label={"Request"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        Show
-                    </ReferenceField>
-                </Datagrid>
-            )}
+                <ReferenceField source="request_id" reference="endorsement_requests" label={"Request"}
+                                link={(record, reference) => `/${reference}/${record.id}`} >
+                    Show
+                </ReferenceField>
+            </Datagrid>
         </List>
     );
 };
