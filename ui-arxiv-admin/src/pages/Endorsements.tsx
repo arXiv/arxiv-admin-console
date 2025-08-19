@@ -1,5 +1,19 @@
 import {ReactNode, useEffect, useState, useContext} from 'react';
-import {useMediaQuery, Card, CardContent, CardHeader, Chip, IconButton, Divider, FormControl, InputLabel, Select, MenuItem, ToggleButton} from '@mui/material';
+import {
+    useMediaQuery,
+    Card,
+    CardContent,
+    CardHeader,
+    Chip,
+    IconButton,
+    Divider,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    ToggleButton,
+    TableSortLabel
+} from '@mui/material';
 import {NavigateBefore, NavigateNext, FirstPage, LastPage} from '@mui/icons-material';
 import {useNavigate} from 'react-router-dom';
 import {
@@ -249,9 +263,7 @@ export const EndorsementList = () => {
             }}
         >
             <Datagrid rowClick="edit" bulkActionButtons={false}>
-                <WithTooltip>
-                    <NumberField source={"id"}/>
-                </WithTooltip>
+                <NumberField source={"id"}/>
                 <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
                                 link={(record, reference) => `/${reference}/${record.id}`}>
                     <UserNameField withUsername/>
@@ -392,6 +404,13 @@ const EndorsementEditToolbar = ({
         });
     };
 
+    const handleReverseSort = () => {
+        setNavigationFilters({
+            ...navigationFilters,
+            _order: navigationFilters?._order != 'ASC' ? 'ASC' : 'DESC'
+        });
+    };
+
     return (
         <TopToolbar sx={{ justifyContent: 'flex-start' }}>
             <Box display="flex" gap={2} alignItems="center">
@@ -430,6 +449,15 @@ const EndorsementEditToolbar = ({
                         <LastPage fontSize="small" />
                     </IconButton>
                 </Box>
+
+                <TableSortLabel
+                    active={true}
+                    direction={navigationFilters?._order !== 'ASC' ? 'desc' : 'asc'}
+                    onClick={handleReverseSort}
+                >
+                    ID
+                </TableSortLabel>
+
                 <FormControl size="small" sx={{ minWidth: 100 }}>
                     <InputLabel>Type</InputLabel>
                     <Select

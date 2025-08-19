@@ -448,8 +448,10 @@ async def delete_endorsement(
 async def list_endorsement_ids(
         response: Response,
         _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(10000, alias="_end"),
+        _end: Optional[int] = Query(1000, alias="_end"),
+        _order: Optional[str] = Query("DESC", description="sort order"),
         preset: Optional[str] = Query(None),
+        current_id: Optional[int] = Query(None),
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         type: Optional[List[str] | str] = Query(None, description="user, auto, admin"),
@@ -527,6 +529,14 @@ async def list_endorsement_ids(
             query = query.filter(Endorsement.archive.like(elems[0].strip() + "%"))
             pass
         pass
+
+    if _order is not None:
+        order_columns = [Endorsement.endorsement_id]
+        for column in order_columns:
+            if _order == "DESC":
+                query = query.order_by(column.desc())
+            else:
+                query = query.order_by(column.asc())
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)

@@ -4596,7 +4596,10 @@ export interface operations {
             query?: {
                 _start?: number | null;
                 _end?: number | null;
+                /** @description sort order */
+                _order?: string | null;
                 preset?: string | null;
+                current_id?: number | null;
                 /** @description Start date for filtering */
                 start_date?: string | null;
                 /** @description End date for filtering */
