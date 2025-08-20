@@ -11,6 +11,7 @@ import {
     useRecordContext,
 } from 'react-admin';
 import ISODateField from "../bits/ISODateFiled";
+import Typography from "@mui/material/Typography";
 
 const templateFilters = [
     <TextInput source="id" label="Search" alwaysOn />,
@@ -36,9 +37,12 @@ const TemplateTitle = () => {
 };
 
 export const EmailTemplateEdit = () => (
-    <Edit title={<TemplateTitle />}>
+    <Edit title={<TemplateTitle />} actions={false}>
         <SimpleForm>
-            <TextInput source="id" disabled />
+            <Typography component={"span"} >
+                {"ID: "}
+                <TextField source="id" />
+            </Typography>
             <TextInput source="short_name" />
             <TextInput source="long_name" />
             <TextInput source="data" multiline rows={20} />

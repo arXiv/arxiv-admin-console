@@ -1,7 +1,7 @@
 """Provides integration for the external user interface."""
 import datetime
 
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session, aliased
@@ -196,3 +196,16 @@ async def delete_email_template(id: int,
     db.delete(item)
     db.commit()
     return
+
+
+@router.post('/{id:int}/test')
+async def send_test_email_template(request: Request,
+                                   id: int,
+                                   claims: ArxivUserClaims = Depends(get_authn_user),
+                                   session: Session = Depends(get_db)) -> EmailTemplateModel:
+    template = session.query(EmailTemplateModel).filter(EmailTemplateModel.template_id == id).one_or_none()
+    if template is None:
+        raise HTTPException(status_code=404, detail=f"Template {id} not found")
+
+
+    claims.email

@@ -217,7 +217,6 @@ const AdminConsole: React.FC = () => {
                 <Resource
                     name="email_templates"
                     list={EmailTemplateList}
-                    show={ShowGuesser}
                     icon={EmailIcon}
                     recordRepresentation="short_name"
                     edit={EmailTemplateEdit}

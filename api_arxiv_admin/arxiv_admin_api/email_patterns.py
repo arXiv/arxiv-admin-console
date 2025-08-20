@@ -1,6 +1,8 @@
 """Provides integration for the external user interface."""
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from typing import Optional, List
+from io import StringIO
 
 from sqlalchemy import select, delete, insert
 from sqlalchemy.orm import Session
@@ -160,4 +162,157 @@ async def delete_email_patterns(
         logger.error(f"Error deleting email patterns: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Failed to delete email patterns")
+
+
+class BulkUploadResult(BaseModel):
+    processed_count: int
+    skipped_count: int
+    error_count: int
+    operation: str
+    purpose: str
+
+
+@router.post('/import')
+async def upload_email_patterns(
+        file: UploadFile = File(...),
+        purpose: str = Form(...),
+        operation: str = Form(...),
+        session: Session = Depends(get_db)
+) -> BulkUploadResult:
+
+    # Validate purpose
+    table = pattern_tables.get(purpose)
+    if table is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Invalid purpose {purpose}. Allowed values: black, block, white")
+
+    # Validate operation
+    if operation not in ['append', 'replace']:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid operation. Allowed values: append, replace")
+
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith('text/'):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="File must be a text file")
+
+    try:
+        # Read file content
+        content = await file.read()
+        text_content = content.decode('utf-8')
+        lines = [line.strip() for line in text_content.splitlines() if line.strip()]
+
+        if not lines:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="File is empty or contains no valid patterns")
+
+        processed_count = 0
+        skipped_count = 0
+        error_count = 0
+
+        # If replace operation, clear existing patterns first
+        if operation == 'replace':
+            delete_all_query = delete(table)
+            session.execute(delete_all_query)
+            logger.info(f"Cleared all existing patterns from {purpose} table for replace operation")
+
+        # Get existing patterns to avoid duplicates (only for append)
+        existing_patterns = set()
+        if operation == 'append':
+            existing_query = select(table.c.pattern)
+            existing_result = session.execute(existing_query).fetchall()
+            existing_patterns = {row.pattern for row in existing_result}
+
+        # Process each line
+        for line in lines:
+            pattern = line.strip()
+            if not pattern:
+                continue
+
+            try:
+                # Skip if pattern already exists (append mode only)
+                if operation == 'append' and pattern in existing_patterns:
+                    skipped_count += 1
+                    continue
+
+                # Insert pattern
+                insert_query = insert(table).values(pattern=pattern)
+                session.execute(insert_query)
+                processed_count += 1
+
+                # Add to existing patterns set to avoid duplicates within the same file
+                existing_patterns.add(pattern)
+
+            except Exception as e:
+                logger.warning(f"Failed to insert pattern '{pattern}': {e}")
+                error_count += 1
+                continue
+
+        # Commit all changes
+        session.commit()
+        
+        logger.info(f"Bulk upload completed: {processed_count} processed, {skipped_count} skipped, {error_count} errors")
+        
+        return BulkUploadResult(
+            processed_count=processed_count,
+            skipped_count=skipped_count,
+            error_count=error_count,
+            operation=operation,
+            purpose=purpose
+        )
+
+    except UnicodeDecodeError:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="File encoding is not supported. Please use UTF-8 encoded text file")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error during bulk upload: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Failed to process file upload")
+
+
+@router.get('/export/{purpose:str}')
+async def export_email_patterns(
+        purpose: str,
+        session: Session = Depends(get_db)
+) -> StreamingResponse:
+
+    # Validate purpose
+    table = pattern_tables.get(purpose)
+    if table is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Invalid purpose {purpose}. Allowed values: black, block, white")
+
+    try:
+        # Query all patterns for the specified purpose
+        query = select(table.c.pattern).order_by(table.c.pattern.asc())
+        result = session.execute(query).fetchall()
+        
+        # Create text content with one pattern per line
+        content = StringIO()
+        pattern_count = 0
+        for row in result:
+            content.write(f"{row.pattern}\n")
+            pattern_count += 1
+        
+        content.seek(0)
+        
+        logger.info(f"Exported {pattern_count} email patterns from {purpose} table")
+        
+        # Create filename with current date
+        from datetime import date
+        filename = f"email_patterns_{purpose}_{date.today().isoformat()}.txt"
+        
+        # Return as streaming response
+        return StreamingResponse(
+            iter([content.getvalue()]),
+            media_type="text/plain",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting email patterns: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Failed to export email patterns")
 

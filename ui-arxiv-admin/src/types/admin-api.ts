@@ -1907,6 +1907,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/email_patterns/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Email Patterns */
+        post: operations["upload_email_patterns_v1_email_patterns_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/email_patterns/export/{purpose}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Email Patterns */
+        get: operations["export_email_patterns_v1_email_patterns_export__purpose__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2030,6 +2064,31 @@ export interface components {
             author_id: string | null;
             /** Updated */
             updated: string | null;
+        };
+        /** Body_upload_email_patterns_v1_email_patterns_import_post */
+        Body_upload_email_patterns_v1_email_patterns_import_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /** Purpose */
+            purpose: string;
+            /** Operation */
+            operation: string;
+        };
+        /** BulkUploadResult */
+        BulkUploadResult: {
+            /** Processed Count */
+            processed_count: number;
+            /** Skipped Count */
+            skipped_count: number;
+            /** Error Count */
+            error_count: number;
+            /** Operation */
+            operation: string;
+            /** Purpose */
+            purpose: string;
         };
         /**
          * Category
@@ -7528,6 +7587,70 @@ export interface operations {
                 "application/json": components["schemas"]["EmailPatternListModel"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_email_patterns_v1_email_patterns_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_email_patterns_v1_email_patterns_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkUploadResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_email_patterns_v1_email_patterns_export__purpose__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purpose: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

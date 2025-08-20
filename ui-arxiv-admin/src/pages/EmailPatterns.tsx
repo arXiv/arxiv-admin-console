@@ -16,16 +16,22 @@ import {
     useDataProvider,
     useNotify,
     useUnselectAll,
-    useRefresh
+    useRefresh,
+    TopToolbar,
+    CreateButton,
+    ExportButton
 } from 'react-admin';
-import { Button } from '@mui/material';
+import { Button, Box, Menu, MenuItem, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-
-const patternPurposeOptions = [
-    {id: 'black', name: 'Black'},
-    {id: 'block', name: 'Block'},
-    {id: 'white', name: 'White'},
-];
+import UploadIcon from '@mui/icons-material/Upload';
+import AddIcon from '@mui/icons-material/Add';
+import DownloadIcon from '@mui/icons-material/Download';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { useState, useContext } from 'react';
+import { EmailPatternUploadDialog } from '../components/EmailPatternUploadDialog';
+import { EmailPatternDownloadDialog } from '../components/EmailPatternDownloadDialog';
+import { RuntimeContext } from '../RuntimeContext';
+import {emailPatternPurposeOptions} from "../types/definitions";
 
 const EmailPatternFilter = (props: any) => {
     return (
@@ -33,10 +39,11 @@ const EmailPatternFilter = (props: any) => {
             <SelectInput
                 label="Purpose"
                 source="purpose"
-                choices={patternPurposeOptions.slice(1)}
+                choices={emailPatternPurposeOptions.slice(1)}
                 alwaysOn
-                emptyValue={patternPurposeOptions[0].id}
-                emptyText={patternPurposeOptions[0].name}
+                emptyValue={emailPatternPurposeOptions[0].id}
+                emptyText={emailPatternPurposeOptions[0].name}
+                sx={{ minWidth: "8rem" }}
             />
             <TextInput label={"Pattern"} source={"pattern"} alwaysOn/>
         </Filter>
@@ -87,10 +94,81 @@ const EmailPatternBulkDeleteButton = () => {
 // Custom pagination with rows per page selector
 const EmailPatternPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100]} />;
 
+// Custom list actions with create, export and hamburger menu
+const EmailPatternListActions = () => {
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+    const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const menuOpen = Boolean(anchorEl);
+
+    const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handleUploadClick = () => {
+        setUploadDialogOpen(true);
+        handleMenuClose();
+    };
+
+    const handleDownloadClick = () => {
+        setDownloadDialogOpen(true);
+        handleMenuClose();
+    };
+
+    return (
+        <TopToolbar>
+            <CreateButton />
+            <ExportButton />
+            <IconButton
+                onClick={handleMenuClick}
+                sx={{ ml: 1 }}
+                aria-label="more actions"
+            >
+                <MoreVertIcon />
+            </IconButton>
+            <Menu
+                anchorEl={anchorEl}
+                open={menuOpen}
+                onClose={handleMenuClose}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                }}
+            >
+                <MenuItem onClick={handleUploadClick}>
+                    <UploadIcon sx={{ mr: 1 }} />
+                    Bulk Upload
+                </MenuItem>
+                <MenuItem onClick={handleDownloadClick}>
+                    <DownloadIcon sx={{ mr: 1 }} />
+                    Bulk Download
+                </MenuItem>
+            </Menu>
+            <EmailPatternUploadDialog
+                open={uploadDialogOpen}
+                onClose={() => setUploadDialogOpen(false)}
+            />
+            <EmailPatternDownloadDialog
+                open={downloadDialogOpen}
+                onClose={() => setDownloadDialogOpen(false)}
+            />
+        </TopToolbar>
+    );
+};
+
 export const EmailPatternList = () => (
     <List 
         filters={<EmailPatternFilter/>} 
         filterDefaultValues={{purpose: 'black'}}
+        actions={<EmailPatternListActions />}
     >
         <Datagrid rowClick={false} bulkActionButtons={<EmailPatternBulkDeleteButton />}>
             <TextField source="id" label="Pattern" />
@@ -104,7 +182,7 @@ export const EmailPatternCreate = () => (
             <TextInput source="id" label="Pattern" />
             <SelectInput 
                 source="purpose" 
-                choices={patternPurposeOptions}
+                choices={emailPatternPurposeOptions}
                 label="Purpose"
             />
         </SimpleForm>

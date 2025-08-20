@@ -27,6 +27,7 @@ sqlalchemy = "^2.0.36"
 arxiv-bizlogic = {git = "https://github.com/arXiv/arxiv-keycloak.git", rev = "master", subdirectory = "bizlogic"}
 asgi-correlation-id = "^4.3.4"
 asgi-logger = "^0.1.0"
+python-multipart = "^0.0.20"
 
 
 [tool.poetry.group.dev.dependencies]
