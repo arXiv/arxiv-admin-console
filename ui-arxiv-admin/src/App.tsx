@@ -14,14 +14,17 @@ import SubmissionIcon from '@mui/icons-material/Draw';
 import TapirSessionIcon from '@mui/icons-material/ConfirmationNumberSharp';
 import MembershipInstitutionIcon from '@mui/icons-material/School';
 
-import {TemplateCreate, TemplateList, TemplateEdit} from './pages/Templates';
+import EmailPatternIcon from '@mui/icons-material/FilterList';
+
+
+import {EmailTemplateCreate, EmailTemplateList, EmailTemplateEdit} from './pages/EmailTemplates';
 import { UserList, UserEdit, UserCreate } from './pages/Users';
 import {EndorsementRequestList, EndorsementRequestCreate, EndorsementRequestEdit, EndorsementRequestShow} from './pages/EndorsementRequests';
 import { Dashboard } from './pages/Dashboard';
 import {createAuthProvider} from './authProvider';
 import adminApiDataProvider from './adminApiDataProvider';
 import {EndorsementCreate, EndorsementEdit, EndorsementList} from "./pages/Endorsements";
-import {DocumentCreate, DocumentEdit, DocumentList, DocumentShow} from "./pages/Documents";
+import {DocumentCreate, DocumentList, DocumentShow} from "./pages/Documents";
 import {CategoryList, CategoryCreate, CategoryEdit} from "./pages/Categories";
 import {ModeratorCreate, ModeratorEdit, ModeratorList} from "./pages/Moderators";
 import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "./pages/OwnershipRequests";
@@ -44,6 +47,7 @@ import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
 import { MessageDialogProvider } from './components/MessageDialog';
 import {useNavigate, Navigate, useParams} from "react-router-dom";
 import {MetadataEdit} from "./pages/Metadata";
+import {EmailPatternCreate, EmailPatternList} from "./pages/EmailPatterns";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -212,12 +216,12 @@ const AdminConsole: React.FC = () => {
 
                 <Resource
                     name="email_templates"
-                    list={TemplateList}
+                    list={EmailTemplateList}
                     show={ShowGuesser}
                     icon={EmailIcon}
                     recordRepresentation="short_name"
-                    edit={TemplateEdit}
-                    create={TemplateCreate}
+                    edit={EmailTemplateEdit}
+                    create={EmailTemplateCreate}
                 />
 
                 <Resource
@@ -227,6 +231,13 @@ const AdminConsole: React.FC = () => {
                     edit={TapirSessionEdit}
                     icon={TapirSessionIcon}
                     recordRepresentation="id"
+                />
+
+                <Resource
+                    name="email_patterns"
+                    list={EmailPatternList}
+                    icon={EmailPatternIcon}
+                    create={EmailPatternCreate}
                 />
 
                 <Resource name="membership_institutions" />

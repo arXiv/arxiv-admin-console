@@ -1872,6 +1872,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/email_patterns/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Email Patterns */
+        get: operations["list_email_patterns_v1_email_patterns__get"];
+        put?: never;
+        /** Create Email Pattern */
+        post: operations["create_email_pattern_v1_email_patterns__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/email_patterns/{purpose}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Email Patterns */
+        delete: operations["delete_email_patterns_v1_email_patterns__purpose__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2163,6 +2198,18 @@ export interface components {
          * @enum {string}
          */
         DocumentUserAction: "replace" | "withdraw" | "cross" | "jref" | "pwc_code";
+        /** EmailPatternListModel */
+        EmailPatternListModel: {
+            /** Ids */
+            ids: string[];
+        };
+        /** EmailPatternModel */
+        EmailPatternModel: {
+            /** Id */
+            id: string;
+            /** Purpose */
+            purpose: string;
+        };
         /** EmailTemplateModel */
         EmailTemplateModel: {
             /** Id */
@@ -7383,6 +7430,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LicenseModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_email_patterns_v1_email_patterns__get: {
+        parameters: {
+            query?: {
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description Email pattern */
+                pattern?: string | null;
+                /** @description black, block or white */
+                purpose?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailPatternModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_email_pattern_v1_email_patterns__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailPatternModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailPatternModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_email_patterns_v1_email_patterns__purpose__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purpose: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailPatternListModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

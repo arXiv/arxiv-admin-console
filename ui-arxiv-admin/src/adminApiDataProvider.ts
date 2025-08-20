@@ -99,6 +99,7 @@ const retryHttpClient = (url: string, options: fetchUtils.Options = {}) => {
 class adminApiDataProvider implements DataProvider {
     private dataProvider: DataProvider;
     private runtimeProps: RuntimeProps;
+    private bulkDeletedIds: Set<string> = new Set(); // Track bulk deleted IDs
 
     constructor(runtimeProps: RuntimeProps) {
         this.runtimeProps = runtimeProps;
@@ -343,6 +344,31 @@ class adminApiDataProvider implements DataProvider {
 
     async deleteMany<T extends RaRecord>(resource: string, params: DeleteManyParams): Promise<DeleteManyResult<T>> {
         console.log(`🗑️ DELETE_MANY ${resource}:`, params);
+        
+        // Handle email_patterns with purpose-based path
+        if (resource === 'email_patterns' && params.meta?.purpose) {
+            const { purpose } = params.meta;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/email_patterns/${purpose}`;
+            
+            try {
+                const response = await retryHttpClient(url, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ ids: params.ids }),
+                });
+                
+                // Track bulk deleted IDs to prevent individual delete calls
+                params.ids.forEach(id => {
+                    this.bulkDeletedIds.add(`${resource}:${id}`);
+                });
+                
+                console.log(`✅ DELETE_MANY ${resource} with purpose ${purpose} succeeded`);
+            } catch (error) {
+                console.error(`❌ DELETE_MANY ${resource} with purpose ${purpose} failed:`, error);
+                handleHttpError(error, `Failed to delete ${resource} with purpose ${purpose}`);
+            }
+            return { data: params.ids as T["id"][] };
+        }
+        
         const result = await this.dataProvider.deleteMany(resource, params);
         console.log(`✅ DELETE_MANY ${resource} succeeded:`, result);
         return result;

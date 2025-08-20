@@ -13,11 +13,10 @@ import {
 import ISODateField from "../bits/ISODateFiled";
 
 const templateFilters = [
-    <TextInput source="long_name" label="Search" alwaysOn />,
-    <ReferenceInput source="last_name" label="User" reference="users" />,
+    <TextInput source="id" label="Search" alwaysOn />,
 ];
 
-export const TemplateList = () => (
+export const EmailTemplateList = () => (
     <List filters={templateFilters}>
         <Datagrid rowClick={false}>
             <TextField source="id" />
@@ -36,7 +35,7 @@ const TemplateTitle = () => {
     return <span>Template {record ? `"${record.short_name}"` : ''}</span>;
 };
 
-export const TemplateEdit = () => (
+export const EmailTemplateEdit = () => (
     <Edit title={<TemplateTitle />}>
         <SimpleForm>
             <TextInput source="id" disabled />
@@ -47,7 +46,7 @@ export const TemplateEdit = () => (
     </Edit>
 );
 
-export const TemplateCreate = () => (
+export const EmailTemplateCreate = () => (
     <Create>
         <SimpleForm>
             <TextInput source="short_name" />
