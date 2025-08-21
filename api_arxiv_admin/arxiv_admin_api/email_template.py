@@ -1,18 +1,23 @@
 """Provides integration for the external user interface."""
 import datetime
+import os
+import json
 
-from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
+from google.cloud import pubsub_v1
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, datetime_to_epoch
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
-from sqlalchemy.orm import Session, aliased
+
+from sqlalchemy import cast, LargeBinary, update, func
+from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_validator
 from enum import IntEnum
 
 from arxiv.base import logging
-from arxiv.db.models import TapirEmailTemplate, TapirUser #, TapirNickname
+from arxiv.db.models import TapirEmailTemplate #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
 
-from . import is_admin_user, get_db, get_current_user
+from . import is_admin_user, get_db
 
 logger = logging.getLogger(__name__)
 
@@ -39,33 +44,22 @@ class EmailTemplateModel(BaseModel):
     updated_date: Optional[datetime.datetime] = None
     workflow_status: str
     flag_system: bool
-    creator_first_name: str
-    creator_last_name: str
-    updater_first_name: str
-    updater_last_name: str
 
     @staticmethod
-    def base_select(db: Session):
-        creator = aliased(TapirUser)
-        updater = aliased(TapirUser)
+    def base_select(db: Session) -> Query:
         return db.query(
             TapirEmailTemplate.template_id.label("id"),
-            TapirEmailTemplate.short_name.label("short_name"),
+            cast(TapirEmailTemplate.short_name, LargeBinary).label("short_name"),
             TapirEmailTemplate.lang,
-            TapirEmailTemplate.long_name.label("long_name"),
-            TapirEmailTemplate.data,
+            cast(TapirEmailTemplate.long_name, LargeBinary).label("long_name"),
+            cast(TapirEmailTemplate.data, LargeBinary).label("data"),
             TapirEmailTemplate.sql_statement,
-
-            creator.first_name.label("creator_first_name"),
-            creator.last_name.label("creator_last_name"),
-            updater.first_name.label("updater_first_name"),
-            updater.last_name.label("updater_last_name"),
             TapirEmailTemplate.update_date,
             TapirEmailTemplate.created_by,
             TapirEmailTemplate.updated_by,
             TapirEmailTemplate.workflow_status,
             TapirEmailTemplate.flag_system,
-        ).join(creator, TapirEmailTemplate.created_by == creator.user_id).join(updater, TapirEmailTemplate.updated_by == updater.user_id)
+        )
 
     @field_validator("workflow_status", mode="before")
     @classmethod
@@ -79,6 +73,27 @@ class EmailTemplateModel(BaseModel):
     def convert_flag_system(cls, value) -> bool:
         if not isinstance(value, bool):
             return bool(value)
+        return value
+
+    @field_validator("short_name", mode="before")
+    @classmethod
+    def convert_short_name(cls, value) -> str:
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
+
+    @field_validator("long_name", mode="before")
+    @classmethod
+    def convert_short_name(cls, value) -> str:
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def convert_short_name(cls, value) -> str:
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
         return value
 
     pass
@@ -144,21 +159,48 @@ async def template_data(id: int, db: Session = Depends(get_db)) -> EmailTemplate
 @router.put('/{id:int}')
 async def update_template(request: Request,
                           id: int,
+                          current_user: ArxivUserClaims = Depends(get_authn_user),
                           session: Session = Depends(get_db)) -> EmailTemplateModel:
     body = await request.json()
-
-    item = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
+    item = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
 
-    # Verify?
-    for key, value in body.items():
-        if key in item.__dict__:
-            setattr(item, key, value)
+    record = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
 
+    for key, value in body.items():
+        match key:
+            case "id" | "created_by" | "flag_system" | "sql_statement":
+                # cannot change these
+                pass
+
+            case "workflow_status":
+                # ntai: 2025-08-20 I think this is not used.
+                # wf = [wf.value for wf in list(WorkflowStatus) if wf.name.lower() == value]
+                # setattr(item, key, wf[0].value if wf else 0)
+                pass
+
+            case "short_name" | "long_name" | "data":
+                old_value = getattr(item, key)
+                new_value = value.encode("utf-8")
+                if old_value != new_value:
+                    session.execute(
+                        update(TapirEmailTemplate)
+                        .where(TapirEmailTemplate.template_id == id)
+                        .values({key: func.binary(new_value)})
+                    )
+                pass
+
+            case _:
+                pass
+
+    record.updated_date = datetime_to_epoch(None, datetime.datetime.now(tz=datetime.timezone.utc))
+    record.updated_by = int(current_user.user_id)
     session.commit()
-    session.refresh(item)  # Refresh the instance with the updated data
-    mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == item.template_id).one_or_none()
+
+    mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()
     return EmailTemplateModel.model_validate(mint)
 
 
@@ -170,7 +212,7 @@ async def create_email_template(request: Request,
 
     body['lang'] = 'en'
     body['sql_statement'] = ''
-    body['update_date'] = datetime.datetime.now()
+    body['update_date'] = datetime_to_epoch(None, datetime.datetime.now(tz=datetime.timezone.utc))
     body['created_by'] = user.user_id
     body['updated_by'] = user.user_id
     body['workflow_status'] = 2
@@ -201,11 +243,60 @@ async def delete_email_template(id: int,
 @router.post('/{id:int}/test')
 async def send_test_email_template(request: Request,
                                    id: int,
-                                   claims: ArxivUserClaims = Depends(get_authn_user),
+                                   subject: str = Query("Test email template", description="Subject of the test email"),
+                                   current_user: ArxivUserClaims = Depends(get_authn_user),
                                    session: Session = Depends(get_db)) -> EmailTemplateModel:
-    template = session.query(EmailTemplateModel).filter(EmailTemplateModel.template_id == id).one_or_none()
+    template: TapirEmailTemplate | None = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if template is None:
         raise HTTPException(status_code=404, detail=f"Template {id} not found")
 
+    payload = {
+        "subject": subject,
+        "mail_to": current_user.email,
+        "mail_from": current_user.email,
+        "body": template.data,
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+    }
 
-    claims.email
+    # Get topic name and project ID from environment variables
+    topic_name = os.environ.get('GCP_EMAIL_TOPIC_ID')
+    project_id = os.environ.get('GCP_PROJECT')
+    
+    if not topic_name:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GCP_EMAIL_TOPIC_ID environment variable is not configured"
+        )
+    
+    if not project_id:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GCP_PROJECT_ID environment variable is not configured"
+        )
+
+    try:
+        # Initialize Pub/Sub publisher client
+        publisher = pubsub_v1.PublisherClient()
+        
+        # Construct full topic path
+        topic_path = publisher.topic_path(project_id, topic_name)
+        
+        # Convert payload to JSON bytes
+        message_data = json.dumps(payload).encode('utf-8')
+        
+        # Publish message to Pub/Sub topic
+        future = publisher.publish(topic_path, message_data)
+        message_id = future.result()  # Wait for publish to complete
+        
+        logger.info(f"Test email published to Pub/Sub topic {topic_path} with message ID: {message_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to publish test email to Pub/Sub: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send test email: {str(e)}"
+        )
+
+    # Return the template data
+    mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()
+    return EmailTemplateModel.model_validate(mint)

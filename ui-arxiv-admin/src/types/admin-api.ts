@@ -434,6 +434,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/email_templates/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Test Email Template */
+        post: operations["send_test_email_template_v1_email_templates__id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/endorsements/": {
         parameters: {
             query?: never;
@@ -2293,14 +2310,6 @@ export interface components {
             workflow_status: string;
             /** Flag System */
             flag_system: boolean;
-            /** Creator First Name */
-            creator_first_name: string;
-            /** Creator Last Name */
-            creator_last_name: string;
-            /** Updater First Name */
-            updater_first_name: string;
-            /** Updater Last Name */
-            updater_last_name: string;
         };
         /** EndorsementCodeModel */
         EndorsementCodeModel: {
@@ -4436,6 +4445,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_test_email_template_v1_email_templates__id__test_post: {
+        parameters: {
+            query?: {
+                /** @description Subject of the test email */
+                subject?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTemplateModel"];
+                };
             };
             /** @description Validation Error */
             422: {

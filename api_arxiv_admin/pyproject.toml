@@ -28,6 +28,7 @@ arxiv-bizlogic = {git = "https://github.com/arXiv/arxiv-keycloak.git", rev = "ma
 asgi-correlation-id = "^4.3.4"
 asgi-logger = "^0.1.0"
 python-multipart = "^0.0.20"
+google-cloud-pubsub = "^2.31.1"
 
 
 [tool.poetry.group.dev.dependencies]

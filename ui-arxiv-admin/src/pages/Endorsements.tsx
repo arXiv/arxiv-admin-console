@@ -48,6 +48,9 @@ import UserNameField from "../bits/UserNameField";
 import UserStatusField from "../bits/UserStatusField";
 import ISODateField from "../bits/ISODateFiled";
 import {RuntimeContext} from "../RuntimeContext";
+import SuspectIcon from '@mui/icons-material/Dangerous';
+
+
 
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
@@ -118,7 +121,7 @@ const EndorsementFilter = (props: any) => {
             <DateInput label="Start Date" source="start_date"/>
             <DateInput label="End Date" source="end_date"/>
             <BooleanInput label="Valid" source="flag_valid"/>
-            <BooleanInput label="Flagged" source="by_suspct"/>
+            <BooleanInput label="Flagged" source="by_suspect"/>
         </Filter>
     );
 };
@@ -138,6 +141,7 @@ const WithTooltip = ({children}: { children: ReactNode }) => {
 const useEndorsementIds = (filters: any) => {
     const runtimeProps = useContext(RuntimeContext);
     const [endorsementIds, setEndorsementIds] = useState<number[]>([]);
+    const [totalCount, setTotalCount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -154,6 +158,14 @@ const useEndorsementIds = (filters: any) => {
 
                 if (response.ok) {
                     setEndorsementIds(response.data);
+                    // Extract total count from headers if available
+                    const totalCountHeader = response.headers?.get('x-total-count') || response.headers?.get('X-Total-Count');
+                    if (totalCountHeader) {
+                        setTotalCount(parseInt(totalCountHeader, 10));
+                    } else {
+                        // Fallback to length of returned IDs
+                        setTotalCount(response.data.length);
+                    }
                 } else {
                     setError('Failed to fetch endorsement IDs');
                 }
@@ -168,13 +180,13 @@ const useEndorsementIds = (filters: any) => {
         fetchIds();
     }, [JSON.stringify(filters), runtimeProps.adminFetcher]);
 
-    return {endorsementIds, loading, error};
+    return {endorsementIds, totalCount, loading, error};
 };
 
 // Navigation component for showing cached IDs
 const EndorsementNavigation = ({currentId, filters}: { currentId?: Identifier, filters: any }) => {
     const navigate = useNavigate();
-    const {endorsementIds, loading, error} = useEndorsementIds(filters);
+    const {endorsementIds, totalCount, loading, error} = useEndorsementIds(filters);
 
     const currentIndex = currentId ? endorsementIds.findIndex(id => id === Number(currentId)) : -1;
     const prevId = currentIndex > 0 ? endorsementIds[currentIndex - 1] : null;
@@ -206,7 +218,7 @@ const EndorsementNavigation = ({currentId, filters}: { currentId?: Identifier, f
             <CardHeader
                 title={null}
                 titleTypographyProps={{variant: 'subtitle2'}}
-                subheader={`${endorsementIds.length} IDs`}
+                subheader={`${endorsementIds.length} of ${totalCount} IDs`}
                 subheaderTypographyProps={{variant: 'caption'}}
                 sx={{padding: 1}}
             />
@@ -267,11 +279,13 @@ export const EndorsementList = () => {
                 <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
                                 link={(record, reference) => `/${reference}/${record.id}`}>
                     <UserNameField withUsername/>
+                    <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
                 </ReferenceField>
 
                 <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
                                 link={(record, reference) => `/${reference}/${record.id}`}>
                     <UserNameField withUsername/>
+                    <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
                 </ReferenceField>
 
                 <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
@@ -528,7 +542,7 @@ export const EndorsementEdit = () => {
     );
     
     // Get endorsement IDs for navigation
-    const { endorsementIds } = useEndorsementIds(navigationFilters);
+    const { endorsementIds, totalCount } = useEndorsementIds(navigationFilters);
 
 
     return (

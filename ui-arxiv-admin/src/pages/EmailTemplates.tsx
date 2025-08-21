@@ -8,10 +8,11 @@ import {
     SimpleForm,
     ReferenceInput,
     TextInput,
-    useRecordContext,
+    useRecordContext, ReferenceField,
 } from 'react-admin';
 import ISODateField from "../bits/ISODateFiled";
 import Typography from "@mui/material/Typography";
+import UserNameField from "../bits/UserNameField";
 
 const templateFilters = [
     <TextInput source="id" label="Search" alwaysOn />,
@@ -25,7 +26,9 @@ export const EmailTemplateList = () => (
             <TextField source="long_name" />
             <TextField source="data" />
             <ISODateField source="update_date" />
-            <TextField source="updater_last_name"  />
+            <ReferenceField reference={"users"} source={"updated_by"} >
+                <UserNameField />
+            </ReferenceField>
             <EditButton />
         </Datagrid>
     </List>
