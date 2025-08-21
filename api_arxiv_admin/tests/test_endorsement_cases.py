@@ -873,7 +873,7 @@ class TestEndorsementJudgement(unittest.TestCase):
     def test_can_user_endorse_for(self):
         # This user is a cs.AI moderator
         user_id = "100"
-        user = self.accessor(user_id)
+        user = self.accessor.get_user(user_id)
         result, biz = can_user_endorse_for(self.accessor, user,"cs", "AI")
         self.assertTrue(result)
         self.assertEqual('Endorser user-cs-mod is a moderator in cs.AI.', biz.reason)
@@ -887,7 +887,7 @@ class TestEndorsementJudgement(unittest.TestCase):
     def test_can_user_submit_to(self):
         # This user is a cs.AI moderator
         user_id = "100"
-        user = self.accessor(user_id)
+        user = self.accessor.get_user(user_id)
         result, biz = can_user_submit_to(self.accessor, user,"econ", "EM")
         self.assertTrue(result)
 

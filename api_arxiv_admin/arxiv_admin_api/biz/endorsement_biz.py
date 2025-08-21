@@ -571,7 +571,7 @@ class EndorsementBusiness:
         # Look at the endorser
         papers = self.accessor.get_papers_by_user(str(self.endorseR.id),
                                                   self.endorsement_domain.endorsement_domain,
-                                                  [None, None], require_author=False)
+                                                  self.window, require_author=False)
 
         if not papers:
             category = pretty_category(self.archive, self.subject_class)

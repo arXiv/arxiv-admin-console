@@ -17,7 +17,7 @@ Done         AdminAudit_UnmakeModerator,
 AAA         AdminAudit_SuspendUser,
 AAA         AdminAudit_UnuspendUser,
 Done        AdminAudit_ChangeStatus,
-        AdminAudit_AdminChangePaperPassword,
+Done        AdminAudit_AdminChangePaperPassword,
 AAA        AdminAudit_SetEmailVerified,
 
 flags
@@ -33,5 +33,5 @@ Done         AdminAudit_SetEmailBouncing,
 Done/unused?         AdminAudit_SetBanned,
 Done         AdminAudit_SetEditSystem,
 Done         AdminAudit_SetEditUsers,
-        AdminAudit_SetEmailVerified,
+AAA         AdminAudit_SetEmailVerified,
 

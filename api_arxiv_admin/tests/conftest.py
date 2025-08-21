@@ -253,6 +253,7 @@ def api_headers(test_env):
 
         acc = "magic-access", # Access token
         idt = "", # ID token
+        sid = "kc-session-id",
 
         first_name = "Cookie",
         last_name = "Monster",
