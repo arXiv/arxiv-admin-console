@@ -388,23 +388,41 @@ const EndorsementEditToolbar = ({
     const handleNext = () => nextId && handleNavigate(nextId);
     const handleLast = () => lastId && handleNavigate(lastId);
 
+    // Helper function to update filters and navigate to first
+    const updateFiltersAndNavigateToFirst = (newFilters: any) => {
+        setNavigationFilters(newFilters);
+        // Navigation to first will happen in the useEffect below when endorsementIds updates
+    };
+
+    // Navigate to first endorsement when endorsementIds change (after filter update)
+    useEffect(() => {
+        if (endorsementIds.length > 0 && currentId !== endorsementIds[0]) {
+            // Only navigate if current ID is not already the first one
+            const currentIndex = currentId ? endorsementIds.findIndex(id => id === Number(currentId)) : -1;
+            if (currentIndex === -1) {
+                // Current ID is not in the new results, navigate to first
+                handleNavigate(endorsementIds[0]);
+            }
+        }
+    }, [endorsementIds, currentId]);
+
     const handleTypeChange = (event: any) => {
         const value = event.target.value;
-        setNavigationFilters({
+        updateFiltersAndNavigateToFirst({
             ...navigationFilters,
             type: value === '' ? null : value
         });
     };
 
     const handlePresetChange = (event: any) => {
-        setNavigationFilters({
+        updateFiltersAndNavigateToFirst({
             ...navigationFilters,
             preset: event.target.value
         });
     };
 
     const handleFlaggedToggle = () => {
-        setNavigationFilters({
+        updateFiltersAndNavigateToFirst({
             ...navigationFilters,
             by_suspect: !navigationFilters.by_suspect
         });
@@ -412,14 +430,14 @@ const EndorsementEditToolbar = ({
 
     const handlePositiveChange = (event: any) => {
         const value = event.target.value;
-        setNavigationFilters({
+        updateFiltersAndNavigateToFirst({
             ...navigationFilters,
             positive_endorsement: value === '' ? null : value === 'true'
         });
     };
 
     const handleReverseSort = () => {
-        setNavigationFilters({
+        updateFiltersAndNavigateToFirst({
             ...navigationFilters,
             _order: navigationFilters?._order != 'ASC' ? 'ASC' : 'DESC'
         });
@@ -527,7 +545,7 @@ const EndorsementEditToolbar = ({
                     onChange={handleFlaggedToggle}
                     size="small"
                 >
-                    Flagged
+                    Flagged Endorser
                 </ToggleButton>
             </Box>
         </TopToolbar>

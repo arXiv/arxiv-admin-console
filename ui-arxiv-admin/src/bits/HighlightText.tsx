@@ -24,7 +24,7 @@ const HighlightText: React.FC<HighlightProps> = ({ text, highlighters, secondary
                 highlighters.some(k => k.toLowerCase() === part.toLowerCase()) ? (
                     <span
                         key={index}
-                        style={{ backgroundColor: 'yellow', fontWeight: 'bold', color: 'red' }}
+                        style={{ backgroundColor: 'yellow', fontWeight: 'bold', color: 'red', border: '2px solid white' }}
                     >
                         {part}
                     </span>
@@ -33,7 +33,7 @@ const HighlightText: React.FC<HighlightProps> = ({ text, highlighters, secondary
                         (secondary || []).some(k => k.toLowerCase() === part.toLowerCase()) ? (
                             <span
                                 key={index}
-                                style={{ backgroundColor: 'blueviolet', fontWeight: 'bold', color: 'white' }}
+                                style={{ backgroundColor: 'blueviolet', fontWeight: 'bold', color: 'white', textDecoration: 'underline' }}
                             >
                                 {part}
                             </span>

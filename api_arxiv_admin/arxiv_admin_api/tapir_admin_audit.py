@@ -11,8 +11,10 @@ from pydantic import BaseModel
 from typing import List, Optional
 import re
 from arxiv.db.models import TapirAdminAudit
+from sqlalchemy import LargeBinary, cast
 
 from sqlalchemy.orm import Session
+from sqlalchemy_helper import sa_model_to_pydandic_model
 
 from arxiv_admin_api import gate_admin_user
 
@@ -49,7 +51,7 @@ class TapirAdminAuditModel(BaseModel):
             TapirAdminAudit.tracking_cookie,
             TapirAdminAudit.action,
             TapirAdminAudit.data,
-            TapirAdminAudit.comment)
+            cast(TapirAdminAudit.comment, LargeBinary).label("comment"))
 
 
 @router.get("/")
@@ -105,7 +107,7 @@ async def list_tapir_admin_audit(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [TapirAdminAuditModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [TapirAdminAuditModel.model_validate(sa_model_to_pydandic_model(item, TapirAdminAuditModel)) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 @router.get("/{id:int}")
@@ -119,5 +121,5 @@ async def get_tapir_admin_audit(
     item = query.filter(TapirAdminAudit.entry_id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="Not found")
-    return TapirAdminAuditModel.model_validate(item)
+    return TapirAdminAuditModel.model_validate(sa_model_to_pydandic_model(item, TapirAdminAuditModel))
 

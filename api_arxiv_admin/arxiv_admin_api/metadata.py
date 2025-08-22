@@ -5,12 +5,15 @@ from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Metadata, Document
 from arxiv.document.version import SOURCE_FORMAT
+from sqlalchemy import LargeBinary, cast
 
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta, timezone
 # from .models import CrossControlModel
 import re
+
+from sqlalchemy_helper import update_model_fields, sa_model_to_pydandic_model
 
 from . import get_db, datetime_to_epoch, VERY_OLDE
 from .biz.metadata_biz import propagate_metadata_to_document
@@ -21,42 +24,44 @@ router = APIRouter(prefix="/metadata")
 
 yymm_re = re.compile(r"^\d{4}\.\d{0,5}")
 
+
 class MetadataModel(BaseModel):
-    id: int # metadata_id
+    id: int  # metadata_id
 
     document_id: int
-    paper_id: str # Mapped[str] = mapped_column(String(64), nullable=False)
-    created: Optional[datetime] = None # Mapped[Optional[datetime]] = mapped_column(DateTime)
-    updated: Optional[datetime] = None # Mapped[Optional[datetime]] = mapped_column(DateTime)
-    submitter_id: Optional[int] = None # Mapped[Optional[int]] = mapped_column(ForeignKey("tapir_users.user_id"), index=True)
-    submitter_name: str # Mapped[str] = mapped_column(String(64), nullable=False)
-    submitter_email: str # Mapped[str] = mapped_column(String(64), nullable=False)
-    source_size: Optional[int] = None # Mapped[Optional[int]] = mapped_column(Integer)
-    source_format: Optional[SOURCE_FORMAT] = None # Mapped[Optional[SOURCE_FORMAT]] = mapped_column(String(12))
-    source_flags: Optional[str] = None # Mapped[Optional[str]] = mapped_column(String(12))
-    title: Optional[str] = None # Mapped[Optional[str]] = mapped_column(Text)
-    authors: Optional[str] = None # Mapped[Optional[str]] = mapped_column(Text)
-    abs_categories: Optional[str] = None # Mapped[Optional[str]] = mapped_column(String(255))
-    comments: Optional[str] = None # Mapped[Optional[str]] = mapped_column(Text)
-    proxy: Optional[str] = None #Mapped[Optional[str]] = mapped_column(String(255))
-    report_num: Optional[str] = None #Mapped[Optional[str]] = mapped_column(Text)
-    msc_class: Optional[str] = None #Mapped[Optional[str]] = mapped_column(String(255))
-    acm_class: Optional[str] = None #Mapped[Optional[str]] = mapped_column(String(255))
-    journal_ref: Optional[str] = None #Mapped[Optional[str]] = mapped_column(Text)
-    doi: Optional[str]  = None #Mapped[Optional[str]] = mapped_column(String(255))
-    abstract: Optional[str] = None #Mapped[Optional[str]] = mapped_column(Text)
-    license: Optional[str] = None #Mapped[Optional[str]] = mapped_column(ForeignKey("arXiv_licenses.name"), index=True)
-    version: int #Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
-    modtime: Optional[int] = None # Mapped[Optional[int]] = mapped_column(Integer)
-    is_current: Optional[int] = None # Mapped[Optional[int]] = mapped_column(Integer, server_default=FetchedValue())
-    is_withdrawn: bool # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
+    paper_id: str  # Mapped[str] = mapped_column(String(64), nullable=False)
+    created: Optional[datetime] = None  # Mapped[Optional[datetime]] = mapped_column(DateTime)
+    updated: Optional[datetime] = None  # Mapped[Optional[datetime]] = mapped_column(DateTime)
+    submitter_id: Optional[
+        int] = None  # Mapped[Optional[int]] = mapped_column(ForeignKey("tapir_users.user_id"), index=True)
+    submitter_name: str  # Mapped[str] = mapped_column(String(64), nullable=False)
+    submitter_email: str  # Mapped[str] = mapped_column(String(64), nullable=False)
+    source_size: Optional[int] = None  # Mapped[Optional[int]] = mapped_column(Integer)
+    source_format: Optional[SOURCE_FORMAT] = None  # Mapped[Optional[SOURCE_FORMAT]] = mapped_column(String(12))
+    source_flags: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(String(12))
+    title: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(Text)
+    authors: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(Text)
+    abs_categories: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(String(255))
+    comments: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(Text)
+    proxy: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(String(255))
+    report_num: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(Text)
+    msc_class: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(String(255))
+    acm_class: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(String(255))
+    journal_ref: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(Text)
+    doi: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(String(255))
+    abstract: Optional[str] = None  # Mapped[Optional[str]] = mapped_column(Text)
+    license: Optional[
+        str] = None  # Mapped[Optional[str]] = mapped_column(ForeignKey("arXiv_licenses.name"), index=True)
+    version: int  # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
+    modtime: Optional[int] = None  # Mapped[Optional[int]] = mapped_column(Integer)
+    is_current: Optional[int] = None  # Mapped[Optional[int]] = mapped_column(Integer, server_default=FetchedValue())
+    is_withdrawn: bool  # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
 
     class Config:
         from_attributes = True
 
     @staticmethod
     def base_select(db: Session):
-
         return db.query(
             Metadata.metadata_id.label("id"),
             Metadata.document_id,
@@ -64,22 +69,22 @@ class MetadataModel(BaseModel):
             Metadata.created,
             Metadata.updated,
             Metadata.submitter_id,
-            Metadata.submitter_name,
-            Metadata.submitter_email,
+            cast(Metadata.submitter_name, LargeBinary).label("submitter_name"),
+            cast(Metadata.submitter_email, LargeBinary).label("submitter_email"),
             Metadata.source_size,
             Metadata.source_format,
             Metadata.source_flags,
-            Metadata.title,
-            Metadata.authors,
+            cast(Metadata.title, LargeBinary).label("title"),
+            cast(Metadata.authors, LargeBinary).label("authors"),
             Metadata.abs_categories,
-            Metadata.comments,
+            cast(Metadata.comments, LargeBinary).label("comments"),
             Metadata.proxy,
             Metadata.report_num,
             Metadata.msc_class,
             Metadata.acm_class,
             Metadata.journal_ref,
             Metadata.doi,
-            Metadata.abstract,
+            cast(Metadata.abstract, LargeBinary).label("abstract"),
             Metadata.license,
             Metadata.version,
             Metadata.modtime,
@@ -102,7 +107,7 @@ async def list_metadatas(
         document_id: Optional[str] = Query(None, description="Document ID"),
         paper_id: Optional[str] = Query(None, description="arXiv ID"),
         db: Session = Depends(get_db)
-    ) -> List[MetadataModel]:
+) -> List[MetadataModel]:
     query = MetadataModel.base_select(db)
 
     if _start < 0 or _end < _start:
@@ -162,58 +167,60 @@ async def list_metadatas(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result: List[MetadataModel] = [MetadataModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result: List[MetadataModel] = [
+        MetadataModel.model_validate(sa_model_to_pydandic_model(item, MetadataModel)) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 
 @router.get("/paper_id/{paper_id:str}")
-def get_metadata_by_paper_id(paper_id:str,
-                 session: Session = Depends(get_db)) -> MetadataModel:
+def get_metadata_by_paper_id(paper_id: str,
+                             session: Session = Depends(get_db)) -> MetadataModel:
     """Get the metadata from paper id."""
     query = MetadataModel.base_select(session).filter(Metadata.paper_id == paper_id)
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return MetadataModel.model_validate(doc)
+    return MetadataModel.model_validate(sa_model_to_pydandic_model(doc, MetadataModel))
+
 
 @router.get("/paper_id/{category}/{numeric_id:str}")
-def get_metadata_ancient(category:str, numeric_id:str,
-                 session: Session = Depends(get_db)) -> MetadataModel:
+def get_metadata_ancient(category: str, numeric_id: str,
+                         session: Session = Depends(get_db)) -> MetadataModel:
     """Get the metadata from paper id."""
     paper_id = f"{category}/{numeric_id}"
     query = MetadataModel.base_select(session).filter(Metadata.paper_id == paper_id)
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return MetadataModel.model_validate(doc)
+    return MetadataModel.model_validate(sa_model_to_pydandic_model(doc, MetadataModel))
 
 
 @router.get("/document/{document_id:str}")
 def get_metadata_from_document_id(
-    document_id:str,
-    session: Session = Depends(get_db)) -> MetadataModel:
+        document_id: str,
+        session: Session = Depends(get_db)) -> MetadataModel:
     """Display a paper."""
-    metadata = MetadataModel.base_select(session).filter(Metadata.document_id == document_id).order_by(Metadata.metadata_id.desc()).limit(1).all()
+    metadata = MetadataModel.base_select(session).filter(Metadata.document_id == document_id).order_by(
+        Metadata.metadata_id.desc()).limit(1).all()
     if not metadata:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return MetadataModel.model_validate(metadata[0])
+    return MetadataModel.model_validate(sa_model_to_pydandic_model(metadata[0], MetadataModel))
 
 
 @router.get("/{id:str}")
-def get_metadata_by_id(id:int,
-                 session: Session = Depends(get_db)) -> MetadataModel:
+def get_metadata_by_id(id: int,
+                       session: Session = Depends(get_db)) -> MetadataModel:
     """Display a paper."""
     query = MetadataModel.base_select(session).filter(Metadata.metadata_id == id)
     doc = query.one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return MetadataModel.model_validate(doc)
-
+    return MetadataModel.model_validate(sa_model_to_pydandic_model(doc, MetadataModel))
 
 
 @router.put("/{id:str}")
 def update_metadata_by_id(
-        id:int,
+        id: int,
         body: MetadataModel,
         session: Session = Depends(get_db)) -> MetadataModel:
     """Display a paper."""
@@ -226,26 +233,38 @@ def update_metadata_by_id(
         doc = session.query(Document).filter(Document.document_id == md.document_id).one_or_none()
 
     updating = body.model_dump(exclude_unset=True, exclude_none=True, exclude={"id"})
-    count = 0
+    timestamp = datetime.now(timezone.utc)
+    updating["updated"] = timestamp
+    updating["modtime"] = timestamp
 
-    for key, value in updating.items():
-        old_value = getattr(md, key)
-        if old_value != value:
-            count += 1
-            setattr(md, key, value)
-            if not md.is_current:
-                continue
-
-            if propagate_metadata_to_document(session, md, key, doc):
-                count += 1
-        pass
-
-    if count > 0:
-        md.updated = datetime.now(timezone.utc)
+    if update_model_fields(session, md, updating,
+                           updating_fields={
+                               "updated",
+                               "modtime",
+                               "title",
+                               "authors",
+                               "abs_categories",
+                               "source_format",
+                               "source_flags",
+                               "comments",
+                               "proxy",
+                               "report_num",
+                               "msc_class",
+                               "acm_class",
+                               "journal_ref",
+                               "doi",
+                               "abstract",
+                               "is_withdrawn"}):
+        if doc:
+            updating["primary_subject_class"] = updating.get("abs_categories", "").split(" ")[0].split(".")[0]
+            update_model_fields(session, doc, updating,
+                                updating_fields={
+                                    "title",
+                                    "authors",
+                                    "primary_subject_class"})
         session.commit()
 
     metadata = MetadataModel.base_select(session).filter(Metadata.metadata_id == id).one_or_none()
     if not metadata:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return MetadataModel.model_validate(metadata)
-
+    return MetadataModel.model_validate(sa_model_to_pydandic_model(metadata, MetadataModel))

@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Demographic, OrcidIds, AuthorIds
+from sqlalchemy import LargeBinary, cast
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-
+from sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import get_db, is_any_user, gate_admin_user, get_current_user
 
@@ -54,9 +55,9 @@ class DemographicModel(BaseModel):
     def base_select(db: Session) -> Query:
         return db.query(
             Demographic.user_id.label("id"),
-            Demographic.country,
-            Demographic.affiliation,
-            Demographic.url,
+            cast(Demographic.country, LargeBinary).label("country"),
+            cast(Demographic.affiliation, LargeBinary).label("affiliation"),
+            cast(Demographic.url, LargeBinary).label("url"),
             Demographic.type,
             Demographic.archive,
             Demographic.subject_class,
@@ -129,7 +130,7 @@ async def list_demographics(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [DemographicModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [DemographicModel.model_validate(sa_model_to_pydandic_model(item, DemographicModel)) for item in query.offset(_start).limit(_end - _start).all()]
     return result
 
 

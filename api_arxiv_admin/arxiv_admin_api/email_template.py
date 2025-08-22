@@ -16,6 +16,7 @@ from enum import IntEnum
 from arxiv.base import logging
 from arxiv.db.models import TapirEmailTemplate #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
+from sqlalchemy_helper import update_model_fields
 
 from . import is_admin_user, get_db
 
@@ -162,42 +163,15 @@ async def update_template(request: Request,
                           current_user: ArxivUserClaims = Depends(get_authn_user),
                           session: Session = Depends(get_db)) -> EmailTemplateModel:
     body = await request.json()
-    item = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()
-    if item is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
-
     record = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
 
-    for key, value in body.items():
-        match key:
-            case "id" | "created_by" | "flag_system" | "sql_statement":
-                # cannot change these
-                pass
-
-            case "workflow_status":
-                # ntai: 2025-08-20 I think this is not used.
-                # wf = [wf.value for wf in list(WorkflowStatus) if wf.name.lower() == value]
-                # setattr(item, key, wf[0].value if wf else 0)
-                pass
-
-            case "short_name" | "long_name" | "data":
-                old_value = getattr(item, key)
-                new_value = value.encode("utf-8")
-                if old_value != new_value:
-                    session.execute(
-                        update(TapirEmailTemplate)
-                        .where(TapirEmailTemplate.template_id == id)
-                        .values({key: func.binary(new_value)})
-                    )
-                pass
-
-            case _:
-                pass
-
-    record.updated_date = datetime_to_epoch(None, datetime.datetime.now(tz=datetime.timezone.utc))
-    record.updated_by = int(current_user.user_id)
+    body["updated_date"] = datetime.datetime.now(tz=datetime.timezone.utc)
+    body["updated_by"] = int(current_user.user_id)
+    update_model_fields(session, record, body,
+                        updating_fields={"short_name", "long_name", "data", "update_date", "updated_by"},
+                        primary_key_value=id)
     session.commit()
 
     mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()

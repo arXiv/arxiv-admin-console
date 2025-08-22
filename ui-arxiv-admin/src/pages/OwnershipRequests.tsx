@@ -747,7 +747,7 @@ export const OwnershipRequestEdit = () => {
     }, { enabled: !!this_request?.user_id });
 
     const nameFragments = !isUserLoading && this_user
-        ? [this_user.first_name, this_user.last_name]
+        ? this_user.first_name.split(' ').concat(this_user.last_name.split(' '))
         : [];
 
     if (!id || !this_request || !this_user) return null;

@@ -18,6 +18,7 @@ import re
 import time
 
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
+from sqlalchemy_helper import sa_model_to_pydandic_model
 from starlette.responses import RedirectResponse
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
@@ -95,16 +96,12 @@ class DocumentModel(BaseModel):
     @staticmethod
     def to_model(session: Session, row: Row | dict | DocumentModel) -> DocumentModel:
         if isinstance(row, Row):
-            row_data = row._asdict()
-            data = row_data.copy()
-            for field in ["title", "authors"]:
-                if field in data and isinstance(data[field], bytes):
-                    data[field] = convert_latex_accents(row_data[field].decode("utf-8", errors="replace"))
+            data = sa_model_to_pydandic_model(row, DocumentModel, name_map={"document_id": "id"})
         elif isinstance(row, dict):
             data = row
         else:
             data = row.model_dump()
-        model_data = DocumentModel(**data)
+        model_data = DocumentModel.model_validate(data)
         return model_data.populate_remaining_fields(session)
 
 
@@ -143,7 +140,7 @@ class DocumentModel(BaseModel):
         metadata = session.query(Metadata).filter(Metadata.document_id == self.id).order_by(desc(Metadata.version)).first()
         if not metadata:
             return None
-        return MetadataModel.model_validate(metadata)
+        return MetadataModel.model_validate(sa_model_to_pydandic_model(metadata, MetadataModel, name_map={"metadata_id": "id"}))
 
 
 @router.get('/')

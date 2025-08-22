@@ -81,13 +81,15 @@ def audit_event_maker_veto_status(
         tracking_cookie: Optional[str] = None,
         _arg_name: Optional[str | tuple[str]] = None,
         ) -> AdminAuditEvent:
+    ov = old_value.decode("utf-8") if isinstance(old_value, bytes) else old_value
+    nv = new_value.decode("utf-8") if isinstance(new_value, bytes) else new_value
     kwargs = {
         "comment": comment,
         "remote_ip": remote_ip,
         "remote_hostname": remote_hostname,
         "tracking_cookie": tracking_cookie,
-        "status_before": UserVetoStatus(old_value),
-        "status_after": UserVetoStatus(new_value),
+        "status_before": UserVetoStatus(ov),
+        "status_after": UserVetoStatus(nv),
     }
     return cls(admin_id, user_id, session_id, **kwargs)
 

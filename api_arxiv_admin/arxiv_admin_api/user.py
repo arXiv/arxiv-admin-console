@@ -21,7 +21,8 @@ from sqlalchemy.orm import Session, aliased
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
                              t_arXiv_black_email, Category, OrcidIds)
 from arxiv_bizlogic.bizmodels.user_model import UserModel, VetoStatusEnum, _tapir_user_utf8_fields_, \
-    _demographic_user_utf8_fields_, list_mod_cats_n_arcs
+    _demographic_user_utf8_fields_, list_mod_cats_n_arcs, ACCOUNT_MANAGEMENT_FIELDS
+from sqlalchemy_helper import update_model_fields
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
 from .audit import record_user_prop_admin_action
@@ -414,29 +415,38 @@ async def _update_user_property(
     tapir_fields = TAPIR_USER_FIELDS | ADMIN_TAPIR_USER_FIELDS | ADMIN_AUDIT_TAPIR_USER_FIELDS
     demographic_fields = DEMOGRAPHIC_FIELDS | ADMIN_DEMOGRAPHIC_FIELDS |ADMIN_AUDIT_DEMOGRAPHIC_FIELDS
 
-    for it, fields in [(user, tapir_fields), (demographic, demographic_fields)]:
-        if body.property_name in fields:
-            if hasattr(it, body.property_name):
-                old_value = getattr(it, body.property_name)
-                if old_value is None or old_value != body.property_value:
-                    setattr(it, body.property_name, body.property_value)
+    def on_update(session, model, field_name, current_value, value):
+        if field_name in ADMIN_AUDIT_TAPIR_USER_FIELDS or body.property_name in ADMIN_AUDIT_DEMOGRAPHIC_FIELDS:
+            record_user_prop_admin_action(
+                session,
+                admin_id=str(current_user.user_id),
+                session_id=str(current_user.tapir_session_id),
+                prop_name=field_name,
+                user_id=str(user_id),
+                old_value=current_value,
+                new_value=value,
+                comment=body.comment,
+                remote_ip=remote_ip,
+                remote_hostname=remote_hostname,
+                tracking_cookie=tracking_cookie)
 
-                    if body.property_name in ADMIN_AUDIT_TAPIR_USER_FIELDS or body.property_name in ADMIN_AUDIT_DEMOGRAPHIC_FIELDS:
-                        record_user_prop_admin_action(
-                            session,
-                            admin_id = str(current_user.user_id),
-                            session_id = str(current_user.tapir_session_id),
-                            prop_name = body.property_name,
-                            user_id = str(user_id),
-                            old_value = old_value,
-                            new_value = body.property_value,
-                            comment = body.comment,
-                            remote_ip = remote_ip,
-                            remote_hostname = remote_hostname,
-                            tracking_cookie = tracking_cookie)
-            break
-    else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Property {body.property_name} not a valid property name")
+    data = {
+        body.property_name: body.property_value,
+        "comment": body.comment
+    }
+
+    try:
+        update_model_fields(session, user, data, updating_fields=tapir_fields, primary_key_value=user_id, on_update=on_update)
+    except Exception as e:
+        logger.error(f"_update_user_property: update_model_fields", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+
+    try:
+        update_model_fields(session, demographic, data, updating_fields=demographic_fields, primary_key_value=user_id, on_update=on_update)
+    except Exception as e:
+        logger.error(f"_update_user_property: update_model_fields", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+
 
 
 @router.put('/{user_id:int}/demographic')
@@ -504,6 +514,9 @@ async def update_user(
 
     for target, fields in [(demographic, demographic_fields), (tapir_user, tapir_user_fields)]:
         for field in fields:
+            # Demographic update does not handle these. This needs to be handled by account management API
+            if field in ACCOUNT_MANAGEMENT_FIELDS:
+                continue
             old_value = getattr(target, field)
             new_value = data.get(field)
             if isinstance(new_value, bool) and isinstance(old_value, int):
