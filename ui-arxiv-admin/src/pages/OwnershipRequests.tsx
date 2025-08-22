@@ -24,6 +24,7 @@ import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
+import SuspectIcon from '@mui/icons-material/Dangerous';
 
 import {
     useDataProvider,
@@ -48,7 +49,7 @@ import {
     ReferenceArrayField,
     useGetList,
     UseListOptions,
-    SaveButton, useSaveContext, useEditContext, ButtonProps,
+    SaveButton, useSaveContext, useEditContext, ButtonProps, BooleanField,
 } from 'react-admin';
 
 
@@ -73,6 +74,9 @@ import YesIcon from '@mui/icons-material/Check';
 import RejectIcon from '@mui/icons-material/DoNotDisturb';
 import Paper from "@mui/material/Paper";
 import OwnershipConclusionButton from '../bits/OwnershipConclusionButton';
+import PaperOwnersList from "../components/PaperOwnersList";
+import UserNameField from "../bits/UserNameField";
+import UserStatusField from '../bits/UserStatusField';
 
 
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
@@ -319,6 +323,29 @@ interface RequestedPaperListProps {
     ownedPapers: number[];
 }
 
+const AuthorsField : React.FC<{
+    nameFragments: string[];
+    document: DocumentType;
+}> = ({nameFragments, document}) => {
+    const [submitter, setSubmitter] = useState<string[]>([]);
+    const dataProvider = useDataProvider();
+
+    useEffect(() => {
+        dataProvider.getOne('users', {id: document.submitter_id}).then(
+            (response) => {
+                setSubmitter([response.data.first_name, response.data.last_name]);
+            }
+        );
+    }, [document.submitter_id]);
+
+    return (
+        <span>
+            <HighlightText text={document.authors || ""} highlighters={nameFragments} secondary={submitter}/>
+        </span>
+
+    );
+}
+
 
 const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflowStatus, nameFragments, documents, authoredDocuments, setSelectedDocuments, ownedPapers}) => {
     const {register, setValue} = useFormContext();
@@ -355,7 +382,9 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
                     </TableCell>
                     <TableCell>Paper</TableCell>
                     <TableCell>Title</TableCell>
+                    <TableCell>Submitter</TableCell>
                     <TableCell>Authors</TableCell>
+                    <TableCell>Owners</TableCell>
                     <TableCell>Date</TableCell>
                 </TableHead>
                 {documents.map((document, index) => (
@@ -392,7 +421,16 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
                             {document.title}
                         </TableCell>
                         <TableCell>
-                            <HighlightText text={document.authors || ""} highlighters={nameFragments}/>
+                            <ReferenceField source="submitter_id" reference="users" record={document} link="edit">
+                                <UserNameField />
+                            </ReferenceField>
+                        </TableCell>
+
+                        <TableCell>
+                            <AuthorsField nameFragments={nameFragments} document={document} />
+                        </TableCell>
+                        <TableCell>
+                            <PaperOwnersList document_id={document.id} />
                         </TableCell>
                         <TableCell>
                             {document.dated}
@@ -648,6 +686,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                     <Table>
                         <TableHead>
                             <TableCell>User</TableCell>
+                            <TableCell>Status</TableCell>
                             <TableCell>Email</TableCell>
                             <TableCell>Info</TableCell>
                         </TableHead>
@@ -655,11 +694,17 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                             <TableCell>
                                 <ReferenceField source="user_id" reference="users"
                                                 link={(record, reference) => `/${reference}/${record.id}`} >
-                                    <TextField source={"last_name"} />
-                                    {", "}
-                                    <TextField source={"first_name"} />
+                                    <UserNameField />
+                                    <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
                                 </ReferenceField>
                             </TableCell>
+                            <TableCell>
+                                <ReferenceField source="user_id" reference="users"
+                                                link={(record, reference) => `/${reference}/${record.id}`} >
+                                    <UserStatusField source={"id"} variant={"labeled"}/>
+                                </ReferenceField>
+                            </TableCell>
+
                             <TableCell>
                                 <ReferenceField source="user_id" reference="users">
                                     <EmailField source={"email"} />

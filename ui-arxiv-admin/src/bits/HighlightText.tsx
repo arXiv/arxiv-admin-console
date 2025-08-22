@@ -5,14 +5,17 @@ import Typography from "@mui/material/Typography";
 interface HighlightProps {
     text: string;
     highlighters: string[];
+    secondary?: string[]
 }
 
-const HighlightText: React.FC<HighlightProps> = ({ text, highlighters }) => {
+const HighlightText: React.FC<HighlightProps> = ({ text, highlighters, secondary }) => {
     if (!highlighters || highlighters.length === 0) {
         return <Typography>{text}</Typography>;
     }
 
-    const pattern = new RegExp(`(${highlighters.join('|')})`, 'gi');
+    const needles = highlighters.concat(secondary || []);
+    const pattern = new RegExp(`(${needles.join('|')})`, 'gi');
+
     const parts = text.split(pattern);
 
     return (
@@ -25,9 +28,18 @@ const HighlightText: React.FC<HighlightProps> = ({ text, highlighters }) => {
                     >
                         {part}
                     </span>
-                ) : (
-                    <span key={index}>{part}</span>
-                )
+                ) :
+                    (
+                        (secondary || []).some(k => k.toLowerCase() === part.toLowerCase()) ? (
+                            <span
+                                key={index}
+                                style={{ backgroundColor: 'blueviolet', fontWeight: 'bold', color: 'white' }}
+                            >
+                                {part}
+                            </span>
+                        ) :
+                            <span key={index}>{part}</span>
+                    )
             )}
         </Typography>
     );
