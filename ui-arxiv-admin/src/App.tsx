@@ -29,7 +29,7 @@ import {CategoryList, CategoryCreate, CategoryEdit} from "./pages/Categories";
 import {ModeratorCreate, ModeratorEdit, ModeratorList} from "./pages/Moderators";
 import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "./pages/OwnershipRequests";
 import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
-import {SubmissionCreate, SubmissionEdit, SubmissionList, SubmissionShow} from "./pages/Submissions";
+import {SubmissionEdit, SubmissionList, SubmissionShow} from "./pages/Submissions";
 import {TapirSessionEdit, TapirSessionList} from "./pages/TapirSessions";
 import {MembershipInstitutionList} from "./pages/MembershipInstitutions";
 import {darkTheme, lightTheme} from "./navTheme";

@@ -33,7 +33,7 @@ import {addDays} from 'date-fns';
 
 import React, {useState, useContext, useEffect} from "react";
 import {submissionStatusOptions} from "../bits/SubmissionStateField";
-import {AdminLogs, AdminLogFilter} from "./AdminLogs";
+import AdminLogList, {AdminLogFilter} from "../bits/AdminLogList";
 import CategoryInputField from "../bits/CategoryInputField";
 // import SubmissionCategoriesField, {CategoriesField, CategoryList} from "../bits/SubmissionCategoriesField";
 import IsOkField from "../bits/IsOkField";
@@ -44,6 +44,7 @@ import UriTemplate from 'uri-templates';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import LinkIcon from '@mui/icons-material/Link';
 import { useNavigate } from 'react-router-dom';
 
 import {paths as adminApi, components as adminComponents} from "../types/admin-api";
@@ -51,7 +52,7 @@ import UserNameField from "../bits/UserNameField";
 import CategoryField from "../bits/CategoryField";
 import PrimaryCategoryField from "../bits/PirmaryCategoryField";
 import AdminLogField from "../bits/AdminLogField";
-import Divider from "@mui/material/Divider";
+
 
 type SubmissionModel = adminComponents['schemas']['SubmissionModel'];
 type SubmissionType = adminComponents['schemas']['SubmissionType'];
@@ -134,9 +135,10 @@ export const SubmissionList = () => {
               filterDefaultValues={{
                   submission_status: [],
               }}
+              sort={{ field: 'id', order: 'DESC' }}
         >
             <Datagrid rowClick={false} bulkActionButtons={false}>
-                <ReferenceField reference={"submissions"} source={"id"} link={"edit"}>
+                <ReferenceField reference={"submissions"} source={"id"} link={"show"}>
                     <TextField source="id" label="ID" textAlign="right"/>
                 </ReferenceField>
                 <ArxivCheckSubmissionLink source="type" label="Type"/>
@@ -165,15 +167,10 @@ const SubmissionTitle = () => {
 
 const SubmissionAdminLogList = () => {
     const record = useRecordContext();
-
+    if (!record?.id)
+        return null;
     return (
-    <List filters={<AdminLogFilter />} resource="admin_logs" filter={{submission_id: record?.id || 0}} >
-        <Datagrid size="small" bulkActionButtons={false}>
-            <ISODateField source="created" />
-            <TextField source="username" />
-            <TextField source="logtext" />
-        </Datagrid>
-    </List>
+        <AdminLogList submission_id={record.id}/>
     )
 }
 
@@ -315,35 +312,6 @@ export const SubmissionEdit = () => {
     );
 }
 
-export const SubmissionCreate = () => (
-    <Create>
-        <SimpleForm>
-            <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                            link={(record, reference) => `/${reference}/${record.id}`}>
-                <TextField source={"last_name"}/>
-                {", "}
-                <TextField source={"first_name"}/>
-            </ReferenceField>
-
-            <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                            link={(record, reference) => `/${reference}/${record.id}`}>
-                <TextField source={"last_name"}/>
-                {", "}
-                <TextField source={"first_name"}/>
-            </ReferenceField>
-
-            <TextInput source="archive"/>
-
-            <TextInput source="subject_class"/>
-            <BooleanInput source="flag_valid" label={"Valid"}/>
-
-            <TextInput source="type"/>
-            <NumberInput source="point_value" label={"Point"}/>
-            <DateInput source="issued_when" label={"Issued"}/>
-
-        </SimpleForm>
-    </Create>
-);
 
 /*
  */
@@ -387,25 +355,45 @@ const SubmissionShowActions = () => {
         }
     };
 
+    const handleArxivCheck = () => {
+        if (record?.id) {
+            const url = UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
+                arxivCheck: runtimeProps.ARXIV_CHECK,
+                submissionId: record.id,
+            });
+            window.open(url, '_blank');
+        }
+    };
+
     return (
-        <TopToolbar>
-            <EditButton />
+        <TopToolbar sx={{ justifyContent: 'space-between' }}>
             <Button
                 variant="outlined"
-                startIcon={<ArrowBackIcon />}
-                onClick={handlePrevious}
-                disabled={!navigation?.prev_id}
+                startIcon={<LinkIcon />}
+                onClick={handleArxivCheck}
+                disabled={!record?.id}
             >
-                Previous
+                arXiv Check
             </Button>
-            <Button
-                variant="outlined"
-                endIcon={<ArrowForwardIcon />}
-                onClick={handleNext}
-                disabled={!navigation?.next_id}
-            >
-                Next
-            </Button>
+            <Box display="flex" gap={1}>
+                <EditButton />
+                <Button
+                    variant="outlined"
+                    startIcon={<ArrowBackIcon />}
+                    onClick={handlePrevious}
+                    disabled={!navigation?.prev_id}
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outlined"
+                    endIcon={<ArrowForwardIcon />}
+                    onClick={handleNext}
+                    disabled={!navigation?.next_id}
+                >
+                    Next
+                </Button>
+            </Box>
         </TopToolbar>
     );
 };

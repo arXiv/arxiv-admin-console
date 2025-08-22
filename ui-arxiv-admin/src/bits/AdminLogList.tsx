@@ -5,19 +5,21 @@
 
 import {
     useListController,
-    ListContextProvider,
+    Pagination,
     Datagrid,
     TextField,
+    Filter,
+    BooleanInput,
     ReferenceField,
-    Pagination,
-    Link,
+    DateInput,
+    ListContextProvider, Identifier,
 } from 'react-admin';
 import React from 'react';
 import ISODateField from "./ISODateFiled";
 import UserNameField from "./UserNameField";
 
 
-const AdminLogList: React.FC<{paper_id?: string, submission_id?: string}> = ({paper_id, submission_id}) => {
+const AdminLogList: React.FC<{paper_id?: string, submission_id?: Identifier}> = ({paper_id, submission_id}) => {
     const controllerProps = useListController({
         resource: 'admin_logs',
         filter: { paper_id: paper_id, submission_id: submission_id },
@@ -60,6 +62,17 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: string}> = ({pa
             </Datagrid>
             <Pagination />
         </ListContextProvider>
+    );
+};
+
+
+export const AdminLogFilter = (props: any) => {
+    return (
+        <Filter {...props}>
+            <DateInput label="Start Date" source="start_date" />
+            <DateInput label="End Date" source="end_date" />
+            <BooleanInput label="Valid" source="flag_valid" />
+        </Filter>
     );
 };
 
