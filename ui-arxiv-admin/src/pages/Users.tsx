@@ -79,6 +79,7 @@ import EndorsementRequestListField from '../bits/EndorsementRequestListField';
 import UserFlagDialog from '../components/UserFlagDialog';
 import BooleanField from '../bits/BooleanNumberField';
 import UserNameField from "../bits/UserNameField";
+import UserNameDialog from "../components/UserNameDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -680,6 +681,7 @@ export const UserEdit = () => {
     const [canEndorseForOpen, setCanEndorseForOpen] = useState(false);
     const [canSubmitToOpen, setCanSubmitToOpen] = useState(false);
     const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+    const [changeUserNameOpen, setChangeUserNameOpen] = useState(false);
     const [addCommentOpen, setAddCommentOpen] = useState(false);
     const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
@@ -727,6 +729,11 @@ export const UserEdit = () => {
     ];
 
     const handleEmailChanged = (newEmail: string) => {
+        refresh(); // Refresh the form to show the updated email
+    };
+
+    const handleUserNameChanged = () => {
+
         refresh(); // Refresh the form to show the updated email
     };
 
@@ -787,7 +794,7 @@ export const UserEdit = () => {
                                 startIcon={<EmailIcon/>}
                                 onClick={() => setChangeEmailOpen(true)}
                             >
-                                Change
+                                Change Email
                             </Button>
                             <EmailField source="email" fontSize={"large"}/>
                             <ChangeEmailDialog
@@ -805,9 +812,22 @@ export const UserEdit = () => {
                         <Divider/>
 
                         <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
-                            <TextInput source="first_name" helperText={false}/>
-                            <TextInput source="last_name" helperText={false}/>
-                            <TextInput source="suffix_name" helperText={false} sx={{maxWidth: "6em"}}/>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<EmailIcon/>}
+                                onClick={() => setChangeUserNameOpen(true)}
+                            >
+                                Change Name
+                            </Button>
+                            <Typography component={"span"} variant={"body1"} alignContent={"center"}>
+                                <UserNameField />
+                            </Typography>
+                            <UserNameDialog
+                                open={changeUserNameOpen}
+                                setOpen={setChangeUserNameOpen}
+                                onUpdated={handleUserNameChanged}
+                            />
                         </Box>
                         <Divider/>
 

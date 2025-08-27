@@ -9,7 +9,7 @@ from arxiv.db.models import Demographic, OrcidIds, AuthorIds
 from sqlalchemy import LargeBinary, cast
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from sqlalchemy_helper import sa_model_to_pydandic_model
+from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import get_db, is_any_user, gate_admin_user, get_current_user
 

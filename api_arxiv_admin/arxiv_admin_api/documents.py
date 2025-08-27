@@ -18,7 +18,7 @@ import re
 import time
 
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
-from sqlalchemy_helper import sa_model_to_pydandic_model
+from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 from starlette.responses import RedirectResponse
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user

@@ -284,6 +284,31 @@ class adminApiDataProvider implements DataProvider {
                 handleHttpError(error, 'Failed to update email');
             }
         }
+        else if (resource === 'aaa_user_name') {
+            console.log("Update user name via AAA API");
+            const user_id = params.id;
+
+            const body  = {
+                first_name: params.data.first_name,
+                last_name: params.data.last_name,
+                suffix_name: params.data.suffix_name,
+                username: params.data.username,
+                comment: params.data.comment,
+            };
+
+            try {
+                const putUserNameChange = this.runtimeProps.aaaFetcher.path('/account/{user_id}/name').method('put').create();
+                const response = await putUserNameChange({
+                    user_id: user_id as string,
+                    ...body
+                });
+
+                return {data: response.data as unknown as T};
+            }
+            catch (error) {
+                handleHttpError(error, 'Failed to update user name');
+            }
+        }
         else if (resource === 'user-authorization') {
             console.log("Update user authorization via AAA API");
             const user_id = params.id;

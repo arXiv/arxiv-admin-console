@@ -13,7 +13,7 @@ from datetime import datetime, date, timedelta, timezone
 # from .models import CrossControlModel
 import re
 
-from sqlalchemy_helper import update_model_fields, sa_model_to_pydandic_model
+from arxiv_bizlogic.sqlalchemy_helper import update_model_fields, sa_model_to_pydandic_model
 
 from . import get_db, datetime_to_epoch, VERY_OLDE
 from .biz.metadata_biz import propagate_metadata_to_document

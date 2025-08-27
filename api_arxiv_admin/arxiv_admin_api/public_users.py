@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic, TapirCountry,
                              t_arXiv_black_email, t_arXiv_white_email, Category)
-from sqlalchemy_helper import sa_model_to_pydandic_model
+from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, is_any_user, get_current_user
 

@@ -22,7 +22,7 @@ from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demog
                              t_arXiv_black_email, Category, OrcidIds)
 from arxiv_bizlogic.bizmodels.user_model import UserModel, VetoStatusEnum, _tapir_user_utf8_fields_, \
     _demographic_user_utf8_fields_, list_mod_cats_n_arcs, ACCOUNT_MANAGEMENT_FIELDS
-from sqlalchemy_helper import update_model_fields
+from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
 from .audit import record_user_prop_admin_action

@@ -67,7 +67,7 @@ class OwnershipModel(BaseModel):
             ).label('id'),
             PaperOwner.document_id,
             PaperOwner.user_id,
-            PaperOwner.date,
+            func.from_unixtime(PaperOwner.date).label('date'),
             PaperOwner.added_by,
             PaperOwner.remote_addr,
             PaperOwner.remote_host,

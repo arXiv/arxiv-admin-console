@@ -276,25 +276,23 @@ async def endorse(
 
     accessor = EndorsementDBAccessor(session)
 
-    tapir_session_id = current_tapir_session.session_id if current_tapir_session else None
-
     business = EndorsementBusiness(
         accessor,
         endorser,
         endorsee,
         audit_timestamp,
 
-        archive=endorsement_code.archive,
-        subject_class=endorsement_code.subject_class,
+        archive=endorsement_request.archive,
+        subject_class=endorsement_request.subject_class,
         endorsement_code=endorsement_code,
         endorsement_request=endorsement_request,
-        session_id=tapir_session_id,
+        session_id=str(current_tapir_session),
         remote_host_ip=client_host,
         remote_host_name=client_host_name,
         tracking_cookie=tracking_cookie,
     )
 
-    if not show_email:
+    if not show_email and business.endorseE.email is not None:
         business.endorseE.email = ""
 
     try:

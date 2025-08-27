@@ -14,7 +14,7 @@ from arxiv.db.models import TapirAdminAudit
 from sqlalchemy import LargeBinary, cast
 
 from sqlalchemy.orm import Session
-from sqlalchemy_helper import sa_model_to_pydandic_model
+from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from arxiv_admin_api import gate_admin_user
 

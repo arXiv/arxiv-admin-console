@@ -16,7 +16,7 @@ from enum import IntEnum
 from arxiv.base import logging
 from arxiv.db.models import TapirEmailTemplate #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
-from sqlalchemy_helper import update_model_fields
+from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 
 from . import is_admin_user, get_db
 
@@ -85,14 +85,14 @@ class EmailTemplateModel(BaseModel):
 
     @field_validator("long_name", mode="before")
     @classmethod
-    def convert_short_name(cls, value) -> str:
+    def convert_long_name(cls, value) -> str:
         if isinstance(value, bytes):
             return value.decode("utf-8")
         return value
 
     @field_validator("data", mode="before")
     @classmethod
-    def convert_short_name(cls, value) -> str:
+    def convert_data(cls, value) -> str:
         if isinstance(value, bytes):
             return value.decode("utf-8")
         return value

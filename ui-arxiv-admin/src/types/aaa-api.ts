@@ -250,6 +250,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/{user_id}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update User Name
+         * @description Update the user account profile for both Keycloak and user in db
+         */
+        put: operations["update_user_name_account__user_id__name_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/register": {
         parameters: {
             query?: never;
@@ -281,10 +301,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Email Verify Requset
+         * Request Email Verify
          * @description Request to send verify email
          */
-        post: operations["email_verify_requset_account__user_id__email_verify_post"];
+        post: operations["request_email_verify_account__user_id__email_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -639,16 +659,16 @@ export interface components {
         };
         /** AccountInfoModel */
         AccountInfoModel: {
-            /** Username */
-            username: string;
-            /** Email */
-            email?: string | null;
             /** First Name */
-            first_name: string;
+            first_name?: string | null;
             /** Last Name */
-            last_name: string;
+            last_name?: string | null;
             /** Suffix Name */
             suffix_name?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Email */
+            email?: string | null;
             /** Country */
             country?: string | null;
             /** Affiliation */
@@ -688,16 +708,16 @@ export interface components {
         };
         /** AccountRegistrationModel */
         AccountRegistrationModel: {
-            /** Username */
-            username: string;
-            /** Email */
-            email?: string | null;
             /** First Name */
-            first_name: string;
+            first_name?: string | null;
             /** Last Name */
-            last_name: string;
+            last_name?: string | null;
             /** Suffix Name */
             suffix_name?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Email */
+            email?: string | null;
             /** Country */
             country?: string | null;
             /** Affiliation */
@@ -730,6 +750,19 @@ export interface components {
              * @default false
              */
             keycloak_migration: boolean;
+        };
+        /** AccountUserNameUpdateModel */
+        AccountUserNameUpdateModel: {
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Suffix Name */
+            suffix_name?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Comment */
+            comment?: string | null;
         };
         /** AuthorIdUpdateModel */
         AuthorIdUpdateModel: {
@@ -1425,6 +1458,41 @@ export interface operations {
             };
         };
     };
+    update_user_name_account__user_id__name_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountUserNameUpdateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountInfoModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_register_account_register_get: {
         parameters: {
             query?: never;
@@ -1496,7 +1564,7 @@ export interface operations {
             };
         };
     };
-    email_verify_requset_account__user_id__email_verify_post: {
+    request_email_verify_account__user_id__email_verify_post: {
         parameters: {
             query?: never;
             header?: never;
