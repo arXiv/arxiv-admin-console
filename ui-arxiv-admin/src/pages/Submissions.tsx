@@ -52,6 +52,7 @@ import UserNameField from "../bits/UserNameField";
 import CategoryField from "../bits/CategoryField";
 import PrimaryCategoryField from "../bits/PirmaryCategoryField";
 import AdminLogField from "../bits/AdminLogField";
+import SingleUserInputField from "../components/SingleUserInputField";
 
 
 type SubmissionModel = adminComponents['schemas']['SubmissionModel'];
@@ -120,7 +121,7 @@ const SubmissionFilter = (props: any) => {
                 choices={presetOptions}
                 onChange={(event) => handlePresetChange(event as React.ChangeEvent<HTMLSelectElement>)}
             />
-            <BooleanInput label="Valid" source="flag_valid"/>
+            <SingleUserInputField source={"submitter_id"} label={"Submitter"} alwaysOn variant={"dialog"}/>
 
         </Filter>
     );
@@ -136,8 +137,11 @@ export const SubmissionList = () => {
                   submission_status: [],
               }}
               sort={{ field: 'id', order: 'DESC' }}
+
         >
-            <Datagrid rowClick={false} bulkActionButtons={false}>
+            <Datagrid rowClick={false} bulkActionButtons={false}
+                      expand={<AdminLogField source="id" label={"Log"} variant={'list'}/>}
+            >
                 <ReferenceField reference={"submissions"} source={"id"} link={"show"}>
                     <TextField source="id" label="ID" textAlign="right"/>
                 </ReferenceField>
@@ -152,7 +156,6 @@ export const SubmissionList = () => {
                                 link={(record, reference) => `/${reference}/${record.id}/show`}>
                     <TextField source={"paper_id"}/>
                 </ReferenceField>
-                <AdminLogField source="id" label={"Log"}/>
                 <IsOkField source="is_ok" label={"OK?"}/>
             </Datagrid>
         </List>

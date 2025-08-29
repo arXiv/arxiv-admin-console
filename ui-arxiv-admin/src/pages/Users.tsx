@@ -5,7 +5,7 @@ import {
     AccordionSummary,
     AccordionDetails,
     Switch,
-    FormControlLabel,
+    FormControlLabel, IconButton,
 } from '@mui/material';
 
 // import ToggleButton from '@mui/material/ToggleButton';
@@ -80,6 +80,7 @@ import UserFlagDialog from '../components/UserFlagDialog';
 import BooleanField from '../bits/BooleanNumberField';
 import UserNameField from "../bits/UserNameField";
 import UserNameDialog from "../components/UserNameDialog";
+import {UserSubmissionList} from "../components/UserSumissionList";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -779,7 +780,7 @@ export const UserEdit = () => {
         refresh();
     };
 
-    const erpandedSummaryHeight = '18px';
+    const erpandedSummaryHeight = '10px';
 
     return (
         <Edit title={<UserTitle/>} actions={false} redirect={false}
@@ -911,7 +912,7 @@ export const UserEdit = () => {
 
                     <Grid size={{xs: 12, md: 6}}>
                         <Accordion defaultExpanded  sx={{my: 0, py: 0}}>
-                             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '4px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
                                 <Typography variant="h6">User Demographics</Typography>
                             </AccordionSummary>
                             <AccordionDetails  sx={{my: 0, py: 0}}>
@@ -920,7 +921,7 @@ export const UserEdit = () => {
                         </Accordion>
                         
                         <Accordion  sx={{my: 0, py: 0}}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '4px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
                                 <Typography variant="h6">Email History</Typography>
                             </AccordionSummary>
                             <AccordionDetails  sx={{my: 0, py: 0}}>
@@ -929,15 +930,23 @@ export const UserEdit = () => {
                         </Accordion>
                         
                         <Accordion sx={{my: 0, py: 0}}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: '36px', '& .MuiAccordionSummary-content': { margin: '4px 0' }, '&.Mui-expanded': { minHeight: erpandedSummaryHeight } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+                                <Typography variant="h6">User's submissions</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails  sx={{my: 0, py: 0}}>
+                                <UserSubmissionList  />
+                            </AccordionDetails>
+                        </Accordion>
+
+                        <Accordion sx={{my: 0, py: 0}}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
                                 <Typography variant="h6">Owned Papers</Typography>
                             </AccordionSummary>
                             <AccordionDetails  sx={{my: 0, py: 0}}>
-                                <Grid size={{xs: 12}}>
-                                    <OwnedPaperList/>
-                                </Grid>
+                                <OwnedPaperList/>
                             </AccordionDetails>
                         </Accordion>
+
                     </Grid>
                 </Grid>
             </SimpleForm>

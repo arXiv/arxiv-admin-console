@@ -14,11 +14,13 @@ import AdminLogList from './AdminLogList';
 
 interface AdminLogFieldProps extends FieldProps {
     paperIdSource?: string;
+    variant?: 'icon' | 'list';
 }
 
 const AdminLogField: React.FC<AdminLogFieldProps> = ({ 
     source,
-    paperIdSource = 'paper_id'
+    paperIdSource = 'paper_id',
+    variant = 'icon',
 }) => {
     const [expanded, setExpanded] = useState(false);
     const record = useRecordContext();
@@ -37,7 +39,7 @@ const AdminLogField: React.FC<AdminLogFieldProps> = ({
         setExpanded(!expanded);
     };
 
-    return (
+    return variant === 'icon' ? (
         <Box>
             <Tooltip title={expanded ? 'Hide admin logs' : 'Show admin logs'}>
                 <IconButton
@@ -58,6 +60,11 @@ const AdminLogField: React.FC<AdminLogFieldProps> = ({
                     />
             </Collapse>
         </Box>
+    ) : (
+        <AdminLogList
+            paper_id={paper_id}
+            submission_id={submission_id}
+        />
     );
 };
 
