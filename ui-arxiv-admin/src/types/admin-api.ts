@@ -434,7 +434,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/email_templates/{id}/test": {
+    "/v1/email_templates/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Test Email Template */
+        post: operations["publish_test_email_template_v1_email_templates__id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/email_templates/{id}/send": {
         parameters: {
             query?: never;
             header?: never;
@@ -444,7 +461,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Send Test Email Template */
-        post: operations["send_test_email_template_v1_email_templates__id__test_post"];
+        post: operations["send_test_email_template_v1_email_templates__id__send_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1467,7 +1484,8 @@ export interface paths {
         /** List Membership Institutions */
         get: operations["list_membership_institutions_v1_membership_institutions__get"];
         put?: never;
-        post?: never;
+        /** Create Membership Institution Data */
+        post: operations["create_membership_institution_data_v1_membership_institutions__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1483,10 +1501,11 @@ export interface paths {
         };
         /** Get Membership Institution Data */
         get: operations["get_membership_institution_data_v1_membership_institutions__id__get"];
-        /** Put Membership Institution Data */
-        put: operations["put_membership_institution_data_v1_membership_institutions__id__put"];
+        /** Update Membership Institution Data */
+        put: operations["update_membership_institution_data_v1_membership_institutions__id__put"];
         post?: never;
-        delete?: never;
+        /** Create Membership Institution Data */
+        delete: operations["create_membership_institution_data_v1_membership_institutions__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2567,6 +2586,8 @@ export interface components {
             email?: string | null;
             /** Contact Name */
             contact_name?: string | null;
+            /** Phone */
+            phone?: string | null;
             /** Ip Ranges */
             ip_ranges?: components["schemas"]["MemberInstitutionIPModel"][] | null;
         };
@@ -4490,7 +4511,7 @@ export interface operations {
             };
         };
     };
-    send_test_email_template_v1_email_templates__id__test_post: {
+    publish_test_email_template_v1_email_templates__id__publish_post: {
         parameters: {
             query?: {
                 /** @description Subject of the test email */
@@ -4502,7 +4523,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                } | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4510,7 +4537,47 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmailTemplateModel"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_test_email_template_v1_email_templates__id__send_post: {
+        parameters: {
+            query?: {
+                /** @description Subject of the test email */
+                subject?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                } | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -6701,6 +6768,39 @@ export interface operations {
             };
         };
     };
+    create_membership_institution_data_v1_membership_institutions__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberInstitutionModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberInstitutionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_membership_institution_data_v1_membership_institutions__id__get: {
         parameters: {
             query?: never;
@@ -6732,7 +6832,7 @@ export interface operations {
             };
         };
     };
-    put_membership_institution_data_v1_membership_institutions__id__put: {
+    update_membership_institution_data_v1_membership_institutions__id__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -6746,6 +6846,37 @@ export interface operations {
                 "application/json": components["schemas"]["MemberInstitutionModel"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberInstitutionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_membership_institution_data_v1_membership_institutions__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

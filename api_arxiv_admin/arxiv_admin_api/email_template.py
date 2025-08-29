@@ -1,7 +1,7 @@
 """Provides integration for the external user interface."""
 import datetime
-import os
 import json
+from urllib.parse import urlparse, parse_qs
 
 from google.cloud import pubsub_v1
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, datetime_to_epoch
@@ -17,6 +17,14 @@ from arxiv.base import logging
 from arxiv.db.models import TapirEmailTemplate #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
+
+from jinja2 import Environment, BaseLoader
+from starlette.responses import JSONResponse
 
 from . import is_admin_user, get_db
 
@@ -214,12 +222,34 @@ async def delete_email_template(id: int,
     return
 
 
-@router.post('/{id:int}/test')
-async def send_test_email_template(request: Request,
-                                   id: int,
-                                   subject: str = Query("Test email template", description="Subject of the test email"),
-                                   current_user: ArxivUserClaims = Depends(get_authn_user),
-                                   session: Session = Depends(get_db)) -> EmailTemplateModel:
+def render_template(template_string: str, params: dict | list) -> str:
+    env = Environment(
+        loader=BaseLoader(),
+        variable_start_string='%',
+        variable_end_string='%'
+    )
+    if isinstance(params, list):
+        values = {elem['key']: elem['value'] for elem in params}
+    elif isinstance(params, dict):
+        values = params
+    else:
+        return f"Error: params is not list or dict.\n\n{template_string}\n\n{params!r}"
+
+    try:
+        template = env.from_string(template_string)
+        return template.render(**values)
+    except Exception as e:
+        return f"Error: {str(e)}\n\n{template_string}\n\n{params!r}"
+
+
+@router.post('/{id:int}/publish')
+async def publish_test_email_template(
+        response: Response,
+        id: int,
+        body: Optional[dict] = None,
+        subject: str = Query("Test email template", description="Subject of the test email"),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)) -> JSONResponse:
     template: TapirEmailTemplate | None = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if template is None:
         raise HTTPException(status_code=404, detail=f"Template {id} not found")
@@ -228,7 +258,7 @@ async def send_test_email_template(request: Request,
         "subject": subject,
         "mail_to": current_user.email,
         "mail_from": current_user.email,
-        "body": template.data,
+        "body": template.data if body is None else render_template(template.data, body),
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
     }
 
@@ -272,5 +302,70 @@ async def send_test_email_template(request: Request,
         )
 
     # Return the template data
-    mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()
-    return EmailTemplateModel.model_validate(mint)
+    return payload
+
+
+@router.post('/{id:int}/send')
+async def send_test_email_template(
+        request: Request,
+        response: Response,
+        id: int,
+        body: Optional[dict] = None,
+        subject: str = Query("Test email template", description="Subject of the test email"),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)):
+    template: TapirEmailTemplate | None = session.query(TapirEmailTemplate).filter(
+        TapirEmailTemplate.template_id == id).one_or_none()
+    if template is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template {id} not found")
+    if body is None:
+        body = {}
+    smtp_url = request.app.extra['SMTP_URL']
+    url = urlparse(smtp_url)
+    use_ssl = url.scheme == 'ssmtp' # 'ssmtptls'
+    use_tls = url.scheme == 'ssmtptls'
+    params = parse_qs(url.query)
+    smtp_user = params.get('user', [None])[0]
+    smtp_pass = params.get('password', [None])[0]
+    smtp_server = url.hostname
+    smtp_port = url.port
+    sender = current_user.email
+    recipient = current_user.email
+
+    msg = MIMEMultipart()
+    msg['From'] = sender
+    msg['To'] = recipient
+    msg['Subject'] = subject if subject else body.get('subject', 'No Subject Provided')
+    text = template.data if body is None else render_template(template.data, body.get('variables', {}))
+    msg.attach(MIMEText(text, 'plain'))
+
+    email_payload = msg.as_string()
+    try:
+        if use_ssl:
+            # Use SSL connection from the start
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.ehlo()
+                if smtp_user and smtp_pass:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(sender, recipient, email_payload)
+        elif use_tls:
+            # Use TLS (original behavior)
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                if smtp_user and smtp_pass:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(sender, recipient, email_payload)
+        else:
+            smtp_server = "localhost"
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.ehlo()
+                if smtp_user and smtp_pass:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(sender, recipient, email_payload)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Failed to send email: {str(e)}")
+
+    response.status_code = status.HTTP_201_CREATED
+    return {"payload": email_payload}
