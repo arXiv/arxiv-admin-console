@@ -10,7 +10,7 @@ import {
     SimpleForm,
     ReferenceInput,
     TextInput,
-    useRecordContext, EmailField, ArrayInput, SimpleFormIterator, NumberInput, BooleanInput,
+    useRecordContext, EmailField, ArrayInput, SimpleFormIterator, NumberInput, BooleanInput, CreateButton, TopToolbar,
 } from 'react-admin';
 import IPv4AddressInput from '../components/IPv4AddressInput';
 import TableRow from "@mui/material/TableRow";
@@ -22,8 +22,14 @@ const membershipInstitutionFilters = [
     <TextInput source="name" label="Search" alwaysOn/>,
 ];
 
+const MembershipInstitutionListActions = () => (
+    <TopToolbar>
+        <CreateButton />
+    </TopToolbar>
+);
+
 export const MembershipInstitutionList = () => (
-    <List filters={membershipInstitutionFilters}>
+    <List filters={membershipInstitutionFilters} actions={<MembershipInstitutionListActions />}>
         <Datagrid rowClick={"edit"}>
             <TextField source="name"/>
             <TextField source="note"/>
@@ -38,13 +44,11 @@ const MembershipInstitutionTitle = () => {
     return <span>membershipInstitution {record ? `"${record.name}"` : ''}</span>;
 };
 
-
-export const MembershipInstitutionEdit = () => {
+const MembershipInstitutionFormFields = () => {
     const labelCellWidth = "10rem";
     
     return (
-    <Edit title={<MembershipInstitutionTitle/>}>
-        <SimpleForm>
+        <>
             <Card sx={{width: "100%"}}>
                 <CardHeader title={<TextField source={"name"} variant={"h5"}/>}/>
 
@@ -108,8 +112,22 @@ export const MembershipInstitutionEdit = () => {
                     </SimpleFormIterator>
                 </ArrayInput>
             </Card>
-
-        </SimpleForm>
-    </Edit>
+        </>
     );
 };
+
+export const MembershipInstitutionAdd = () => (
+    <Create>
+        <SimpleForm>
+            <MembershipInstitutionFormFields />
+        </SimpleForm>
+    </Create>
+);
+
+export const MembershipInstitutionEdit = () => (
+    <Edit title={<MembershipInstitutionTitle/>}>
+        <SimpleForm>
+            <MembershipInstitutionFormFields />
+        </SimpleForm>
+    </Edit>
+);

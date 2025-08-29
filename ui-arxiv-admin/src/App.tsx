@@ -31,7 +31,11 @@ import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "
 import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
 import {SubmissionEdit, SubmissionList, SubmissionShow} from "./pages/Submissions";
 import {TapirSessionEdit, TapirSessionList} from "./pages/TapirSessions";
-import {MembershipInstitutionEdit, MembershipInstitutionList} from "./pages/MembershipInstitutions";
+import {
+    MembershipInstitutionAdd,
+    MembershipInstitutionEdit,
+    MembershipInstitutionList
+} from "./pages/MembershipInstitutions";
 import {darkTheme, lightTheme} from "./navTheme";
 
 import { defaultTheme, defaultDarkTheme, ListGuesser } from 'react-admin';
@@ -244,6 +248,7 @@ const AdminConsole: React.FC = () => {
                     icon={MembershipInstitutionIcon}
                     list={MembershipInstitutionList}
                     edit={MembershipInstitutionEdit}
+                    create={MembershipInstitutionAdd}
                 />
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>

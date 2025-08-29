@@ -41,7 +41,7 @@ from arxiv_admin_api.submissions import router as submission_router, meta_router
 from arxiv_admin_api.submission_categories import router as submission_categories_router
 from arxiv_admin_api.user import router as user_router, users_by_username_router
 from arxiv_admin_api.tapir_sessions import router as tapir_session_router
-from arxiv_admin_api.member_institutions import router as member_institution_router
+from arxiv_admin_api.member_institutions import router as member_institution_router, institution_ip_router
 from arxiv_admin_api.countries import router as countries_router
 from arxiv_admin_api.tapir_admin_audit import router as tapir_admin_audit_router
 from arxiv_admin_api.taxonomy import router as taxonomy_router
@@ -263,6 +263,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(submission_router, prefix="/v1")
     app.include_router(submission_meta_router, prefix="/v1")
     app.include_router(member_institution_router, prefix="/v1")
+    app.include_router(institution_ip_router, prefix="/v1")
     app.include_router(frontend_router)
     app.include_router(tapir_session_router, prefix="/v1")
     app.include_router(submission_categories_router, prefix="/v1")
