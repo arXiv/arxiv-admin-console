@@ -1481,8 +1481,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Membership Institution Data */
-        get: operations["membership_institution_data_v1_membership_institutions__id__get"];
+        /** Get Membership Institution Data */
+        get: operations["get_membership_institution_data_v1_membership_institutions__id__get"];
+        /** Put Membership Institution Data */
+        put: operations["put_membership_institution_data_v1_membership_institutions__id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/membership_institutions_ip/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Membership Institutions Ip */
+        get: operations["list_membership_institutions_ip_v1_membership_institutions_ip__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2516,10 +2534,23 @@ export interface components {
             /** Sequence */
             sequence?: number | null;
         };
+        /** MemberInstitutionIPModel */
+        MemberInstitutionIPModel: {
+            /** Id */
+            id?: number | null;
+            /** Sid */
+            sid?: number | null;
+            /** Exclude */
+            exclude?: number | null;
+            /** Start */
+            start: number;
+            /** End */
+            end: number;
+        };
         /** MemberInstitutionModel */
         MemberInstitutionModel: {
             /** Id */
-            id: number | null;
+            id?: number | null;
             /** Resolver Url */
             resolver_URL?: string | null;
             /** Name */
@@ -2536,6 +2567,8 @@ export interface components {
             email?: string | null;
             /** Contact Name */
             contact_name?: string | null;
+            /** Ip Ranges */
+            ip_ranges?: components["schemas"]["MemberInstitutionIPModel"][] | null;
         };
         /** MetadataModel */
         MetadataModel: {
@@ -3203,7 +3236,7 @@ export interface components {
              */
             share_last_name: boolean;
             /** Username */
-            username: string;
+            username?: string | null;
             /**
              * Share Email
              * @default 8
@@ -6668,7 +6701,7 @@ export interface operations {
             };
         };
     };
-    membership_institution_data_v1_membership_institutions__id__get: {
+    get_membership_institution_data_v1_membership_institutions__id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -6686,6 +6719,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberInstitutionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_membership_institution_data_v1_membership_institutions__id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberInstitutionModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberInstitutionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_membership_institutions_ip_v1_membership_institutions_ip__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description List of primary keys */
+                id?: string[] | null;
+                /** @description Member institution ID */
+                sid?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberInstitutionIPModel"][];
                 };
             };
             /** @description Validation Error */

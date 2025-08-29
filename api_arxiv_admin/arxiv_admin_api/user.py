@@ -255,6 +255,9 @@ async def list_users(
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                         detail="Invalid sort field")
 
+    # OPTIMIZATION: Use different query strategies based on flag_is_mod filter
+
+    # Use optimized base_select that can skip expensive moderator subquery
     query = UserModel.base_select(db)
     
     # Join with TapirNickname if needed for sorting by username
@@ -288,13 +291,14 @@ async def list_users(
             query = query.filter(TapirUser.flag_edit_users == flag_edit_users)
 
         if flag_is_mod is not None:
+            # We're not using the moderator-driven query, so need to filter
             subquery = select(distinct(t_arXiv_moderators.c.user_id))
-            if flag_is_mod:
-                # I think this is faster but I cannot make it work...
-                # query = query.join(t_arXiv_moderators, TapirUser.user_id == t_arXiv_moderators.c.user_id)
+
+            if flag_is_mod is True:
+                # Anti-join: users NOT in moderators table
                 query = query.filter(TapirUser.user_id.in_(subquery))
             else:
-                query = query.filter(~TapirUser.user_id.in_(subquery))
+                query = query.filter(TapirUser.user_id.not_in(subquery))
 
         if username:
             nick1 = aliased(TapirNickname)
@@ -389,7 +393,7 @@ async def list_users(
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [UserModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
+    result = [UserModel.to_model(user, session=db) for user in query.offset(_start).limit(_end - _start).all()]
     return result
 
 

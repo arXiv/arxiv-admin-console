@@ -31,7 +31,7 @@ import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "
 import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
 import {SubmissionEdit, SubmissionList, SubmissionShow} from "./pages/Submissions";
 import {TapirSessionEdit, TapirSessionList} from "./pages/TapirSessions";
-import {MembershipInstitutionList} from "./pages/MembershipInstitutions";
+import {MembershipInstitutionEdit, MembershipInstitutionList} from "./pages/MembershipInstitutions";
 import {darkTheme, lightTheme} from "./navTheme";
 
 import { defaultTheme, defaultDarkTheme, ListGuesser } from 'react-admin';
@@ -239,7 +239,12 @@ const AdminConsole: React.FC = () => {
                     create={EmailPatternCreate}
                 />
 
-                <Resource name="membership_institutions" />
+                <Resource
+                    name="membership_institutions"
+                    icon={MembershipInstitutionIcon}
+                    list={MembershipInstitutionList}
+                    edit={MembershipInstitutionEdit}
+                />
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>
                 <Resource name="paper_owners_user_doc"/>
