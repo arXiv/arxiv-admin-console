@@ -219,8 +219,9 @@ const DocumentContent = () => {
                                       target="_blank">Abstract <LinkIcon/></Link>
                                 <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon/></Link>
                                 <Button disabled={!metadata?.id} endIcon={<MetadataIcon/>}
-                                        onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>Edit
-                                    Metadata</Button>
+                                        onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>
+                                    Edit Metadata
+                                </Button>
                             </Box>
                         </TableCell>
                     </TableRow>
@@ -237,15 +238,21 @@ const DocumentContent = () => {
                             <TextField source="authors" variant={"body1"}/>
                         </TableCell>
                     </TableRow>
+                </Table>
+
+                <Table size="small">
                     <TableRow>
+                        <FieldNameCell>Document ID</FieldNameCell>
+                        <TableCell>
+                            <Box gap={1}>
+                                <TextField source="id" variant="body1"/>
+                            </Box>
+                        </TableCell>
+
                         <FieldNameCell>Categories</FieldNameCell>
                         <TableCell>
                             <SubmissionCategoriesField/>
                         </TableCell>
-                    </TableRow>
-
-
-                    <TableRow>
                         <FieldNameCell>Paper PWD</FieldNameCell>
                         <TableCell>
                             <Box display="flex" sx={{m: 0, p: 0}}>
@@ -256,15 +263,7 @@ const DocumentContent = () => {
                                 <Button onClick={() => setOpenRenewPaperPasswordDialog(true)}>Change Paper Password</Button>
                             </Box>
                         </TableCell>
-                    </TableRow>
 
-                    <TableRow>
-                        <FieldNameCell>Document ID</FieldNameCell>
-                        <TableCell>
-                            <Box gap={1}>
-                                <TextField source="id" variant="body1"/>
-                            </Box>
-                        </TableCell>
                     </TableRow>
 
                     <TableRow>
@@ -272,9 +271,13 @@ const DocumentContent = () => {
                         <TableCell>
                             <Typography>{metadata?.version || "No metadata"}</Typography>
                         </TableCell>
+                        <FieldNameCell>Source Format</FieldNameCell>
+                        <TableCell>
+                            <Typography>{metadata?.source_format || "No metadata"}</Typography>
+                        </TableCell>
                     </TableRow>
-
                 </Table>
+
             </Paper>
 
             {/* Paper Information */}
