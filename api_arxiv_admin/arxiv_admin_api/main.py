@@ -50,6 +50,7 @@ from arxiv_admin_api.author_ids import router as author_id_router
 from arxiv_admin_api.show_email_requests import router as show_email_requests_router
 from arxiv_admin_api.licenses import router as licenses_router
 from arxiv_admin_api.email_patterns import router as email_patterns_router
+from arxiv_admin_api.endorsement_domains import router as endorsement_domains_router
 
 from arxiv_admin_api.frontend import router as frontend_router
 from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
@@ -277,6 +278,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(show_email_requests_router, prefix="/v1")
     app.include_router(licenses_router, prefix="/v1")
     app.include_router(email_patterns_router, prefix="/v1")
+    app.include_router(endorsement_domains_router, prefix="/v1")
 
     @app.middleware("http")
     async def apply_response_headers(request: Request, call_next: Callable) -> Response:

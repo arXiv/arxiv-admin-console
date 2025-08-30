@@ -13,8 +13,8 @@ import OwnershipIcon from '@mui/icons-material/DoneOutline';
 import SubmissionIcon from '@mui/icons-material/Draw';
 import TapirSessionIcon from '@mui/icons-material/ConfirmationNumberSharp';
 import MembershipInstitutionIcon from '@mui/icons-material/School';
-
 import EmailPatternIcon from '@mui/icons-material/FilterList';
+import EndorsementDomainIcon from '@mui/icons-material/Domain';
 
 
 import {EmailTemplateCreate, EmailTemplateList, EmailTemplateEdit} from './pages/EmailTemplates';
@@ -52,6 +52,7 @@ import { MessageDialogProvider } from './components/MessageDialog';
 import {useNavigate, Navigate, useParams} from "react-router-dom";
 import {MetadataEdit} from "./pages/Metadata";
 import {EmailPatternCreate, EmailPatternList} from "./pages/EmailPatterns";
+import {EndorsementDomainAdd, EndorsementDomainEdit, EndorsementDomainList} from "./pages/EndorsementDomains";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -250,6 +251,15 @@ const AdminConsole: React.FC = () => {
                     edit={MembershipInstitutionEdit}
                     create={MembershipInstitutionAdd}
                 />
+
+                <Resource
+                    name="endorsement_domains"
+                    icon={EndorsementDomainIcon}
+                    list={EndorsementDomainList}
+                    edit={EndorsementDomainEdit}
+                    create={EndorsementDomainAdd}
+                />
+
                 <Resource name="endorsement_requests_audit"/>
                 <Resource name="ownership_requests_audit"/>
                 <Resource name="paper_owners_user_doc"/>

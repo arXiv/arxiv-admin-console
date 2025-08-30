@@ -1,0 +1,112 @@
+import {Box, Card, Divider, Table, TableCell} from '@mui/material';
+import {
+    List,
+    Datagrid,
+    TextField,
+    ReferenceField,
+    EditButton,
+    Edit,
+    Create,
+    SimpleForm,
+    ReferenceInput,
+    TextInput,
+    useRecordContext,
+    EmailField,
+    ArrayInput,
+    SimpleFormIterator,
+    NumberInput,
+    BooleanInput,
+    CreateButton,
+    TopToolbar,
+    BooleanField,
+    NumberField,
+} from 'react-admin';
+import IPv4AddressInput from '../components/IPv4AddressInput';
+import TableRow from "@mui/material/TableRow";
+import Typography from "@mui/material/Typography";
+import CardHeader from "@mui/material/CardHeader";
+import DashIcon from "@mui/icons-material/ArrowRightAlt";
+
+const endorsementDomainFilters = [
+    <TextInput source="name" label="Search" alwaysOn/>,
+];
+
+const EndorsementDomainListActions = () => (
+    <TopToolbar>
+        <CreateButton />
+    </TopToolbar>
+);
+
+export const EndorsementDomainList = () => (
+    <List filters={endorsementDomainFilters} actions={<EndorsementDomainListActions />}>
+        <Datagrid rowClick={"edit"}>
+            <TextField source="id"/>
+            <BooleanField source="endorse_all"/>
+            <BooleanField source="mods_endorse_all"/>
+            <BooleanField source="endorse_email"/>
+            <NumberField source="papers_to_endorse"/>
+        </Datagrid>
+    </List>
+);
+
+const EndorsementDomainTitle = () => {
+    const record = useRecordContext();
+    return <span>endorsementDomain {record ? `"${record.name}"` : ''}</span>;
+};
+
+const EndorsementDomainFormFields: React.FC<{create: boolean}> = (create) => {
+    const labelCellWidth = "10rem";
+    
+    return (
+        <>
+            <Card sx={{width: "100%"}}>
+                <CardHeader title={<TextField source={"name"} variant={"h5"}/>}/>
+
+                <Table size="small">
+                    <TableRow>
+                        <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>Domain Name</TableCell>
+                        { create ? <TableCell><TextInput source="id" /></TableCell> : <TableCell><TextField source="id" /></TableCell>}
+
+                    </TableRow>
+
+                    <TableRow>
+                        <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>endorse_all</TableCell>
+                        <TableCell><BooleanInput source="endorse_all"  helperText={false}/></TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>mods_endorse_all</TableCell>
+                        <TableCell><BooleanInput source="mods_endorse_all"  helperText={false}/></TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>endorse_email</TableCell>
+                        <TableCell><BooleanInput source="endorse_email"  helperText={false}/></TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>papers_to_endorse</TableCell>
+                        <TableCell><NumberInput source="papers_to_endorse"  helperText={false}/></TableCell>
+                    </TableRow>
+
+                </Table>
+            </Card>
+        </>
+    );
+};
+
+export const EndorsementDomainAdd = () => (
+    <Create>
+        <SimpleForm>
+            <EndorsementDomainFormFields create={true} />
+        </SimpleForm>
+    </Create>
+);
+
+export const EndorsementDomainEdit = () => (
+    <Edit title={<EndorsementDomainTitle/>}>
+        <SimpleForm>
+            <EndorsementDomainFormFields create={false} />
+        </SimpleForm>
+    </Edit>
+);

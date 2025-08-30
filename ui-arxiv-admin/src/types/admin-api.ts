@@ -1995,6 +1995,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/endorsement_domains/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Domains */
+        get: operations["list_domains_v1_endorsement_domains__get"];
+        put?: never;
+        /** Create Endorsement Domain */
+        post: operations["create_endorsement_domain_v1_endorsement_domains__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsement_domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Domain Data */
+        get: operations["domain_data_v1_endorsement_domains__id__get"];
+        /** Update Endorsement Domain */
+        put: operations["update_endorsement_domain_v1_endorsement_domains__id__put"];
+        post?: never;
+        /** Delete Endorsement Domain */
+        delete: operations["delete_endorsement_domain_v1_endorsement_domains__id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2390,6 +2427,32 @@ export interface components {
             flag_knows_personally: boolean;
             /** Comment */
             comment?: string | null;
+        };
+        /** EndorsementDomainModel */
+        "EndorsementDomainModel-Input": {
+            /** Id */
+            id: string;
+            /** Endorse All */
+            endorse_all: boolean;
+            /** Mods Endorse All */
+            mods_endorse_all: boolean;
+            /** Endorse Email */
+            endorse_email: boolean;
+            /** Papers To Endorse */
+            papers_to_endorse: number;
+        };
+        /** EndorsementDomainModel */
+        "EndorsementDomainModel-Output": {
+            /** Id */
+            id: string;
+            /** Endorse All */
+            endorse_all: string;
+            /** Mods Endorse All */
+            mods_endorse_all: string;
+            /** Endorse Email */
+            endorse_email: string;
+            /** Papers To Endorse */
+            papers_to_endorse: number;
         };
         /** EndorsementModel */
         EndorsementModel: {
@@ -7942,6 +8005,172 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_domains_v1_endorsement_domains__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                name?: string | null;
+                id?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementDomainModel-Output"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_endorsement_domain_v1_endorsement_domains__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndorsementDomainModel-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementDomainModel-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    domain_data_v1_endorsement_domains__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementDomainModel-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_endorsement_domain_v1_endorsement_domains__id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndorsementDomainModel-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementDomainModel-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_endorsement_domain_v1_endorsement_domains__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
