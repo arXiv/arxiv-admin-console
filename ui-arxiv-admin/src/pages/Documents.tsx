@@ -46,6 +46,10 @@ import FieldNameCell from "../bits/FieldNameCell";
 import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
 import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
 import ISODateField from '../bits/ISODateFiled';
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -280,15 +284,14 @@ const DocumentContent = () => {
 
             </Paper>
 
-            {/* Paper Information */}
+            {/* Admin Log */}
             <Paper elevation={3} style={{padding: '1em'}}>
                 <Typography variant="body1" fontWeight={"bold"}>
-                    Show e-mail requests:
+                    Admin Log:
                 </Typography>
-                <Box maxWidth={"sm"}>
-                    <ShowEmailsRequestsList document_id={record?.id}/>
-                </Box>
+                <AdminLogList paper_id={record?.paper_id}/>
             </Paper>
+
 
             {/* Paper Owners */}
             <Paper elevation={3} style={{padding: '1em'}}>
@@ -306,22 +309,25 @@ const DocumentContent = () => {
             </Paper>
 
             {/* Submission History */}
-            <Paper elevation={3} style={{padding: '1em'}}>
-                <Typography variant="body1" fontWeight={"bold"}>
-                    Submission history:
-                </Typography>
-                <Box maxWidth={"sm"}>
+            <Accordion sx={{my: 0, py: 0}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+                    Submission history
+                </AccordionSummary>
+                <AccordionDetails  sx={{my: 0, py: 0}}>
                     <SubmissionHistoryList document_id={record?.id}/>
-                </Box>
-            </Paper>
+                </AccordionDetails>
+            </Accordion>
 
-            {/* Admin Log */}
-            <Paper elevation={3} style={{padding: '1em'}}>
-                <Typography variant="body1" fontWeight={"bold"}>
-                    Admin Log:
-                </Typography>
-                <AdminLogList paper_id={record?.paper_id}/>
-            </Paper>
+            {/* Paper Information */}
+            <Accordion sx={{my: 0, py: 0}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+                    Show e-mail requests:
+                </AccordionSummary>
+                <AccordionDetails  sx={{my: 0, py: 0}}>
+                    <ShowEmailsRequestsList document_id={record?.id}/>
+                </AccordionDetails>
+            </Accordion>
+
             <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog}
                                       setOpen={setOpenAddOwnerDialog}/>
             <RenewPaperPasswordDialog open={openRenewPaperPasswordDialog} setOpen={setOpenRenewPaperPasswordDialog} renew={renewPaperPassword} />

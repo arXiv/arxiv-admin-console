@@ -15,7 +15,7 @@ export const UserIdSubmissionList: React.FC<{userId: Identifier}> = ({userId}) =
 
     return (
         <List resource="submissions"
-              filterDefaultValues={{
+              filter={{
                   submitter_id: userId,
                   submission_status: [],
               }}

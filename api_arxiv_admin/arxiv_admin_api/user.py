@@ -14,8 +14,9 @@ from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, field_validator
+from requests import session
 
-from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row
+from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row, or_
 from sqlalchemy.orm import Session, aliased
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
@@ -227,7 +228,7 @@ async def list_users(
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         q: Optional[str] = Query(None, description="Query string"),
         db: Session = Depends(get_db),
-        _is_admin: bool = Depends(is_admin_user),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
 ) -> List[UserModel]:
     """
     List users
@@ -255,18 +256,19 @@ async def list_users(
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                         detail="Invalid sort field")
 
-    # OPTIMIZATION: Use different query strategies based on flag_is_mod filter
-
-    # Use optimized base_select that can skip expensive moderator subquery
+    # Horay, base query no longer uses subqueries.
     query = UserModel.base_select(db)
     
+    if not current_user.is_admin:
+        query = query.filter(TapirUser.user_id == current_user.user_id)
+
     # Join with TapirNickname if needed for sorting by username
     if sort_nickname_alias is not None:
         query = query.join(sort_nickname_alias, TapirUser.user_id == sort_nickname_alias.user_id)
 
     if id is not None:
-        query = query.filter(TapirUser.user_id.in_(id))
-
+        if current_user.is_admin:
+            query = query.filter(TapirUser.user_id.in_(id))
     else:
         if q:
             if "@" in q:
@@ -463,7 +465,7 @@ async def update_user_property(
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> UserModel:
     """Update user property - by PUT"""
-    if not current_user.is_admin:
+    if not current_user.is_admin and user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can update user properties")
 
     user = session.query(TapirUser).filter(TapirUser.user_id == user_id).one_or_none()
