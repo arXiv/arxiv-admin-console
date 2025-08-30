@@ -54,19 +54,21 @@ const EndorsementDomainTitle = () => {
     return <span>endorsementDomain {record ? `"${record.name}"` : ''}</span>;
 };
 
-const EndorsementDomainFormFields: React.FC<{create: boolean}> = (create) => {
+const EndorsementDomainFormFields: React.FC<{isCreate: boolean}> = ({isCreate}) => {
     const labelCellWidth = "10rem";
+    console.log("create", isCreate);
     
     return (
         <>
             <Card sx={{width: "100%"}}>
-                <CardHeader title={<TextField source={"name"} variant={"h5"}/>}/>
+                <CardHeader title={<TextField source={"id"} variant={"h5"}/>}/>
 
                 <Table size="small">
                     <TableRow>
                         <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>Domain Name</TableCell>
-                        { create ? <TableCell><TextInput source="id" /></TableCell> : <TableCell><TextField source="id" /></TableCell>}
-
+                        <TableCell>
+                            { isCreate ? <TextInput source="id" /> : <TextField source="id" sx={{fontSize: "1.2rem"}} />}
+                        </TableCell>
                     </TableRow>
 
                     <TableRow>
@@ -98,7 +100,7 @@ const EndorsementDomainFormFields: React.FC<{create: boolean}> = (create) => {
 export const EndorsementDomainAdd = () => (
     <Create>
         <SimpleForm>
-            <EndorsementDomainFormFields create={true} />
+            <EndorsementDomainFormFields isCreate={true} />
         </SimpleForm>
     </Create>
 );
@@ -106,7 +108,7 @@ export const EndorsementDomainAdd = () => (
 export const EndorsementDomainEdit = () => (
     <Edit title={<EndorsementDomainTitle/>}>
         <SimpleForm>
-            <EndorsementDomainFormFields create={false} />
+            <EndorsementDomainFormFields isCreate={false} />
         </SimpleForm>
     </Edit>
 );
