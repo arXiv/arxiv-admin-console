@@ -14,7 +14,7 @@ from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_AdminChangePaperP
 from arxiv_bizlogic.bizmodels.user_model import UserModel
 from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_client_host, get_authn, ApiToken, is_admin_user, \
     get_authn_user
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status as http_status, UploadFile, File, Form
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 
@@ -175,14 +175,30 @@ async def list_ownerships(
         t0 = datetime.now()
 
         order_columns = []
-        query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)
+        needs_document_join = False
+        
+        # Check if we need document join for sorting or filtering
+        if _sort:
+            keys = _sort.split(",")
+            for key in keys:
+                if '.' in key and key.startswith('document.'):
+                    needs_document_join = True
+                    break
+        
+        # Check if datagrid filter needs document join
+        if datagrid_filter and datagrid_filter.field_name:
+            if (datagrid_filter.field_name.startswith("document.") or 
+                datagrid_filter.field_name == "date"):
+                needs_document_join = True
+        
+        if needs_document_join:
+            query = query.join(Document)
 
         if _sort:
             keys = _sort.split(",")
             for key in keys:
                 if key == "id":
-                    # Sort with both user/doc ids
-                    order_columns.append(getattr(PaperOwner, "user_id"))
+                    # Sort by document_id only for better performance
                     order_columns.append(getattr(PaperOwner, "document_id"))
                 else:
                     joined_key = key.split('.')
@@ -231,7 +247,6 @@ async def list_ownerships(
             query = query.filter(PaperOwner.flag_author == flag_author)
 
         if datagrid_filter:
-            # query = query.join(Document).filter(PaperOwner.document_id == Document.document_id)
             field_name = datagrid_filter.field_name
             if field_name == "id":
                 field_name = "document_id"
@@ -697,6 +712,9 @@ async def update_authorship(
                     raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
                                         detail="Only admin can create ownership/authorship records.")
 
+                if current_user.tapir_session_id is None:
+                    raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="There is no Tapir session ID")
+
                 new_ownership = PaperOwner(
                     document_id=did,
                     user_id=int(uid),
@@ -888,3 +906,78 @@ def renew_paper_password(
 
     session.commit()
     return PaperPwModel.model_validate(data)
+
+
+@router.post("/user/{user_id:str}")
+async def bulk_upload_ownership_request(
+        user_id: int,
+        file: Optional[UploadFile] = File(None),
+        content: Optional[str] = Form(None),
+        file_format: str = Form("csv"),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_addr: str = Depends(get_client_host),
+        remote_host: str = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
+        session: Session = Depends(get_db)) -> PaperOwnershipUpdateRequest:
+
+    user = UserModel.one_user(session, user_id)
+    if user is None:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                           detail="Invalid user ID")
+
+    if not current_user.is_admin and str(user_id) != str(current_user.user_id):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, 
+                           detail="You can only create ownership requests for yourself")
+
+    # Get content from either file upload or direct content
+    if file:
+        if file.content_type and not file.content_type.startswith('text/'):
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                               detail="File must be a text file")
+        
+        file_content = await file.read()
+        try:
+            paper_content = file_content.decode('utf-8')
+        except UnicodeDecodeError:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                               detail="File must be UTF-8 encoded")
+    elif content:
+        paper_content = content
+    else:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                           detail="Either file or content must be provided")
+
+    lines = paper_content.splitlines()
+    authored_ids = []
+    
+    for line in lines:
+        paper_id = line.strip()
+        if not paper_id:
+            continue
+            
+        # Normalize the paper ID
+        squashed_id = arxiv_squash_id(paper_id)
+        if not squashed_id:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                               detail=f"Paper ID '{paper_id}' is ill-formed")
+        
+        # Find the document
+        document = session.query(Document).filter(Document.paper_id == squashed_id).one_or_none()
+        if not document:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                               detail=f"Paper with ID '{paper_id}' does not exist")
+        
+        # Create ownership ID for this user and document
+        ownership: PaperOwner | None = session.query(PaperOwner).filter(and_(PaperOwner.document_id == document.document_id,
+                                                                             PaperOwner.user_id == user_id)).one_or_none()
+        if not ownership or not ownership.valid:
+            ownership_id = ownership_combo_key(user_id, document.document_id)
+            authored_ids.append(ownership_id)
+    
+    # Return single PaperOwnershipUpdateRequest with all papers
+    return PaperOwnershipUpdateRequest(
+        authored=authored_ids,
+        not_authored=[],
+        valid=True,
+        auto=False
+    )

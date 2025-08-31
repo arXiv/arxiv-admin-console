@@ -673,7 +673,8 @@ export interface paths {
         /** List Ownerships For User */
         get: operations["list_ownerships_for_user_v1_paper_owners_user__user_id__get"];
         put?: never;
-        post?: never;
+        /** Bulk Upload Ownership Request */
+        post: operations["bulk_upload_ownership_request_v1_paper_owners_user__user_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2002,8 +2003,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Domains */
-        get: operations["list_domains_v1_endorsement_domains__get"];
+        /** List Endorsement Domains */
+        get: operations["list_endorsement_domains_v1_endorsement_domains__get"];
         put?: never;
         /** Create Endorsement Domain */
         post: operations["create_endorsement_domain_v1_endorsement_domains__post"];
@@ -2020,8 +2021,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Domain Data */
-        get: operations["domain_data_v1_endorsement_domains__id__get"];
+        /** Get Endorsement Domain Data */
+        get: operations["get_endorsement_domain_data_v1_endorsement_domains__id__get"];
         /** Update Endorsement Domain */
         put: operations["update_endorsement_domain_v1_endorsement_domains__id__put"];
         post?: never;
@@ -2155,6 +2156,18 @@ export interface components {
             author_id: string | null;
             /** Updated */
             updated: string | null;
+        };
+        /** Body_bulk_upload_ownership_request_v1_paper_owners_user__user_id__post */
+        Body_bulk_upload_ownership_request_v1_paper_owners_user__user_id__post: {
+            /** File */
+            file?: string | null;
+            /** Content */
+            content?: string | null;
+            /**
+             * File Format
+             * @default csv
+             */
+            file_format: string;
         };
         /** Body_upload_email_patterns_v1_email_patterns_import_post */
         Body_upload_email_patterns_v1_email_patterns_import_post: {
@@ -2429,7 +2442,7 @@ export interface components {
             comment?: string | null;
         };
         /** EndorsementDomainModel */
-        "EndorsementDomainModel-Input": {
+        EndorsementDomainModel: {
             /** Id */
             id: string;
             /** Endorse All */
@@ -2438,19 +2451,6 @@ export interface components {
             mods_endorse_all: boolean;
             /** Endorse Email */
             endorse_email: boolean;
-            /** Papers To Endorse */
-            papers_to_endorse: number;
-        };
-        /** EndorsementDomainModel */
-        "EndorsementDomainModel-Output": {
-            /** Id */
-            id: string;
-            /** Endorse All */
-            endorse_all: string;
-            /** Mods Endorse All */
-            mods_endorse_all: string;
-            /** Endorse Email */
-            endorse_email: string;
             /** Papers To Endorse */
             papers_to_endorse: number;
         };
@@ -5364,6 +5364,41 @@ export interface operations {
             };
         };
     };
+    bulk_upload_ownership_request_v1_paper_owners_user__user_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_upload_ownership_request_v1_paper_owners_user__user_id__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperOwnershipUpdateRequest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_ownership_v1_paper_owners__id__get: {
         parameters: {
             query?: never;
@@ -8017,7 +8052,7 @@ export interface operations {
             };
         };
     };
-    list_domains_v1_endorsement_domains__get: {
+    list_endorsement_domains_v1_endorsement_domains__get: {
         parameters: {
             query?: {
                 /** @description sort by */
@@ -8041,7 +8076,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementDomainModel-Output"][];
+                    "application/json": components["schemas"]["EndorsementDomainModel"][];
                 };
             };
             /** @description Validation Error */
@@ -8064,7 +8099,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EndorsementDomainModel-Input"];
+                "application/json": components["schemas"]["EndorsementDomainModel"];
             };
         };
         responses: {
@@ -8074,7 +8109,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementDomainModel-Output"];
+                    "application/json": components["schemas"]["EndorsementDomainModel"];
                 };
             };
             /** @description Validation Error */
@@ -8088,7 +8123,7 @@ export interface operations {
             };
         };
     };
-    domain_data_v1_endorsement_domains__id__get: {
+    get_endorsement_domain_data_v1_endorsement_domains__id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -8105,7 +8140,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementDomainModel-Output"];
+                    "application/json": components["schemas"]["EndorsementDomainModel"];
                 };
             };
             /** @description Validation Error */
@@ -8130,7 +8165,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EndorsementDomainModel-Input"];
+                "application/json": components["schemas"]["EndorsementDomainModel"];
             };
         };
         responses: {
@@ -8140,7 +8175,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementDomainModel-Output"];
+                    "application/json": components["schemas"]["EndorsementDomainModel"];
                 };
             };
             /** @description Validation Error */

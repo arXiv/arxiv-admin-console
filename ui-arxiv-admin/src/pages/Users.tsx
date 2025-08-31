@@ -61,6 +61,7 @@ import Button from '@mui/material/Button';
 import LoginIcon from '@mui/icons-material/Login';
 import SuspendIcon from '@mui/icons-material/Pause';
 import CommentIcon from '@mui/icons-material/Comment';
+import UploadIcon from '@mui/icons-material/Upload';
 import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import {useLocation, useNavigate} from 'react-router-dom';
 import EmailLinkField from "../bits/EmailLinkField";
@@ -81,10 +82,10 @@ import BooleanField from '../bits/BooleanNumberField';
 import UserNameField from "../bits/UserNameField";
 import UserNameDialog from "../components/UserNameDialog";
 import {UserSubmissionList} from "../components/UserSumissionList";
+import BulkPaperOwnerDialog from "../components/BulkPaperOwnerDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
-
 
 const UserFilter = (props: any) => (
     <Filter {...props}>
@@ -540,7 +541,7 @@ function UserModerationCategories({open, setOpen}: { open: boolean, setOpen: (op
 }
 
 
-const UserEditToolbar: React.FC<{ setAddCommentOpen: (open: boolean) => void }> = ({setAddCommentOpen}) => {
+const UserEditToolbar: React.FC<{ setAddCommentOpen: (open: boolean) => void, setBulkPaperOwnerOpen: (open: boolean) => void }> = ({setAddCommentOpen, setBulkPaperOwnerOpen}) => {
     const notify = useNotify();
     const record = useRecordContext();
     const runtimeProps = useContext(RuntimeContext);
@@ -606,6 +607,16 @@ const UserEditToolbar: React.FC<{ setAddCommentOpen: (open: boolean) => void }> 
                 sx={{ml: 2}}
             >
                 Add comment
+            </Button>
+            
+            <Button
+                variant="contained"
+                color="primary"
+                startIcon={<UploadIcon/>}
+                onClick={() => setBulkPaperOwnerOpen(true)}
+                sx={{ml: 2}}
+            >
+                Bulk Paper Owner
             </Button>
 
             <Box sx={{flexGrow: 1}}/>
@@ -676,7 +687,7 @@ const EmailVerificationSwitch: React.FC<EmailVerificationSwitchProps> = ({ onUpd
     );
 };
 
-export const UserEdit = () => {
+const UserEditContent = () => {
     const [isEndorsementsOpen, setIsEndorsementsOpen] = useState(false);
     const [isModOpen, setIsModOpen] = useState(false);
     const [canEndorseForOpen, setCanEndorseForOpen] = useState(false);
@@ -685,9 +696,11 @@ export const UserEdit = () => {
     const [changeUserNameOpen, setChangeUserNameOpen] = useState(false);
     const [addCommentOpen, setAddCommentOpen] = useState(false);
     const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
+    const [bulkPaperOwnerOpen, setBulkPaperOwnerOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
     const notify = useNotify();
     const runtimeProps = useContext(RuntimeContext);
+    const record = useRecordContext();
 
     const switchProps: SxProps = {
         '& .MuiSwitch-root': {
@@ -783,9 +796,8 @@ export const UserEdit = () => {
     const erpandedSummaryHeight = '10px';
 
     return (
-        <Edit title={<UserTitle/>} actions={false} redirect={false}
-        >
-            <SimpleForm toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen}/>}>
+        <>
+            <SimpleForm toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen} setBulkPaperOwnerOpen={setBulkPaperOwnerOpen}/>}>
                 <Grid container>
                     <Grid size={{xs: 12, md: 6}}>
                         <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
@@ -959,6 +971,20 @@ export const UserEdit = () => {
                 title={"Change Veto Status"} onUpdated={handleVetoStatusChanged}
                 vetoStatusMode={true} vetoStatusChoices={vetoStatusChoices}
             />
+            <BulkPaperOwnerDialog
+                open={bulkPaperOwnerOpen}
+                setOpen={setBulkPaperOwnerOpen}
+                userId={Number(record?.id) || 0}
+                userRecord={record}
+            />
+        </>
+    )
+};
+
+export const UserEdit = () => {
+    return (
+        <Edit title={<UserTitle/>} actions={false} redirect={false}>
+            <UserEditContent />
         </Edit>
     )
 };

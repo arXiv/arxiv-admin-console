@@ -196,7 +196,6 @@ const AdminConsole: React.FC = () => {
                     list={DocumentList}
                     show={DocumentShow}
                     icon={DocumentIcon}
-                    create={DocumentCreate}
                     recordRepresentation="id"
                 />
 
