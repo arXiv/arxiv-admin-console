@@ -407,8 +407,8 @@ class PaperPwModel(BaseModel):
 
 
 async def _get_paper_pw(id: str,
-                        current_user: ArxivUserClaims = Depends(get_authn),
-                        session: Session = Depends(get_db)) -> PaperPwModel:
+                        current_user: ArxivUserClaims,
+                        session: Session):
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED)
 
@@ -471,9 +471,18 @@ async def list_paper_pw(
 
 @paper_pw_router.get('/{id:str}')
 async def get_paper_pw(id: str,
-                       current_user: ArxivUserClaims = Depends(get_authn),
+                       current_user: ArxivUserClaims = Depends(get_authn_user),
                        session: Session = Depends(get_db)) -> PaperPwModel:
-    return await _get_paper_pw(id, current_user, session)
+    
+    try:
+        user_id, doc_id = to_ids(id)
+    except Exception:
+        raise HTTPException(status=http_status.HTTP_400_BAD_REQUEST, detail=f"{id} is malformed.")
+
+    if not current_user.is_admin and str(current_user.user_id) != str(user_id):
+        raise HTTPException(status=http_status.HTTP_403_FORBIDDEN, detail=f"You are permitted for your own.")
+        
+    return await _get_paper_pw(doc_id, current_user, session)
 
 
 @paper_pw_router.get('/paper/{arxiv_id:str}')

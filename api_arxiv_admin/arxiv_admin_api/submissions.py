@@ -30,7 +30,7 @@ class SubmissionStatusModel(BaseModel):
 
 _VALID_STATUS_LIST: List[SubmissionStatusModel] = [
     # WORKING
-    SubmissionStatusModel(id=0, name="Working", group="current"),
+    SubmissionStatusModel(id=0, name="Unsubmitted", group="working"),
 
     # SUBMITTED
     SubmissionStatusModel(id=1, name="Submitted", group="current"),
@@ -315,10 +315,13 @@ async def list_submissions(
                     status_all = True
                     break
                 for status_def in _VALID_STATUS_LIST:
-                    if status_def.name.find(status_code) != -1 or status_def.group.find(status_code) != -1:
+                    if status_def.name == status_code or status_def.group == status_code:
                         status_list.append(status_def.id)
             if not status_all:
-                query = query.filter(Submission.status.in_(status_list))
+                if status_list:
+                    query = query.filter(Submission.status.in_(status_list))
+                else:
+                    logger.warning("No valid status codes provided")
 
         if title_like is not None:
             # query = query.filter(Submission.title.like("%" + title_like + "%"))
