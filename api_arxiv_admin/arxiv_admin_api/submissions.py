@@ -7,7 +7,7 @@ from typing import Optional, List, Union
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv.base import logging
 from arxiv.db.models import Submission, SubmissionCategory
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
 from pydantic import BaseModel, field_validator
@@ -416,6 +416,61 @@ async def get_submission(
     submission: SubmissionModel = SubmissionModel.model_validate(sub)
     submission.submission_categories = [SubmissionCategoryModel.model_validate(cat) for cat in SubmissionCategoryModel.base_select(session).filter(SubmissionCategory.submission_id == id).all()]
     return submission
+
+
+@router.delete("/{id:int}")
+async def delete_submission(
+        id: int,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)) -> SubmissionModel:
+    """Delete a submission"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    query = session.query(Submission).filter(Submission.submission_id == id)
+    if not current_user.is_admin:
+        query = query.filter(Submission.submitter_id == current_user.user_id)
+    sub: Submission | None = query.one_or_none()
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission not found")
+        
+    sub.status = 10 if str(current_user.user_id) == str(sub.submitter_id) else 9
+    sub.is_withdrawn = True
+    session.commit()
+    
+    return SubmissionModel.model_validate(SubmissionModel.base_select(session).filter(Submission.submission_id == id).first())
+
+
+class SubmissionUpdateModel(BaseModel):
+    status: Optional[str] # id of intSubmissionStatusModel
+    
+
+@router.patch("/{id:int}")
+async def update_submission(
+        id: int,
+        update: SubmissionUpdateModel,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)) -> SubmissionModel:
+    """Update a submission"""
+
+    query = session.query(Submission).filter(Submission.submission_id == id)
+    if not current_user.is_admin:
+        query = query.filter(Submission.submitter_id == current_user.user_id)
+    sub: Submission | None = query.one_or_none()
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission not found")
+        
+    if update.status is not None:
+        for st in _VALID_STATUS_LIST:
+            if st.name == update.status and st.group != "invalid":
+                sub.status = st.id
+                break
+        else:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"{update.status|r} is OOB.")
+
+    session.commit()    
+    return SubmissionModel.model_validate(SubmissionModel.base_select(session).filter(Submission.submission_id == id).first())
+
 
 
 @router.get("/document/{document_id:str}")
