@@ -1,9 +1,5 @@
 """Provides integration for the external user interface."""
 import datetime
-import json
-from urllib.parse import urlparse, parse_qs
-
-from google.cloud import pubsub_v1
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, datetime_to_epoch
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
@@ -18,19 +14,18 @@ from arxiv.db.models import TapirEmailTemplate #, TapirNickname
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import os
 
 from jinja2 import Environment, BaseLoader
 from starlette.responses import JSONResponse
 
 from . import is_admin_user, get_db
+from .helpers.send_notification import send_notification
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/email_templates")
+notification_pubsub_router = APIRouter(prefix="/notification_pubsub_router")
 
 class WorkflowStatus(IntEnum):
     UNKNOWN = 0
@@ -242,67 +237,66 @@ def render_template(template_string: str, params: dict | list) -> str:
         return f"Error: {str(e)}\n\n{template_string}\n\n{params!r}"
 
 
-@router.post('/{id:int}/publish')
-async def publish_test_email_template(
+@router.post('/{id:int}/messages')
+async def send_template_message(
         response: Response,
         id: int,
         body: Optional[dict] = None,
-        subject: str = Query("Test email template", description="Subject of the test email"),
+        subject: str = Query("Test email template", description="Subject of the email"),
+        test_mode: bool = Query(True, description="Send in test mode to current user"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> JSONResponse:
     template: TapirEmailTemplate | None = session.query(TapirEmailTemplate).filter(TapirEmailTemplate.template_id == id).one_or_none()
     if template is None:
         raise HTTPException(status_code=404, detail=f"Template {id} not found")
 
-    payload = {
-        "subject": subject,
-        "mail_to": current_user.email,
-        "mail_from": current_user.email,
-        "body": template.data if body is None else render_template(template.data, body),
-        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-    }
-
-    # Get topic name and project ID from environment variables
-    topic_name = os.environ.get('GCP_EMAIL_TOPIC_ID')
-    project_id = os.environ.get('GCP_PROJECT')
+    # Render template with provided parameters
+    rendered_body = template.data if body is None else render_template(template.data, body)
     
-    if not topic_name:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GCP_EMAIL_TOPIC_ID environment variable is not configured"
-        )
-    
-    if not project_id:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GCP_PROJECT_ID environment variable is not configured"
-        )
-
     try:
-        # Initialize Pub/Sub publisher client
-        publisher = pubsub_v1.PublisherClient()
+        # Use the centralized notification service
+        recipient_email = current_user.email if test_mode else None  # In production mode, recipient would come from request
+        event_type = "EMAIL_TEMPLATE_TEST" if test_mode else "EMAIL_TEMPLATE_SEND"
         
-        # Construct full topic path
-        topic_path = publisher.topic_path(project_id, topic_name)
+        if not test_mode and not recipient_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Recipient email required for production mode"
+            )
+            
+        message_id = send_notification(
+            email_to=str(current_user.email),
+            subject=subject,
+            message=rendered_body,
+            sender=current_user.email,
+            event_type=event_type,
+            metadata={
+                "template_id": id,
+                "template_name": template.short_name.decode('utf-8') if isinstance(template.short_name, bytes) else template.short_name,
+                "test_mode": test_mode,
+                "parameters": body,
+                "recipient": recipient_email
+            },
+            topic_name=os.environ.get('GCP_EMAIL_TOPIC_ID', 'notification-events'),
+            logger=logger
+        )
         
-        # Convert payload to JSON bytes
-        message_data = json.dumps(payload).encode('utf-8')
-        
-        # Publish message to Pub/Sub topic
-        future = publisher.publish(topic_path, message_data)
-        message_id = future.result()  # Wait for publish to complete
-        
-        logger.info(f"Test email published to Pub/Sub topic {topic_path} with message ID: {message_id}")
+        return {
+            "message_id": message_id,
+            "subject": subject,
+            "recipient": recipient_email,
+            "template_id": id,
+            "test_mode": test_mode,
+            "rendered_body": rendered_body if test_mode else None  # Only return body in test mode
+        }
         
     except Exception as e:
-        logger.error(f"Failed to publish test email to Pub/Sub: {str(e)}")
+        mode_str = "test" if test_mode else "production"
+        logger.error(f"Failed to send {mode_str} email for template {id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send test email: {str(e)}"
+            detail=f"Failed to send {mode_str} email: {str(e)}"
         )
-
-    # Return the template data
-    return payload
 
 
 @router.post('/{id:int}/send')
@@ -318,54 +312,45 @@ async def send_test_email_template(
         TapirEmailTemplate.template_id == id).one_or_none()
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template {id} not found")
+    
     if body is None:
         body = {}
-    smtp_url = request.app.extra['SMTP_URL']
-    url = urlparse(smtp_url)
-    use_ssl = url.scheme == 'ssmtp' # 'ssmtptls'
-    use_tls = url.scheme == 'ssmtptls'
-    params = parse_qs(url.query)
-    smtp_user = params.get('user', [None])[0]
-    smtp_pass = params.get('password', [None])[0]
-    smtp_server = url.hostname
-    smtp_port = url.port
-    sender = current_user.email
-    recipient = current_user.email
+    
+    # Render template with provided parameters
+    rendered_body = render_template(template.data, body.get('variables', {}))
 
-    msg = MIMEMultipart()
-    msg['From'] = sender
-    msg['To'] = recipient
-    msg['Subject'] = subject if subject else body.get('subject', 'No Subject Provided')
-    text = template.data if body is None else render_template(template.data, body.get('variables', {}))
-    msg.attach(MIMEText(text, 'plain'))
-
-    email_payload = msg.as_string()
+    sender = request.app.extra.get("ADMIN_CONSOLE_EMAIL_SENDER", "no-reply@arxiv.org")
     try:
-        if use_ssl:
-            # Use SSL connection from the start
-            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-                server.ehlo()
-                if smtp_user and smtp_pass:
-                    server.login(smtp_user, smtp_pass)
-                server.sendmail(sender, recipient, email_payload)
-        elif use_tls:
-            # Use TLS (original behavior)
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                if smtp_user and smtp_pass:
-                    server.login(smtp_user, smtp_pass)
-                server.sendmail(sender, recipient, email_payload)
-        else:
-            smtp_server = "localhost"
-            with smtplib.SMTP(smtp_server, smtp_port) as server:
-                server.ehlo()
-                if smtp_user and smtp_pass:
-                    server.login(smtp_user, smtp_pass)
-                server.sendmail(sender, recipient, email_payload)
+        # Use the centralized notification service
+        message_id = send_notification(
+            subject=subject,
+            message=rendered_body,
+            email_to=current_user.email,
+            sender=sender,
+            event_type="EMAIL_TEMPLATE_SEND",
+            metadata={
+                "template_id": id,
+                "template_name": template.short_name.decode('utf-8') if isinstance(template.short_name, bytes) else template.short_name,
+                "parameters": body
+            },
+            topic_name=os.environ.get('GCP_EMAIL_TOPIC_ID', 'notification-events'),
+            logger=logger
+        )
+        
+        response.status_code = status.HTTP_201_CREATED
+        return {
+            "message_id": message_id,
+            "subject": subject,
+            "recipient": current_user.email,
+            "template_id": id,
+            "rendered_body": rendered_body
+        }
+        
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Failed to send email: {str(e)}")
+        logger.error(f"Failed to send email for template {id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send email: {str(e)}"
+        )
 
-    response.status_code = status.HTTP_201_CREATED
-    return {"payload": email_payload}
+

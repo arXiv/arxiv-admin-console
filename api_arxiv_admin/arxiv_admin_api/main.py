@@ -6,14 +6,13 @@ from datetime import timezone, datetime
 import httpx
 from typing import Callable, Optional, Tuple, Any
 
-from fastapi import FastAPI, Request, status, Depends
+from fastapi import FastAPI, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-# from starlette.middleware.sessions import SessionMiddleware
-from fastapi.responses import Response, RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from asgi_logger import AccessLoggerMiddleware
 
 import sqlalchemy
+import sqlalchemy.event
 from sqlalchemy.engine import ExecutionContext
 from asgi_correlation_id import CorrelationIdMiddleware
 from asgi_correlation_id.middleware import is_valid_uuid4
@@ -22,11 +21,11 @@ from uuid import uuid4
 from arxiv.base.globals import get_application_config
 from arxiv.auth.user_claims import ArxivUserClaims
 
-from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_current_user, get_session_cookie
+from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_session_cookie
 # from arxiv_admin_api.authentication import router as auth_router
 from arxiv_admin_api.admin_logs import router as admin_log_router
 from arxiv_admin_api.categories import router as categories_router, archive_group_router
-from arxiv_admin_api.email_template import router as email_template_router
+from arxiv_admin_api.email_template import router as email_template_router, notification_pubsub_router
 from arxiv_admin_api.endorsement_requests import router as endorsement_request_router
 from arxiv_admin_api.endorsement_requests_audit import router as endorsement_request_audit_router
 from arxiv_admin_api.endorsements import router as endorsement_router
@@ -119,7 +118,6 @@ origins = [
     "https://web41.arxiv.org/",
 ]
 
-import asyncio
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -176,12 +174,12 @@ def create_app(*args, **kwargs) -> FastAPI:
     @sqlalchemy.event.listens_for(database.engine, "before_cursor_execute")
     def before_execute(conn: ExecutionContext, _cursor, _str_statement: str, _effective_parameters: Tuple[Any],
                        _context, _context_executemany: bool):
-        conn.info["query_start_time"] = time.time()
+        conn.connection.info["query_start_time"] = time.time()
 
     @sqlalchemy.event.listens_for(database.engine, "after_cursor_execute")
     def after_execute(conn: ExecutionContext, _cursor, str_statement: str, effective_parameters: Tuple[Any],
                       _context, _context_executemany: bool):
-        total_time = time.time() - conn.info["query_start_time"]
+        total_time = time.time() - conn.connection.info["query_start_time"]
         logging.info(f"Query Time: {total_time:.4f} seconds: {str_statement} with {effective_parameters!r}")
 
     jwt_secret = get_application_config().get('JWT_SECRET', settings.SECRET_KEY)
@@ -230,15 +228,15 @@ def create_app(*args, **kwargs) -> FastAPI:
     )
 
     app.add_middleware(
-        CorrelationIdMiddleware,
+        CorrelationIdMiddleware,  # type: ignore
         header_name='X-Request-ID',
         update_request_header=True,
         generator=lambda: uuid4().hex,
         validator=is_valid_uuid4,
-        transformer=lambda a: a,
+        transformer=lambda a: a
         )
 
-    app.add_middleware(AccessLoggerMiddleware)
+    app.add_middleware(AccessLoggerMiddleware) # type: ignore
 
     app.add_middleware(LogMiddleware)
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
@@ -252,6 +250,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(user_router, prefix="/v1")
     app.include_router(users_by_username_router, prefix="/v1")
     app.include_router(email_template_router, prefix="/v1")
+    app.include_router(notification_pubsub_router, prefix="/v1")
     app.include_router(endorsement_router, prefix="/v1")
     app.include_router(endorsement_request_router, prefix="/v1")
     app.include_router(endorsement_request_audit_router, prefix="/v1")
@@ -354,7 +353,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         return response
 
     @app.get("/")
-    async def root(request: Request):
+    async def root(_request: Request):
         return RedirectResponse("/frontend")
 
     @app.exception_handler(AccessTokenExpired)
@@ -383,7 +382,7 @@ def create_app(*args, **kwargs) -> FastAPI:
                     content={"message": "Failed to refresh access token"}
                 )
             # Extract the new token from the response
-            refreshed_tokens = await refresh_response.json()
+            refreshed_tokens = refresh_response.json()
             new_session_cookie = refreshed_tokens.get("session")
             new_classic_cookie = refreshed_tokens.get("classic")
             max_age = refreshed_tokens.get("max_age")

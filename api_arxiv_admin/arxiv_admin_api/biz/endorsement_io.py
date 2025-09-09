@@ -74,7 +74,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
             )
         ).all()
 
-    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime] | None, require_author: bool = True) -> List[PaperProps]:
+    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime | None] | None, require_author: bool = True) -> List[PaperProps]:
         query = (
             self.session.query(
                 PaperOwner.document_id,
@@ -146,7 +146,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
                           endorsement: EndorsementBusiness,
                           affected_user: int = 0,
                           action: EndorsementNegativeAction = EndorsementNegativeAction.unknown,
-                          _data: str = "",  # This is constructed by the event
+                          data: str = "",  # This is constructed by the event
                           comment: str = "",
                           user_id: Optional[int] = None,
                           session_id: Optional[int] = None,

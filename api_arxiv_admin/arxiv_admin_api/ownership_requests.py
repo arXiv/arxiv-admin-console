@@ -453,6 +453,8 @@ async def update_ownership_request(
         session: Session = Depends(get_db)) -> OwnershipRequestModel:
     """Update ownership request.
 
+    This is about accepting/rejecting ownership requests.
+
 $nickname=$auth->get_nickname_of($user_id);
 $policy_class=$auth->conn->select_scalar("SELECT name FROM tapir_policy_classes WHERE class_id=$user->policy_class");
 
@@ -601,7 +603,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     ownership_request.workflow_status = workflow_status
 
     tracking_cookie = requester.tracking_cookie
-    if len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
+    if tracking_cookie and len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
         # ntai: 2025-03-30
         # When the tracking cookie is longer than the column size (32), adding tracking cookie
         # to the record fails as it is too long.
@@ -614,7 +616,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         # I don't understand how this has been working.
         tracking_cookie = hashlib.md5(tracking_cookie.encode()).hexdigest()
 
-    authored_documents = set(payload.authored_documents)
+    authored_documents = set(payload.authored_documents) if payload.authored_documents else set()
 
     try:
         for document_id in document_ids:
