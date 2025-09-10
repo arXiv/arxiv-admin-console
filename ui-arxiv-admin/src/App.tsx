@@ -1,5 +1,5 @@
 import {Admin, EditGuesser, Resource, ShowGuesser} from 'react-admin';
-import React, {ReactNode, useContext, useEffect, useState} from 'react';
+import React, {ReactNode, useContext, useEffect, useState, lazy, Suspense} from 'react';
 
 import UserIcon from '@mui/icons-material/Group';
 import EmailIcon from '@mui/icons-material/EmailOutlined';
@@ -17,30 +17,76 @@ import EmailPatternIcon from '@mui/icons-material/FilterList';
 import EndorsementDomainIcon from '@mui/icons-material/Domain';
 
 
-import {EmailTemplateCreate, EmailTemplateList, EmailTemplateEdit} from './pages/EmailTemplates';
-import { UserList, UserEdit, UserCreate } from './pages/Users';
-import {EndorsementRequestList, EndorsementRequestCreate, EndorsementRequestEdit, EndorsementRequestShow} from './pages/EndorsementRequests';
-import { Dashboard } from './pages/Dashboard';
+// Lazy load page components
+const EmailTemplateCreate = lazy(() => import('./pages/EmailTemplates').then(module => ({ default: module.EmailTemplateCreate })));
+const EmailTemplateList = lazy(() => import('./pages/EmailTemplates').then(module => ({ default: module.EmailTemplateList })));
+const EmailTemplateEdit = lazy(() => import('./pages/EmailTemplates').then(module => ({ default: module.EmailTemplateEdit })));
+
+const UserList = lazy(() => import('./pages/Users').then(module => ({ default: module.UserList })));
+const UserEdit = lazy(() => import('./pages/Users').then(module => ({ default: module.UserEdit })));
+const UserCreate = lazy(() => import('./pages/Users').then(module => ({ default: module.UserCreate })));
+
+const EndorsementRequestList = lazy(() => import('./pages/EndorsementRequests').then(module => ({ default: module.EndorsementRequestList })));
+const EndorsementRequestCreate = lazy(() => import('./pages/EndorsementRequests').then(module => ({ default: module.EndorsementRequestCreate })));
+const EndorsementRequestEdit = lazy(() => import('./pages/EndorsementRequests').then(module => ({ default: module.EndorsementRequestEdit })));
+const EndorsementRequestShow = lazy(() => import('./pages/EndorsementRequests').then(module => ({ default: module.EndorsementRequestShow })));
+
+const Dashboard = lazy(() => import('./pages/Dashboard').then(module => ({ default: module.Dashboard })));
+
+const EndorsementCreate = lazy(() => import('./pages/Endorsements').then(module => ({ default: module.EndorsementCreate })));
+const EndorsementEdit = lazy(() => import('./pages/Endorsements').then(module => ({ default: module.EndorsementEdit })));
+const EndorsementList = lazy(() => import('./pages/Endorsements').then(module => ({ default: module.EndorsementList })));
+
+const DocumentCreate = lazy(() => import('./pages/Documents').then(module => ({ default: module.DocumentCreate })));
+const DocumentList = lazy(() => import('./pages/Documents').then(module => ({ default: module.DocumentList })));
+const DocumentShow = lazy(() => import('./pages/Documents').then(module => ({ default: module.DocumentShow })));
+
+const CategoryList = lazy(() => import('./pages/Categories').then(module => ({ default: module.CategoryList })));
+const CategoryCreate = lazy(() => import('./pages/Categories').then(module => ({ default: module.CategoryCreate })));
+const CategoryEdit = lazy(() => import('./pages/Categories').then(module => ({ default: module.CategoryEdit })));
+
+const ModeratorCreate = lazy(() => import('./pages/Moderators').then(module => ({ default: module.ModeratorCreate })));
+const ModeratorEdit = lazy(() => import('./pages/Moderators').then(module => ({ default: module.ModeratorEdit })));
+const ModeratorList = lazy(() => import('./pages/Moderators').then(module => ({ default: module.ModeratorList })));
+
+const OwnershipRequestEdit = lazy(() => import('./pages/OwnershipRequests').then(module => ({ default: module.OwnershipRequestEdit })));
+const OwnershipRequestList = lazy(() => import('./pages/OwnershipRequests').then(module => ({ default: module.OwnershipRequestList })));
+const OwnershipRequestShow = lazy(() => import('./pages/OwnershipRequests').then(module => ({ default: module.OwnershipRequestShow })));
+
+const SubmissionEdit = lazy(() => import('./pages/Submissions').then(module => ({ default: module.SubmissionEdit })));
+const SubmissionList = lazy(() => import('./pages/Submissions').then(module => ({ default: module.SubmissionList })));
+const SubmissionShow = lazy(() => import('./pages/Submissions').then(module => ({ default: module.SubmissionShow })));
+
+const TapirSessionEdit = lazy(() => import('./pages/TapirSessions').then(module => ({ default: module.TapirSessionEdit })));
+const TapirSessionList = lazy(() => import('./pages/TapirSessions').then(module => ({ default: module.TapirSessionList })));
+
+const MembershipInstitutionAdd = lazy(() => import('./pages/MembershipInstitutions').then(module => ({ default: module.MembershipInstitutionAdd })));
+const MembershipInstitutionEdit = lazy(() => import('./pages/MembershipInstitutions').then(module => ({ default: module.MembershipInstitutionEdit })));
+const MembershipInstitutionList = lazy(() => import('./pages/MembershipInstitutions').then(module => ({ default: module.MembershipInstitutionList })));
+
+// Add remaining lazy imports
+const OwnershipCreate = lazy(() => import('./pages/Ownerships').then(module => ({ default: module.OwnershipCreate })));
+const OwnershipEdit = lazy(() => import('./pages/Ownerships').then(module => ({ default: module.OwnershipEdit })));
+const OwnershipList = lazy(() => import('./pages/Ownerships').then(module => ({ default: module.OwnershipList })));
+
+const EmailPatternCreate = lazy(() => import('./pages/EmailPatterns').then(module => ({ default: module.EmailPatternCreate })));
+const EmailPatternList = lazy(() => import('./pages/EmailPatterns').then(module => ({ default: module.EmailPatternList })));
+
+const EndorsementDomainAdd = lazy(() => import('./pages/EndorsementDomains').then(module => ({ default: module.EndorsementDomainAdd })));
+const EndorsementDomainEdit = lazy(() => import('./pages/EndorsementDomains').then(module => ({ default: module.EndorsementDomainEdit })));
+const EndorsementDomainList = lazy(() => import('./pages/EndorsementDomains').then(module => ({ default: module.EndorsementDomainList })));
+
+const MetadataEdit = lazy(() => import('./pages/Metadata').then(module => ({ default: module.MetadataEdit })));
+
+// Keep these as regular imports since they're needed immediately
+import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
+
 import {createAuthProvider} from './authProvider';
 import adminApiDataProvider from './adminApiDataProvider';
-import {EndorsementCreate, EndorsementEdit, EndorsementList} from "./pages/Endorsements";
-import {DocumentCreate, DocumentList, DocumentShow} from "./pages/Documents";
-import {CategoryList, CategoryCreate, CategoryEdit} from "./pages/Categories";
-import {ModeratorCreate, ModeratorEdit, ModeratorList} from "./pages/Moderators";
-import {OwnershipRequestEdit, OwnershipRequestList, OwnershipRequestShow} from "./pages/OwnershipRequests";
-import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
-import {SubmissionEdit, SubmissionList, SubmissionShow} from "./pages/Submissions";
-import {TapirSessionEdit, TapirSessionList} from "./pages/TapirSessions";
-import {
-    MembershipInstitutionAdd,
-    MembershipInstitutionEdit,
-    MembershipInstitutionList
-} from "./pages/MembershipInstitutions";
 import {darkTheme, lightTheme} from "./navTheme";
 
 import { defaultTheme, defaultDarkTheme, ListGuesser } from 'react-admin';
 import Typography from "@mui/material/Typography";
-import {OwnershipCreate, OwnershipEdit, OwnershipList} from "./pages/Ownerships";
 import {AdminConsoleLayout} from "./bits/AdminConsoleLayout";
 
 // Import the new sliding panel components
@@ -50,9 +96,6 @@ import { PanelToggleButton } from './components/PanelToggleButton';
 import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
 import { MessageDialogProvider } from './components/MessageDialog';
 import {useNavigate, Navigate, useParams} from "react-router-dom";
-import {MetadataEdit} from "./pages/Metadata";
-import {EmailPatternCreate, EmailPatternList} from "./pages/EmailPatterns";
-import {EndorsementDomainAdd, EndorsementDomainEdit, EndorsementDomainList} from "./pages/EndorsementDomains";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -119,24 +162,25 @@ const AdminConsole: React.FC = () => {
 
     return (
         <PingBackend>
-            <Admin
-                authProvider={authProvider}
-                dataProvider={dataProvider}
-                dashboard={Dashboard}
+            <Suspense fallback={<div>Loading...</div>}>
+                <Admin
+                    authProvider={authProvider}
+                    dataProvider={dataProvider}
+                    dashboard={Dashboard}
 
-                loginPage={(<RedirectComponent to={`${runtimeProps.AAA_URL}/login?next=${runtimeProps.ADMIN_APP_ROOT}`}/>)}
+                    loginPage={(<RedirectComponent to={`${runtimeProps.AAA_URL}/login?next=${runtimeProps.ADMIN_APP_ROOT}`}/>)}
 
-                theme={lightTheme}
-                darkTheme={darkTheme}
+                    theme={lightTheme}
+                    darkTheme={darkTheme}
 
-                layout={ props => (
-                    <MessageDialogProvider>
-                        <PersistentDrawerLayout  panel={<WithNavigationLinkPanel />}>
-                            <AdminConsoleLayout {...props} />
-                        </PersistentDrawerLayout>
-                    </MessageDialogProvider>
-                )}
-            >
+                    layout={ props => (
+                        <MessageDialogProvider>
+                            <PersistentDrawerLayout  panel={<WithNavigationLinkPanel />}>
+                                <AdminConsoleLayout {...props} />
+                            </PersistentDrawerLayout>
+                        </MessageDialogProvider>
+                    )}
+                >
                 {/* Your existing resources */}
                 <Resource
                     name="users"
@@ -275,7 +319,8 @@ const AdminConsole: React.FC = () => {
                 />
                 <Resource name="paper_pw"/>
 
-            </Admin>
+                </Admin>
+            </Suspense>
         </PingBackend>
     )
 }
