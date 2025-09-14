@@ -334,7 +334,8 @@ async def send_test_email_template(
                 "parameters": body
             },
             topic_name=os.environ.get('GCP_EMAIL_TOPIC_ID', 'notification-events'),
-            logger=logger
+            logger=logger,
+            project_id=os.environ.get('ARXIV_NOTIFICATION_GCP_PROJECT_ID', 'arxiv-development'),
         )
         
         response.status_code = status.HTTP_201_CREATED

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic, TapirUser
-from sqlalchemy import func, and_, desc, cast, LargeBinary, Row
+from sqlalchemy import func, and_, desc, cast, LargeBinary, Row, text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -158,6 +158,7 @@ async def list_documents(
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),
         paper_id: Optional[str] = Query(None, description="arXiv ID"),
+        title: Optional[str] = Query(None, description="Document title"),
         db: Session = Depends(get_db)
     ) -> List[DocumentModel]:
     query = DocumentModel.base_select(db)
@@ -243,6 +244,9 @@ async def list_documents(
                 
                 # Use the pre-filtered user IDs to filter documents directly
                 query = query.filter(Document.submitter_id.in_(user_subquery))
+
+        if title:
+            query = query.filter(Document.title.like(text(":title"), escape='\\')).params(title=f"%{title}%")
 
         if datagrid_filter:
             field_name = datagrid_filter.field_name

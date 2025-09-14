@@ -18,6 +18,11 @@ services:
   - name: docker-cache
     path: /var/lib/docker
 
+trigger:
+  branch:
+    - master
+  event:
+    - push
 
 steps:
   - name: hello
@@ -26,12 +31,21 @@ steps:
       - set
       - echo FOO=bar >> envvars
       - ls
+      - |
+        # Check for forced rebuild in commit message
+        if echo "$DRONE_COMMIT_MESSAGE" | grep -q "\\[rebuild-all\\]"; then
+          echo "Forced rebuild requested via commit message"
+          touch .run-api_arxiv_admin
+          touch .run-ui-arxiv-admin
+          exit 0
+        fi
       - git fetch origin $DRONE_COMMIT_BEFORE
       - echo "Comparing $DRONE_COMMIT_BEFORE → $DRONE_COMMIT_SHA"
       - git diff --name-only $DRONE_COMMIT_BEFORE $DRONE_COMMIT_SHA > changed_files.txt
       - cat changed_files.txt
       - grep -q '^api_arxiv_admin/' changed_files.txt && touch .run-api_arxiv_admin || echo "No changes in api_arxiv_admin"
       - grep -q '^ui-arxiv-admin/' changed_files.txt && touch .run-ui-arxiv-admin || echo "No changes in ui-arxiv-admin"
+
     volumes:
       - name: docker-socket
         path: /var/run
@@ -112,9 +126,6 @@ volumes:
     host:
       path: /var/run
 
-trigger:
-  event:
-    - push
 ---
 # Pipeline for CentOS 9
 kind: pipeline
@@ -140,3 +151,4 @@ steps:
       - cd /opt_arxiv/bomb-range
       - make down
       - make up
+

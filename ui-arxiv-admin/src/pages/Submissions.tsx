@@ -122,7 +122,7 @@ const SubmissionFilter = (props: any) => {
                 onChange={(event) => handlePresetChange(event as React.ChangeEvent<HTMLSelectElement>)}
             />
             <SingleUserInputField source={"submitter_id"} label={"Submitter"} alwaysOn variant={"dialog"}/>
-
+            <TextInput label="Title" source="title" />
         </Filter>
     );
 };

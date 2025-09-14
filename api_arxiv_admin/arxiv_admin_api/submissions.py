@@ -245,7 +245,7 @@ async def list_submissions(
             None, description="Submission status"),
         submission_status_group: Optional[Union[str,List[str]]] = Query(
             None, description="Submission status group [current|processing|accepted|expired]"),
-        title_like: Optional[str]= Query(None, description="Title"),
+        title: Optional[str]= Query(None, description="Title"),
         type: Optional[List[str]] = Query(None, description="Submission Type list"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         document_id: Optional[int] = Query(None, description="Document ID"),
@@ -323,9 +323,9 @@ async def list_submissions(
                 else:
                     logger.warning("No valid status codes provided")
 
-        if title_like is not None:
+        if title is not None:
             # query = query.filter(Submission.title.like("%" + title_like + "%"))
-            query = query.filter(Submission.title.like(text(":title"), escape='\\')).params(title=f"%{title_like}%")
+            query = query.filter(Submission.title.like(text(":title"), escape='\\')).params(title=f"%{title}%")
 
         if document_id is not None:
             query = query.filter(Submission.document_id == document_id)

@@ -15,6 +15,8 @@ import TapirSessionIcon from '@mui/icons-material/ConfirmationNumberSharp';
 import MembershipInstitutionIcon from '@mui/icons-material/School';
 import EmailPatternIcon from '@mui/icons-material/FilterList';
 import EndorsementDomainIcon from '@mui/icons-material/Domain';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 
 
 // Lazy load page components
@@ -96,6 +98,8 @@ import { PanelToggleButton } from './components/PanelToggleButton';
 import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
 import { MessageDialogProvider } from './components/MessageDialog';
 import {useNavigate, Navigate, useParams} from "react-router-dom";
+import {AppBar} from "@mui/material";
+import GlobalAppBar from "./components/GlobalAppBar";
 
 const RedirectComponent: React.FC<{to: string}> = ({ to }) => {
     useEffect(() => {
@@ -163,7 +167,9 @@ const AdminConsole: React.FC = () => {
     return (
         <PingBackend>
             <Suspense fallback={<div>Loading...</div>}>
-                <Admin
+                <Box sx={{ paddingTop: '32px' }}> {/* Add padding to push content below both AppBars (64px + 48px) */}
+                    <GlobalAppBar />
+                    <Admin
                     authProvider={authProvider}
                     dataProvider={dataProvider}
                     dashboard={Dashboard}
@@ -319,7 +325,8 @@ const AdminConsole: React.FC = () => {
                 />
                 <Resource name="paper_pw"/>
 
-                </Admin>
+                    </Admin>
+                </Box>
             </Suspense>
         </PingBackend>
     )

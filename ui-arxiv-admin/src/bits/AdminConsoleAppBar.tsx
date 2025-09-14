@@ -12,8 +12,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {PanelToggleButton} from "../components/PanelToggleButton";
 import {useTheme} from "@mui/material/styles";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 
 
 export const AdminConsoleAppBar = () => {
@@ -64,12 +64,26 @@ export const AdminConsoleAppBar = () => {
         const searchTerm = docSearch.trim();
         if (e.key === 'Enter' && searchTerm) {
             if (searchTerm.startsWith('s/')) {
-                const id = searchTerm.substring(2);
-                navigate(`/submissions/${id}`);
+                const criteria = searchTerm.substring(2);
+                const isAllDigits = /^\d+$/.test(criteria);
+                if (isAllDigits) {
+                    navigate(`/submissions/${id}`);
+                }
+                else {
+                    const destination = `/submissions?displayedFilters=%7B"title"%3Atrue%7D&filter=%7B"title"%3A"${encodeURIComponent(criteria)}"%7D&order=DESC&page=1&perPage=10&sort=id`;
+                    navigate(destination);
+                }
             }
             else if (searchTerm.startsWith('d/')) {
-                const id = searchTerm.substring(2);
-                navigate(`/documents/${id}/show`);
+                const criteria = searchTerm.substring(2);
+                const isAllDigits = /^\d+$/.test(criteria);
+                if (isAllDigits) {
+                    navigate(`/documents/${id}/show`);
+                }
+                else {
+                    const destination = `/documents?displayedFilters=%7B"title"%3Atrue%7D&filter=%7B"title"%3A"${encodeURIComponent(criteria)}"%7D&order=DESC&page=1&perPage=10&sort=id`;
+                    navigate(destination);
+                }
             }
             else if (searchTerm.includes('/') || searchTerm.includes('.')) {
                 console.log("doc search: " + searchTerm);
@@ -111,8 +125,10 @@ export const AdminConsoleAppBar = () => {
     };
 
     return (
-        <RaAppBar>
-            <Toolbar sx={{ display: 'flex', alignItems: 'center', width: '100%', mx: 1 , minHeight: '48px !important',}}>
+        <RaAppBar userMenu={false} sx={{ top: '32px', zIndex: 1300 }}>
+            <Toolbar sx={{ display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
+                <img src={"arxiv-logo.png"} alt="arXiv Logo" style={{height: '24px', marginRight: '10px'}} />
+                <Typography sx={{mr: 1}}>Admin</Typography>
                 <TitlePortal />
                 <Box sx={{flexGrow: 1 }} />
                 <Tooltip title={(

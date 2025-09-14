@@ -106,6 +106,7 @@ const DocumentFilter = (props: any) => {
             <TextInput label="Paoper ID" source="paper_id" alwaysOn/>
             <TextInput label="Name" source="submitter_name" alwaysOn/>
             <TextInput label="Category" source="category" alwaysOn/>
+            <TextInput label="Title" source="title"/>
 
             <SelectInput
                 label="Preset Date Range"
