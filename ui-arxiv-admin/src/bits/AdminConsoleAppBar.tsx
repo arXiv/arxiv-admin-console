@@ -67,7 +67,7 @@ export const AdminConsoleAppBar = () => {
                 const criteria = searchTerm.substring(2);
                 const isAllDigits = /^\d+$/.test(criteria);
                 if (isAllDigits) {
-                    navigate(`/submissions/${id}`);
+                    navigate(`/submissions/${criteria}`);
                 }
                 else {
                     const destination = `/submissions?displayedFilters=%7B"title"%3Atrue%7D&filter=%7B"title"%3A"${encodeURIComponent(criteria)}"%7D&order=DESC&page=1&perPage=10&sort=id`;
@@ -78,7 +78,7 @@ export const AdminConsoleAppBar = () => {
                 const criteria = searchTerm.substring(2);
                 const isAllDigits = /^\d+$/.test(criteria);
                 if (isAllDigits) {
-                    navigate(`/documents/${id}/show`);
+                    navigate(`/documents/${criteria}/show`);
                 }
                 else {
                     const destination = `/documents?displayedFilters=%7B"title"%3Atrue%7D&filter=%7B"title"%3A"${encodeURIComponent(criteria)}"%7D&order=DESC&page=1&perPage=10&sort=id`;

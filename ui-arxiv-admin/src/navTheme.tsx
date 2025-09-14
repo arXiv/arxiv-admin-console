@@ -6,7 +6,7 @@ const lightTheme = createTheme({
     palette: {
         ...defaultTheme.palette,
         background: {
-            ...defaultTheme.palette.background,
+            ...defaultTheme.palette?.background,
             default: '#f0f0f0', // Very light grey for main content background
             paper: '#f8f8f8', // Keep paper/card backgrounds white
         },

@@ -11,15 +11,12 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { RuntimeContext } from "../RuntimeContext";
 
-interface User {
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-}
+import {paths as aaaApi} from "../types/aaa-api";
+type UserType = aaaApi['/account/current']['get']['responses']['200']['content']['application/json'];
+
 
 const GlobalAppBar = () => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<UserType | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const runtimeProps = useContext(RuntimeContext);
