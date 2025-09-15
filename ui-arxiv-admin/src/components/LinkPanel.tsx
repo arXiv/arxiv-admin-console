@@ -138,8 +138,8 @@ export const LinkPanel: React.FC<LinkPanelProps> = ({ onNavigate }) => {
                         width: 320,
                         boxSizing: 'border-box',
                         // Position the drawer below the appbar
-                        top: 96, // Standard React Admin appbar height
-                        height: 'calc(100vh - 96px)', // Full height minus appbar
+                        top: 64, // Standard React Admin appbar height
+                        height: 'calc(100vh - 64px)', // Full height minus appbar
                         borderLeft: '1px solid rgba(0, 0, 0, 0.12)', // Add border for separation
                         // zIndex: 1050, // Below appbar but above content
                     },

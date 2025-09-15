@@ -16,10 +16,10 @@ const lightTheme = createTheme({
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: '#fff', // Background color for AppBar in light theme
-                    color: '#111', // Dark text for light theme
+                    backgroundColor: '#e7e7e7', // Background color for AppBar in light theme
+                    color: '#222', // White text for grey background
                     '& .MuiTypography-root': {
-                        color: '#111',
+                        color: '#222',
                     },
                 },
             },
@@ -34,10 +34,10 @@ const darkTheme = createTheme({
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: '#303030', // Background color for AppBar in dark theme
-                    color: '#eee', // Light text for dark theme
+                    backgroundColor: '#282828', // Background color for AppBar in dark theme
+                    color: '#fff', // White text for grey background
                     '& .MuiTypography-root': {
-                        color: '#eee',
+                        color: '#fff',
                     },
                 },
             },
