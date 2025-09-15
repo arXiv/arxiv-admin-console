@@ -4,6 +4,7 @@ import {Box} from '@mui/material';
 import {paths} from "./types/aaa-api";
 import {paths as adminPaths} from "./types/admin-api";
 import { Fetcher } from 'openapi-typescript-fetch';
+import {defaultArxivNavLinks, ArxivNavLinks} from "./arxivNavLinks";
 
 
 export interface ArxiURLs
@@ -23,6 +24,7 @@ const arXivURLs: ArxiURLs = {
 
 export interface RuntimeProps
 {
+    arxivNavLinks: ArxivNavLinks;
     AAA_URL: string;
     ADMIN_API_BACKEND_URL: string;
     ADMIN_APP_ROOT: string;
@@ -37,6 +39,7 @@ export interface RuntimeProps
 }
 
 const defaultRuntimeProps : RuntimeProps = {
+    arxivNavLinks: defaultArxivNavLinks,
     AAA_URL: 'http://localhost.arxiv.org:5000/aaa',
     ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5000/admin-api',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',

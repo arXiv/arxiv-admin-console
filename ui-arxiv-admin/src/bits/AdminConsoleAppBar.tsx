@@ -15,14 +15,45 @@ import Typography from '@mui/material/Typography';
 import {ArxivUserMenu} from "../components/ArxivUserMenu";
 import Button from '@mui/material/Button';
 import LaunchIcon from '@mui/icons-material/Launch';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { RuntimeContext } from "../RuntimeContext";
+import { ArxivNavLink } from "../arxivNavLinks";
 
 export const AdminConsoleAppBar = () => {
+    const runtimeProps = React.useContext(RuntimeContext);
     const [userSearch, setUserSearch] = useState('');
     const [docSearch, setDocSearch] = useState('');
+    const [anchorEls, setAnchorEls] = useState<{[key: string]: HTMLElement | null}>({});
     const navigate = useNavigate();
     const dataProvider = useDataProvider();
     const theme = useTheme();
     // const isDark = theme.palette.mode === 'dark';
+
+    const handleMenuClick = (categoryName: string) => (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEls(prev => ({
+            ...prev,
+            [categoryName]: event.currentTarget
+        }));
+    };
+
+    const handleMenuClose = (categoryName: string) => () => {
+        setAnchorEls(prev => ({
+            ...prev,
+            [categoryName]: null
+        }));
+    };
+
+    const handleMenuItemClick = (url: string, app: string) => {
+        if (app === 'external') {
+            window.open(url, '_blank');
+        } else {
+            // Handle internal navigation if needed
+            window.open(url, '_blank');
+        }
+        // Close all menus
+        setAnchorEls({});
+    };
 
     const handleUserSearch = (e: React.KeyboardEvent) => {
         let criteria = {}
@@ -127,10 +158,58 @@ export const AdminConsoleAppBar = () => {
                         margin: 1,
                     }
                 }}>
-                    <Button >Resources<LaunchIcon/></Button>
-                    <Button >Submissions<LaunchIcon/></Button>
-                    <Button >User Support<LaunchIcon/></Button>
-                    <Button >Students<LaunchIcon/></Button>
+                    {
+                        runtimeProps.arxivNavLinks.map((categorySection, index) => {
+                            const categoryName = Object.keys(categorySection)[0];
+                            const categoryData = categorySection[categoryName];
+                            
+                            return (
+                                <React.Fragment key={index}>
+                                    <Button 
+                                        onClick={handleMenuClick(categoryName)}
+                                    >
+                                        {categoryName}
+                                    </Button>
+                                    <Menu
+                                        anchorEl={anchorEls[categoryName]}
+                                        open={Boolean(anchorEls[categoryName])}
+                                        onClose={handleMenuClose(categoryName)}
+                                    >
+                                        {Array.isArray(categoryData) ? (
+                                            // Direct array of links
+                                            categoryData.map((link: ArxivNavLink, linkIndex: number) => (
+                                                <MenuItem 
+                                                    key={linkIndex}
+                                                    onClick={() => handleMenuItemClick(link.url, link.app)}
+                                                >
+                                                    {link.title}
+                                                </MenuItem>
+                                            ))
+                                        ) : (
+                                            // Nested subcategories (like Resources)
+                                            Object.keys(categoryData).map((subCategoryName, subIndex) => {
+                                                const subCategoryLinks = categoryData[subCategoryName] as ArxivNavLink[];
+                                                return [
+                                                    <MenuItem key={`header-${subIndex}`} disabled sx={{ fontWeight: 'bold' }}>
+                                                        {subCategoryName}
+                                                    </MenuItem>,
+                                                    ...subCategoryLinks.map((link: ArxivNavLink, linkIndex: number) => (
+                                                        <MenuItem 
+                                                            key={`${subIndex}-${linkIndex}`}
+                                                            onClick={() => handleMenuItemClick(link.url, link.app)}
+                                                            sx={{ pl: 3 }}
+                                                        >
+                                                            {link.title}
+                                                        </MenuItem>
+                                                    ))
+                                                ];
+                                            }).flat()
+                                        )}
+                                    </Menu>
+                                </React.Fragment>
+                            );
+                        })
+                    }
                 </Box>
                 <Box sx={{flexGrow: 1}}/>
                 <Tooltip title={(
