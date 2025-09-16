@@ -532,11 +532,11 @@ class EndorsementBusiness:
         # enabled, then any moderator within that domain should be able to endorse
         # within that domain (not just their moderated category)
         if self.endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.archive, None):
-            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {self.archive}.")
+            return self.accept(f"Endorser is a moderator in {self.archive}.")
 
         if self.accessor.is_moderator(self.endorseR.id, self.archive, self.subject_class):
             category = pretty_category(self.archive, self.subject_class)
-            return self.accept(f"Endorser {self.endorseR.username} is a moderator in {category}.")
+            return self.accept(f"Endorser is a moderator in {category}.")
 
         return False
 

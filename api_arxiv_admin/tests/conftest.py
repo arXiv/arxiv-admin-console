@@ -170,7 +170,7 @@ def dotenv_values(
 #
 #
 #
-# @pytest.fixture(scope="module", autouse=True)
+# @pytest.fixture(scope="module")
 # def docker_compose(test_env):
 #     logging.info("Setting up docker-compose")
 #     docker_compose_file = ADMIN_API_TEST_DIR.joinpath('docker-compose.yaml')
@@ -210,7 +210,7 @@ def dotenv_values(
 #         pass
 #
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def api_client(test_env):
     """Start Admin API App. Since it needs the database running, it needs the arxiv db up"""
     os.environ.update(test_env)
@@ -238,7 +238,7 @@ def api_client(test_env):
     client.close()
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def api_headers(test_env):
     jwt_secret = test_env['JWT_SECRET']
     now_epoch = datetime_to_epoch(None, datetime.now())
@@ -279,7 +279,7 @@ admin_api_root = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname
 MAX_RETRIES = 3
 RETRY_DELAY = 2
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def setup_db_fixture(test_env) -> None:
     subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"], cwd=admin_api_root)
 

@@ -42,7 +42,12 @@ class EndorsementDBAccessor(EndorsementAccessor):
                 t_arXiv_moderators.c.subject_class == "",
                 t_arXiv_moderators.c.subject_class is None))
             pass
-        return bool(query.scalar())
+        else:
+            query = query.filter(t_arXiv_moderators.c.subject_class == "")
+            pass
+
+        result = query.all()
+        return bool(len(result) > 0)
 
     def get_category(self, archive: str, subject_class: str | None) -> Category | None:
         subject_class = subject_class if subject_class else ""

@@ -1,0 +1,32 @@
+services:
+  setup_task:
+    image: python:3.12-bookworm
+    container_name: admin-api-db-setup
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./initdb.d:/initdb.d
+    command:
+      - /bin/bash
+      - -c
+      - |
+        cd /var/lib && rm -fr ./mysql/*
+        cd /var/lib && tar xzf /initdb.d/mysql_test_data.tgz
+    
+
+  arxiv-test-db:
+    image: mysql:5.7.20
+    container_name: admin-api-db-arxiv-test-db
+    ports:
+      - "${ARXIV_DB_PORT}:${ARXIV_DB_PORT}"  # Host port:Container port
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: arXiv
+      MYSQL_USER: arxiv
+      MYSQL_PASSWORD: arxiv_password
+      MYSQL_TCP_PORT: ${ARXIV_DB_PORT}
+    volumes:
+      - ./mysql:/var/lib/mysql
+    network_mode: host
+    depends_on:
+      setup_task:
+        condition: service_completed_successfully
