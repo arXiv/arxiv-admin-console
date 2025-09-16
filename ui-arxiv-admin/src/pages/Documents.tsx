@@ -163,7 +163,7 @@ const DocumentContent = () => {
         async function getMetadata() {
             if (record?.id) {
                 try {
-                    const response = await dataProvider.getOne('document-metadata', {
+                    const response = await dataProvider.getOne('document-metadata-latest', {
                         id: record.id,
                     });
                     setMetadata(response.data);
@@ -383,6 +383,10 @@ export const DocumentList = () => {
                 <TextField source="authors"/>
                 <TextField source="abs_categories" label={"Categories"}/>
                 <ISODateField source="created" label={"Created"}/>
+
+                <ReferenceField reference={"document-metadata-latest"} source={"id"} label={"Vers"}>
+                    <TextField source={"version"}  />
+                </ReferenceField>
 
             </Datagrid>
         </List>

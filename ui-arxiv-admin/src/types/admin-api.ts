@@ -434,7 +434,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/email_templates/{id}/publish": {
+    "/v1/email_templates/{id}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -443,8 +443,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Publish Test Email Template */
-        post: operations["publish_test_email_template_v1_email_templates__id__publish_post"];
+        /** Send Template Message */
+        post: operations["send_template_message_v1_email_templates__id__messages_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -923,6 +923,8 @@ export interface paths {
          * Update Ownership Request
          * @description Update ownership request.
          *
+         *         This is about accepting/rejecting ownership requests.
+         *
          *     $nickname=$auth->get_nickname_of($user_id);
          *     $policy_class=$auth->conn->select_scalar("SELECT name FROM tapir_policy_classes WHERE class_id=$user->policy_class");
          *
@@ -1246,6 +1248,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/documents/{id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Document Metadata
+         * @description List of metadata for a document.
+         */
+        get: operations["get_document_metadata_v1_documents__id__metadata_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{id}/metadata/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Document Metadata
+         * @description List of metadata for a document.
+         */
+        get: operations["get_document_metadata_v1_documents__id__metadata_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/documents/user-action/{id}/{action}": {
         parameters: {
             query?: never;
@@ -1415,10 +1457,18 @@ export interface paths {
         get: operations["get_submission_v1_submissions__id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Submission
+         * @description Delete a submission
+         */
+        delete: operations["delete_submission_v1_submissions__id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Submission
+         * @description Update a submission
+         */
+        patch: operations["update_submission_v1_submissions__id__patch"];
         trace?: never;
     };
     "/v1/submissions/document/{document_id}": {
@@ -3147,6 +3197,11 @@ export interface components {
          * @enum {string}
          */
         SubmissionType: "cross" | "jref" | "new" | "rep" | "wdr";
+        /** SubmissionUpdateModel */
+        SubmissionUpdateModel: {
+            /** Status */
+            status: string | null;
+        };
         /** TapirAdminAuditModel */
         TapirAdminAuditModel: {
             /** Id */
@@ -4574,11 +4629,13 @@ export interface operations {
             };
         };
     };
-    publish_test_email_template_v1_email_templates__id__publish_post: {
+    send_template_message_v1_email_templates__id__messages_post: {
         parameters: {
             query?: {
-                /** @description Subject of the test email */
+                /** @description Subject of the email */
                 subject?: string;
+                /** @description Send in test mode to current user */
+                test_mode?: boolean;
             };
             header?: never;
             path: {
@@ -4669,7 +4726,7 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 /** @description user, auto, admin */
-                type?: string[] | string | null;
+                type?: string | string[] | null;
                 /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
@@ -4917,7 +4974,7 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 /** @description user, auto, admin */
-                type?: string[] | string | null;
+                type?: string | string[] | null;
                 /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
@@ -6258,6 +6315,8 @@ export interface operations {
                 end_date?: string | null;
                 /** @description arXiv ID */
                 paper_id?: string | null;
+                /** @description Document title */
+                title?: string | null;
             };
             header?: never;
             path?: never;
@@ -6366,6 +6425,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_metadata_v1_documents__id__metadata_get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_document_metadata_v1_documents__id__metadata_latest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataModel"] | null;
                 };
             };
             /** @description Validation Error */
@@ -6637,9 +6765,9 @@ export interface operations {
                 /** @description Submission status */
                 submission_status?: number | number[] | null;
                 /** @description Submission status group [current|processing|accepted|expired] */
-                submission_status_group?: string[] | string | null;
+                submission_status_group?: string | string[] | null;
                 /** @description Title */
-                title_like?: string | null;
+                title?: string | null;
                 /** @description Submission Type list */
                 type?: string[] | null;
                 /** @description List of user IDs to filter by */
@@ -6722,6 +6850,72 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_submission_v1_submissions__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_submission_v1_submissions__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmissionUpdateModel"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

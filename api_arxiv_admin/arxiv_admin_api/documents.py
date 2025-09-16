@@ -279,6 +279,7 @@ async def list_documents(
     return result
 
 
+
 @router.get("/paper_id/{paper_id:str}")
 def get_document(paper_id:str,
                  current_user: ArxivUserClaims = Depends(get_authn),
@@ -313,6 +314,130 @@ def get_document(id:int,
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paper not found")
     return DocumentModel.to_model(session, doc)
+
+
+@router.get("/{id:str}/metadata")
+def get_document_metadata(
+        id:int,
+        response: Response,
+        _sort: Optional[str] = Query("id", description="sort by"),
+        _order: Optional[str] = Query("DESC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        session: Session = Depends(get_db)) -> List[MetadataModel]:
+    """List of metadata for a document."""
+    doc = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+
+    order_columns = []
+    if _sort:
+        keys = _sort.split(",")
+        for key in keys:
+            if key == "id":
+                key = "metadata_id"
+            try:
+                order_column = getattr(Metadata, key)
+                order_columns.append(order_column)
+            except AttributeError:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Invalid start or end index")
+
+    for column in order_columns:
+        if _order == "DESC":
+            query = query.order_by(column.desc())
+        else:
+            query = query.order_by(column.asc())
+
+    query = MetadataModel.base_select(session).filter(Metadata.document_id == id)
+    count = query.count()
+    response.headers['X-Total-Count'] = str(count)
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
+    return [MetadataModel.model_validate(md) for md in query.offset(_start).limit(_end - _start).all()]
+
+
+@router.get("/{id:str}/metadata/latest")
+def get_document_metadata_latest(
+        id:int,
+        response: Response,
+        session: Session = Depends(get_db)) -> Optional[MetadataModel]:
+    """List of metadata for a document."""
+    doc = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+    query = MetadataModel.base_select(session).filter(Metadata.document_id == id).order_by(Metadata.metadata_id.desc()).limit(1)
+    count = query.count()
+    response.headers['X-Total-Count'] = str(count)
+    return [MetadataModel.model_validate(sa_model_to_pydandic_model(item, MetadataModel)) for item in query.all()][0] if count > 0 else None
+
+
+@router.get('/metadata/latest')
+async def list_document_metadata_latest(
+        response: Response,
+        _sort: Optional[str] = Query("id", description="sort by"),
+        _order: Optional[str] = Query("DESC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
+        db: Session = Depends(get_db)
+) -> List[MetadataModel]:
+    if id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="id is required")
+
+    # Subquery to get the latest metadata_id for each document
+    latest_metadata_subquery = (
+        db.query(
+            Metadata.document_id,
+            func.max(Metadata.metadata_id).label('latest_metadata_id')
+        )
+        .filter(Metadata.document_id.in_(id))
+        .group_by(Metadata.document_id)
+        .subquery()
+    )
+    
+    # Join with the subquery to get the latest metadata records
+    query = (
+        db.query(Metadata)
+        .join(
+            latest_metadata_subquery,
+            and_(
+                Metadata.document_id == latest_metadata_subquery.c.document_id,
+                Metadata.metadata_id == latest_metadata_subquery.c.latest_metadata_id
+            )
+        )
+    )
+    
+    # Apply sorting
+    if _sort:
+        keys = _sort.split(",")
+        for key in keys:
+            if key == "id":
+                key = "metadata_id"
+            try:
+                order_column = getattr(Metadata, key)
+                if _order == "DESC":
+                    query = query.order_by(order_column.desc())
+                else:
+                    query = query.order_by(order_column.asc())
+            except AttributeError:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Invalid sort field: {key}")
+
+    count = query.count()
+    response.headers['X-Total-Count'] = str(count)
+    
+    if _start is None:
+        _start = 0
+    if _end is None:
+        _end = 100
+        
+    results = query.offset(_start).limit(_end - _start).all()
+    # When returning this metadata, ID is keyed by document ID, not metadata ID.
+    # This may cause other problem so use it carefully
+    return [MetadataModel.model_validate(sa_model_to_pydandic_model(item, MetadataModel, name_map={"id": "document_id"})) for item in results]
 
 
 class DocumentUserAction(str, Enum):

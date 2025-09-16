@@ -107,6 +107,7 @@ class adminApiDataProvider implements DataProvider {
     }
 
     async getList<T extends RaRecord>(resource: string, params: GetListParams): Promise<GetListResult<T>> {
+        console.log(`getList ${resource}:`, params);
 
         if (resource === 'subject_class' && params.filter.archive) {
             const { archive } = params.filter;
@@ -211,50 +212,32 @@ class adminApiDataProvider implements DataProvider {
                 handleHttpError(error, 'Failed to load email history');
             }
         }
-
+        else if (resource === 'document-metadata-latest') {
+            return this.dataProvider.getList<T>("documents/metadata/latest", params);
+        }
         return this.dataProvider.getList<T>(addTrailingSlash(resource), params);
     }
 
     async getOne<T extends RaRecord>(resource: string, params: GetOneParams): Promise<GetOneResult<T>>
     {
-        if (resource === 'document-metadata') {
-            const docId = params.id;
-            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/metadata/document/${docId}`;
-            try {
-                const response = await retryHttpClient(url);
-                return {
-                    data: response.json as T,
-                };
-            }
-            catch (error) {
-                handleHttpError(error, 'Failed to load document metadata');
-            }
+        // console.log(`getOne ${resource}:`, params);
+        if (resource === 'document-metadata-latest') {
+            const { id, ...restParams } = params;
+            return this.dataProvider.getOne<T>(`documents/${id}/metadata/latest`, {...restParams, id: ""});
         }
 
         return this.dataProvider.getOne(resource, params);
     }
 
     async getMany<T extends RaRecord>(resource: string, params: GetManyParams): Promise<GetManyResult<T>> {
+        console.log(`getMany ${resource}:`, params);
+
         if (resource === 'endorsees') {
             console.log("endorsees -> users");
             return this.dataProvider.getMany<T>("users/", params);
         }
-        else if (resource === 'document-metadata') {
-            const id = params.ids[0];
-            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/metadata/document/${id}`;
-            try {
-                const response = await retryHttpClient(url);
-                return {
-                    data: [await response.json] as T[],
-                };
-            }
-            catch (error) {
-                console.log("document-metadata: " + JSON.stringify(error));
-                handleHttpError(error, 'Failed to load document metadata');
-            }
-            finally {
-                console.log("document-metadata: done");
-            }
+        else if (resource === 'document-metadata-latest') {
+            return this.dataProvider.getMany<T>("documents/metadata/latest", params);
         }
 
         return this.dataProvider.getMany<T>(addTrailingSlash(resource), params);

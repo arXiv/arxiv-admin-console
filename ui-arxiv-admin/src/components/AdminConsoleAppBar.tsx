@@ -19,6 +19,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { RuntimeContext } from "../RuntimeContext";
 import { ArxivNavLink } from "../arxivNavLinks";
+import ArxivNavMenu from './ArxivNavMenu';
 
 export const AdminConsoleAppBar = () => {
     const runtimeProps = React.useContext(RuntimeContext);
@@ -29,31 +30,6 @@ export const AdminConsoleAppBar = () => {
     const dataProvider = useDataProvider();
     const theme = useTheme();
     // const isDark = theme.palette.mode === 'dark';
-
-    const handleMenuClick = (categoryName: string) => (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEls(prev => ({
-            ...prev,
-            [categoryName]: event.currentTarget
-        }));
-    };
-
-    const handleMenuClose = (categoryName: string) => () => {
-        setAnchorEls(prev => ({
-            ...prev,
-            [categoryName]: null
-        }));
-    };
-
-    const handleMenuItemClick = (url: string, app: string) => {
-        if (app === 'external') {
-            window.open(url, '_blank');
-        } else {
-            // Handle internal navigation if needed
-            window.open(url, '_blank');
-        }
-        // Close all menus
-        setAnchorEls({});
-    };
 
     const handleUserSearch = (e: React.KeyboardEvent) => {
         let criteria = {}
@@ -152,65 +128,8 @@ export const AdminConsoleAppBar = () => {
             <Toolbar sx={{display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
                 <img src={"arxiv-logo.png"} alt="arXiv Logo" style={{height: '24px', marginRight: '10px'}}/>
                 <Typography sx={{fontSize: "0.8rem", opacity: "66%", pl: 0}}>Admin</Typography>
-                <Box sx={{
-                    '& .MuiButton-root': {
-                        textTransform: "none",
-                        margin: 1,
-                    }
-                }}>
-                    {
-                        runtimeProps.arxivNavLinks.map((categorySection, index) => {
-                            const categoryName = Object.keys(categorySection)[0];
-                            const categoryData = categorySection[categoryName];
-                            
-                            return (
-                                <React.Fragment key={index}>
-                                    <Button 
-                                        onClick={handleMenuClick(categoryName)}
-                                    >
-                                        {categoryName}
-                                    </Button>
-                                    <Menu
-                                        anchorEl={anchorEls[categoryName]}
-                                        open={Boolean(anchorEls[categoryName])}
-                                        onClose={handleMenuClose(categoryName)}
-                                    >
-                                        {Array.isArray(categoryData) ? (
-                                            // Direct array of links
-                                            categoryData.map((link: ArxivNavLink, linkIndex: number) => (
-                                                <MenuItem 
-                                                    key={linkIndex}
-                                                    onClick={() => handleMenuItemClick(link.url, link.app)}
-                                                >
-                                                    {link.title}
-                                                </MenuItem>
-                                            ))
-                                        ) : (
-                                            // Nested subcategories (like Resources)
-                                            Object.keys(categoryData).map((subCategoryName, subIndex) => {
-                                                const subCategoryLinks = categoryData[subCategoryName] as ArxivNavLink[];
-                                                return [
-                                                    <MenuItem key={`header-${subIndex}`} disabled sx={{ fontWeight: 'bold' }}>
-                                                        {subCategoryName}
-                                                    </MenuItem>,
-                                                    ...subCategoryLinks.map((link: ArxivNavLink, linkIndex: number) => (
-                                                        <MenuItem 
-                                                            key={`${subIndex}-${linkIndex}`}
-                                                            onClick={() => handleMenuItemClick(link.url, link.app)}
-                                                            sx={{ pl: 3 }}
-                                                        >
-                                                            {link.title}
-                                                        </MenuItem>
-                                                    ))
-                                                ];
-                                            }).flat()
-                                        )}
-                                    </Menu>
-                                </React.Fragment>
-                            );
-                        })
-                    }
-                </Box>
+                <ArxivNavMenu />
+
                 <Box sx={{flexGrow: 1}}/>
                 <Tooltip title={(
                     <Typography variant="body1">
@@ -242,9 +161,11 @@ export const AdminConsoleAppBar = () => {
                     <Typography variant="body1">
                         <p>Submission: nnnnnn</p>
                         <p>Submission: s/nnnnnn</p>
+                        <p>Submission Title: {"s/<title>"}</p>
                         <p>Document: yymm.nnnnn</p>
                         <p>Document: category/nnnnnnn</p>
                         <p>Document: d/nnnnnn</p>
+                        <p>Document Title: {"d/<title>"}</p>
                     </Typography>)}>
                     <TextField
                         size="small"

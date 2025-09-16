@@ -1,3 +1,4 @@
+
 # Biz logic mapping
 
     site-src/lib/arXiv/endorsement-policy.php.m4:      $auth->conn->query_raw("INSERT INTO arXiv_endorsements (endorser_id,endorsee_id,archive,subject_class,flag_valid,type,point_value,issued_when,request_id) VALUES ($_endorser,'$_endorsee','$_archive','$_subject_class',1,'$_type',$point_value,$auth->timestamp,$_request_id)");
