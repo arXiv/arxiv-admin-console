@@ -4,7 +4,7 @@ import {Box} from '@mui/material';
 import {paths} from "./types/aaa-api";
 import {paths as adminPaths} from "./types/admin-api";
 import { Fetcher } from 'openapi-typescript-fetch';
-import {defaultArxivNavLinks, ArxivNavLinks} from "./arxivNavLinks";
+import {defaultArxivNavLinks, ArxivNavLink } from "./arxivNavLinks";
 
 
 export interface ArxiURLs
@@ -24,7 +24,7 @@ const arXivURLs: ArxiURLs = {
 
 export interface RuntimeProps
 {
-    arxivNavLinks: ArxivNavLinks;
+    arxivNavLinks: ArxivNavLink[];
     AAA_URL: string;
     ADMIN_API_BACKEND_URL: string;
     ADMIN_APP_ROOT: string;
