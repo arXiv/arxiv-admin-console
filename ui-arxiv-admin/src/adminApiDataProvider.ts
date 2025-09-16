@@ -222,8 +222,20 @@ class adminApiDataProvider implements DataProvider {
     {
         // console.log(`getOne ${resource}:`, params);
         if (resource === 'document-metadata-latest') {
-            const { id, ...restParams } = params;
-            return this.dataProvider.getOne<T>(`documents/${id}/metadata/latest`, {...restParams, id: ""});
+            const { id } = params;
+
+            try {
+                const getDocumentMetadata = this.runtimeProps.adminFetcher.path('/documents/{document_id}/metadata/latest').method('get').create();
+                const response = await getDocumentMetadata({
+                    document_id: id as string
+                });
+
+                return {
+                    data: response.data as T
+                };
+            } catch (error) {
+                handleHttpError(error, 'Failed to load document metadata');
+            }
         }
 
         return this.dataProvider.getOne(resource, params);
