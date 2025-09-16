@@ -225,13 +225,13 @@ class adminApiDataProvider implements DataProvider {
             const { id } = params;
 
             try {
-                const getDocumentMetadata = this.runtimeProps.adminFetcher.path('/documents/{document_id}/metadata/latest').method('get').create();
+                const getDocumentMetadata = this.runtimeProps.adminFetcher.path('/v1/documents/{id}/metadata/latest').method('get').create();
                 const response = await getDocumentMetadata({
-                    document_id: id as string
+                    id: Number(id)
                 });
 
                 return {
-                    data: response.data as T
+                    data: response.data as unknown as T
                 };
             } catch (error) {
                 handleHttpError(error, 'Failed to load document metadata');
