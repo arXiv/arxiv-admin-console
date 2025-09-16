@@ -545,7 +545,8 @@ def register_paper_owner(
         session: Session = Depends(get_db),
         remote_addr: str = Depends(get_client_host),
         remote_host: str = Depends(get_client_host_name),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
 ):
     if current_user is None:
         raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="Not authorized")
@@ -609,6 +610,16 @@ def register_paper_owner(
     )
 
     session.add(paper_owner)
+
+    if current_user.is_admin:
+        admin_audit(
+            session,
+            AdminAudit_AddPaperOwner(
+                str(current_user.user_id), str(body.uesr_id),
+                str(current_user.tapir_session_id),
+                str(paper.document_id),
+                remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie))
+
     session.commit()
     response.status_code = http_status.HTTP_201_CREATED
     return
