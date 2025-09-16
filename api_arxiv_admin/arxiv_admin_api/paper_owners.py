@@ -538,7 +538,7 @@ def arxiv_squash_id(paper_id: str) -> str | None:
     return None
 
 
-@router.post("/authorize/")
+@router.post("/authorize")
 def register_paper_owner(
         response: Response,
         body: PaperAuthRequest,
@@ -605,7 +605,9 @@ def register_paper_owner(
         flag_author=body.is_author,
         flag_auto=1 if is_auto else 0,
         tracking_cookie=None if user is None else user.tracking_cookie,
+        date=datetime_to_epoch(None, datetime.now(UTC)),
     )
+
     session.add(paper_owner)
     session.commit()
     response.status_code = http_status.HTTP_201_CREATED

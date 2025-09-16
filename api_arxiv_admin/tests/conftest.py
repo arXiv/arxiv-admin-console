@@ -238,6 +238,37 @@ def api_client(test_env):
     client.close()
 
 
+def generate_request_headers(test_env: dict, user_id: int = 1129053, tapir_session_id: int = 0) -> Dict[str, str]:
+    jwt_secret = test_env['JWT_SECRET']
+    now_epoch = datetime_to_epoch(None, datetime.now())
+
+    claims_data = ArxivUserClaimsModel(
+        sub = str(user_id),
+        exp = now_epoch + 360000,  # Expiration
+        iat = now_epoch,
+        roles = ["Public user"],
+        email_verified = True,
+        email = "no-reply@example.com",
+
+        acc = "magic-access", # Access token
+        idt = "", # ID token
+        sid = "kc-session-id",
+
+        first_name = "Test",
+        last_name = "User",
+        username = "cookie_monster",
+        client_ipv4 = "127.0.0.1",
+        ts_id = tapir_session_id)
+
+    api_token = ArxivUserClaims(claims_data).encode_jwt_token(jwt_secret)
+
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    return headers
+
+
 @pytest.fixture(scope="module")
 def api_headers(test_env):
     jwt_secret = test_env['JWT_SECRET']
