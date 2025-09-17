@@ -28,56 +28,6 @@ class TestOwnershipByPaperPassword:
         return 8788860
 
 
-    def test_authorize_endpoint_success(self, arxiv_db, test_env, api_client):
-        """Test successful paper ownership authorization via password"""
-
-        with DatabaseSession() as db_session:
-            paper_pw: PaperPw | None = db_session.query(PaperPw).filter(PaperPw.document_id == self.doc_id).one_or_none()
-            assert paper_pw is not None
-
-            doc = db_session.query(Document).filter(Document.document_id == self.doc_id).one_or_none()
-            assert doc is not None
-
-        headers = generate_request_headers(
-            test_env,
-            tapir_session_id=self.session_id,
-            user_id=self.user_id,
-        )
-
-        # Prepare the authorization request
-        auth_request = PaperAuthRequest(
-            paper_id=str(doc.paper_id),
-            password=str(paper_pw.password_enc),
-            user_id=str(self.user_id),  # Assuming this matches the authenticated user
-            verify_id=True,
-            is_author=True
-        )
-
-        # Make the API request
-        response = api_client.post(
-            "/v1/paper_owners/authorize",
-            headers=headers,
-            json=auth_request.model_dump()
-        )
-
-        # Assert successful response
-        assert response.status_code == 201
-
-        with DatabaseSession() as db_session:
-            # Verify that ownership record was created
-            ownerships = db_session.query(PaperOwner).filter(PaperOwner.user_id == self.user_id).all()
-            assert len(ownerships) == 1
-
-            ownership = db_session.query(PaperOwner).filter(
-                PaperOwner.user_id == self.user_id,
-                PaperOwner.document_id == self.doc_id
-            ).one_or_none()
-
-            assert ownership is not None
-            assert ownership.valid
-            assert ownership.flag_author
-            assert not ownership.flag_auto
-
 
     def test_authorize_endpoint_wrong_password(self, arxiv_db, test_env, api_client):
         """Test authorization failure with wrong password"""
@@ -180,7 +130,7 @@ class TestOwnershipByPaperPassword:
 
         # Assert failure response
         assert response.status_code == 400
-        assert "does not exist" in response.json()["detail"]
+        assert "Paper ID 'foo###12210021' is ill-formed." in response.json()["detail"]
 
 
     def test_authorize_endpoint_verify_id_false(self, arxiv_db, db_session: Session, test_env, api_client):
@@ -223,12 +173,12 @@ class TestOwnershipByPaperPassword:
                 PaperOwner.user_id == self.user_id,
                 PaperOwner.document_id == self.doc_id
             ).one_or_none()
-            assert ownership is not None
+            assert ownership is None
 
 
 
-    def test_authorize_endpoint_existing_ownership(self, arxiv_db, db_session: Session, test_env, api_client):
-        """Test authorization failure when ownership already exists"""
+    def test_authorize_endpoint_success(self, arxiv_db, test_env, api_client):
+        """Test successful paper ownership authorization via password"""
 
         with DatabaseSession() as db_session:
             paper_pw: PaperPw | None = db_session.query(PaperPw).filter(PaperPw.document_id == self.doc_id).one_or_none()
@@ -236,23 +186,6 @@ class TestOwnershipByPaperPassword:
 
             doc = db_session.query(Document).filter(Document.document_id == self.doc_id).one_or_none()
             assert doc is not None
-
-            # Create existing ownership
-            existing_ownership = PaperOwner(
-                user_id=self.user_id,
-                document_id=self.doc_id,
-                date=1673481600,
-                added_by=1,
-                remote_addr="127.0.0.1",
-                remote_host="localhost",
-                tracking_cookie="test_cookie",
-                valid=True,
-                flag_author=True,
-                flag_auto=False
-            )
-            db_session.add(existing_ownership)
-            db_session.commit()
-
 
         headers = generate_request_headers(
             test_env,
@@ -262,9 +195,9 @@ class TestOwnershipByPaperPassword:
 
         # Prepare the authorization request
         auth_request = PaperAuthRequest(
-            paper_id=doc.paper_id,
-            password=paper_pw.password_enc,
-            user_id="123456",
+            paper_id=str(doc.paper_id),
+            password=str(paper_pw.password_enc),
+            user_id=str(self.user_id),  # Assuming this matches the authenticated user
             verify_id=True,
             is_author=True
         )
@@ -272,7 +205,33 @@ class TestOwnershipByPaperPassword:
         # Make the API request
         response = api_client.post(
             "/v1/paper_owners/authorize",
-            headers=api_headers,
+            headers=headers,
+            json=auth_request.model_dump()
+        )
+
+        # Assert successful response
+        assert response.status_code == 201
+
+        with DatabaseSession() as db_session:
+            # Verify that ownership record was created
+            ownerships = db_session.query(PaperOwner).filter(PaperOwner.user_id == self.user_id).all()
+            assert len(ownerships) == 1
+
+            ownership = db_session.query(PaperOwner).filter(
+                PaperOwner.user_id == self.user_id,
+                PaperOwner.document_id == self.doc_id
+            ).one_or_none()
+
+            assert ownership is not None
+            assert ownership.valid
+            assert ownership.flag_author
+            assert not ownership.flag_auto
+
+
+        # Make the API request 2nd time
+        response = api_client.post(
+            "/v1/paper_owners/authorize",
+            headers=headers,
             json=auth_request.model_dump()
         )
 
