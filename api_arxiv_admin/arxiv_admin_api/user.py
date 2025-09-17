@@ -125,7 +125,7 @@ class UserCommentRequest(BaseModel):
 
 @router.get("/{user_id:int}")
 def get_one_user(user_id:int,
-                 current_user: ArxivUserClaims = Depends(get_authn),
+                 current_user: ArxivUserClaims = Depends(get_authn_user),
                  db: Session = Depends(get_db)) -> UserModel:
     check_authnz(None, current_user, str(user_id))
     # @ignore-types
@@ -456,7 +456,7 @@ async def _update_user_property(
 
 
 @router.put('/{user_id:int}/demographic')
-async def update_user_property(
+async def update_user_demographic(
         user_id: int,
         body: UserPropertyUpdateRequest,
         current_user: ArxivUserClaims = Depends(get_authn_user),
@@ -667,7 +667,7 @@ class UserDocumentSummary(BaseModel):
 
 @router.get("/{user_id:int}/document-summary")
 def get_user_document_summary(user_id:int,
-                              current_user: ArxivUserClaims = Depends(get_authn),
+                              current_user: ArxivUserClaims = Depends(get_authn_user),
                               db: Session = Depends(get_db)) -> UserDocumentSummary:
     check_authnz(None, current_user, user_id)
     # @ignore-types
@@ -701,7 +701,7 @@ def from_submit_to_to_category_yes_no(accessor: EndorsementAccessor, cat: Catego
 def get_user_can_submit_to(
         response: Response,
         user_id:int,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> List[CategoryYesNo]:
     from .biz.endorsement_io import EndorsementDBAccessor
     check_authnz(None, current_user, user_id)
@@ -742,7 +742,7 @@ def from_can_endorse_for_to_category_yes_no(accessor: EndorsementAccessor, cat: 
 def get_user_can_endorse_for(
         response: Response,
         user_id: int,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> List[CategoryYesNo]:
     check_authnz(None, current_user, user_id)
     categories: List[Category] = session.query(Category).all()

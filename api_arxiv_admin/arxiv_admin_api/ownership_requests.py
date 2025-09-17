@@ -191,7 +191,7 @@ def list_ownership_requests(
         endorsement_request_id: Optional[int] = Query(None),
         workflow_status: Optional[Literal['pending', 'accepted', 'rejected']] = Query(None),
         session: Session = Depends(get_db),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
     ) -> List[OwnershipRequestModel]:
     query = OwnershipRequestModel.base_query_with_audit(session)
     order_columns = []
@@ -300,7 +300,7 @@ def list_ownership_requests(
 @router.get("/{id:int}")
 async def get_ownership_request(
         id: int,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db),
     ) ->OwnershipRequestModel:
     query = OwnershipRequestModel.base_query_with_audit(session).filter(OwnershipRequest.request_id == id)

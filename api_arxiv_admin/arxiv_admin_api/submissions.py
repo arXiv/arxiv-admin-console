@@ -9,6 +9,7 @@ from arxiv.base import logging
 from arxiv.db.models import Submission, SubmissionCategory
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
+from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text, cast, LargeBinary, Row, and_  # select, update, func, case, Select, distinct, exists, and_
@@ -254,7 +255,7 @@ async def list_submissions(
         start_submission_id: Optional[int] = Query(None, description="Start Submission ID"),
         end_submission_id: Optional[int] = Query(None, description="End Submission ID"),
         db: Session = Depends(get_db),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
     ) -> List[SubmissionModel]:
     datagrid_filter = MuiDataGridFilter(filter) if filter else None
     query = SubmissionModel.base_select(db)
@@ -388,7 +389,7 @@ async def list_submissions(
 @router.get("/paper/{paper_id:str}")
 async def get_submission_by_paper_id(
         paper_id:str,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> SubmissionModel:
     """Display a paper."""
     if not current_user:
@@ -402,7 +403,7 @@ async def get_submission_by_paper_id(
 @router.get("/{id:int}")
 async def get_submission(
         id: int,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> SubmissionModel:
     """Display a paper."""
     if not current_user:
@@ -442,8 +443,22 @@ async def delete_submission(
 
 
 class SubmissionUpdateModel(BaseModel):
-    status: Optional[str] # id of intSubmissionStatusModel
-    
+    # status: Optional[str] # id of intSubmissionStatusModel
+    source_format: Optional[str] = None
+    source_flags: Optional[str] = None
+    title: Optional[str] = None
+    authors: Optional[str] = None
+    comments: Optional[str] = None
+    proxy: Optional[str] = None
+    msc_class: Optional[str] = None
+    acm_class: Optional[str] = None
+    journal_ref: Optional[str] = None
+    doi: Optional[str] = None
+    abstract: Optional[str] = None
+    version: Optional[int] = None
+    submitter_name: Optional[str] = None
+    submitter_email: Optional[str] = None
+
 
 @router.patch("/{id:int}")
 async def update_submission(
@@ -460,15 +475,27 @@ async def update_submission(
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
         
-    if update.status is not None:
-        for st in _VALID_STATUS_LIST:
-            if st.name == update.status and st.group != "invalid":
-                sub.status = st.id
-                break
-        else:
-            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"{update.status|r} is OOB.")
+    # if update.status is not None:
+    #     for st in _VALID_STATUS_LIST:
+    #         if st.name == update.status and st.group != "invalid":
+    #             sub.status = st.id
+    #             break
+    #     else:
+    #         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"{update.status|r} is OOB.")
+    data = update.model_dump(exclude_unset=True)
 
-    session.commit()    
+    i18n_fields = {"title", "authors", "comments", "abstract", "submitter_name", "submitter_email"}
+
+    for field in data:
+        if field in i18n_fields:
+            continue
+        if hasattr(sub, field):
+            setattr(sub, field, data[field])
+
+    update_model_fields(session, sub, data, updating_fields=i18n_fields,
+                        primary_key_field="submission_id",
+                        primary_key_value=id)
+    session.commit()
     return SubmissionModel.model_validate(SubmissionModel.base_select(session).filter(Submission.submission_id == id).first())
 
 

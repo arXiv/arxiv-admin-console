@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import Enum
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from arxiv.base import logging
@@ -282,7 +282,7 @@ async def list_documents(
 
 @router.get("/paper_id/{paper_id:str}")
 def get_document(paper_id:str,
-                 current_user: ArxivUserClaims = Depends(get_authn),
+                 current_user: ArxivUserClaims = Depends(get_authn_user),
                  session: Session = Depends(get_db)) -> DocumentModel:
     """Display a paper."""
     query = DocumentModel.base_select(session).filter(Document.paper_id == paper_id)
@@ -295,7 +295,7 @@ def get_document(paper_id:str,
 def get_old_style_document(
         category: str,
         paper_id:str,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> DocumentModel:
     """Display a paper."""
     old_paper_id = f"{category}/{paper_id}"
@@ -451,7 +451,7 @@ class DocumentUserAction(str, Enum):
 def redirect_to_user_document_action(
         id:str,
         action: DocumentUserAction,
-        _current_user: ArxivUserClaims = Depends(get_authn),
+        _current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> RedirectResponse:
     doc = session.query(Document).filter(Document.document_id == id).one_or_none()
     if doc is None:

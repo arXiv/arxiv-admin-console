@@ -1,6 +1,6 @@
 """arXiv paper display routes."""
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_authn
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from arxiv_bizlogic.user_status import UserVetoStatus
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
@@ -97,7 +97,7 @@ async def list_demographics(
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         db: Session = Depends(get_db)
     ) -> List[DemographicModel]:
     gate_admin_user(current_user)
@@ -136,7 +136,7 @@ async def list_demographics(
 
 @router.get("/{id:int}")
 def get_demographic(id:int,
-                    current_user: Optional[ArxivUserClaims] = Depends(get_authn),
+                    current_user: ArxivUserClaims = Depends(get_authn_user),
                     session: Session = Depends(get_db)) -> DemographicModel:
     """Display a paper."""
     if not current_user.is_admin and str(current_user.user_id) != str(id):

@@ -127,7 +127,7 @@ async def list_admin_logs(
 @router.get('/{id:int}')
 async def get_admin_log(id: int,
                         _is_admin_user: ArxivUserClaims = Depends(is_admin_user),
-                        current_user: ArxivUserClaims = Depends(get_authn),
+                        current_user: ArxivUserClaims = Depends(get_authn_user),
                         db: Session = Depends(get_db)) -> AdminLogModel:
     item: AdminLog = AdminLogModel.base_select(db).filter(AdminLog.id == id).one_or_none()
     if not item:

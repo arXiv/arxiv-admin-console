@@ -132,7 +132,7 @@ async def list_ownerships(
         id: Optional[List[str]] = Query(None,
                                         description="List of paper owner"),
         with_document: Optional[bool] = Query(False, description="with document"),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)
 ) -> List[OwnershipModel]:
     query = OwnershipModel.base_select(session)
@@ -304,7 +304,7 @@ async def list_ownerships_for_user(
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         flag_valid: Optional[bool] = Query(None),
         document_id: Optional[int] = Query(None),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)
 ) -> List[OwnershipModel]:
     # gate_admin_user(current_user)
@@ -371,7 +371,7 @@ async def list_ownerships_for_user(
 
 @router.get('/{id:str}')
 async def get_ownership(id: str,
-                        current_user: ArxivUserClaims = Depends(get_authn),
+                        current_user: ArxivUserClaims = Depends(get_authn_user),
                         session: Session = Depends(get_db)
                         ) -> OwnershipModel:
     uid, did = to_ids(id)
@@ -449,7 +449,7 @@ async def list_paper_pw(
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of paper owner"),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)
 ) -> List[PaperPwModel]:
     if current_user is None:
@@ -487,7 +487,7 @@ async def get_paper_pw(id: str,
 
 @paper_pw_router.get('/paper/{arxiv_id:str}')
 async def get_paper_pw_from_arxiv_id(arxiv_id: str,
-                                     current_user: ArxivUserClaims = Depends(get_authn),
+                                     current_user: ArxivUserClaims = Depends(get_authn_user),
                                      session: Session = Depends(get_db)) -> PaperPwModel:
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
     if not doc:
@@ -497,7 +497,7 @@ async def get_paper_pw_from_arxiv_id(arxiv_id: str,
 
 @paper_pw_router.get('/paper/{category:str}/{subject_class:str}')
 async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
-                                     current_user: ArxivUserClaims = Depends(get_authn),
+                                     current_user: ArxivUserClaims = Depends(get_authn_user),
                                      session: Session = Depends(get_db)) -> PaperPwModel:
     arxiv_id = f"{category}/{subject_class}"
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
@@ -834,7 +834,7 @@ async def update_authorship(
 async def update_ownership(
         request: Request,
         id: str,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> OwnershipModel:
     gate_admin_user(current_user)
 

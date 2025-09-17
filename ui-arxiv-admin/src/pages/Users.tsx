@@ -898,21 +898,21 @@ const UserEditContent = () => {
                         <Divider/>
 
                         <Box>
-                            <Button onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
+                            <Button size={"small"} variant={"outlined"} onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
                             <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
                         </Box>
 
                         <Divider/>
 
                         <Box>
-                            <Button onClick={() => setIsModOpen(true)}>Moderator for</Button>
+                            <Button size={"small"} variant={"outlined"} onClick={() => setIsModOpen(true)}>Moderator for</Button>
                             <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
                         </Box>
                         <Divider/>
                         <Box>
-                            <Button variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>Can Submit
+                            <Button size={"small"} variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>Can Submit
                                 to?</Button>
-                            <Button variant={"contained"} onClick={() => setCanEndorseForOpen(true)} sx={{ml: 2}}>Can
+                            <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)} sx={{ml: 2}}>Can
                                 Endorsed for?</Button>
                             <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen}/>
                             <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>

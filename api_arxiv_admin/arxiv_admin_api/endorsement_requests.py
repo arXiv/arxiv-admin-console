@@ -96,7 +96,7 @@ async def list_endorsement_requests(
         endorsee_username: Optional[str] = Query(None, description="Endorsee username"),
         category: Optional[str] = Query(None, description="Endorsement category"),
         current_id: Optional[int] = Query(None, description="Current ID - index position - for navigation"),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db),
 
     ) -> List[EndorsementRequestModel]:
@@ -233,7 +233,7 @@ async def list_endorsement_requests(
 
 @router.get('/{id:int}')
 async def get_endorsement_request(id: int,
-                                  current_user: ArxivUserClaims = Depends(get_authn),
+                                  current_user: ArxivUserClaims = Depends(get_authn_user),
                                   db: Session = Depends(get_db)) -> EndorsementRequestModel:
     item: EndorsementRequest = EndorsementRequestModel.base_select(db).filter(EndorsementRequest.request_id == id).one_or_none()
     if not item:
@@ -296,7 +296,7 @@ async def update_endorsement_request(
 async def create_endorsement_request(
         respones: Response,
         body: EndorsementRequestRequestModel,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> EndorsementRequestModel:
     endorsee_id = body.endorsee_id
     if endorsee_id is None:
@@ -346,7 +346,7 @@ async def create_endorsement_request(
 @router.delete('/{id:int}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_endorsement_request(
         id: int,
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> Response:
     if not current_user.is_admin:
         return Response(status_code=status.HTTP_403_FORBIDDEN)
@@ -362,7 +362,7 @@ async def delete_endorsement_request(
 @router.get('/code')
 async def get_endorsement_request_by_secret(
         secret: str = Query(None, description="Find an endorsement request by code"),
-        current_user: ArxivUserClaims = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         db: Session = Depends(get_db)
 ) -> EndorsementRequestModel:
     if not current_user:
