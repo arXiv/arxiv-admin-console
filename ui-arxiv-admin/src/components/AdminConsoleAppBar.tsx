@@ -126,8 +126,10 @@ export const AdminConsoleAppBar = () => {
     return (
         <RaAppBar sx={{zIndex: 1300}} userMenu={<ArxivUserMenu/>}>
             <Toolbar sx={{display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
-                <img src={"arxiv-logo.png"} alt="arXiv Logo" style={{height: '24px', marginRight: '10px'}}/>
-                <Typography sx={{fontSize: "0.8rem", opacity: "66%", pl: 0}}>Admin</Typography>
+                <img src={"arxiv-logo.png"} alt="Arxiv Logo" style={{height: '14px', marginRight: '0px'}}/>
+                <Tooltip title={"Wombat"} >
+                    <img src={"wombat-keyboard.png"} alt="Wombat" style={{height: '48px', marginRight: '2px'}}/>
+                </Tooltip>
                 <ArxivNavMenu />
 
                 <Box sx={{flexGrow: 1}}/>
