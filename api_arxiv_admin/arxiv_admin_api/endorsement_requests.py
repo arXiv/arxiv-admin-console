@@ -5,7 +5,7 @@ from sqlite3 import IntegrityError
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, ApiToken
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
 from sqlalchemy import case, and_  # select, update, func, Select, distinct, exists, and_, or_
@@ -17,12 +17,14 @@ from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, Tapi
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
 from .biz.endorsement_code import endorsement_code
+from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates
 # from .categories import CategoryModel
 from .dao.endorsement_request_model import EndorsementRequestRequestModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/endorsement_requests", dependencies=[Depends(is_any_user)])
+endorsers_router = APIRouter(prefix="/endorsers")
 
 
 class EndorsementRequestModel(BaseModel):
@@ -371,3 +373,15 @@ async def get_endorsement_request_by_secret(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement request with code {secret} not found")
     return EndorsementRequestModel.model_validate(item)
+
+
+@endorsers_router.get('/eligible')
+async def list_eligible_endorsers(
+        # authn: ArxivUserClaims | ApiToken = Depends(get_authn),
+        start_time: Optional[datetime] = Query(None, description="Paper count start time"),
+        end_time: Optional[datetime] = Query(None, description="Paper count end time"),
+        session: Session = Depends(get_db)
+) -> List[EndorsementCandidates]:
+    #if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
+    #    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+    return list_endorsement_candidates(session, start_date=start_time, end_date=end_time)

@@ -26,7 +26,7 @@ from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_se
 from arxiv_admin_api.admin_logs import router as admin_log_router
 from arxiv_admin_api.categories import router as categories_router, archive_group_router
 from arxiv_admin_api.email_template import router as email_template_router, notification_pubsub_router
-from arxiv_admin_api.endorsement_requests import router as endorsement_request_router
+from arxiv_admin_api.endorsement_requests import router as endorsement_request_router, endorsers_router
 from arxiv_admin_api.endorsement_requests_audit import router as endorsement_request_audit_router
 from arxiv_admin_api.endorsements import router as endorsement_router
 from arxiv_admin_api.demographic import router as demographic_router
@@ -128,7 +128,7 @@ class LogMiddleware(BaseHTTPMiddleware):
         body = await request.body()
         print(f"Request: {request.method} {request.url}")
         print(f"Request Headers: {request.headers}")
-        print(f"Request Body: {body.decode('utf-8')}")
+        #print(f"Request Body: {body.decode('utf-8')}")
 
         # Call the next middleware or endpoint
         response = await call_next(request)
@@ -149,8 +149,8 @@ class LogMiddleware(BaseHTTPMiddleware):
         # Log response details
         response_body_str = b''.join(response_body).decode('utf-8')
         print(f"Response: {response.status_code}")
-        print(f"Response Headers: {response.headers}")
-        print(f"Response Body: {response_body_str}")
+        #print(f"Response Headers: {response.headers}")
+        #print(f"Response Body: {response_body_str}")
 
         return response
 
@@ -253,6 +253,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(notification_pubsub_router, prefix="/v1")
     app.include_router(endorsement_router, prefix="/v1")
     app.include_router(endorsement_request_router, prefix="/v1")
+    app.include_router(endorsers_router, prefix="/v1")
     app.include_router(endorsement_request_audit_router, prefix="/v1")
     app.include_router(paper_owner_router, prefix="/v1")
     app.include_router(paper_pw_router, prefix="/v1")

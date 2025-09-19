@@ -125,10 +125,10 @@ def _list_endorsement_candidates(
     end_date: Optional[date] = None
 ) -> List[EndorsementCandidateWithMultipleCategories]:
     """
-    Find endorsement candidates based on paper ownership and minimum thresholds.
+    Find endorsement candidates using an optimized single query approach.
 
-    Converts the optimized SQL query from endorsing.sql to SQLAlchemy.
-    Pre-filters users with minimum required papers to eliminate small authors upfront.
+    This restructures the original query to be more efficient while avoiding
+    the performance issues of multiple round trips.
 
     Args:
         session: SQLAlchemy session
@@ -136,8 +136,10 @@ def _list_endorsement_candidates(
         end_date: End date for paper filtering (defaults to 3mo ago)
 
     Returns:
-        List of EndorsementCandidate objects with user_id, category, and document count
+        List of EndorsementCandidateWithMultipleCategories objects
     """
+    import time
+    start_time = time.time()
 
     if start_date is None:
         # Default to 5 years ago from current UTC timestamp
@@ -150,24 +152,23 @@ def _list_endorsement_candidates(
     start_timestamp = int(datetime.combine(start_date, datetime.min.time()).timestamp())
     end_timestamp = int(datetime.combine(end_date, datetime.min.time()).timestamp())
 
-    # Create alias for inner query
-    po_inner = aliased(PaperOwner)
+    logger.debug(f"Starting optimized single query for date range {start_date} to {end_date}")
 
-    # Subquery: Get minimum papers_to_endorse threshold
-    min_papers_subquery = session.query(
-        func.min(EndorsementDomain.papers_to_endorse)
-    ).scalar_subquery()
+    # Get minimum papers threshold
+    min_papers_threshold = session.query(func.min(EndorsementDomain.papers_to_endorse)).scalar()
+    logger.debug(f"Minimum papers threshold: {min_papers_threshold}")
 
-    # Subquery: Pre-filter users with at least minimum required papers
-    qualifying_users_subquery = (
-        session.query(po_inner.user_id)
-        .filter(po_inner.valid == 1)
-        .group_by(po_inner.user_id)
-        .having(func.count(func.distinct(po_inner.document_id)) >= min_papers_subquery)
-        .subquery()
+    # Create a CTE for qualifying users to avoid repeated subquery evaluation
+    po_qualifying = aliased(PaperOwner)
+    qualifying_users_cte = (
+        session.query(po_qualifying.user_id.label('user_id'))
+        .filter(po_qualifying.valid == 1)
+        .group_by(po_qualifying.user_id)
+        .having(func.count(func.distinct(po_qualifying.document_id)) >= min_papers_threshold)
+        .cte('qualifying_users')
     )
 
-    # Main query: Count distinct documents per user/category
+    # Main query with better structure - start with date filter first
     query = (
         session.query(
             func.count(func.distinct(Document.document_id)).label('document_count'),
@@ -176,12 +177,17 @@ def _list_endorsement_candidates(
             func.max(Document.dated).label('latest')
         )
         .select_from(Document)
+        .filter(Document.dated.between(start_timestamp, end_timestamp))  # Date filter first (uses index)
         .join(
             PaperOwner,
             and_(
                 Document.document_id == PaperOwner.document_id,
                 PaperOwner.valid == 1
             )
+        )
+        .join(
+            qualifying_users_cte,
+            PaperOwner.user_id == qualifying_users_cte.c.user_id
         )
         .join(
             Metadata,
@@ -191,19 +197,15 @@ def _list_endorsement_candidates(
                 Metadata.is_withdrawn == 0
             )
         )
-        .join(
-            qualifying_users_subquery,
-            PaperOwner.user_id == qualifying_users_subquery.c.user_id
-        )
-        .filter(
-            Document.dated.between(start_timestamp, end_timestamp)
-        )
         .group_by(PaperOwner.user_id, Metadata.abs_categories)
         .order_by(PaperOwner.user_id, Metadata.abs_categories)
     )
 
     # Execute query and convert to models
     results = query.all()
+
+    elapsed = time.time() - start_time
+    logger.debug(f"Optimized single query completed in {elapsed:.3f} seconds, found {len(results)} results")
 
     return [
         EndorsementCandidateWithMultipleCategories(
@@ -278,7 +280,7 @@ def list_endorsement_candidates(
         chunk_size = max(1000, len(unprocessed) // (os.cpu_count() * 4))
         max_workers = os.cpu_count() if os.cpu_count() else 4
 
-        logger.info(f"Processing {len(unprocessed)} candidates in parallel with {max_workers} workers, chunk size: {chunk_size}")
+        logger.debug(f"Processing {len(unprocessed)} candidates in parallel with {max_workers} workers, chunk size: {chunk_size}")
 
         merge_lock = Lock()
 
@@ -299,7 +301,7 @@ def list_endorsement_candidates(
                     raise
     else:
         # Sequential processing for smaller datasets
-        logger.info(f"Processing {len(unprocessed)} candidates sequentially")
+        logger.debug(f"Processing {len(unprocessed)} candidates sequentially")
         chunk_result = _process_chunk(unprocessed, valid_categories)
         endorsement_candidates_0.update(chunk_result)
 
@@ -308,7 +310,7 @@ def list_endorsement_candidates(
     endorsement_candidates_result: List[EndorsementCandidates] = []
     max_workers = min(os.cpu_count() or 4, len(endorsement_candidates_0))  # Don't over-provision
 
-    logger.info(f"Processing {len(endorsement_candidates_0)} categories in parallel with {max_workers} workers")
+    logger.debug(f"Processing {len(endorsement_candidates_0)} categories in parallel with {max_workers} workers")
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit category processing tasks
