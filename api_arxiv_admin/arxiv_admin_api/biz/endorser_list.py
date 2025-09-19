@@ -29,6 +29,7 @@ class EndorsementCandidate(BaseModel):
 
 class EndorsementCandidates(BaseModel):
     """Model for endorsement candidate data."""
+    timestamp: datetime
     category: str
     candidates: List[EndorsementCandidate]
 
@@ -91,6 +92,7 @@ def _merge_candidate_dicts(
 
 
 def _process_category(
+    timestamp: datetime,
     cat: str,
     candidates: dict[int, EndorsementCandidate],
     endorsement_criteria: dict[str, EndorsementDomain]
@@ -114,6 +116,7 @@ def _process_category(
             users.append(entry)
 
     return EndorsementCandidates(
+        timestamp=timestamp,
         category=cat,
         candidates=users
     )
@@ -254,6 +257,8 @@ def list_endorsement_candidates(
         math.CO: 45 users
         cs.AI: 123 users
     """
+    timestamp = datetime.now(timezone.utc)
+
     endorsement_criteria = {}
     criteria: EndorsementDomain
     for criteria in session.query(EndorsementDomain).all():
@@ -315,7 +320,7 @@ def list_endorsement_candidates(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit category processing tasks
         future_to_category = {
-            executor.submit(_process_category, cat, candidates, endorsement_criteria): cat
+            executor.submit(_process_category, timestamp, cat, candidates, endorsement_criteria): cat
             for cat, candidates in endorsement_candidates_0.items()
         }
 

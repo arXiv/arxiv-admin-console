@@ -213,6 +213,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         PWC_SECRET=pwc_secret,
         PWC_ARXIV_USER_SECRET=pwc_arxiv_user_secret,
         SMTP_URL = os.environ.get('SMTP_URL', "ssmtp://smtp.gmail.com:465?user=smtp-relay@arxiv.org&password=pwd"),
+        API_SHARED_SECRET = os.environ.get('API_SHARED_SECRET', "not-very-secret"),
     )
 
     if ADMIN_APP_URL not in origins:
