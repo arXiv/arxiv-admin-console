@@ -1,7 +1,7 @@
 """arXiv endorser list business logic."""
 from typing import Optional, List, Iterator
 from arxiv.base import logging
-from arxiv.db.models import Metadata, Document, PaperOwner, EndorsementDomain, Category
+from arxiv.db.models import Metadata, Document, PaperOwner, EndorsementDomain, Category, Demographic
 from sqlalchemy import func, and_
 from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
@@ -162,10 +162,11 @@ def _list_endorsement_candidates(
     logger.debug(f"Minimum papers threshold: {min_papers_threshold}")
 
     # Create a CTE for qualifying users to avoid repeated subquery evaluation
-    po_qualifying = aliased(PaperOwner)
+    po_qualifying: PaperOwner = aliased(PaperOwner)
     qualifying_users_cte = (
         session.query(po_qualifying.user_id.label('user_id'))
-        .filter(po_qualifying.valid == 1)
+        .filter(po_qualifying.valid == 1,
+                po_qualifying.flag_author == 1)
         .group_by(po_qualifying.user_id)
         .having(func.count(func.distinct(po_qualifying.document_id)) >= min_papers_threshold)
         .cte('qualifying_users')
@@ -198,6 +199,13 @@ def _list_endorsement_candidates(
                 Document.document_id == Metadata.document_id,
                 Metadata.is_current == 1,
                 Metadata.is_withdrawn == 0
+            )
+        )
+        .join(
+            Demographic,
+            and_(
+                Demographic.user_id == PaperOwner.user_id,
+                Demographic.veto_status == "ok"
             )
         )
         .group_by(PaperOwner.user_id, Metadata.abs_categories)

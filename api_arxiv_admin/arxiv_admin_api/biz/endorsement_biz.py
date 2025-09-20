@@ -428,7 +428,7 @@ class EndorsementBusiness:
             return self.reject("Proxy submitters are not allowed to endorse.",
                                endorser_capability=EndorserCapabilityType.uncredited,)
 
-        # For endorsement doamin, if it dose not exist, we cannot go on
+        # For endorsement domain, if it dose not exist, we cannot go on
         result = self.acquire_endorsement_domain()
         if not result:
             return result
