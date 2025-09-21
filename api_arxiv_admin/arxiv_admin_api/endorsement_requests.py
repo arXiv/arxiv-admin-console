@@ -419,6 +419,7 @@ async def get_endorsement_request_by_secret(
 
 @endorsers_router.get('/eligible')
 async def list_eligible_endorsers(
+        response: Response,
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
         start_time: Optional[datetime] = Query(None, description="Paper count start time"),
         end_time: Optional[datetime] = Query(None, description="Paper count end time"),
@@ -426,7 +427,9 @@ async def list_eligible_endorsers(
 ) -> List[EndorsementCandidates]:
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
-    return list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+    data =  list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+    response.headers['X-Total-Count'] = str(len(data))
+    return data
 
 
 @endorsers_router.post('/precomputed')
@@ -575,9 +578,8 @@ def _read_cached_data(request: Request) -> str:
 
             # Read file content
             content_text = file_path.read_text(encoding='utf-8')
-
-        # Validate JSON format by parsing it
-        json.loads(content_text)
+        else:
+            raise ValueError(f"Invalid storage scheme: {scheme}")
 
         logger.debug(f"Successfully fetched cached endorsement candidates from {scheme} storage")
         return content_text
@@ -610,8 +612,9 @@ def _read_cached_data(request: Request) -> str:
 
 @endorsers_router.get('/precomputed')
 async def get_cached_eligible_endorsers(
-    request: Request,
-    authn: ArxivUserClaims | ApiToken = Depends(get_authn),
+        request: Request,
+        response: Response,
+        authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidates]:
     """
     Fetch cached endorsement candidates from GCP bucket object.
@@ -623,6 +626,11 @@ async def get_cached_eligible_endorsers(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     content_text = _read_cached_data(request)
+
+    # Validate JSON format by parsing it
+    data = json.loads(content_text)
+    response.headers['X-Total-Count'] = str(len(data))
+
     return content_text
 
 
@@ -630,6 +638,7 @@ async def get_cached_eligible_endorsers(
 async def get_cached_eligible_endorsers_for_the_category(
         category: str,
         request: Request,
+        response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
@@ -666,7 +675,9 @@ async def get_cached_eligible_endorsers_for_the_category(
             else:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
 
-            return candidates[_start:_end]
+            response_body = candidates[_start:_end]
+            response.headers['X-Total-Count'] = str(response_body)
+            return response_body
 
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement category {category} not found")
 
