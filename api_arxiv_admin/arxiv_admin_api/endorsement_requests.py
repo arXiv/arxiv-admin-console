@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session #, joinedload
 import json
 from google.cloud import storage
 from urllib.parse import urlparse
+import os
+from pathlib import Path
 
 from pydantic import BaseModel
 from arxiv.base import logging
@@ -20,15 +22,21 @@ from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, Tapi
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
 from .biz.endorsement_code import endorsement_code
-from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates
+from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate
 
 
-def _parse_gcs_url(request: Request) -> tuple[str, str]:
+def _parse_storage_url(request: Request) -> tuple[str, str, str]:
     """
-    Parse GCS URL from app configuration and return bucket name and object name.
+    Parse storage URL from app configuration and return scheme, location, and path.
+
+    Supports:
+    - GCS: gs://bucket-name/path/to/object.json
+    - Local file: file:///path/to/file.json
 
     Returns:
-        Tuple of (bucket_name, object_name)
+        Tuple of (scheme, location, path) where:
+        - For GCS: ('gs', bucket_name, object_name)
+        - For file: ('file', '', file_path)
     """
     url = request.app.extra.get('ENDORSER_POOL_OBJECT_URL')
     if not url:
@@ -37,17 +45,21 @@ def _parse_gcs_url(request: Request) -> tuple[str, str]:
             detail="ENDORSER_POOL_OBJECT_URL is not configured"
         )
 
-    # Parse gs://bucket-name/path/to/object.json using urlparse
+    # Parse URL using urlparse
     parsed_url = urlparse(url)
-    if parsed_url.scheme != 'gs':
+
+    if parsed_url.scheme == 'gs':
+        bucket_name = parsed_url.netloc
+        object_name = parsed_url.path.lstrip('/')  # Remove leading slash from path
+        return 'gs', bucket_name, object_name
+    elif parsed_url.scheme == 'file':
+        file_path = parsed_url.path
+        return 'file', '', file_path
+    else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Invalid GCS URL format. Expected gs://bucket-name/object-name"
+            detail="Invalid storage URL format. Expected gs://bucket-name/object-name or file:///path/to/file.json"
         )
-
-    bucket_name = parsed_url.netloc
-    object_name = parsed_url.path.lstrip('/')  # Remove leading slash from path
-    return bucket_name, object_name
 # from .categories import CategoryModel
 from .dao.endorsement_request_model import EndorsementRequestRequestModel
 
@@ -417,76 +429,6 @@ async def list_eligible_endorsers(
     return list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
 
 
-@endorsers_router.get('/precomputed')
-async def get_cached_eligible_endorsers(
-    request: Request,
-    authn: ArxivUserClaims | ApiToken = Depends(get_authn),
-) -> List[EndorsementCandidates]:
-    """
-    Fetch cached endorsement candidates from GCP bucket object.
-
-    Returns precomputed endorsement candidates list from cloud storage,
-    providing faster response than real-time computation.
-    """
-
-    if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
-
-    # Parse bucket and object info from configuration
-    bucket_name, object_name = _parse_gcs_url(request)
-
-    try:
-        logger.info(f"Fetching cached endorsement candidates from gs://{bucket_name}/{object_name}")
-
-        # Initialize GCS client (uses default credentials from environment)
-        client = storage.Client()
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(object_name)
-
-        # Download and parse JSON content
-        if not blob.exists():
-            logger.error(f"Object {object_name} not found in bucket {bucket_name}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cached endorsement data not found"
-            )
-
-        # Download as bytes and decode
-        content_bytes = blob.download_as_bytes()
-        content_text = content_bytes.decode('utf-8')
-
-        # Validate JSON format by parsing it
-        json.loads(content_text)
-
-        logger.debug(f"Successfully fetched cached endorsement candidates from GCS")
-        return content_text
-
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in cached data: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Invalid JSON format in cached endorsement data"
-        )
-    except storage.exceptions.NotFound:
-        logger.error(f"Bucket {bucket_name} or object {object_name} not found")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cached endorsement data not found in storage"
-        )
-    except storage.exceptions.Forbidden:
-        logger.error(f"Access denied to bucket {bucket_name}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied to endorsement data storage"
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error fetching cached data from GCS: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch cached endorsement data from storage"
-        )
-
-
 @endorsers_router.post('/precomputed')
 async def upload_cached_eligible_endorsers(
     request: Request,
@@ -508,43 +450,223 @@ async def upload_cached_eligible_endorsers(
     logger.info("Generating fresh endorsement candidates for cache upload")
     data = list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
 
-    # Parse bucket and object info from configuration
-    bucket_name, object_name = _parse_gcs_url(request)
+    # Parse storage info from configuration
+    scheme, location, path = _parse_storage_url(request)
+
+    def datetime_serializer(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+    json_data = json.dumps([entry.model_dump() for entry in data], default=datetime_serializer, ensure_ascii=False, indent=2)
 
     try:
-        logger.info(f"Uploading endorsement candidates to gs://{bucket_name}/{object_name}")
+        if scheme == 'gs':
+            logger.info(f"Uploading endorsement candidates to gs://{location}/{path}")
 
-        # Initialize GCS client and upload data
-        client = storage.Client()
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(object_name)
+            # Initialize GCS client and upload data
+            client = storage.Client()
+            bucket = client.bucket(location)
+            blob = bucket.blob(path)
 
-        # Serialize data to JSON and upload
-        json_data = json.dumps(data, default=str, ensure_ascii=False, indent=2)
-        blob.upload_from_string(
-            json_data,
-            content_type='application/json'
-        )
+            blob.upload_from_string(
+                json_data,
+                content_type='application/json'
+            )
 
-        logger.info(f"Successfully uploaded {len(data)} endorsement categories to GCS")
+            logger.info(f"Successfully uploaded {len(data)} endorsement categories to GCS")
 
-        return {
-            "message": "Endorsement candidates uploaded successfully",
-            "bucket": bucket_name,
-            "object": object_name,
-            "categories_count": len(data),
-            "upload_timestamp": datetime.now(UTC).isoformat()
-        }
+            return {
+                "message": "Endorsement candidates uploaded successfully",
+                "storage_type": "gcs",
+                "bucket": location,
+                "object": path,
+                "categories_count": len(data),
+                "upload_timestamp": datetime.now(UTC).isoformat()
+            }
+
+        elif scheme == 'file':
+            logger.info(f"Uploading endorsement candidates to file://{path}")
+
+            # Create directory if it doesn't exist
+            file_path = Path(path)
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write JSON data to file
+            file_path.write_text(json_data, encoding='utf-8')
+
+            logger.info(f"Successfully uploaded {len(data)} endorsement categories to file")
+
+            return {
+                "message": "Endorsement candidates uploaded successfully",
+                "storage_type": "file",
+                "file_path": path,
+                "categories_count": len(data),
+                "upload_timestamp": datetime.now(UTC).isoformat()
+            }
 
     except storage.exceptions.Forbidden:
-        logger.error(f"Access denied to bucket {bucket_name}")
+        logger.error(f"Access denied to GCS bucket {location}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to endorsement data storage"
+        )
+    except PermissionError as e:
+        logger.error(f"Permission denied for file operation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied for file storage"
+        )
+    except OSError as e:
+        logger.error(f"File system error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="File system error during upload"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error uploading to {scheme} storage: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload endorsement data to storage"
+        )
+
+
+def _read_cached_data(request: Request) -> str:
+    """
+    Helper function to read cached endorsement data from storage.
+
+    Returns raw JSON content as string from either GCS or local file storage.
+    """
+    # Parse storage info from configuration
+    scheme, location, path = _parse_storage_url(request)
+
+    try:
+        if scheme == 'gs':
+            logger.info(f"Fetching cached endorsement candidates from gs://{location}/{path}")
+
+            # Initialize GCS client (uses default credentials from environment)
+            client = storage.Client()
+            bucket = client.bucket(location)
+            blob = bucket.blob(path)
+
+            # Download and parse JSON content
+            if not blob.exists():
+                logger.error(f"Object {path} not found in bucket {location}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Cached endorsement data not found"
+                )
+
+            # Download as bytes and decode
+            content_bytes = blob.download_as_bytes()
+            content_text = content_bytes.decode('utf-8')
+
+        elif scheme == 'file':
+            logger.info(f"Fetching cached endorsement candidates from file://{path}")
+
+            # Check if file exists
+            file_path = Path(path)
+            if not file_path.exists():
+                logger.error(f"File {path} not found")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Cached endorsement data file not found"
+                )
+
+            # Read file content
+            content_text = file_path.read_text(encoding='utf-8')
+
+        # Validate JSON format by parsing it
+        json.loads(content_text)
+
+        logger.debug(f"Successfully fetched cached endorsement candidates from {scheme} storage")
+        return content_text
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in cached data: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Invalid JSON format in cached endorsement data"
+        )
+    except storage.exceptions.NotFound:
+        logger.error(f"Bucket {location} or object {path} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cached endorsement data not found in storage"
+        )
+    except storage.exceptions.Forbidden:
+        logger.error(f"Access denied to bucket {location}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to endorsement data storage"
         )
     except Exception as e:
-        logger.error(f"Unexpected error uploading to GCS: {e}")
+        logger.error(f"Unexpected error fetching cached data: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload endorsement data to storage"
+            detail="Failed to fetch cached endorsement data from storage"
         )
+
+
+@endorsers_router.get('/precomputed')
+async def get_cached_eligible_endorsers(
+    request: Request,
+    authn: ArxivUserClaims | ApiToken = Depends(get_authn),
+) -> List[EndorsementCandidates]:
+    """
+    Fetch cached endorsement candidates from GCP bucket object.
+
+    Returns precomputed endorsement candidates list from cloud storage,
+    providing faster response than real-time computation.
+    """
+    if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
+    content_text = _read_cached_data(request)
+    return content_text
+
+
+@endorsers_router.get('/precomputed/{category:str}')
+async def get_cached_eligible_endorsers_for_the_category(
+        category: str,
+        request: Request,
+        _sort: Optional[str] = Query("id", description="sort by"),
+        _order: Optional[str] = Query("ASC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        authn: ArxivUserClaims | ApiToken = Depends(get_authn),
+) -> List[EndorsementCandidate]:
+    """
+    Fetch cached endorsement candidates for a specific category.
+
+    Returns precomputed endorsement candidates for the specified category
+    from cloud storage, providing faster response than real-time computation.
+    """
+    if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
+    content_text = _read_cached_data(request)
+
+    # Parse the data and find the requested category
+    precomputed_data = json.loads(content_text)
+    for precomputed in precomputed_data:
+        if precomputed.get('category') == category:
+            candidates: List[EndorsementCandidate] = [EndorsementCandidate.model_validate(entry) for entry in precomputed.get("candidates")]
+
+            # Apply sorting
+            reverse_order = _order.upper() == "DESC"
+            if _sort == "id":
+                candidates.sort(key=lambda x: x.id, reverse=reverse_order)
+            elif _sort == "category":
+                candidates.sort(key=lambda x: x.category, reverse=reverse_order)
+            elif _sort == "document_count":
+                candidates.sort(key=lambda x: x.document_count, reverse=reverse_order)
+            elif _sort == "latest":
+                candidates.sort(key=lambda x: x.latest, reverse=reverse_order)
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
+
+            return candidates[_start:_end]
+
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement category {category} not found")
+

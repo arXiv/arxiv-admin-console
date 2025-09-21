@@ -6,7 +6,7 @@ from sqlalchemy import func, and_
 from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta, timezone
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import os
 from threading import Lock
 
@@ -18,20 +18,25 @@ class EndorsementCandidateWithMultipleCategories(BaseModel):
     abs_categories: str
     document_count: int
     latest: datetime
-
+    class Config:
+        from_attributes = True
 
 class EndorsementCandidate(BaseModel):
     """Model for endorsement candidate data."""
-    user_id: int
+    id: int
     category: str
     document_count: int
-    lastest: datetime
+    latest: datetime
+    class Config:
+        from_attributes = True
 
 class EndorsementCandidates(BaseModel):
     """Model for endorsement candidate data."""
     timestamp: datetime
     category: str
     candidates: List[EndorsementCandidate]
+    class Config:
+        from_attributes = True
 
 
 def _chunk_generator(items: List, chunk_size: int) -> Iterator[List]:
@@ -57,15 +62,15 @@ def _process_chunk(
 
             if entry.user_id not in local_candidates[cat]:
                 local_candidates[cat][entry.user_id] = EndorsementCandidate(
-                    user_id=entry.user_id,
+                    id=entry.user_id,
                     category=cat,
                     document_count=0,
-                    lastest=entry.latest,
+                    latest=entry.latest,
                 )
 
             local_candidates[cat][entry.user_id].document_count += entry.document_count
-            if local_candidates[cat][entry.user_id].lastest > entry.latest:
-                local_candidates[cat][entry.user_id].lastest = entry.latest
+            if local_candidates[cat][entry.user_id].latest > entry.latest:
+                local_candidates[cat][entry.user_id].latest = entry.latest
 
     return local_candidates
 
@@ -87,8 +92,8 @@ def _merge_candidate_dicts(
                 else:
                     # Merge document counts and update latest timestamp
                     target[cat][user_id].document_count += candidate.document_count
-                    if target[cat][user_id].lastest > candidate.lastest:
-                        target[cat][user_id].lastest = candidate.lastest
+                    if target[cat][user_id].latest > candidate.latest:
+                        target[cat][user_id].latest = candidate.latest
 
 
 def _process_category(
@@ -289,15 +294,14 @@ def list_endorsement_candidates(
 
     # Process in parallel chunks for large datasets
     if len(unprocessed) > 10000:  # Use parallel processing for large datasets
-        # Determine optimal chunk size and thread pool size
+        # Determine optimal chunk size and process pool size
         chunk_size = max(1000, len(unprocessed) // (os.cpu_count() * 4))
         max_workers = os.cpu_count() if os.cpu_count() else 4
 
-        logger.debug(f"Processing {len(unprocessed)} candidates in parallel with {max_workers} workers, chunk size: {chunk_size}")
+        logger.debug(f"Processing {len(unprocessed)} candidates in parallel with {max_workers} processes, chunk size: {chunk_size}")
 
-        merge_lock = Lock()
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Use ProcessPoolExecutor for CPU-bound work to bypass GIL
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
             # Submit chunk processing tasks
             future_to_chunk = {
                 executor.submit(_process_chunk, chunk, valid_categories): chunk
@@ -308,7 +312,19 @@ def list_endorsement_candidates(
             for future in as_completed(future_to_chunk):
                 try:
                     chunk_result = future.result()
-                    _merge_candidate_dicts(endorsement_candidates_0, chunk_result, merge_lock)
+                    # Merge results sequentially (no lock needed with processes)
+                    for cat, users in chunk_result.items():
+                        if cat not in endorsement_candidates_0:
+                            endorsement_candidates_0[cat] = {}
+
+                        for user_id, candidate in users.items():
+                            if user_id not in endorsement_candidates_0[cat]:
+                                endorsement_candidates_0[cat][user_id] = candidate
+                            else:
+                                # Merge document counts and update latest timestamp
+                                endorsement_candidates_0[cat][user_id].document_count += candidate.document_count
+                                if endorsement_candidates_0[cat][user_id].latest > candidate.latest:
+                                    endorsement_candidates_0[cat][user_id].latest = candidate.latest
                 except Exception as e:
                     logger.error(f"Error processing chunk: {e}")
                     raise
@@ -323,9 +339,9 @@ def list_endorsement_candidates(
     endorsement_candidates_result: List[EndorsementCandidates] = []
     max_workers = min(os.cpu_count() or 4, len(endorsement_candidates_0))  # Don't over-provision
 
-    logger.debug(f"Processing {len(endorsement_candidates_0)} categories in parallel with {max_workers} workers")
+    logger.debug(f"Processing {len(endorsement_candidates_0)} categories in parallel with {max_workers} processes")
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
         # Submit category processing tasks
         future_to_category = {
             executor.submit(_process_category, timestamp, cat, candidates, endorsement_criteria): cat
