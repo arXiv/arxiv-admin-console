@@ -70,6 +70,7 @@ const ArxivNavMenu = () => {
                     return (
                         <React.Fragment key={categorySection.id}>
                             <Button
+                                color="inherit"
                                 onClick={handleMenuClick(categorySection.id)}
                             >
                                 {categorySection.title}
