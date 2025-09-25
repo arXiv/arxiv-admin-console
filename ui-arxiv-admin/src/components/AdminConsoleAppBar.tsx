@@ -17,19 +17,21 @@ import Button from '@mui/material/Button';
 import LaunchIcon from '@mui/icons-material/Launch';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { RuntimeContext } from "../RuntimeContext";
-import { ArxivNavLink } from "../arxivNavLinks";
+import {RuntimeContext} from "../RuntimeContext";
+import {ArxivNavLink} from "../arxivNavLinks";
 import ArxivNavMenu from './ArxivNavMenu';
+import {useMediaQuery} from "@mui/material";
 
 export const AdminConsoleAppBar = () => {
     const runtimeProps = React.useContext(RuntimeContext);
     const [userSearch, setUserSearch] = useState('');
     const [docSearch, setDocSearch] = useState('');
-    const [anchorEls, setAnchorEls] = useState<{[key: string]: HTMLElement | null}>({});
+    const [anchorEls, setAnchorEls] = useState<{ [key: string]: HTMLElement | null }>({});
     const navigate = useNavigate();
     const dataProvider = useDataProvider();
     const theme = useTheme();
     // const isDark = theme.palette.mode === 'dark';
+    const isVerySmall = useMediaQuery<any>(theme => theme.breakpoints.down('md'));
 
     const handleUserSearch = (e: React.KeyboardEvent) => {
         let criteria = {}
@@ -126,11 +128,16 @@ export const AdminConsoleAppBar = () => {
     return (
         <RaAppBar sx={{zIndex: 1300}} userMenu={<ArxivUserMenu/>}>
             <Toolbar sx={{display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
-                <img src={"arxiv-logo.png"} alt="Arxiv Logo" style={{height: '14px', marginRight: '0px'}}/>
-                <Tooltip title={"Wombat"} >
-                    <img src={"wombat-keyboard.png"} alt="Wombat" style={{height: '48px', marginRight: '2px'}}/>
-                </Tooltip>
-                <ArxivNavMenu />
+                {
+                    isVerySmall ? null : (<>
+                        <img src={"arxiv-logo.png"} alt="Arxiv Logo" style={{height: '14px', marginRight: '0px'}}/>
+                            <Tooltip title={"Wombat"}>
+                                <img src={"wombat-keyboard.png"} alt="Wombat" style={{height: '48px', marginRight: '2px'}}/>
+                            </Tooltip>
+                        </>
+                    )
+                }
+                <ArxivNavMenu/>
 
                 <Box sx={{flexGrow: 1}}/>
                 <Tooltip title={(
@@ -149,7 +156,9 @@ export const AdminConsoleAppBar = () => {
                         onKeyDown={handleUserSearch}
                         helperText={null}
                         sx={{
-                            maxWidth: "200px", mr: 1,
+                            minWidth: "8rem",
+                            maxWidth: "25%",
+                            mr: 1,
                             backgroundColor: theme.palette.background.default,
                             color: theme.palette.text.primary,
                             '& .MuiInputBase-input': {
@@ -178,7 +187,8 @@ export const AdminConsoleAppBar = () => {
                         helperText={null}
                         onKeyDown={handleDocSearch}
                         sx={{
-                            maxWidth: "200px",
+                            minWidth: "8rem",
+                            maxWidth: "25%",
                             backgroundColor: theme.palette.background.default,
                             color: theme.palette.text.primary,
                             '& .MuiInputBase-input': {
