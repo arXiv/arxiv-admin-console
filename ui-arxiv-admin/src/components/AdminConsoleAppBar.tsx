@@ -1,11 +1,16 @@
 import React from 'react';
 import {
-    AppBar as RaAppBar,
     useDataProvider,
+    ToggleThemeButton,
+    RefreshIconButton,
+    UserMenu,
 } from 'react-admin';
+import IconButton from '@mui/material/IconButton';
+import MenuIcon from '@mui/icons-material/Menu';
 import TextField from '@mui/material/TextField';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
+import AppBar from '@mui/material/AppBar';
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from "@mui/material/styles";
@@ -21,7 +26,12 @@ import {ArxivNavLink} from "../arxivNavLinks";
 import ArxivNavMenu from './ArxivNavMenu';
 import {useMediaQuery} from "@mui/material";
 
-export const AdminConsoleAppBar = () => {
+interface AdminConsoleAppBarProps {
+    onMenuClick?: () => void;
+    open?: boolean;
+}
+
+export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuClick, open }) => {
     const runtimeProps = React.useContext(RuntimeContext);
     const [userSearch, setUserSearch] = useState('');
     const [docSearch, setDocSearch] = useState('');
@@ -125,7 +135,7 @@ export const AdminConsoleAppBar = () => {
     };
 
     return (
-        <RaAppBar sx={{zIndex: 1300}} userMenu={<ArxivUserMenu/>}>
+        <AppBar position="fixed" sx={{zIndex: 1300}}>
             <Toolbar sx={{display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
                 {
                     isVerySmall ? null : (<>
@@ -197,7 +207,23 @@ export const AdminConsoleAppBar = () => {
                     />
                 </Tooltip>
 
+                {/* Right side controls in correct order: theme → refresh → profile → hamburger */}
+                <ToggleThemeButton />
+                <RefreshIconButton />
+                <ArxivUserMenu />
+
+                {/* Right-side hamburger menu for resource navigation - rightmost */}
+                <IconButton
+                    color="inherit"
+                    aria-label="toggle navigation menu"
+                    edge="end"
+                    onClick={onMenuClick}
+                    sx={{ ml: 1 }}
+                >
+                    <MenuIcon />
+                </IconButton>
+
             </Toolbar>
-        </RaAppBar>
+        </AppBar>
     );
 };
