@@ -702,7 +702,7 @@ async def upload_cached_eligible_endorsers(
             _db_cache[cache_key] = conn
 
             return {
-                "message": "Endorsement candidates uploaded successfully"
+                "message": "Endorsement candidates uploaded successfully",
                 "storage_type": "gcs",
                 "bucket": location,
                 "object": path,
