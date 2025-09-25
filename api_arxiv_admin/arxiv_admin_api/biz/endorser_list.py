@@ -1,4 +1,9 @@
 """arXiv endorser list business logic."""
+
+# I tried a few parallel processing options but it does not work at all.
+# 1. Threading is blocked by GIL.
+# 2. MP doesn't work as Python ASGI does not allow child processes from daemon processes
+# 3. Solution: Use subprocess to spawn independent Python CLI process
 from typing import Optional, List, Iterator
 from arxiv.base import logging
 from arxiv.db.models import Metadata, Document, PaperOwner, EndorsementDomain, Category, Demographic
@@ -6,9 +11,15 @@ from sqlalchemy import func, and_
 from sqlalchemy.orm import Session, aliased
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta, timezone
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import os
-from threading import Lock
+import time
+import asyncio
+import sys
+import tempfile
+import gzip
+import sqlite3
+import json
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -39,92 +50,164 @@ class EndorsementCandidates(BaseModel):
         from_attributes = True
 
 
-def _chunk_generator(items: List, chunk_size: int) -> Iterator[List]:
-    """Generate chunks of items for parallel processing."""
-    for i in range(0, len(items), chunk_size):
-        yield items[i:i + chunk_size]
 
 
-def _process_chunk(
-    chunk: List[EndorsementCandidateWithMultipleCategories],
+def _process_candidates(
+    unprocessed: List[EndorsementCandidateWithMultipleCategories],
     valid_categories: set[str]
 ) -> dict[str, dict[int, EndorsementCandidate]]:
-    """Process a chunk of endorsement candidates and return category-organized results."""
-    local_candidates: dict[str, dict[int, EndorsementCandidate]] = {}
+    """Process endorsement candidates and return category-organized results."""
+    endorsement_candidates: dict[str, dict[int, EndorsementCandidate]] = {}
 
-    for entry in chunk:
+    for entry in unprocessed:
         for cat in entry.abs_categories.split(' '):
             if not cat or cat not in valid_categories:
                 continue
 
-            if cat not in local_candidates:
-                local_candidates[cat] = {}
+            if cat not in endorsement_candidates:
+                endorsement_candidates[cat] = {}
 
-            if entry.user_id not in local_candidates[cat]:
-                local_candidates[cat][entry.user_id] = EndorsementCandidate(
+            if entry.user_id not in endorsement_candidates[cat]:
+                endorsement_candidates[cat][entry.user_id] = EndorsementCandidate(
                     id=entry.user_id,
                     category=cat,
                     document_count=0,
                     latest=entry.latest,
                 )
 
-            local_candidates[cat][entry.user_id].document_count += entry.document_count
-            if local_candidates[cat][entry.user_id].latest > entry.latest:
-                local_candidates[cat][entry.user_id].latest = entry.latest
+            endorsement_candidates[cat][entry.user_id].document_count += entry.document_count
+            if endorsement_candidates[cat][entry.user_id].latest > entry.latest:
+                endorsement_candidates[cat][entry.user_id].latest = entry.latest
 
-    return local_candidates
-
-
-def _merge_candidate_dicts(
-    target: dict[str, dict[int, EndorsementCandidate]],
-    source: dict[str, dict[int, EndorsementCandidate]],
-    lock: Lock
-) -> None:
-    """Thread-safe merge of candidate dictionaries."""
-    with lock:
-        for cat, users in source.items():
-            if cat not in target:
-                target[cat] = {}
-
-            for user_id, candidate in users.items():
-                if user_id not in target[cat]:
-                    target[cat][user_id] = candidate
-                else:
-                    # Merge document counts and update latest timestamp
-                    target[cat][user_id].document_count += candidate.document_count
-                    if target[cat][user_id].latest > candidate.latest:
-                        target[cat][user_id].latest = candidate.latest
+    return endorsement_candidates
 
 
-def _process_category(
+async def _process_candidates_subprocess(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None
+) -> List[EndorsementCandidates]:
+    """Process endorsement candidates using subprocess CLI."""
+    # Create temporary file for output
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_file:
+        temp_path = temp_file.name
+
+    try:
+        # Build command arguments
+        script_path = Path(__file__).parent.parent / 'bin' / 'create_endorsers_db.py'
+        cmd = [sys.executable, str(script_path), '--output', temp_path]
+
+        if start_date:
+            cmd.extend(['--start-date', start_date.strftime('%Y-%m-%d')])
+        if end_date:
+            cmd.extend(['--end-date', end_date.strftime('%Y-%m-%d')])
+
+        # Add database URL from environment
+        if 'CLASSIC_DB_URI' in os.environ:
+            cmd.extend(['--db-url', os.environ['CLASSIC_DB_URI']])
+
+        logger.info(f"Starting subprocess: {' '.join(cmd)}")
+
+        # Run subprocess
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            logger.error(f"Subprocess failed with return code {process.returncode}")
+            logger.error(f"stderr: {stderr.decode()}")
+            raise RuntimeError(f"Subprocess failed: {stderr.decode()}")
+
+        logger.info(f"Subprocess completed successfully")
+        logger.info(f"stdout: {stdout.decode()}")
+
+        # Read results from SQLite file
+        return _load_endorsement_candidates_from_file(temp_path)
+
+    finally:
+        # Clean up temporary file
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
+def _process_categories(
     timestamp: datetime,
-    cat: str,
-    candidates: dict[int, EndorsementCandidate],
+    endorsement_candidates: dict[str, dict[int, EndorsementCandidate]],
     endorsement_criteria: dict[str, EndorsementDomain]
-) -> Optional[EndorsementCandidates]:
-    """Process a single category to filter qualified candidates."""
-    users: List[EndorsementCandidate] = []
-    criteria = endorsement_criteria.get(cat)
+) -> List[EndorsementCandidates]:
+    """Process all categories to filter qualified candidates."""
+    endorsement_candidates_result: List[EndorsementCandidates] = []
 
-    # Fallback to parent category if specific category criteria not found
-    if criteria is None:
-        cat_elems = cat.split(".")
-        if len(cat_elems) == 2:
-            criteria = endorsement_criteria.get(cat_elems[0])
+    for cat, candidates in endorsement_candidates.items():
+        criteria = endorsement_criteria.get(cat)
 
-    if criteria is None:
-        return None
+        # Fallback to parent category if specific category criteria not found
+        if criteria is None:
+            cat_elems = cat.split(".")
+            if len(cat_elems) == 2:
+                criteria = endorsement_criteria.get(cat_elems[0])
 
-    # Filter candidates based on paper count threshold
-    for user_id, entry in candidates.items():
-        if entry.document_count >= criteria.papers_to_endorse:
-            users.append(entry)
+        if criteria is None:
+            continue
 
-    return EndorsementCandidates(
-        timestamp=timestamp,
-        category=cat,
-        candidates=users
-    )
+        # Filter candidates based on paper count threshold
+        users: List[EndorsementCandidate] = []
+        for user_id, entry in candidates.items():
+            if entry.document_count >= criteria.papers_to_endorse:
+                users.append(entry)
+
+        if users:  # Only add categories with qualified candidates
+            endorsement_candidates_result.append(EndorsementCandidates(
+                timestamp=timestamp,
+                category=cat,
+                candidates=users
+            ))
+
+    return endorsement_candidates_result
+
+
+def _load_endorsement_candidates_from_file(file_path: str) -> List[EndorsementCandidates]:
+    """Load endorsement candidates from compressed SQLite file."""
+    # Read compressed SQLite data
+    with gzip.open(file_path, 'rb') as f:
+        db_bytes = f.read()
+
+    # Create in-memory database from bytes
+    conn = sqlite3.connect(':memory:')
+    conn.deserialize(db_bytes)
+    cursor = conn.cursor()
+
+    # Read data from table
+    cursor.execute('SELECT timestamp, category, candidates FROM endorsement_candidates')
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Convert back to model objects
+    result = []
+    for timestamp_str, category, candidates_json in rows:
+        timestamp = datetime.fromisoformat(timestamp_str)
+        candidates_data = json.loads(candidates_json)
+
+        candidates = [
+            EndorsementCandidate(
+                id=candidate['id'],
+                category=candidate['category'],
+                document_count=candidate['document_count'],
+                latest=datetime.fromisoformat(candidate['latest'])
+            )
+            for candidate in candidates_data
+        ]
+
+        result.append(EndorsementCandidates(
+            timestamp=timestamp,
+            category=category,
+            candidates=candidates
+        ))
+
+    return result
 
 
 def _list_endorsement_candidates(
@@ -234,10 +317,11 @@ def _list_endorsement_candidates(
     ]
 
 
-def list_endorsement_candidates(
+async def list_endorsement_candidates(
     session: Session,
     start_date: Optional[date] = None,
-    end_date: Optional[date] = None
+    end_date: Optional[date] = None,
+    use_multiprocessing: Optional[bool] = None
 ) -> List[EndorsementCandidates]:
     """
     Get endorsement candidates organized by category with threshold filtering.
@@ -257,6 +341,7 @@ def list_endorsement_candidates(
         session: SQLAlchemy database session
         start_date: Start date for paper filtering (defaults to 5y ago)
         end_date: End date for paper filtering (defaults to 3mo ago)
+        use_multiprocessing: Whether to use multiprocessing (defaults to environment variable USE_MULTIPROCESSING)
 
     Returns:
         List of EndorsementCandidatesInCategory objects, each containing:
@@ -270,93 +355,94 @@ def list_endorsement_candidates(
         math.CO: 45 users
         cs.AI: 123 users
     """
+    # Determine which implementation to use
+    use_subprocess = os.getenv('USE_SUBPROCESS_WORKERS', 'true').lower() == 'true'
+
+    # Override with use_multiprocessing parameter for backward compatibility
+    if use_multiprocessing is not None:
+        use_subprocess = use_multiprocessing
+
     timestamp = datetime.now(timezone.utc)
+    start_time = time.time()
 
     endorsement_criteria = {}
     criteria: EndorsementDomain
     for criteria in session.query(EndorsementDomain).all():
         endorsement_criteria[criteria.endorsement_domain] = criteria
 
-    # Initialize category structure and get valid categories
-    endorsement_candidates_0: dict[str, dict[int, EndorsementCandidate]] = {}
+    # Get valid categories
     valid_categories = set()
-
     for cat in session.query(Category).all():
         if cat.subject_class:
             cat_name = f"{cat.archive}.{cat.subject_class}"
-            endorsement_candidates_0[cat_name] = {}
             valid_categories.add(cat_name)
         else:
-            endorsement_candidates_0[cat.archive] = {}
             valid_categories.add(cat.archive)
 
     unprocessed: List[EndorsementCandidateWithMultipleCategories] = _list_endorsement_candidates(session, start_date, end_date)
 
-    # Process in parallel chunks for large datasets
-    if len(unprocessed) > 10000:  # Use parallel processing for large datasets
-        # Determine optimal chunk size and process pool size
-        chunk_size = max(1000, len(unprocessed) // (os.cpu_count() * 4))
-        max_workers = os.cpu_count() if os.cpu_count() else 4
+    implementation = "subprocess" if use_subprocess else "simple"
+    logger.debug(f"Processing endorsement candidates using {implementation} implementation")
 
-        logger.debug(f"Processing {len(unprocessed)} candidates in parallel with {max_workers} processes, chunk size: {chunk_size}")
+    try:
+        if use_subprocess:
+            # Use subprocess implementation
+            import asyncio
 
-        # Use ProcessPoolExecutor for CPU-bound work to bypass GIL
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Submit chunk processing tasks
-            future_to_chunk = {
-                executor.submit(_process_chunk, chunk, valid_categories): chunk
-                for chunk in _chunk_generator(unprocessed, chunk_size)
-            }
-
-            # Collect and merge results as they complete
-            for future in as_completed(future_to_chunk):
-                try:
-                    chunk_result = future.result()
-                    # Merge results sequentially (no lock needed with processes)
-                    for cat, users in chunk_result.items():
-                        if cat not in endorsement_candidates_0:
-                            endorsement_candidates_0[cat] = {}
-
-                        for user_id, candidate in users.items():
-                            if user_id not in endorsement_candidates_0[cat]:
-                                endorsement_candidates_0[cat][user_id] = candidate
-                            else:
-                                # Merge document counts and update latest timestamp
-                                endorsement_candidates_0[cat][user_id].document_count += candidate.document_count
-                                if endorsement_candidates_0[cat][user_id].latest > candidate.latest:
-                                    endorsement_candidates_0[cat][user_id].latest = candidate.latest
-                except Exception as e:
-                    logger.error(f"Error processing chunk: {e}")
-                    raise
-    else:
-        # Sequential processing for smaller datasets
-        logger.debug(f"Processing {len(unprocessed)} candidates sequentially")
-        chunk_result = _process_chunk(unprocessed, valid_categories)
-        endorsement_candidates_0.update(chunk_result)
-
-
-    # Process categories in parallel (about 100 categories)
-    endorsement_candidates_result: List[EndorsementCandidates] = []
-    max_workers = min(os.cpu_count() or 4, len(endorsement_candidates_0))  # Don't over-provision
-
-    logger.debug(f"Processing {len(endorsement_candidates_0)} categories in parallel with {max_workers} processes")
-
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # Submit category processing tasks
-        future_to_category = {
-            executor.submit(_process_category, timestamp, cat, candidates, endorsement_criteria): cat
-            for cat, candidates in endorsement_candidates_0.items()
-        }
-
-        # Collect results as they complete
-        for future in as_completed(future_to_category):
+            # Check if we're already in an event loop
             try:
-                result = future.result()
-                if result is not None:  # Only add valid results
-                    endorsement_candidates_result.append(result)
-            except Exception as e:
-                cat = future_to_category[future]
-                logger.error(f"Error processing category {cat}: {e}")
-                raise
+                loop = asyncio.get_running_loop()
+                # We're in an async context, but need to run our async function
+                # Use asyncio.create_task or run in thread pool
+                logger.info("Running subprocess in existing event loop")
+                result = await _process_candidates_subprocess(start_date, end_date)
+            except RuntimeError:
+                # No event loop running, create one
+                logger.info("Creating new event loop for subprocess")
+                result = asyncio.run(_process_candidates_subprocess(start_date, end_date))
 
-    return endorsement_candidates_result
+            total_time = time.time() - start_time
+            logger.info(f"Endorsement processing (subprocess): {total_time:.3f}s total, "
+                       f"{len(result)} categories with qualified candidates")
+            return result
+
+        else:
+            # Use simple implementation
+            unprocessed: List[EndorsementCandidateWithMultipleCategories] = _list_endorsement_candidates(session, start_date, end_date)
+
+            process_start = time.time()
+            endorsement_candidates_0 = _process_candidates(unprocessed, valid_categories)
+            process_time = time.time() - process_start
+
+            filter_start = time.time()
+            endorsement_candidates_result = _process_categories(timestamp, endorsement_candidates_0, endorsement_criteria)
+            filter_time = time.time() - filter_start
+
+            total_time = time.time() - start_time
+            logger.info(f"Endorsement processing (simple): {total_time:.3f}s total "
+                       f"(process: {process_time:.3f}s, filter: {filter_time:.3f}s), "
+                       f"{len(endorsement_candidates_result)} categories with qualified candidates")
+            return endorsement_candidates_result
+
+    except Exception as e:
+        if use_subprocess:
+            logger.error(f"Subprocess implementation failed: {e}, falling back to simple implementation")
+            # Fall back to simple implementation
+            unprocessed: List[EndorsementCandidateWithMultipleCategories] = _list_endorsement_candidates(session, start_date, end_date)
+
+            process_start = time.time()
+            endorsement_candidates_0 = _process_candidates(unprocessed, valid_categories)
+            process_time = time.time() - process_start
+
+            filter_start = time.time()
+            endorsement_candidates_result = _process_categories(timestamp, endorsement_candidates_0, endorsement_criteria)
+            filter_time = time.time() - filter_start
+
+            total_time = time.time() - start_time
+            logger.info(f"Endorsement processing (simple fallback): {total_time:.3f}s total "
+                       f"(process: {process_time:.3f}s, filter: {filter_time:.3f}s), "
+                       f"{len(endorsement_candidates_result)} categories with qualified candidates")
+
+            return endorsement_candidates_result
+        else:
+            raise

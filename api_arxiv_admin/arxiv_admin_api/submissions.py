@@ -50,7 +50,7 @@ _VALID_STATUS_LIST: List[SubmissionStatusModel] = [
     SubmissionStatusModel(id=8, name="Stuck", group="accepted"),
 
     # REMOVED = "9"
-    SubmissionStatusModel(id=9, name="Removed", group="invalid"),
+    SubmissionStatusModel(id=9, name="Rejected", group="invalid"),
     SubmissionStatusModel(id=10, name="User deleted", group="invalid"),
     SubmissionStatusModel(id=19, name="Error state", group="invalid"),
     SubmissionStatusModel(id=20, name='Deleted(working)', group='expired'),

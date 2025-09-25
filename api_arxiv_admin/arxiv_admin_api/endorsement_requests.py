@@ -667,7 +667,7 @@ async def upload_cached_eligible_endorsers(
 
     # Generate fresh endorsement candidates
     logger.info("Generating fresh endorsement candidates for cache upload")
-    data = list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+    data = await list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
 
     # Parse storage info from configuration
     scheme, location, path = _parse_storage_url(request)

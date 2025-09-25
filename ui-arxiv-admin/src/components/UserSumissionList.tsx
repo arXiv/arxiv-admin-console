@@ -1,9 +1,12 @@
 import {
     Datagrid,
-    List,
     ReferenceField,
     TextField,
-    Identifier, useRecordContext,
+    Identifier,
+    useRecordContext,
+    useListController,
+    ListContextProvider,
+    Pagination,
 } from 'react-admin';
 
 import React from "react";
@@ -12,23 +15,28 @@ import ArxivCheckSubmissionLink from "../bits/ArxivCheckSubmissionLink";
 import PrimaryCategoryField from "../bits/PirmaryCategoryField";
 
 export const UserIdSubmissionList: React.FC<{userId: Identifier}> = ({userId}) => {
+    const controllerProps = useListController({
+        resource: 'submissions',
+        filter: {
+            submitter_id: userId,
+            submission_status: [],
+        },
+        sort: { field: 'id', order: 'DESC' },
+        perPage: 10,
+        disableSyncWithLocation: true,
+    });
+
+    if (controllerProps.isLoading) return null;
+    if (controllerProps.error) return <p>Error loading submissions data.</p>;
 
     return (
-        <List resource="submissions"
-              filter={{
-                  submitter_id: userId,
-                  submission_status: [],
-              }}
-              sort={{ field: 'id', order: 'DESC' }}
-              exporter={false}
-              empty={(<p>User has no submissions</p>)}
-              actions={false}
-        >
-            <Datagrid rowClick={false}
-
-                      bulkActionsToolbar={undefined}
-                      bulkActionButtons={false}>
-
+        <ListContextProvider value={controllerProps}>
+            <Datagrid
+                rowClick={false}
+                bulkActionsToolbar={undefined}
+                bulkActionButtons={false}
+                empty={<p><b>User has no submissions</b></p>}
+            >
                 <ReferenceField reference={"submissions"} source={"id"} link={"show"}>
                     <TextField source="id" label="ID" textAlign="right"/>
                 </ReferenceField>
@@ -41,7 +49,16 @@ export const UserIdSubmissionList: React.FC<{userId: Identifier}> = ({userId}) =
                 </ReferenceField>
                 <IsOkField source="is_ok" label={"OK?"}/>
             </Datagrid>
-        </List>
+            <Pagination sx={{
+                '& .MuiTablePagination-toolbar': {
+                    minHeight: '32px',
+                    padding: '2px 8px'
+                },
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                    fontSize: '0.8rem'
+                }
+            }} />
+        </ListContextProvider>
     );
 };
 
