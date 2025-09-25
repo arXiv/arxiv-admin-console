@@ -91,11 +91,6 @@ import { defaultTheme, defaultDarkTheme, ListGuesser } from 'react-admin';
 import Typography from "@mui/material/Typography";
 import {AdminConsoleLayout} from "./bits/AdminConsoleLayout";
 
-// Import the new sliding panel components
-import { SlidingPanelProvider } from './SlidingPanelContext';
-import { LinkPanel } from './components/LinkPanel';
-import { PanelToggleButton } from './components/PanelToggleButton';
-import { PersistentDrawerLayout } from './components/PersistentDrawerLayout';
 import { MessageDialogProvider } from './components/MessageDialog';
 import {useNavigate, Navigate, useParams} from "react-router-dom";
 import {AppBar} from "@mui/material";
@@ -152,11 +147,7 @@ const PingBackend: React.FC<PingBackendProps> = ({ children }) => {
     );
 };
 
-// Create the wrapper component with navigation
-const WithNavigationLinkPanel: React.FC = () => {
-    const navigate = useNavigate();
-    return <LinkPanel onNavigate={navigate} />;
-};
+// WithNavigationLinkPanel removed - LinkPanel functionality has been removed from the app
 
 const AdminConsole: React.FC = () => {
     const runtimeProps = useContext(RuntimeContext);
@@ -178,9 +169,7 @@ const AdminConsole: React.FC = () => {
 
                     layout={ props => (
                         <MessageDialogProvider>
-                            <PersistentDrawerLayout  panel={<WithNavigationLinkPanel />}>
-                                <AdminConsoleLayout {...props} />
-                            </PersistentDrawerLayout>
+                            <AdminConsoleLayout {...props} />
                         </MessageDialogProvider>
                     )}
                 >
@@ -331,9 +320,7 @@ const AdminConsole: React.FC = () => {
 const App = () => {
     return (
         <RuntimeContextProvider>
-            <SlidingPanelProvider>
-                <AdminConsole />
-            </SlidingPanelProvider>
+            <AdminConsole />
         </RuntimeContextProvider>
     );
 }

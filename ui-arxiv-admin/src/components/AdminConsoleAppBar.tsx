@@ -8,7 +8,6 @@ import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {PanelToggleButton} from "../components/PanelToggleButton";
 import {useTheme} from "@mui/material/styles";
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -199,7 +198,6 @@ export const AdminConsoleAppBar = () => {
                 </Tooltip>
 
             </Toolbar>
-            <PanelToggleButton/>
         </RaAppBar>
     );
 };
