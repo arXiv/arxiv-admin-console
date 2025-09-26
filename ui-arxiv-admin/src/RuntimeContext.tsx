@@ -6,6 +6,8 @@ import {paths as adminPaths} from "./types/admin-api";
 import { Fetcher } from 'openapi-typescript-fetch';
 import {defaultArxivNavLinks, ArxivNavLink } from "./arxivNavLinks";
 
+type UserType = paths['/account/current']['get']['responses']['200']['content']['application/json'];
+
 
 export interface ArxiURLs
 {
@@ -33,6 +35,8 @@ export interface RuntimeProps
     ARXIV_KEYCLOAK_COOKIE_NAME: string;
     ARXIV_CHECK: string;
     URLS: ArxiURLs;
+    currentUser: UserType | null;
+    currentUserLoading: boolean;
     updateEnv: (key: string, value: string) => void;
     aaaFetcher: ReturnType<typeof Fetcher.for<paths>>;
     adminFetcher: ReturnType<typeof Fetcher.for<adminPaths>>;
@@ -48,6 +52,8 @@ const defaultRuntimeProps : RuntimeProps = {
     ARXIV_KEYCLOAK_COOKIE_NAME: "arxiv_keycloak_token",
     ARXIV_CHECK: "https://check.dev.arxiv.org",
     URLS: arXivURLs,
+    currentUser: null,
+    currentUserLoading: true,
     updateEnv: (key, value) => { },
     aaaFetcher: Fetcher.for<paths>(),
     adminFetcher: Fetcher.for<adminPaths>(),
@@ -126,16 +132,52 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
     }, []);
 
     useEffect(() => {
-        const it = Fetcher.for<paths>();
-        it.configure({baseUrl: runtimeEnv.AAA_URL});
-        updateRuntimeEnv({aaaFetcher: it});
+        const fetchUserData = async () => {
+            const it = Fetcher.for<paths>();
+            it.configure({baseUrl: runtimeEnv.AAA_URL});
+            updateRuntimeEnv({aaaFetcher: it});
+            console.log(`aaaFetcher: AAA_URL ${runtimeEnv.AAA_URL}` );
+
+            try {
+                console.log("1. fetching current user");
+                const getCurrentUserFetch = it.path('/account/current').method('get').create();
+                const userResponse = await getCurrentUserFetch({});
+
+                if (userResponse.ok) {
+                    updateRuntimeEnv({
+                        currentUser: userResponse.data,
+                        currentUserLoading: false
+                    });
+                } else {
+                    updateRuntimeEnv({
+                        currentUser: null,
+                        currentUserLoading: false
+                    });
+                }
+            } catch (userError) {
+                console.error('Error fetching current user:', userError);
+                updateRuntimeEnv({
+                    currentUser: null,
+                    currentUserLoading: false
+                });
+            }
+        };
+
+        fetchUserData();
     }, [runtimeEnv.AAA_URL]);
+
 
     useEffect(() => {
         const it = Fetcher.for<adminPaths>();
         it.configure({baseUrl: runtimeEnv.ADMIN_API_BACKEND_URL});
         updateRuntimeEnv({adminFetcher: it});
     }, [runtimeEnv.ADMIN_API_BACKEND_URL]);
+
+    useEffect(() => {
+        console.log("current user " + JSON.stringify(runtimeEnv.currentUser));
+    }, [runtimeEnv.currentUser]);
+
+
 
 
     if (loading) {

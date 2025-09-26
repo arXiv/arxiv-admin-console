@@ -135,7 +135,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
     };
 
     return (
-        <AppBar position="fixed" sx={{zIndex: 1300}}>
+        <AppBar position="fixed" sx={{zIndex: 1200}}>
             <Toolbar sx={{display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
                 {
                     isVerySmall ? null : (<>
