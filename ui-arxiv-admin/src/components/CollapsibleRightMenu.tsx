@@ -7,9 +7,6 @@ import {
 } from 'react-admin';
 import {
     List,
-    ListItem,
-    ListItemIcon,
-    ListItemText,
     Tooltip,
     Box,
 } from '@mui/material';
@@ -27,27 +24,21 @@ const CollapsibleMenuContainer = styled(Box, {
 
 const MenuList = styled(List)(({ theme }) => ({
     padding: 0,
-    '& .MuiListItem-root': {
-        display: 'block',
-        padding: 0,
-    },
 }));
 
 const StyledMenuItemLink = styled(MenuItemLink, {
     shouldForwardProp: (prop) => prop !== 'open',
 })<{ open?: boolean }>(({ theme, open }) => ({
     minHeight: 48,
-    paddingLeft: open ? theme.spacing(1) : 0,
-    paddingRight: open ? theme.spacing(1) : 0,
-    justifyContent: open ? 'initial' : 'center',
     '& .MuiListItemButton-root': {
         paddingLeft: open ? theme.spacing(2) : 0,
         paddingRight: open ? theme.spacing(2) : 0,
         justifyContent: open ? 'initial' : 'center',
+        minHeight: 48,
     },
     '& .MuiListItemIcon-root': {
-        minWidth: open ? 56 : 'unset',
-        marginRight: open ? theme.spacing(2) : 0,
+        minWidth: open ? '56px' : 'unset',
+        marginRight: open ? '16px' : 0,
         justifyContent: 'center',
     },
     '& .MuiListItemText-root': {
@@ -75,60 +66,51 @@ export const CollapsibleRightMenu: React.FC = () => {
         <CollapsibleMenuContainer open={open}>
             <MenuList>
                 {/* Dashboard Item */}
-                <ListItem disablePadding>
-                    {open ? (
+                {open ? (
+                    <StyledMenuItemLink
+                        open={open}
+                        to={`${basename}/`}
+                        primaryText="Dashboard"
+                        leftIcon={<DashboardIcon />}
+                        onClick={handleMenuItemClick}
+                    />
+                ) : (
+                    <Tooltip title="Dashboard" placement="left">
                         <StyledMenuItemLink
                             open={open}
                             to={`${basename}/`}
-                            primaryText="Dashboard"
+                            primaryText=""
                             leftIcon={<DashboardIcon />}
                             onClick={handleMenuItemClick}
                         />
-                    ) : (
-                        <Tooltip title="Dashboard" placement="left">
-                            <StyledMenuItemLink
-                                open={open}
-                                to={`${basename}/`}
-                                primaryText=""
-                                leftIcon={<DashboardIcon />}
-                                onClick={handleMenuItemClick}
-                            />
-                        </Tooltip>
-                    )}
-                </ListItem>
+                    </Tooltip>
+                )}
 
                 {/* Resource Items */}
                 {Object.keys(resources)
                     .filter((name) => resources[name].hasList)
                     .map((name) => {
                         const resource = resources[name];
-                        const resourceLabel = resource.options?.label || name;
-
-                        return (
-                            <ListItem key={name} disablePadding>
-                                {open ? (
-                                    <StyledMenuItemLink
-                                        open={open}
-                                        to={`${basename}/${name}`}
-                                        primaryText={resourceLabel}
-                                        leftIcon={resource.icon ? <resource.icon /> : undefined}
-                                        onClick={handleMenuItemClick}
-                                    />
-                                ) : (
-                                    <Tooltip
-                                        title={resourceLabel}
-                                        placement="left"
-                                    >
-                                        <StyledMenuItemLink
-                                            open={open}
-                                            to={`${basename}/${name}`}
-                                            primaryText=""
-                                            leftIcon={resource.icon ? <resource.icon /> : undefined}
-                                            onClick={handleMenuItemClick}
-                                        />
-                                    </Tooltip>
-                                )}
-                            </ListItem>
+                        const label = resource.options?.label || name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
+                        return open ? (
+                            <StyledMenuItemLink
+                                key={name}
+                                open={open}
+                                to={`${basename}/${name}`}
+                                primaryText={label}
+                                leftIcon={resource.icon ? <resource.icon /> : undefined}
+                                onClick={handleMenuItemClick}
+                            />
+                        ) : (
+                            <Tooltip key={name} title={label} placement="left">
+                                <StyledMenuItemLink
+                                    open={open}
+                                    to={`${basename}/${name}`}
+                                    primaryText=""
+                                    leftIcon={resource.icon ? <resource.icon /> : undefined}
+                                    onClick={handleMenuItemClick}
+                                />
+                            </Tooltip>
                         );
                     })}
             </MenuList>

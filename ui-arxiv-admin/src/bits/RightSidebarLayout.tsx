@@ -7,7 +7,6 @@ import {
 import { styled } from '@mui/material';
 import { AdminConsoleAppBar } from '../components/AdminConsoleAppBar';
 import { CollapsibleRightMenu } from '../components/CollapsibleRightMenu';
-import { TitleDisplay } from '../components/TitleDisplay';
 import Box from '@mui/material/Box';
 
 // Styled components for right sidebar layout
@@ -27,10 +26,12 @@ const RightSidebarFrame = styled('div')(({ theme }) => ({
 }));
 
 const sideMargin = 8;
+const showLegendWidth = 240;
+const hideLegendWidth = 40;
 
 const AdminContentRoot = styled('main', {
     shouldForwardProp: (prop) => prop !== 'open' && prop !== 'expandedWidth' && prop !== 'collapsedWidth',
-})<{ open?: boolean; expandedWidth?: number; collapsedWidth?: number }>(({ theme, open, expandedWidth = 240 + sideMargin, collapsedWidth = 56 + sideMargin }) => ({
+})<{ open?: boolean; expandedWidth?: number; collapsedWidth?: number }>(({ theme, open, expandedWidth = showLegendWidth + sideMargin, collapsedWidth = hideLegendWidth + sideMargin }) => ({
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
@@ -42,11 +43,23 @@ const AdminContentRoot = styled('main', {
         easing: theme.transitions.easing.easeOut,
         duration: theme.transitions.duration.enteringScreen,
     }),
+    // Center content with ~80% width, but allow expansion for wide content
+    padding: '0 10%', // This creates ~80% content width
+    '& > *': {
+        maxWidth: 'none', // Allow children to expand beyond 80% if needed
+        width: '100%',
+    },
+    // Allow tables and wide content to break out of the 80% constraint
+    '& .MuiTableContainer-root, & .MuiDataGrid-root, & .RaList-main': {
+        marginLeft: '-10%',
+        marginRight: `-${open ? expandedWidth + 10 : collapsedWidth + 10}%`,
+        width: `calc(100% + 10% + ${open ? expandedWidth + 10 : collapsedWidth + 10}%)`,
+    },
 }));
 
 const RightSidebarContainer = styled('div', {
     shouldForwardProp: (prop) => prop !== 'open' && prop !== 'expandedWidth' && prop !== 'collapsedWidth',
-})<{ open?: boolean; expandedWidth?: number; collapsedWidth?: number }>(({ theme, open, expandedWidth = 240, collapsedWidth = 56 }) => ({
+})<{ open?: boolean; expandedWidth?: number; collapsedWidth?: number }>(({ theme, open, expandedWidth = showLegendWidth, collapsedWidth = hideLegendWidth }) => ({
     width: open ? expandedWidth : collapsedWidth,
     position: 'fixed',
     right: 0,
@@ -107,7 +120,6 @@ export const RightSidebarLayout: React.FC<RightSidebarLayoutProps> = ({
             <CustomAppBar />
             <RightSidebarFrame>
                 <AdminContentRoot open={open}>
-                    <TitleDisplay />
                     {children}
                 </AdminContentRoot>
                 <RightSidebarContainer open={open}>

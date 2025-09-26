@@ -1,11 +1,11 @@
 import {
     SxProps,
     useMediaQuery,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
     Switch,
-    FormControlLabel, IconButton,
+    FormControlLabel,
+    Card,
+    CardContent,
+    CardHeader,
 } from '@mui/material';
 
 // import ToggleButton from '@mui/material/ToggleButton';
@@ -17,8 +17,10 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
 import EmailIcon from '@mui/icons-material/Email';
+import EditIcon from '@mui/icons-material/Edit';
 
 
 import {
@@ -42,13 +44,13 @@ import {
     RecordContextProvider,
     useDataProvider,
     SaveButton,
-    DeleteButton, Toolbar, useNotify, useEditContext, useRefresh,
+    DeleteButton, useNotify, useEditContext, useRefresh,
     Confirm,
     useGetRecordId
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import React, {useContext, useEffect, useState} from "react";
 import CategoryField from "../bits/CategoryField";
 import PersonNameField from "../bits/PersonNameField";
@@ -83,6 +85,8 @@ import UserNameField from "../bits/UserNameField";
 import UserNameDialog from "../components/UserNameDialog";
 import {UserSubmissionList} from "../components/UserSumissionList";
 import BulkPaperOwnerDialog from "../components/BulkPaperOwnerDialog";
+import {StandardAccordion} from "../components/StandardAccordion";
+import { DottedLineRow } from "../components/DottedLineRow";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -185,33 +189,35 @@ export const UserList = () => {
         lastProcessedSearch.current = location.search;
     }, [location.search, navigate, location.pathname]);
 
-
     return (
-        <List filters={<UserFilter/>}>
-            <Datagrid rowClick="edit" bulkActionButtons={false}>
-                <TextField source={"id"} label="ID"/>
-                <UserNameField />
-                <BooleanField source="flag_suspect" label={"Flagged"} FalseIcon={null} TrueIcon={DoDisturbOnIcon} />
-                <EmailField source="email"/>
-                <ISODateField source="joined_date"/>
-                <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
-                <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
-                <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
-                              TrueIcon={DoDisturbOnIcon}/>
-                <ReferenceField source="moderator_id" reference="moderators"
-                                link={(record, reference) => `/${reference}/${record.moderator_id}`}>
-                    <TextField source={"archive"}/>
-                    {"/"}
-                    <TextField source={"subject_class"}/>
-                </ReferenceField>
-            </Datagrid>
-        </List>
+        <>
+            <Typography variant="h1">Users</Typography>
+            <List filters={<UserFilter/>}>
+                <Datagrid rowClick="edit" bulkActionButtons={false}>
+                    <TextField source={"id"} label="ID"/>
+                    <UserNameField/>
+                    <BooleanField source="flag_suspect" label={"Flagged"} FalseIcon={null} TrueIcon={DoDisturbOnIcon}/>
+                    <EmailField source="email"/>
+                    <ISODateField source="joined_date"/>
+                    <BooleanField source="flag_edit_users" label={"Admin"} FalseIcon={null}/>
+                    <BooleanField source="flag_is_mod" label={"Mod"} FalseIcon={null}/>
+                    <BooleanField source="flag_banned" label={"Suspended"} FalseIcon={null}
+                                  TrueIcon={DoDisturbOnIcon}/>
+                    <ReferenceField source="moderator_id" reference="moderators"
+                                    link={(record, reference) => `/${reference}/${record.moderator_id}`}>
+                        <TextField source={"archive"}/>
+                        {"/"}
+                        <TextField source={"subject_class"}/>
+                    </ReferenceField>
+                </Datagrid>
+            </List>
+        </>
     );
 };
 
 const UserTitle = () => {
     const record = useRecordContext();
-    return <span>User {record ? `"${record.last_name}, ${record.first_name}" - ${record.email}` : ''}</span>;
+    return <span>{record ? `${record.first_name} ${record.last_name}` : ''}</span>;
 };
 
 const policyClassChoices = [
@@ -308,134 +314,88 @@ function UserDemographic() {
 
      */
     return (
-        <Table size="small">
-            <TableHead>
-                <TableCell width={"25%"} sx={{minWidth: "120px"}}>
-                    Property
-                </TableCell>
-                <TableCell>
-                    Values
-                </TableCell>
+        <Card sx={{ backgroundColor: '#1c1a17', borderRadius: '16px' }}>
+            <CardHeader
+                title="System Data"
+                sx={{
+                    '& .MuiCardHeader-title': {
+                        color: '#c4d82e',
+                        fontSize: '1em',
+                        fontWeight: 'bold'
+                    }
+                }}
+            />
+            <CardContent>
+                <Box display="flex" flexDirection="column" gap={1}>
+                    <DottedLineRow label="User ID">
+                        <TextField source="id" component={"span"}/>
+                    </DottedLineRow>
 
-            </TableHead>
-            <TableRow>
-                <TableCell>
-                    User ID
-                </TableCell>
-                <TableCell>
-                    <TextField source="id"/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Login name">
+                        <TextField source="username"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>
-                    Login name
-                </TableCell>
-                <TableCell>
-                    <TextField source="username"/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Policy class">
+                        <PolicClassField source="policy_class"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>
-                    Policy class
-                </TableCell>
-                <TableCell>
-                    <PolicClassField source="policy_class"/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Last login">
+                        <TapirSessionInfo source={"id"} index={0} isLoading={isLoading} total={totalTapirSessions}
+                                          tapirSessions={tapirSessions}/>
+                    </DottedLineRow>
 
+                    <DottedLineRow label="Penultimate Login">
+                        <TapirSessionInfo source={"id"} index={1} isLoading={isLoading} total={totalTapirSessions}
+                                          tapirSessions={tapirSessions}/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>
-                    Last login
-                </TableCell>
-                <TableCell>
-                    <TapirSessionInfo source={"id"} index={0} isLoading={isLoading} total={totalTapirSessions}
-                                      tapirSessions={tapirSessions}/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Total sessions">
+                        <TapirSessionInfo source={"id"} index={-1} isLoading={isLoading} total={totalTapirSessions}
+                                          tapirSessions={tapirSessions}/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>Penultimate Login</TableCell>
-                <TableCell>
-                    <TapirSessionInfo source={"id"} index={1} isLoading={isLoading} total={totalTapirSessions}
-                                      tapirSessions={tapirSessions}/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Joined Date">
+                        <ISODateField source="joined_date"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>Total sessions</TableCell>
-                <TableCell>
-                    <TapirSessionInfo source={"id"} index={-1} isLoading={isLoading} total={totalTapirSessions}
-                                      tapirSessions={tapirSessions}/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Joined From">
+                        <TextField source="joined_ip_num"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>Joined Date</TableCell>
-                <TableCell>
-                    <ISODateField source="joined_date"/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Affiliation">
+                        <TextField source="affiliation"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>Joined From</TableCell>
-                <TableCell>
-                    <TextField source="joined_ip_num"/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Country">
+                        <TextField source="country"/>
+                    </DottedLineRow>
 
+                    <DottedLineRow label="URL">
+                        <TextField source="url"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>Affiliation</TableCell>
-                <TableCell>
-                    <TextField source="affiliation"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>Country</TableCell>
-                <TableCell>
-                    <TextField source="country"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>URL</TableCell>
-                <TableCell>
-                    <TextField source="url"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>Default Category</TableCell>
-                <TableCell>
-                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"/>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Default Category">
+                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"/>
+                    </DottedLineRow>
 
-            <TableRow>
-                <TableCell>Career Status</TableCell>
-                <TableCell>
-                    <CareereStatusField source="type"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>arXiv Author ID</TableCell>
-                <TableCell>
-                    <ReferenceField reference={"author_ids"} source={"id"}>
-                        <TextField source="author_id" emptyText={"No author ID"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>ORCID</TableCell>
-                <TableCell>
-                    <ReferenceField reference={"orcid_ids"} source={"id"}>
-                        <TextField source="orcid" emptyText={"No ORCID"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
+                    <DottedLineRow label="Career Status">
+                        <CareereStatusField source="type"/>
+                    </DottedLineRow>
 
-        </Table>);
+                    <DottedLineRow label="arXiv Author ID">
+                        <ReferenceField reference={"author_ids"} source={"id"}>
+                            <TextField source="author_id" emptyText={"No author ID"}/>
+                        </ReferenceField>
+                    </DottedLineRow>
+
+                    <DottedLineRow label="ORCID">
+                        <ReferenceField reference={"orcid_ids"} source={"id"}>
+                            <TextField source="orcid" emptyText={"No ORCID"}/>
+                        </ReferenceField>
+                    </DottedLineRow>
+                </Box>
+            </CardContent>
+        </Card>);
 }
 
 
@@ -541,106 +501,13 @@ function UserModerationCategories({open, setOpen}: { open: boolean, setOpen: (op
 }
 
 
-const UserEditToolbar: React.FC<{ setAddCommentOpen: (open: boolean) => void, setBulkPaperOwnerOpen: (open: boolean) => void }> = ({setAddCommentOpen, setBulkPaperOwnerOpen}) => {
-    const notify = useNotify();
-    const record = useRecordContext();
-    const runtimeProps = useContext(RuntimeContext);
-
-    const handleBan = async () => {
-        if (!record?.id) return;
-    }
-
-    const handleMasquerade = async () => {
-        if (!record?.id) return;
-
-        try {
-            const response = await fetch(`${runtimeProps.AAA_URL}/impersonate/${record.id}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', // send cookies if needed
-            });
-
-            if ([301, 302, 303, 307, 308].includes(response.status)) {
-                const location = response.headers.get('Location');
-                if (location) {
-                    window.location.href = location;
-                    return;
-                }
-            }
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'Request failed');
-            }
-
-            notify('Switched to user session', {type: 'info'});
-            window.location.href = '/'; // Or wherever you want to redirect
-        } catch (error: unknown) {
-            let message = 'Unknown error';
-            if (error instanceof Error) {
-                message = error.message;
-            }
-            notify(`Masquerade failed: ${message}`, {type: 'error'});
-        }
-    };
-
-    return (
-        <Toolbar sx={{gap: 1}}>
-            <SaveButton/>
-            <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<LoginIcon/>}
-                onClick={handleMasquerade}
-                sx={{ml: 2}}
-            >
-                Become This User
-            </Button>
-
-            <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<CommentIcon/>}
-                onClick={() => setAddCommentOpen(true)}
-                sx={{ml: 2}}
-            >
-                Add comment
-            </Button>
-            
-            <Button
-                variant="contained"
-                color="primary"
-                startIcon={<UploadIcon/>}
-                onClick={() => setBulkPaperOwnerOpen(true)}
-                sx={{ml: 2}}
-            >
-                Bulk Paper Owner
-            </Button>
-
-            <Box sx={{flexGrow: 1}}/>
-            {/*             <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<SuspendIcon />}
-                onClick={handleBan}
-                sx={{ ml: 2 }}
-            >
-                Suspend
-            </Button>
- */}
-        </Toolbar>
-    );
-};
-
 type statusInputType = { source: string, label: string, disabled?: boolean, component?: string } | null;
 
 interface EmailVerificationSwitchProps {
     onUpdateEmailVerified: (verified: boolean, userId: string) => void;
 }
 
-const EmailVerificationSwitch: React.FC<EmailVerificationSwitchProps> = ({ onUpdateEmailVerified }) => {
+const EmailVerificationSwitch: React.FC<EmailVerificationSwitchProps> = ({onUpdateEmailVerified}) => {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [pendingVerified, setPendingVerified] = useState<boolean | null>(null);
     const record = useRecordContext();
@@ -713,18 +580,21 @@ const UserEditContent = () => {
 
     const statusInputs: statusInputType[][] = [
         [
+            {source: "flag_approved", label: "Approved"},
             {source: "flag_banned", label: "Banned", disabled: false, component: "FlaggedToggle"},
             {source: "flag_deleted", label: "Deleted", disabled: false, component: "FlaggedToggle"},
             {source: "flag_suspect", label: "Flagged", disabled: false, component: "FlaggedToggle"},
         ],
         [
-            {source: "flag_approved", label: "Approved"},
             {source: "flag_proxy", label: "Proxy"},
+            null,
+            null,
             null,
         ],
         [
-            {source: "flag_xml", label: "XML"},
-            {source: "flag_allow_tex_produced", label: "Allow Tex"},
+            {source: "flag_xml", label: "API Submitter"},
+            {source: "flag_allow_tex_produced", label: "Allow PDF from TeX"},
+            null,
             null,
         ]
     ];
@@ -732,13 +602,15 @@ const UserEditContent = () => {
     const adminInputs: statusInputType[][] = [
         [
             {source: "flag_edit_users", label: "Admin", component: "FlaggedToggle"},
-            {source: "flag_edit_system", label: "Owner", component: "FlaggedToggle"},
-            {source: "flag_group_test", label: "Test"},
+            null,
+            null,
+            null,
         ],
         [
+            {source: "flag_edit_system", label: "Owner", component: "FlaggedToggle"},
+            {source: "flag_group_test", label: "Test"},
             {source: "flag_internal", label: "Internal", component: "FlaggedToggle"},
             {source: "flag_can_lock", label: "Can Lock", component: "FlaggedToggle"},
-            null,
         ],
     ];
 
@@ -773,12 +645,48 @@ const UserEditContent = () => {
                 user_id: userId,
                 email_verified: verified
             });
-            
-            notify(`Email verification ${verified ? 'enabled' : 'disabled'}`, { type: 'success' });
+
+            notify(`Email verification ${verified ? 'enabled' : 'disabled'}`, {type: 'success'});
             refresh();
         } catch (error) {
-            notify('Failed to update email verification status', { type: 'error' });
+            notify('Failed to update email verification status', {type: 'error'});
             console.error('Error updating email verification:', error);
+        }
+    };
+
+    const handleMasquerade = async () => {
+        if (!record?.id) return;
+
+        try {
+            const response = await fetch(`${runtimeProps.AAA_URL}/impersonate/${record.id}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            });
+
+            if ([301, 302, 303, 307, 308].includes(response.status)) {
+                const location = response.headers.get('Location');
+                if (location) {
+                    window.location.href = location;
+                    return;
+                }
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Request failed');
+            }
+
+            notify('Switched to user session', {type: 'info'});
+            window.location.href = '/';
+        } catch (error: unknown) {
+            let message = 'Unknown error';
+            if (error instanceof Error) {
+                message = error.message;
+            }
+            notify(`Masquerade failed: ${message}`, {type: 'error'});
         }
     };
 
@@ -793,174 +701,193 @@ const UserEditContent = () => {
         refresh();
     };
 
-    const erpandedSummaryHeight = '10px';
+    const labelWidth = '6rem';
 
     return (
         <>
-            <SimpleForm toolbar={<UserEditToolbar setAddCommentOpen={setAddCommentOpen} setBulkPaperOwnerOpen={setBulkPaperOwnerOpen}/>}>
-                <Grid container>
-                    <Grid size={{xs: 12, md: 6}}>
-                        <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<EmailIcon/>}
-                                onClick={() => setChangeEmailOpen(true)}
-                            >
-                                Change Email
-                            </Button>
-                            <EmailField source="email" fontSize={"large"}/>
-                            <ChangeEmailDialog
-                                open={changeEmailOpen}
-                                setOpen={setChangeEmailOpen}
-                                onEmailChanged={handleEmailChanged}
-                            />
+            <SimpleForm toolbar={false}>
+                <Box sx={{display: 'flex', flexDirection: 'column', gap: 1}}>
+                    <Typography variant="h1" gutterBottom>
+                        <UserTitle/>
+                    </Typography>
 
-                        </Box>
-                        <Box display="flex" flexDirection="row" gap={2} justifyItems={"normal"}>
-                            <EmailVerificationSwitch onUpdateEmailVerified={updateEmailVerified} />
-                            <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false}
-                                          options={{size: "small"}}/>
-                        </Box>
-                        <Divider/>
+                    {/* Action buttons moved under user name */}
+                    <Box sx={{display: 'flex', flexDirection: 'row', gap: 1, mb: 2}}>
+                        <SaveButton/>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            startIcon={<LoginIcon/>}
+                            onClick={handleMasquerade}
+                        >
+                            Become This User
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            startIcon={<CommentIcon/>}
+                            onClick={() => setAddCommentOpen(true)}
+                        >
+                            Add comment
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<UploadIcon/>}
+                            onClick={() => setBulkPaperOwnerOpen(true)}
+                        >
+                            Bulk Paper Owner
+                        </Button>
+                    </Box>
 
-                        <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<EmailIcon/>}
-                                onClick={() => setChangeUserNameOpen(true)}
-                            >
-                                Change Name
-                            </Button>
-                            <Typography component={"span"} variant={"body1"} alignContent={"center"}>
-                                <UserNameField />
-                            </Typography>
-                            <UserNameDialog
-                                open={changeUserNameOpen}
-                                setOpen={setChangeUserNameOpen}
-                                onUpdated={handleUserNameChanged}
-                            />
-                        </Box>
-                        <Divider/>
+                    <Divider/>
 
-                        <Table size="small" padding={"none"}>
-                            {
-                                buhchOfInputs.map((inputs) => (
-                                    <TableRow key={inputs[0]?.source}>
+                    <StandardAccordion title="User Metadata and Status" defaultExpanded={true}>
+                        <Box display="flex" flexDirection="row" gap={2}>
+                            <Box sx={{ flex: 1 }}>
+                                <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
+                                    <Typography width={labelWidth} variant={"h6"}>Name</Typography>
+
+                                    <Typography component={"span"} variant={"body1"} alignContent={"center"}>
+                                        <UserNameField/>
+                                        <IconButton onClick={() => setChangeUserNameOpen(true)}>
+                                            <EditIcon/>
+                                        </IconButton>
+                                    </Typography>
+                                    <UserNameDialog
+                                        open={changeUserNameOpen}
+                                        setOpen={setChangeUserNameOpen}
+                                        onUpdated={handleUserNameChanged}
+                                    />
+                                </Box>
+
+                                <Box display="flex" flexDirection="column">
+                                    <Box display="flex" flexDirection="row" gap={1} alignItems="center">
+                                        <Typography width={labelWidth} variant={"h6"}>Email</Typography>
+                                        <EmailField source="email" fontSize={"large"}/>
+                                        <IconButton onClick={() => setChangeEmailOpen(true)} size="small">
+                                            <EditIcon/>
+                                        </IconButton>
+                                        <ChangeEmailDialog
+                                            open={changeEmailOpen}
+                                            setOpen={setChangeEmailOpen}
+                                            onEmailChanged={handleEmailChanged}
+                                        />
+                                    </Box>
+
+                                    <Box display="flex" flexDirection="row">
+                                        <EmailVerificationSwitch onUpdateEmailVerified={updateEmailVerified}/>
+                                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false}
+                                                      options={{size: "small"}}/>
+                                    </Box>
+                                </Box>
+
+                                <Box display="flex" flexDirection="column">
+                                    <Typography variant={"h6"}>Roles and Status</Typography>
+
+                                    <Table size="small" padding={"none"}>
                                         {
-                                            inputs.map((input) => (
-                                                <TableCell>
+                                            buhchOfInputs.map((inputs) => (
+                                                <TableRow key={inputs[0]?.source} sx={{border: 'none'}}>
                                                     {
-                                                        input === null ? null :
-                                                            input.component === "FlaggedToggle" ? (
-                                                                <FlaggedToggle
-                                                                    source={input.source}
-                                                                    label={input.label}
-                                                                    helperText={false}
-                                                                    sx={switchProps}
-                                                                    size="small"
-                                                                    disabled={input?.disabled}
-                                                                />
-                                                            ) : (
-                                                                <BooleanInput source={input.source} label={input.label}
-                                                                              helperText={false} sx={switchProps}
-                                                                              size="small"
-                                                                              disabled={input?.disabled}
-                                                                />
-                                                            )
-                                                    }
-                                                </TableCell>
+                                                        inputs.map((input) => (
+                                                            <TableCell sx={{border: 'none'}}>
+                                                                {
+                                                                    input === null ? null :
+                                                                        input.component === "FlaggedToggle" ? (
+                                                                            <FlaggedToggle
+                                                                                source={input.source}
+                                                                                label={input.label}
+                                                                                helperText={false}
+                                                                                sx={switchProps}
+                                                                                size="small"
+                                                                                disabled={input?.disabled}
+                                                                            />
+                                                                        ) : (
+                                                                            <BooleanInput source={input.source}
+                                                                                          label={input.label}
+                                                                                          helperText={false}
+                                                                                          sx={switchProps}
+                                                                                          size="small"
+                                                                                          disabled={input?.disabled}
+                                                                            />
+                                                                        )
+                                                                }
+                                                            </TableCell>
 
+                                                        ))
+                                                    }
+                                                </TableRow>
                                             ))
                                         }
-                                    </TableRow>
-                                ))
-                            }
-                        </Table>
+                                    </Table>
+                                </Box>
 
-                        <Box display="flex" flexDirection="row" gap={2} alignItems="center">
-                            <Typography variant="body2" sx={{minWidth: '100px'}}>Veto Status:</Typography>
-                            <VetoStatusField source="veto_status"/>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => setVetoStatusOpen(true)}
-                            >
-                                Change
-                            </Button>
-                        </Box>
+                                <Box display="flex" flexDirection="row" gap={2} alignItems="center">
+                                    <Typography variant="body2" sx={{minWidth: '100px'}}>Veto Status:</Typography>
+                                    <VetoStatusField source="veto_status"/>
+                                    <IconButton
+                                        onClick={() => setVetoStatusOpen(true)}
+                                    >
+                                        <EditIcon/>
+                                    </IconButton>
+                                </Box>
+                            </Box>
 
-                        <Box>
-                            <EndorsementRequestListField source={"id"}/>
-                        </Box>
-
-                        <Divider/>
-
-                        <Box>
-                            <Button size={"small"} variant={"outlined"} onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
-                            <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
-                        </Box>
-
-                        <Divider/>
-
-                        <Box>
-                            <Button size={"small"} variant={"outlined"} onClick={() => setIsModOpen(true)}>Moderator for</Button>
-                            <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
-                        </Box>
-                        <Divider/>
-                        <Box>
-                            <Button size={"small"} variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>Can Submit
-                                to?</Button>
-                            <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)} sx={{ml: 2}}>Can
-                                Endorsed for?</Button>
-                            <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen}/>
-                            <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>
-                        </Box>
-                        <Divider/>
-
-                        <AdminAuditList/>
-                    </Grid>
-
-                    <Grid size={{xs: 12, md: 6}}>
-                        <Accordion defaultExpanded  sx={{my: 0, py: 0}}>
-                             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                                <Typography variant="h6">User Demographics</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails  sx={{my: 0, py: 0}}>
+                            <Box sx={{ width: '400px', flexShrink: 0 }}>
                                 <UserDemographic/>
-                            </AccordionDetails>
-                        </Accordion>
-                        
-                        <Accordion  sx={{my: 0, py: 0}}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                                <Typography variant="h6">Email History</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails  sx={{my: 0, py: 0}}>
-                                <EmailHistoryList/>
-                            </AccordionDetails>
-                        </Accordion>
-                        
-                        <Accordion sx={{my: 0, py: 0}}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                                <Typography variant="h6">User's submissions</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails  sx={{my: 0, py: 0}}>
-                                <UserSubmissionList  />
-                            </AccordionDetails>
-                        </Accordion>
+                            </Box>
+                        </Box>
 
-                        <Accordion sx={{my: 0, py: 0}}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                                <Typography variant="h6">Owned Papers</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails  sx={{my: 0, py: 0}}>
-                                <OwnedPaperList/>
-                            </AccordionDetails>
-                        </Accordion>
+                    </StandardAccordion>
 
-                    </Grid>
-                </Grid>
+                    <StandardAccordion title="Moderation, Submission and Endorsement Categories">
+
+                        <EndorsementRequestListField source={"id"}/>
+
+                    <Box>
+                        <Button size={"small"} variant={"outlined"}
+                                onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
+                        <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
+                    </Box>
+
+                    <Divider/>
+
+                    <Box>
+                        <Button size={"small"} variant={"outlined"} onClick={() => setIsModOpen(true)}>Moderator
+                            for</Button>
+                        <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
+                    </Box>
+                    <Divider/>
+                    <Box>
+                        <Button size={"small"} variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>Can Submit
+                            to?</Button>
+                        <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)}
+                                sx={{ml: 2}}>Can
+                            Endorsed for?</Button>
+                        <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen}/>
+                        <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>
+                    </Box>
+                    <Divider/>
+
+                    <AdminAuditList/>
+                    </StandardAccordion>
+
+
+                        <StandardAccordion title="Email History">
+                            <EmailHistoryList/>
+                        </StandardAccordion>
+
+                        <StandardAccordion title="User's submissions">
+                            <UserSubmissionList/>
+                        </StandardAccordion>
+
+                        <StandardAccordion title="Owned Papers">
+                            <OwnedPaperList/>
+                        </StandardAccordion>
+
+                </Box>
+
             </SimpleForm>
             <UserFlagDialog
                 open={addCommentOpen} setOpen={setAddCommentOpen} flagOptions={[]}
@@ -983,8 +910,8 @@ const UserEditContent = () => {
 
 export const UserEdit = () => {
     return (
-        <Edit title={<UserTitle/>} actions={false} redirect={false}>
-            <UserEditContent />
+        <Edit actions={false} redirect={false}>
+            <UserEditContent/>
         </Edit>
     )
 };
@@ -1003,5 +930,4 @@ export const UserCreate = () => (
         </SimpleForm>
     </Create>
 );
-
 

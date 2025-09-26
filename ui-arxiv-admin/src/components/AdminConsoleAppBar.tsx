@@ -166,7 +166,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
                         helperText={null}
                         sx={{
                             minWidth: "8rem",
-                            maxWidth: "25%",
+                            maxWidth: "20%",
                             mr: 1,
                             backgroundColor: theme.palette.background.default,
                             color: theme.palette.text.primary,
@@ -197,7 +197,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
                         onKeyDown={handleDocSearch}
                         sx={{
                             minWidth: "8rem",
-                            maxWidth: "25%",
+                            maxWidth: "20%",
                             backgroundColor: theme.palette.background.default,
                             color: theme.palette.text.primary,
                             '& .MuiInputBase-input': {
