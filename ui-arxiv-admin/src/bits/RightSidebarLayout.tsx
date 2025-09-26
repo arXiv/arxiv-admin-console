@@ -49,12 +49,6 @@ const AdminContentRoot = styled('main', {
         maxWidth: 'none', // Allow children to expand beyond 80% if needed
         width: '100%',
     },
-    // Allow tables and wide content to break out of the 80% constraint
-    '& .MuiTableContainer-root, & .MuiDataGrid-root, & .RaList-main': {
-        marginLeft: '-10%',
-        marginRight: `-${open ? expandedWidth + 10 : collapsedWidth + 10}%`,
-        width: `calc(100% + 10% + ${open ? expandedWidth + 10 : collapsedWidth + 10}%)`,
-    },
 }));
 
 const RightSidebarContainer = styled('div', {

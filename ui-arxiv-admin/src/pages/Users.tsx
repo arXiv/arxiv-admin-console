@@ -191,7 +191,7 @@ export const UserList = () => {
 
     return (
         <>
-            <Typography variant="h1">Users</Typography>
+            <Typography variant="h1" >Users</Typography>
             <List filters={<UserFilter/>}>
                 <Datagrid rowClick="edit" bulkActionButtons={false}>
                     <TextField source={"id"} label="ID"/>
@@ -743,7 +743,11 @@ const UserEditContent = () => {
                     <Divider/>
 
                     <StandardAccordion title="User Metadata and Status" defaultExpanded={true}>
-                        <Box display="flex" flexDirection="row" gap={2}>
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: { xs: 'column', lg: 'row' },
+                            gap: 2
+                        }}>
                             <Box sx={{ flex: 1 }}>
                                 <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                                     <Typography width={labelWidth} variant={"h6"}>Name</Typography>
@@ -834,7 +838,10 @@ const UserEditContent = () => {
                                 </Box>
                             </Box>
 
-                            <Box sx={{ width: '400px', flexShrink: 0 }}>
+                            <Box sx={{
+                                width: { xs: '100%', lg: '400px' },
+                                flexShrink: 0
+                            }}>
                                 <UserDemographic/>
                             </Box>
                         </Box>
