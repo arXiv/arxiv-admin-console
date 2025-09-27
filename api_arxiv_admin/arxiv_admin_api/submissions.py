@@ -11,6 +11,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
+from google.protobuf.internal.wire_format import INT32_MAX
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text, cast, LargeBinary, Row, and_  # select, update, func, case, Select, distinct, exists, and_
 from sqlalchemy.orm import Session
@@ -600,19 +601,17 @@ class SubmissionSummaryModel(BaseModel):
 @router.get("/user/{user_id:str}/summary")
 async def get_submission_summary_of_user(
         user_id: str,
-        response: Response,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db),
     ) -> SubmissionSummaryModel:
-    submissions = await list_submissions(
-        response, _sort=None, _order=None, _start=None, _end=None,
-        id=None, preset=None, start_date=None, end_date=None,
-        stage=None, submission_status=None, submission_status_group=None, title=None,
-        type=None, document_id=None, filter=None, start_submission_id=None, end_submission_id=None,
-        submitter_id=int(user_id), current_user=current_user, db=session)
+
+    if not current_user.is_admin and str(current_user.user_id) != str(user_id):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    submissions_status = session.query(Submission.status).filter(Submission.submitter_id == user_id).all()
 
     result = SubmissionSummaryModel(
-        total=len(submissions),
+        total=len(submissions_status),
         active=0,
         submitted=0,
         rejected=0,
@@ -620,11 +619,12 @@ async def get_submission_summary_of_user(
 
     status_list = {entry.id: entry for entry in _VALID_STATUS_LIST}
 
-    submission: SubmissionModel
-    for submission in submissions:
-        if submission.status not in status_list:
+    status: int
+    for row in submissions_status:
+        status = row[0]
+        if status not in status_list:
             continue
-        submission_status = status_list[submission.status]
+        submission_status = status_list[status]
         match submission_status.classification:
             case SubmissionStatusClassification.active:
                 result.active += 1
