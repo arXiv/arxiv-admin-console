@@ -63,6 +63,8 @@ import LoginIcon from '@mui/icons-material/Login';
 import SuspendIcon from '@mui/icons-material/Pause';
 import CommentIcon from '@mui/icons-material/Comment';
 import UploadIcon from '@mui/icons-material/Upload';
+import PasswordIcon from '@mui/icons-material/Password';
+
 import {RuntimeContext} from "../RuntimeContext"; // for "Become This User"
 import {useLocation, useNavigate} from 'react-router-dom';
 import EmailLinkField from "../bits/EmailLinkField";
@@ -72,7 +74,7 @@ import EndorsementCategoryDialog from "../components/EndorsementCategoryDialog";
 import {paths as adminApi} from '../types/admin-api';
 import CanSubmitToDialog from "../components/CanSubmitToDialog";
 import CanEndorseForDialog from "../components/CanEndorseForDialog";
-import PolicClassField from "../bits/PolicClassField";
+import PolicyClassField from "../bits/PolicyClassField";
 import EmailHistoryList from "../bits/EmailHistoryList";
 import ChangeEmailDialog from "../components/ChangeEmailDialog";
 import ISODateField from "../bits/ISODateFiled";
@@ -86,6 +88,7 @@ import {UserSubmissionList} from "../components/UserSumissionList";
 import BulkPaperOwnerDialog from "../components/BulkPaperOwnerDialog";
 import {StandardAccordion} from "../components/StandardAccordion";
 import {DottedLineRow} from "../components/DottedLineRow";
+import ChangePasswordDialog from "../components/ChangePasswordDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -335,7 +338,7 @@ function UserDemographic() {
                     </DottedLineRow>
 
                     <DottedLineRow label="Policy class">
-                        <PolicClassField source="policy_class"/>
+                        <PolicyClassField source="policy_class"/>
                     </DottedLineRow>
 
                     <DottedLineRow label="Last login">
@@ -563,6 +566,7 @@ const UserEditContent = () => {
     const [addCommentOpen, setAddCommentOpen] = useState(false);
     const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
     const [bulkPaperOwnerOpen, setBulkPaperOwnerOpen] = useState(false);
+    const [changePasswordOpen, setChangePasswordOpen] = useState(false);
     const refresh = useRefresh(); // Import this from react-admin
     const notify = useNotify();
     const runtimeProps = useContext(RuntimeContext);
@@ -615,6 +619,10 @@ const UserEditContent = () => {
 
     const handleEmailChanged = (newEmail: string) => {
         refresh(); // Refresh the form to show the updated email
+    };
+
+    const handlePasswordChanged = () => {
+        refresh();
     };
 
     const handleUserNameChanged = () => {
@@ -737,6 +745,15 @@ const UserEditContent = () => {
                         >
                             Bulk Paper Owner
                         </Button>
+
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<PasswordIcon/>}
+                            onClick={() => setChangePasswordOpen(true)}
+                        >
+                            Change Password
+                        </Button>
                     </Box>
 
                     <Divider/>
@@ -800,7 +817,7 @@ const UserEditContent = () => {
                                     </Box>
 
 
-                                    <Table size="small" padding={"none"}>
+                                    <Table size="small" padding={"normal"} >
                                         {
                                             buhchOfInputs.map((inputs) => (
                                                 <TableRow key={inputs[0]?.source} sx={{border: 'none'}}>
@@ -854,12 +871,14 @@ const UserEditContent = () => {
 
                         <Box>
                             <Typography variant={"h6"}>Moderates: </Typography>
+                            <IconButton onClick={() => setIsModOpen(true)}>
+                                <EditIcon />
+                            </IconButton>
+
                             <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
-                            <Button size={"small"} variant={"outlined"} onClick={() => setIsModOpen(true)}>Moderator
-                                for</Button>
                         </Box>
 
-                        <Box>
+                        <Box mt={2}>
                             <Typography variant={"h6"}>Can Submit to: </Typography>
                             <Button size={"small"} variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>
                                 Can Submit to?
@@ -867,21 +886,21 @@ const UserEditContent = () => {
                             <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen}/>
                         </Box>
 
-                        <Box>
+                        <Box mt={2}>
                             <Typography variant={"h6"}>Is endorsed for: </Typography>
+                            <IconButton
+                                onClick={() => setIsEndorsementsOpen(true)}><EditIcon /></IconButton>
                             <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
-                            <Button size={"small"} variant={"outlined"}
-                                    onClick={() => setIsEndorsementsOpen(true)}>Manage Moderation Category</Button>
                         </Box>
 
-                        <Box>
+                        <Box mt={2}>
                             <Typography variant={"h6"}>Endorses: </Typography>
                             <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)} >
                                 Can Endorsed for?</Button>
                             <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>
                         </Box>
 
-                        <Box>
+                        <Box mt={2}>
                             <Typography variant={"h6"}>Endorsement Requests</Typography>
                             <EndorsementRequestListField source={"id"}/>
                         </Box>
@@ -920,6 +939,11 @@ const UserEditContent = () => {
                 setOpen={setBulkPaperOwnerOpen}
                 userId={Number(record?.id) || 0}
                 userRecord={record}
+            />
+            <ChangePasswordDialog
+                open={changePasswordOpen}
+                setOpen={setChangePasswordOpen}
+                onPasswordChanged={handlePasswordChanged}
             />
         </>
     )
