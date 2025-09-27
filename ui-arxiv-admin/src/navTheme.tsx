@@ -1,18 +1,29 @@
 import { createTheme } from '@mui/material/styles';
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
 
+export const LightLimeColor = '#F0F5CF';
+export const DarkLimeColor = '#1B3B1B';
+export const AccessLimeColor = '#C4D82E';
+export const DarkAccessLimeColor = '#7A8F1A';
+export const ArchivalBlueColor ='#1f5e96';
+export const LibraryGreyColor = '#6b6459'; // for light theme
+export const LighterLibraryGreyColor = '#a8a19a'; // for dark theme
+export const VeryLightGreyColor = '#f0f0f0'
+export const VeryVeryLightGreyColor = '#f8f8f8'
+export const WHITE = '#FFFFFF';
+export const BLACK = '#000000';
+
+
 // Common base theme (sizes, spacing, behavior)
 const commonBaseTheme = {
     typography: {
         fontFamily: 'IBM Plex Mono, monospace',
-        fontSize: 14,
+        fontSize: 16,
         body1: {
             fontSize: '14px',
-            lineHeight: '1em',
         },
         body2: {
-            fontSize: '14px',
-            lineHeight: '1em',
+            fontSize: '13px',
         },
         h1: {
             fontSize: '40px',
@@ -48,7 +59,7 @@ const commonBaseTheme = {
             styleOverrides: {
                 tooltip: {
                     fontSize: '20px !important', // Force larger font size
-                    color: '#ffffff',
+                    color: WHITE,
                 },
             },
         },
@@ -63,27 +74,27 @@ const lightTheme = createTheme({
         ...commonBaseTheme.typography,
         body1: {
             ...commonBaseTheme.typography.body1,
-            color: '#000000',
+            color: BLACK,
         },
         body2: {
             ...commonBaseTheme.typography.body2,
-            color: '#000000',
+            color: BLACK,
         },
         h1: {
             ...commonBaseTheme.typography.h1,
-            color: '#000000',
+            color: BLACK,
         },
         h2: {
             ...commonBaseTheme.typography.h2,
-            color: '#6b6459', // Library Grey
+            color: LibraryGreyColor,
         },
     },
     palette: {
         ...defaultTheme.palette,
         background: {
             ...defaultTheme.palette?.background,
-            default: '#f0f0f0', // Very light grey for main content background
-            paper: '#f8f8f8', // Keep paper/card backgrounds white
+            default: VeryLightGreyColor, // Very light grey for main content background
+            paper: VeryVeryLightGreyColor, // Keep paper/card backgrounds white
         },
     },
     components: {
@@ -104,22 +115,22 @@ const lightTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiButton.styleOverrides,
                 contained: {
-                    backgroundColor: '#C4D82E', // Access Lime
-                    color: '#000000', // Black text
+                    backgroundColor: AccessLimeColor, // Access Lime
+                    color: BLACK, // Black text
                     border: 'none',
                     '&:hover': {
-                        backgroundColor: '#F0F5CF', // Light Lime
-                        color: '#000000', // Black text (no change)
+                        backgroundColor: LightLimeColor, // Light Lime
+                        color: BLACK, // Black text (no change)
                     },
                 },
                 outlined: {
-                    backgroundColor: '#ffffff', // White background
-                    color: '#000000', // Black text
-                    border: '2px solid #C4D82E', // Access Lime border
+                    backgroundColor: WHITE, // White background
+                    color: BLACK, // Black text
+                    border: '2px solid ' + AccessLimeColor, // Access Lime border
                     '&:hover': {
-                        backgroundColor: '#F0F5CF', // Light Lime
-                        color: '#000000', // Black text (no change)
-                        border: '2px solid #C4D82E', // Same border (no change)
+                        backgroundColor: LightLimeColor, // Light Lime
+                        color: BLACK, // Black text (no change)
+                        border: '2px solid ' + AccessLimeColor, // Same border (no change)
                     },
                 },
             },
@@ -128,16 +139,16 @@ const lightTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiSwitch.styleOverrides,
                 switchBase: {
-                    color: '#6b6459', // Library Grey (inactive)
+                    color: LibraryGreyColor, // Library Grey (inactive)
                     '&.Mui-checked': {
-                        color: '#1f5e96', // Archival Blue (active)
+                        color: ArchivalBlueColor, // Archival Blue (active)
                         '& + .MuiSwitch-track': {
-                            backgroundColor: '#1f5e96', // Archival Blue (active track)
+                            backgroundColor: ArchivalBlueColor, // Archival Blue (active track)
                         },
                     },
                 },
                 track: {
-                    backgroundColor: '#6b6459', // Library Grey (inactive track)
+                    backgroundColor: LibraryGreyColor, // Library Grey (inactive track)
                 },
             },
         },
@@ -145,7 +156,7 @@ const lightTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiTooltip.styleOverrides,
                 tooltip: {
-                    color: '#ffffff',
+                    color: WHITE,
                 },
             },
         },
@@ -160,19 +171,19 @@ const darkTheme = createTheme({
         ...commonBaseTheme.typography,
         body1: {
             ...commonBaseTheme.typography.body1,
-            color: '#ffffff',
+            color: WHITE,
         },
         body2: {
             ...commonBaseTheme.typography.body2,
-            color: '#ffffff',
+            color: WHITE,
         },
         h1: {
             ...commonBaseTheme.typography.h1,
-            color: '#ffffff',
+            color: WHITE,
         },
         h2: {
             ...commonBaseTheme.typography.h2,
-            color: '#a8a19a', // Lighter Library Grey for dark theme
+            color: LighterLibraryGreyColor, // Lighter Library Grey for dark theme
         },
     },
     components: {
@@ -193,22 +204,22 @@ const darkTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiButton.styleOverrides,
                 contained: {
-                    backgroundColor: '#7A8F1A', // Darker Access Lime for dark theme
-                    color: '#ffffff', // White text for dark theme
+                    backgroundColor: DarkAccessLimeColor, // Darker Access Lime for dark theme
+                    color: WHITE, // White text for dark theme
                     border: 'none',
                     '&:hover': {
-                        backgroundColor: '#1B3B1B', // Very dark green for dark theme
-                        color: '#ffffff', // White text (no change)
+                        backgroundColor: DarkLimeColor, // Very dark green for dark theme
+                        color: WHITE, // White text (no change)
                     },
                 },
                 outlined: {
                     backgroundColor: '#2A2A2A', // Dark background instead of white
-                    color: '#ffffff', // White text for dark theme
-                    border: '2px solid #7A8F1A', // Darker Access Lime border
+                    color: WHITE, // White text for dark theme
+                    border: '2px solid ' + DarkAccessLimeColor, // Darker Access Lime border
                     '&:hover': {
-                        backgroundColor: '#1B3B1B', // Very dark green for dark theme
-                        color: '#ffffff', // White text (no change)
-                        border: '2px solid #7A8F1A', // Same border (no change)
+                        backgroundColor: DarkLimeColor, // Very dark green for dark theme
+                        color: WHITE, // White text (no change)
+                        border: '2px solid ' + DarkAccessLimeColor, // Same border (no change)
                     },
                 },
             },
@@ -217,16 +228,16 @@ const darkTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiSwitch.styleOverrides,
                 switchBase: {
-                    color: '#6b6459', // Library Grey (inactive)
+                    color: LibraryGreyColor, // Library Grey (inactive)
                     '&.Mui-checked': {
-                        color: '#1f5e96', // Archival Blue (active)
+                        color: ArchivalBlueColor, // Archival Blue (active)
                         '& + .MuiSwitch-track': {
-                            backgroundColor: '#1f5e96', // Archival Blue (active track)
+                            backgroundColor: ArchivalBlueColor, // Archival Blue (active track)
                         },
                     },
                 },
                 track: {
-                    backgroundColor: '#6b6459', // Library Grey (inactive track)
+                    backgroundColor: LibraryGreyColor, // Library Grey (inactive track)
                 },
             },
         },
@@ -234,7 +245,7 @@ const darkTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiTooltip.styleOverrides,
                 tooltip: {
-                    color: '#ffffff',
+                    color: WHITE,
                 },
             },
         },

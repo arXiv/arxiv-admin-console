@@ -8,6 +8,7 @@ import { styled } from '@mui/material';
 import { AdminConsoleAppBar } from '../components/AdminConsoleAppBar';
 import { CollapsibleRightMenu } from '../components/CollapsibleRightMenu';
 import Box from '@mui/material/Box';
+import {DarkLimeColor, LightLimeColor} from "../navTheme";
 
 // Styled components for right sidebar layout
 const RightSidebarRoot = styled('div')(({ theme }) => ({
@@ -29,6 +30,7 @@ const sideMargin = 8;
 const showLegendWidth = 240;
 const hideLegendWidth = 40;
 
+
 const AdminContentRoot = styled('main', {
     shouldForwardProp: (prop) => prop !== 'open' && prop !== 'expandedWidth' && prop !== 'collapsedWidth',
 })<{ open?: boolean; expandedWidth?: number; collapsedWidth?: number }>(({ theme, open, expandedWidth = showLegendWidth + sideMargin, collapsedWidth = hideLegendWidth + sideMargin }) => ({
@@ -43,12 +45,6 @@ const AdminContentRoot = styled('main', {
         easing: theme.transitions.easing.easeOut,
         duration: theme.transitions.duration.enteringScreen,
     }),
-    // Center content with ~80% width, but allow expansion for wide content
-    padding: '0 10%', // This creates ~80% content width
-    '& > *': {
-        maxWidth: 'none', // Allow children to expand beyond 80% if needed
-        width: '100%',
-    },
 }));
 
 const RightSidebarContainer = styled('div', {
@@ -64,7 +60,7 @@ const RightSidebarContainer = styled('div', {
         easing: theme.transitions.easing.sharp,
         duration: theme.transitions.duration.leavingScreen,
     }),
-    backgroundColor: theme.palette.mode === 'dark' ? '#1B3B1B' : '#F0F5CF',
+    backgroundColor: theme.palette.mode === 'dark' ? DarkLimeColor : LightLimeColor,
     borderLeft: `1px solid ${theme.palette.divider}`,
     display: 'flex',
     flexDirection: 'column',

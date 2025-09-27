@@ -10,7 +10,6 @@ import {
 
 // import ToggleButton from '@mui/material/ToggleButton';
 // import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Grid from '@mui/material/Grid';
 // import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableRow from '@mui/material/TableRow';
@@ -765,7 +764,7 @@ const UserEditContent = () => {
                                     />
                                 </Box>
 
-                                <Box display="flex" flexDirection="column">
+                                <Box display="flex" flexDirection="column" mt={"2rem"}>
                                     <Box display="flex" flexDirection="row" gap={1} alignItems="center">
                                         <Typography width={labelWidth} variant={"h6"}>Email</Typography>
                                         <EmailField source="email" fontSize={"large"}/>
@@ -787,8 +786,19 @@ const UserEditContent = () => {
                                     </Box>
                                 </Box>
 
-                                <Box display="flex" flexDirection="column">
+                                <Box display="flex" flexDirection="column" mt={"2rem"}>
                                     <Typography variant={"h6"}>Roles and Status</Typography>
+
+                                    <Box display="flex" flexDirection="row" gap={2} alignItems="center">
+                                        <Typography variant="body2" sx={{minWidth: '100px'}}>Veto Status:</Typography>
+                                        <VetoStatusField source="veto_status"/>
+                                        <IconButton
+                                            onClick={() => setVetoStatusOpen(true)}
+                                        >
+                                            <EditIcon/>
+                                        </IconButton>
+                                    </Box>
+
 
                                     <Table size="small" padding={"none"}>
                                         {
@@ -828,15 +838,6 @@ const UserEditContent = () => {
                                     </Table>
                                 </Box>
 
-                                <Box display="flex" flexDirection="row" gap={2} alignItems="center">
-                                    <Typography variant="body2" sx={{minWidth: '100px'}}>Veto Status:</Typography>
-                                    <VetoStatusField source="veto_status"/>
-                                    <IconButton
-                                        onClick={() => setVetoStatusOpen(true)}
-                                    >
-                                        <EditIcon/>
-                                    </IconButton>
-                                </Box>
                             </Box>
 
                             <Box sx={{
@@ -926,9 +927,11 @@ const UserEditContent = () => {
 
 export const UserEdit = () => {
     return (
-        <Edit actions={false} redirect={false}>
-            <UserEditContent/>
-        </Edit>
+        <Box width={"80%"} ml={"10%"}>
+            <Edit actions={false} redirect={false}>
+                <UserEditContent/>
+            </Edit>
+        </Box>
     )
 };
 

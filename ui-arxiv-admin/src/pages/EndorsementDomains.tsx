@@ -54,7 +54,7 @@ export const EndorsementDomainList = () => (
 
 const EndorsementDomainTitle = () => {
     const record = useRecordContext();
-    return <span>endorsementDomain {record ? `"${record.id}"` : ''}</span>;
+    return <span>Endorsement Domain: {record ? `"${record.id}"` : ''}</span>;
 };
 
 const EndorsementDomainFormFields: React.FC<{isCreate: boolean}> = ({isCreate}) => {
@@ -101,19 +101,24 @@ const EndorsementDomainFormFields: React.FC<{isCreate: boolean}> = ({isCreate}) 
 };
 
 export const EndorsementDomainAdd = () => (
+    <Box width="80%" ml="10%">
     <Create>
         <Typography variant="h1">Add Endorsement Domain</Typography>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={true} />
         </SimpleForm>
     </Create>
+    </Box>
 );
 
 export const EndorsementDomainEdit = () => (
+    <Box width="80%" ml="10%">
     <Edit title={false}>
-        <Typography variant="h1"><EndorsementDomainTitle/></Typography>
+        <Typography variant="h1">Edit Endorsement Domain</Typography>
+        <Typography variant="h2" ml={"1em"}><EndorsementDomainTitle/></Typography>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={false} />
         </SimpleForm>
     </Edit>
+    </Box>
 );

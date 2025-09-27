@@ -88,7 +88,8 @@ const ResourceDateRangeSummary: React.FC<DateRangeSummaryProps> = ({resource, ti
 
 export const Dashboard = () => {
     return (
-        <Box sx={{ my: 2, display: 'flex', gap: 2 }}>
+        <Box  sx={{ my: 2, display: 'flex', gap: 2 }} >
+            <Box flexGrow={1}/>
             <Box sx={{ width: '50%', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Card>
                     <CardHeader title="Endorsement Request"/>
@@ -189,6 +190,8 @@ export const Dashboard = () => {
                     </CardContent>
                 </Card>
             </Box>
+            <Box flexGrow={1}/>
+
         </Box>
     );
 }

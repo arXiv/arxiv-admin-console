@@ -117,18 +117,23 @@ const MembershipInstitutionFormFields = () => {
 };
 
 export const MembershipInstitutionAdd = () => (
+    <Box width="80%" ml="10%">
     <Create>
         <SimpleForm>
             <MembershipInstitutionFormFields />
         </SimpleForm>
     </Create>
+    </Box>
 );
 
 export const MembershipInstitutionEdit = () => (
+    <Box width="80%" ml="10%">
     <Edit title={false}>
-        <Typography variant="h1"><MembershipInstitutionTitle /></Typography>
+        <Typography variant="h1">Edit Membership</Typography>
+        <Typography variant="h2"><MembershipInstitutionTitle /></Typography>
         <SimpleForm>
             <MembershipInstitutionFormFields />
         </SimpleForm>
     </Edit>
+    </Box>
 );

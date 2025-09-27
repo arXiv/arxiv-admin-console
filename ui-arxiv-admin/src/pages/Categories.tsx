@@ -24,6 +24,7 @@ import {
 import React from "react";
 import CategoryField from "../bits/CategoryField";
 import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 
 /*
     archive: Mapped[str] = mapped_column(ForeignKey('arXiv_archives.archive_id'), primary_key=True, nullable=False, server_default=FetchedValue())
@@ -98,6 +99,8 @@ const CategoryTitle = () => {
 };
 
 export const CategoryEdit = () => (
+    <Box width="80%" ml="10%">
+
     <Edit title={<CategoryTitle />}>
         <Typography variant="h1"><CategoryTitle /></Typography>
 
@@ -118,6 +121,7 @@ export const CategoryEdit = () => (
 
         </SimpleForm>
     </Edit>
+    </Box>
 );
 
 export const CategoryCreate = () => (

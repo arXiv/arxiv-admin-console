@@ -537,9 +537,14 @@ export const EndorsementRequestEdit = () => {
 
 
     return (
+        <Box width="80%" ml={"10%"}>
         <Edit title={false} actions={false} >
-            <Box sx={{display: 'flex', flexDirection: 'column', gap: 1}}>
-                <Typography variant="h1" gutterBottom>
+            <Box sx={{display: 'flex', flexDirection: 'column', gap: 1}} >
+                <Typography variant="h1">
+                    Edit Endorsement Request
+                </Typography>
+
+                <Typography variant="h2" ml={"1em"}>
                     <EndorsementRequestTitle/>
                 </Typography>
 
@@ -611,6 +616,7 @@ export const EndorsementRequestEdit = () => {
                 </Grid>
             </Box>
         </Edit>
+        </Box>
     );
 }
 
