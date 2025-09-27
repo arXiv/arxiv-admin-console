@@ -41,7 +41,7 @@ export const MembershipInstitutionList = () => (
 
 const MembershipInstitutionTitle = () => {
     const record = useRecordContext();
-    return <span>membershipInstitution {record ? `"${record.name}"` : ''}</span>;
+    return <span>Membership Institution {record ? `"${record.name}"` : ''}</span>;
 };
 
 const MembershipInstitutionFormFields = () => {
@@ -125,7 +125,8 @@ export const MembershipInstitutionAdd = () => (
 );
 
 export const MembershipInstitutionEdit = () => (
-    <Edit title={<MembershipInstitutionTitle/>}>
+    <Edit title={false}>
+        <Typography variant="h1"><MembershipInstitutionTitle /></Typography>
         <SimpleForm>
             <MembershipInstitutionFormFields />
         </SimpleForm>

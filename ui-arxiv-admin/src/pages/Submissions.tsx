@@ -1,5 +1,4 @@
-import {Box, Table, TableRow, TableCell, Accordion, AccordionSummary, AccordionDetails, Typography} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {Box, Table, TableRow, TableCell, Typography} from '@mui/material';
 import {
     BooleanInput,
     Create,
@@ -34,7 +33,7 @@ import {addDays} from 'date-fns';
 import React, {useState, useContext, useEffect} from "react";
 import {submissionStatusOptions} from "../bits/SubmissionStateField";
 import AdminLogList, {AdminLogFilter} from "../bits/AdminLogList";
-import CategoryInputField from "../bits/CategoryInputField";
+import ArchiveSubjectClassInput from "../bits/ArchiveSubjectClassInput";
 // import SubmissionCategoriesField, {CategoriesField, CategoryList} from "../bits/SubmissionCategoriesField";
 import IsOkField from "../bits/IsOkField";
 import {RuntimeContext} from "../RuntimeContext";
@@ -46,6 +45,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import LinkIcon from '@mui/icons-material/Link';
 import { useNavigate } from 'react-router-dom';
+import { StandardAccordion } from '../components/StandardAccordion';
 
 import {paths as adminApi, components as adminComponents} from "../types/admin-api";
 import UserNameField from "../bits/UserNameField";
@@ -132,6 +132,8 @@ export const SubmissionList = () => {
     const defaultDates = calculatePresetDates('last_28_days');
 
     return (
+        <>
+            <Typography variant="h1" >Submissions</Typography>
         <List filters={<SubmissionFilter/>}
               filterDefaultValues={{
                   submission_status: [],
@@ -159,13 +161,14 @@ export const SubmissionList = () => {
                 <IsOkField source="is_ok" label={"OK?"}/>
             </Datagrid>
         </List>
+        </>
     );
 };
 
 
 const SubmissionTitle = () => {
     const record = useRecordContext();
-    return <span>Submission {record ? `"${record.last_name}, ${record.first_name}" - ${record.email}` : ''}</span>;
+    return <span>Submission {record ? `${record.id}` : ''}</span>;
 };
 
 const SubmissionAdminLogList = () => {
@@ -178,18 +181,9 @@ const SubmissionAdminLogList = () => {
 }
 
 const SubmissionAdminLogAccordion = () => (
-    <Accordion>
-        <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            aria-controls="admin-logs-content"
-            id="admin-logs-header"
-        >
-            <Typography>Admin Logs</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-            <SubmissionAdminLogList />
-        </AccordionDetails>
-    </Accordion>
+    <StandardAccordion title="Admin Logs">
+        <SubmissionAdminLogList />
+    </StandardAccordion>
 );
 
 const SubmissionEditToolbar = () => (
@@ -202,6 +196,8 @@ export const SubmissionEdit = () => {
     return (
         <Box display={"flex"} flexDirection={"column"}>
             <Edit >
+                <Typography variant={"h1"}> { "Edit: "}<SubmissionTitle /></Typography>
+
                 <SubmissionAdminLogAccordion />
                 <SimpleForm toolbar={<SubmissionEditToolbar />}>
                     <Table size="small">
@@ -223,7 +219,7 @@ export const SubmissionEdit = () => {
                         <TableRow>
                             <TableCell>Status</TableCell>
                             <TableCell>
-                                <SelectInput source="status" choices={submissionStatusOptions} helperText={false}/>
+                                <SelectField source="status" choices={submissionStatusOptions} />
                             </TableCell>
                         </TableRow>
                         <TableRow>
@@ -272,9 +268,9 @@ export const SubmissionEdit = () => {
                         <TableRow>
                             <TableCell>Categories</TableCell>
                             <TableCell colSpan={3}>
-                                <CategoryInputField source="id" sourceCategory="archive"
-                                                    sourceClass="subject_class"
-                                                    helperText={false}
+                                <ArchiveSubjectClassInput source="id" sourceCategory="archive"
+                                                          sourceClass="subject_class"
+                                                          helperText={false}
                                 />
                             </TableCell>
                         </TableRow>
@@ -403,8 +399,7 @@ const SubmissionShowActions = () => {
 
 const SubmissionRecordContent = () => {
 
-
-    return (
+    return (<>
         <Table size="small">
             <TableRow>
                 <TableCell>ID</TableCell>
@@ -521,7 +516,7 @@ const SubmissionRecordContent = () => {
                 </TableCell>
             </TableRow>
         </Table>
-
+</>
     );
 }
 
@@ -529,7 +524,9 @@ const SubmissionRecordContent = () => {
 export const SubmissionShow = () => {
     return (
         <Box display={"flex"} flexDirection={"column"}>
-            <Show actions={<SubmissionShowActions />}>
+            <Show actions={false}>
+                <Typography variant={"h1"}> <SubmissionTitle /></Typography>
+                <SubmissionShowActions />
                 <SubmissionAdminLogAccordion />
                 <SimpleShowLayout>
                     <SubmissionRecordContent />

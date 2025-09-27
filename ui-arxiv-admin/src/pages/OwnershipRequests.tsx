@@ -160,6 +160,9 @@ const OwnershipRequestFilter = (props: any) => {
 
 export const OwnershipRequestList = () => {
     return (
+        <>
+            <Typography variant="h1">Ownership Requests</Typography>
+
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
             <Datagrid rowClick="edit">
                 <NumberField source="id" label={"Req ID"}/>
@@ -179,6 +182,8 @@ export const OwnershipRequestList = () => {
                 </ReferenceField>
             </Datagrid>
         </List>
+        </>
+
     );
 };
 
@@ -201,7 +206,7 @@ const OwnershipRequestTitle = () => {
 
     return (
         <span>
-            Ownership Request {ownershipRequestData ? `"${ownershipRequestData.id}, ${userData?.first_name || ''}" - ${userData?.email}` : ''}
+            Ownership Request: {ownershipRequestData ? `${userData?.first_name || ''} ${userData?.last_name || ''}` : ''}
         </span>
     );
 };
@@ -679,7 +684,9 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
     const ownedPapers = paperOwners.filter((paper) => paper.valid).map((paper) => paper.document_id);
 
     return (
-        <Edit title={<OwnershipRequestTitle />} redirect={false}>
+        <Edit title={false} redirect={false}>
+            <Typography variant="h1"><OwnershipRequestTitle /></Typography>
+
             <SimpleForm toolbar={<OwnershipRequestToolbar
                 prevId={prevId} nextId={nextId} ok={ok_to_save} setWorkflowStatus={setWorkflowStatus} />}>
                 <Paper >

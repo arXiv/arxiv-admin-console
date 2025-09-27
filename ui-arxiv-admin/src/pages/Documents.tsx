@@ -103,7 +103,7 @@ const DocumentFilter = (props: any) => {
     return (
         <Filter {...props}>
             <TextInput label="Document ID" source="id" alwaysOn/>
-            <TextInput label="Paoper ID" source="paper_id" alwaysOn/>
+            <TextInput label="Paper ID" source="paper_id" alwaysOn/>
             <TextInput label="Name" source="submitter_name" alwaysOn/>
             <TextInput label="Category" source="category" alwaysOn/>
             <TextInput label="Title" source="title"/>
@@ -340,7 +340,8 @@ export const DocumentShow = () => {
     const [showPdf, setShowPdf] = React.useState(true);
 
     return (
-        <Show title={<DocumentTitle/>} actions={false}>
+        <Show title={false} actions={false}>
+            <Typography variant="h1"><DocumentTitle/></Typography>
             <Box>
                 <DocumentContent/>
 
@@ -364,6 +365,8 @@ export const DocumentShow = () => {
 export const DocumentList = () => {
     // const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
+        <>
+            <Typography variant="h1">Documents</Typography>
         <List filters={<DocumentFilter/>}>
             <Datagrid rowClick="show">
                 <TextField source="id" label={"ID"}/>
@@ -390,13 +393,14 @@ export const DocumentList = () => {
 
             </Datagrid>
         </List>
+        </>
     );
 };
 
 
 const DocumentTitle = () => {
     const record = useRecordContext();
-    return <span>Document {record ? `${record.paper_id}: ${record.title} by ${record.authors}` : ''}</span>;
+    return <span>{record ? `${record.paper_id}: ${record.title}` : ''}</span>;
 };
 
 

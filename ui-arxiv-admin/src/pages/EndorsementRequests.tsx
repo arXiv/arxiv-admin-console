@@ -224,8 +224,8 @@ const EndorsementRequestFilter = (props: any) => {
             <TextInput label="First Name" source="endorsee_first_name" alwaysOn />
             <TextInput label="Last Name" source="endorsee_last_name" alwaysOn />
             <TextInput label="Email Address" source="endorsee_email" alwaysOn />
-            <TextInput label="Username" source="endorsee_username" alwaysOn />
-            <TextInput label="Category" source="category" alwaysOn />
+            <TextInput label="Username" source="endorsee_username"/>
+            <TextInput label="Category" source="category"  />
 
             <SelectInput
                 label="Preset Date Range"
@@ -247,7 +247,9 @@ const EndorsementRequestFilter = (props: any) => {
 export const EndorsementRequestList = () => {
     const sorter: SortPayload = {field: 'endorsementRequest_id', order: 'DESC'};
     return (
-        <List filters={<EndorsementRequestFilter />}
+        <>
+            <Typography variant="h1">Endorsement Requests</Typography>
+            <List filters={<EndorsementRequestFilter />}
               filterDefaultValues={{positive: false}}
               sort={sorter}
               >
@@ -270,6 +272,7 @@ export const EndorsementRequestList = () => {
                 <PointValueBooleanField source="point_value" label={"Open"} />
             </Datagrid>
         </List>
+        </>
     );
 };
 
@@ -290,7 +293,7 @@ const EndorsementRequestTitle = () => {
 
     return (
         <span>
-            Endorsement Request {user ? `"${user.last_name}, ${user.first_name}" - ${user.email}` : ''}
+            Endorsement Request: {user ? `${user.first_name} ${user.last_name}` : ''}
         </span>
     );
 };
@@ -534,8 +537,12 @@ export const EndorsementRequestEdit = () => {
 
 
     return (
-        <Edit title={<EndorsementRequestTitle />} actions={false} >
-            <Grid container>
+        <Edit title={false} actions={false} >
+            <Box sx={{display: 'flex', flexDirection: 'column', gap: 1}}>
+                <Typography variant="h1" gutterBottom>
+                    <EndorsementRequestTitle/>
+                </Typography>
+
                 <Grid size={6}>
                     <SimpleForm toolbar={<EndorsementRequestEditToolbar />}>
                         <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="space-between">
@@ -602,7 +609,7 @@ export const EndorsementRequestEdit = () => {
                 <Grid size={6}>
                     <ShowDemographic />
                 </Grid>
-            </Grid>
+            </Box>
         </Edit>
     );
 }

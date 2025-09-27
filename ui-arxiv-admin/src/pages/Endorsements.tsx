@@ -267,6 +267,8 @@ const EndorsementNavigation = ({currentId, filters}: { currentId?: Identifier, f
 
 export const EndorsementList = () => {
     return (
+        <>
+            <Typography variant="h1">Endorsements</Typography>
         <List
             filters={<EndorsementFilter/>}
             filterDefaultValues={{
@@ -301,6 +303,8 @@ export const EndorsementList = () => {
                 </ReferenceField>
             </Datagrid>
         </List>
+        </>
+
     );
 };
 
@@ -564,6 +568,8 @@ export const EndorsementEdit = () => {
 
 
     return (
+        <>
+            <Typography variant="h1">Endorsement</Typography>
         <Box display="flex" flexDirection="row" gap={2}>
             <Box width={90}>
                 <EndorsementNavigation currentId={currentId}
@@ -695,6 +701,7 @@ export const EndorsementEdit = () => {
                 </Edit>
             </Box>
         </Box>
+        </>
     );
 }
 

@@ -32,6 +32,7 @@ import { EmailPatternUploadDialog } from '../components/EmailPatternUploadDialog
 import { EmailPatternDownloadDialog } from '../components/EmailPatternDownloadDialog';
 import { RuntimeContext } from '../RuntimeContext';
 import {emailPatternPurposeOptions} from "../types/definitions";
+import Typography from "@mui/material/Typography";
 
 const EmailPatternFilter = (props: any) => {
     return (
@@ -165,7 +166,9 @@ const EmailPatternListActions = () => {
 };
 
 export const EmailPatternList = () => (
-    <List 
+<>
+    <Typography variant="h1">Email Patterns</Typography>
+    <List
         filters={<EmailPatternFilter/>} 
         filterDefaultValues={{purpose: 'black'}}
         actions={<EmailPatternListActions />}
@@ -174,10 +177,12 @@ export const EmailPatternList = () => (
             <TextField source="id" label="Pattern" />
         </Datagrid>
     </List>
+</>
 );
 
 export const EmailPatternCreate = () => (
     <Create>
+        <Typography variant="h1">Add Pattern</Typography>
         <SimpleForm>
             <TextInput source="id" label="Pattern" />
             <SelectInput 

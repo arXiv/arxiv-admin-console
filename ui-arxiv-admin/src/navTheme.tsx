@@ -1,50 +1,80 @@
 import { createTheme } from '@mui/material/styles';
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
 
-// Common typography base (sizes and font family)
-const commonTypographyBase = {
-    fontFamily: 'IBM Plex Mono, monospace',
-    fontSize: 14,
-    body1: {
-        fontSize: '14px',
-        lineHeight: '1em',
+// Common base theme (sizes, spacing, behavior)
+const commonBaseTheme = {
+    typography: {
+        fontFamily: 'IBM Plex Mono, monospace',
+        fontSize: 14,
+        body1: {
+            fontSize: '14px',
+            lineHeight: '1em',
+        },
+        body2: {
+            fontSize: '14px',
+            lineHeight: '1em',
+        },
+        h1: {
+            fontSize: '40px',
+            fontWeight: 700,
+        },
+        h2: {
+            fontSize: '20px',
+            fontWeight: 700,
+        },
+        h6: {
+            fontWeight: 700,
+        },
     },
-    body2: {
-        fontSize: '14px',
-        lineHeight: '1em',
-    },
-    h1: {
-        fontSize: '40px',
-        fontWeight: 700,
-    },
-    h2: {
-        fontSize: '20px',
-        fontWeight: 700,
-    },
-    h6: {
-        fontWeight: 700,
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    textTransform: 'none' as const, // Prevent uppercase transformation
+                },
+            },
+        },
+        MuiSwitch: {
+            styleOverrides: {
+                switchBase: {
+                    // Size and behavior styles only
+                },
+                track: {
+                    // Size and behavior styles only
+                },
+            },
+        },
+        MuiTooltip: {
+            styleOverrides: {
+                tooltip: {
+                    fontSize: '20px !important', // Force larger font size
+                    color: '#ffffff',
+                },
+            },
+        },
     },
 };
 
 const lightTheme = createTheme({
     ...defaultTheme,
+    ...commonBaseTheme,
     typography: {
         ...defaultTheme.typography,
-        ...commonTypographyBase,
+        ...commonBaseTheme.typography,
         body1: {
-            ...commonTypographyBase.body1,
+            ...commonBaseTheme.typography.body1,
             color: '#000000',
         },
         body2: {
-            ...commonTypographyBase.body2,
+            ...commonBaseTheme.typography.body2,
             color: '#000000',
         },
         h1: {
-            ...commonTypographyBase.h1,
+            ...commonBaseTheme.typography.h1,
             color: '#000000',
         },
         h2: {
-            ...commonTypographyBase.h2,
+            ...commonBaseTheme.typography.h2,
             color: '#6b6459', // Library Grey
         },
     },
@@ -58,6 +88,7 @@ const lightTheme = createTheme({
     },
     components: {
         ...defaultTheme.components,
+        ...commonBaseTheme.components,
         MuiAppBar: {
             styleOverrides: {
                 root: {
@@ -71,9 +102,7 @@ const lightTheme = createTheme({
         },
         MuiButton: {
             styleOverrides: {
-                root: {
-                    textTransform: 'none', // Prevent uppercase transformation
-                },
+                ...commonBaseTheme.components.MuiButton.styleOverrides,
                 contained: {
                     backgroundColor: '#C4D82E', // Access Lime
                     color: '#000000', // Black text
@@ -86,17 +115,18 @@ const lightTheme = createTheme({
                 outlined: {
                     backgroundColor: '#ffffff', // White background
                     color: '#000000', // Black text
-                    border: '3px solid #C4D82E', // Access Lime border
+                    border: '2px solid #C4D82E', // Access Lime border
                     '&:hover': {
                         backgroundColor: '#F0F5CF', // Light Lime
                         color: '#000000', // Black text (no change)
-                        border: '3px solid #C4D82E', // Same border (no change)
+                        border: '2px solid #C4D82E', // Same border (no change)
                     },
                 },
             },
         },
         MuiSwitch: {
             styleOverrides: {
+                ...commonBaseTheme.components.MuiSwitch.styleOverrides,
                 switchBase: {
                     color: '#6b6459', // Library Grey (inactive)
                     '&.Mui-checked': {
@@ -111,33 +141,43 @@ const lightTheme = createTheme({
                 },
             },
         },
+        MuiTooltip: {
+            styleOverrides: {
+                ...commonBaseTheme.components.MuiTooltip.styleOverrides,
+                tooltip: {
+                    color: '#ffffff',
+                },
+            },
+        },
     },
 });
 
 const darkTheme = createTheme({
     ...defaultDarkTheme,
+    ...commonBaseTheme,
     typography: {
         ...defaultDarkTheme.typography,
-        ...commonTypographyBase,
+        ...commonBaseTheme.typography,
         body1: {
-            ...commonTypographyBase.body1,
+            ...commonBaseTheme.typography.body1,
             color: '#ffffff',
         },
         body2: {
-            ...commonTypographyBase.body2,
+            ...commonBaseTheme.typography.body2,
             color: '#ffffff',
         },
         h1: {
-            ...commonTypographyBase.h1,
+            ...commonBaseTheme.typography.h1,
             color: '#ffffff',
         },
         h2: {
-            ...commonTypographyBase.h2,
+            ...commonBaseTheme.typography.h2,
             color: '#a8a19a', // Lighter Library Grey for dark theme
         },
     },
     components: {
         ...defaultDarkTheme.components,
+        ...commonBaseTheme.components,
         MuiAppBar: {
             styleOverrides: {
                 root: {
@@ -151,9 +191,7 @@ const darkTheme = createTheme({
         },
         MuiButton: {
             styleOverrides: {
-                root: {
-                    textTransform: 'none', // Prevent uppercase transformation
-                },
+                ...commonBaseTheme.components.MuiButton.styleOverrides,
                 contained: {
                     backgroundColor: '#7A8F1A', // Darker Access Lime for dark theme
                     color: '#ffffff', // White text for dark theme
@@ -166,17 +204,18 @@ const darkTheme = createTheme({
                 outlined: {
                     backgroundColor: '#2A2A2A', // Dark background instead of white
                     color: '#ffffff', // White text for dark theme
-                    border: '3px solid #7A8F1A', // Darker Access Lime border
+                    border: '2px solid #7A8F1A', // Darker Access Lime border
                     '&:hover': {
                         backgroundColor: '#1B3B1B', // Very dark green for dark theme
                         color: '#ffffff', // White text (no change)
-                        border: '3px solid #7A8F1A', // Same border (no change)
+                        border: '2px solid #7A8F1A', // Same border (no change)
                     },
                 },
             },
         },
         MuiSwitch: {
             styleOverrides: {
+                ...commonBaseTheme.components.MuiSwitch.styleOverrides,
                 switchBase: {
                     color: '#6b6459', // Library Grey (inactive)
                     '&.Mui-checked': {
@@ -188,6 +227,14 @@ const darkTheme = createTheme({
                 },
                 track: {
                     backgroundColor: '#6b6459', // Library Grey (inactive track)
+                },
+            },
+        },
+        MuiTooltip: {
+            styleOverrides: {
+                ...commonBaseTheme.components.MuiTooltip.styleOverrides,
+                tooltip: {
+                    color: '#ffffff',
                 },
             },
         },

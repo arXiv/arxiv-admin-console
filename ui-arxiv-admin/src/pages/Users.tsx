@@ -86,7 +86,7 @@ import UserNameDialog from "../components/UserNameDialog";
 import {UserSubmissionList} from "../components/UserSumissionList";
 import BulkPaperOwnerDialog from "../components/BulkPaperOwnerDialog";
 import {StandardAccordion} from "../components/StandardAccordion";
-import { DottedLineRow } from "../components/DottedLineRow";
+import {DottedLineRow} from "../components/DottedLineRow";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -191,7 +191,7 @@ export const UserList = () => {
 
     return (
         <>
-            <Typography variant="h1" >Users</Typography>
+            <Typography variant="h1">Users</Typography>
             <List filters={<UserFilter/>}>
                 <Datagrid rowClick="edit" bulkActionButtons={false}>
                     <TextField source={"id"} label="ID"/>
@@ -314,7 +314,7 @@ function UserDemographic() {
 
      */
     return (
-        <Card sx={{ backgroundColor: '#1c1a17', borderRadius: '16px' }}>
+        <Card sx={{backgroundColor: '#1c1a17', borderRadius: '16px'}}>
             <CardHeader
                 title="System Data"
                 sx={{
@@ -745,10 +745,10 @@ const UserEditContent = () => {
                     <StandardAccordion title="User Metadata and Status" defaultExpanded={true}>
                         <Box sx={{
                             display: 'flex',
-                            flexDirection: { xs: 'column', lg: 'row' },
+                            flexDirection: {xs: 'column', lg: 'row'},
                             gap: 2
                         }}>
-                            <Box sx={{ flex: 1 }}>
+                            <Box sx={{flex: 1}}>
                                 <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                                     <Typography width={labelWidth} variant={"h6"}>Name</Typography>
 
@@ -781,7 +781,8 @@ const UserEditContent = () => {
 
                                     <Box display="flex" flexDirection="row">
                                         <EmailVerificationSwitch onUpdateEmailVerified={updateEmailVerified}/>
-                                        <BooleanInput source="email_bouncing" label={"Email bouncing"} helperText={false}
+                                        <BooleanInput source="email_bouncing" label={"Email bouncing"}
+                                                      helperText={false}
                                                       options={{size: "small"}}/>
                                     </Box>
                                 </Box>
@@ -839,7 +840,7 @@ const UserEditContent = () => {
                             </Box>
 
                             <Box sx={{
-                                width: { xs: '100%', lg: '400px' },
+                                width: {xs: '100%', lg: '400px'},
                                 flexShrink: 0
                             }}>
                                 <UserDemographic/>
@@ -850,48 +851,56 @@ const UserEditContent = () => {
 
                     <StandardAccordion title="Moderation, Submission and Endorsement Categories">
 
-                        <EndorsementRequestListField source={"id"}/>
+                        <Box>
+                            <Typography variant={"h6"}>Moderates: </Typography>
+                            <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
+                            <Button size={"small"} variant={"outlined"} onClick={() => setIsModOpen(true)}>Moderator
+                                for</Button>
+                        </Box>
 
-                    <Box>
-                        <Button size={"small"} variant={"outlined"}
-                                onClick={() => setIsEndorsementsOpen(true)}> Endorsed for </Button>
-                        <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
-                    </Box>
+                        <Box>
+                            <Typography variant={"h6"}>Can Submit to: </Typography>
+                            <Button size={"small"} variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>
+                                Can Submit to?
+                            </Button>
+                            <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen}/>
+                        </Box>
 
-                    <Divider/>
+                        <Box>
+                            <Typography variant={"h6"}>Is endorsed for: </Typography>
+                            <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
+                            <Button size={"small"} variant={"outlined"}
+                                    onClick={() => setIsEndorsementsOpen(true)}>Manage Moderation Category</Button>
+                        </Box>
 
-                    <Box>
-                        <Button size={"small"} variant={"outlined"} onClick={() => setIsModOpen(true)}>Moderator
-                            for</Button>
-                        <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
-                    </Box>
-                    <Divider/>
-                    <Box>
-                        <Button size={"small"} variant={"contained"} onClick={() => setCanSubmitToOpen(true)}>Can Submit
-                            to?</Button>
-                        <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)}
-                                sx={{ml: 2}}>Can
-                            Endorsed for?</Button>
-                        <CanSubmitToDialog open={canSubmitToOpen} setOpen={setCanSubmitToOpen}/>
-                        <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>
-                    </Box>
-                    <Divider/>
+                        <Box>
+                            <Typography variant={"h6"}>Endorses: </Typography>
+                            <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)} >
+                                Can Endorsed for?</Button>
+                            <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>
+                        </Box>
 
-                    <AdminAuditList/>
+                        <Box>
+                            <Typography variant={"h6"}>Endorsement Requests</Typography>
+                            <EndorsementRequestListField source={"id"}/>
+                        </Box>
+
                     </StandardAccordion>
 
+                    <StandardAccordion title="Submissions">
+                        <UserSubmissionList/>
+                    </StandardAccordion>
 
-                        <StandardAccordion title="Email History">
-                            <EmailHistoryList/>
-                        </StandardAccordion>
+                    <StandardAccordion title="Owned Papers">
+                        <OwnedPaperList/>
+                    </StandardAccordion>
 
-                        <StandardAccordion title="User's submissions">
-                            <UserSubmissionList/>
-                        </StandardAccordion>
-
-                        <StandardAccordion title="Owned Papers">
-                            <OwnedPaperList/>
-                        </StandardAccordion>
+                    <StandardAccordion title="User Activity">
+                        <Typography variant={"h6"}>Audit Logs</Typography>
+                        <AdminAuditList/>
+                        <Typography variant={"h6"}>Email History</Typography>
+                        <EmailHistoryList/>
+                    </StandardAccordion>
 
                 </Box>
 

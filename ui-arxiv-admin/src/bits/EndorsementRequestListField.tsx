@@ -31,6 +31,7 @@ import CategoryField from "../bits/CategoryField";
 import PointValueBooleanField from "../bits/PointValueBooleanField";
 import ISODateField from "../bits/ISODateFiled";
 import UserNameField from "./UserNameField";
+import Typography from "@mui/material/Typography";
 
 const EndorsementRequestFieldFilter = (props: any) => {
     return (
@@ -63,7 +64,7 @@ const EndorsementRequestListField: React.FC<FieldProps> = (props) => {
             actions={false}
             resource="endorsement_requests"
             filter={{endorsee_id: user_id, }}
-            empty={<span>No endorsement requests</span>}
+            empty={<Typography component={"span"} ml={2}>No endorsement requests</Typography>}
         >
             <Datagrid rowClick="edit" bulkActionButtons={false} >
                 <NumberField source="id" label={"ID"}/>

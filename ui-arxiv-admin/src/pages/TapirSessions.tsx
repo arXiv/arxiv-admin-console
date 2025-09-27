@@ -194,6 +194,8 @@ const TapirSessionFilter = (props: any) => {
 
 export const TapirSessionList = () => {
     return (
+        <>
+            <Typography variant="h1">Tapir Sessions</Typography>
         <List filters={<TapirSessionFilter/>}>
             <Datagrid rowClick="edit" bulkActionButtons={<TapirSessionBulkActionButtons/>}>
                 <NumberField source="id" label="TapirSession ID"/>
@@ -211,13 +213,14 @@ export const TapirSessionList = () => {
                 <ISODateField source="end_time" showTime/>
             </Datagrid>
         </List>
+        </>
     );
 };
 
 
 const TapirSessionTitle = () => {
     const record = useRecordContext();
-    return <span>TapirSession {record ? `"${record.last_name}, ${record.first_name}" - ${record.email}` : ''}</span>;
+    return <span>TapirSession {record ? `${record.id}` : ''}</span>;
 };
 
 const CloseSessionToggle: React.FC = () => {
@@ -245,6 +248,7 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
     return (
         <Box display="flex" flexDirection="column" sx={{gap: 1, m: 1}} maxWidth="sm">
             <Edit {...props} >
+                <Typography variant="h1"><TapirSessionTitle /></Typography>
                 <SimpleForm toolbar={<SaveOnlyToolbar/>}>
                     <FormGroupContextProvider name="tapirSession">
                         <Table size={"small"}>

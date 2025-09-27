@@ -150,6 +150,8 @@ const OwnershipBulkActions = () => {
 
 export const OwnershipList = () => {
     return (
+        <>
+            <Typography variant="h1">Ownerships</Typography>
         <List filters={<OwnershipFilter />}>
             <Datagrid rowClick="edit" bulkActionButtons={<PaperOwnerBulkActionButtons />}>
                 <ReferenceField reference={"documents"} source={"document_id"} >
@@ -167,6 +169,7 @@ export const OwnershipList = () => {
                 <BooleanField source={"flag_auto"} label={"Auto"}/>
             </Datagrid>
         </List>
+        </>
     );
 };
 

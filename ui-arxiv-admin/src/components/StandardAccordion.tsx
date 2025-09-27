@@ -19,12 +19,28 @@ export const StandardAccordion: React.FC<StandardAccordionProps> = ({
     defaultExpanded = false,
 }) => {
     return (
-        <Accordion defaultExpanded={defaultExpanded} sx={{ my: 0, py: 0 }}>
+        <Accordion
+            defaultExpanded={defaultExpanded}
+            sx={{
+                my: 0,
+                py: 0,
+                '&.MuiAccordion-root': {
+                    margin: 0,
+                },
+                '&.MuiAccordion-root:before': {
+                    display: 'none',
+                },
+                '&.MuiAccordion-root.Mui-expanded': {
+                    margin: 0,
+                }
+            }}
+        >
             <AccordionSummary
                 sx={{
                     minHeight: '48px !important',
                     '&.Mui-expanded': {
                         minHeight: '48px !important',
+                        margin: 0,
                     },
                     '& .MuiAccordionSummary-content': {
                         margin: '12px 0 !important',

@@ -266,7 +266,6 @@ const AdminConsole: React.FC = () => {
                 <Resource
                     name="tapir_sessions"
                     list={TapirSessionList}
-                    show={ShowGuesser}
                     edit={TapirSessionEdit}
                     icon={TapirSessionIcon}
                     recordRepresentation="id"

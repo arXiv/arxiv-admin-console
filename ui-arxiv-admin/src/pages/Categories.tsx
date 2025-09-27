@@ -23,6 +23,7 @@ import {
 
 import React from "react";
 import CategoryField from "../bits/CategoryField";
+import Typography from "@mui/material/Typography";
 
 /*
     archive: Mapped[str] = mapped_column(ForeignKey('arXiv_archives.archive_id'), primary_key=True, nullable=False, server_default=FetchedValue())
@@ -67,6 +68,8 @@ export const CategoryList = () => {
     const sorter: SortPayload = {field: 'archive', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
+        <>
+            <Typography variant="h1">Categories</Typography>
         <List filters={<CategoryFilter />}>
             {isSmall ? (
                 <SimpleList
@@ -84,6 +87,7 @@ export const CategoryList = () => {
                 </Datagrid>
             )}
         </List>
+        </>
     );
 };
 
@@ -95,6 +99,8 @@ const CategoryTitle = () => {
 
 export const CategoryEdit = () => (
     <Edit title={<CategoryTitle />}>
+        <Typography variant="h1"><CategoryTitle /></Typography>
+
         <SimpleForm>
             <TextInput source="archive" />
             <TextInput source="subject_class" />

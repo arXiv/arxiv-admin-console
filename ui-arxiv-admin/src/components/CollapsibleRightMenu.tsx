@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import Typography from "@mui/material/Typography";
 
 const CollapsibleMenuContainer = styled(Box, {
     shouldForwardProp: (prop) => prop !== 'open',
@@ -30,24 +31,38 @@ const StyledMenuItemLink = styled(MenuItemLink, {
     shouldForwardProp: (prop) => prop !== 'open',
 })<{ open?: boolean }>(({ theme, open }) => ({
     minHeight: 48,
+    height: 48,
+    display: 'flex',
+    alignItems: 'center',
     '& .MuiListItemButton-root': {
-        paddingLeft: open ? theme.spacing(2) : 0,
-        paddingRight: open ? theme.spacing(2) : 0,
-        justifyContent: open ? 'initial' : 'center',
+        paddingLeft: 0,
+        paddingRight: 0,
+        justifyContent: 'flex-start',
         minHeight: 48,
+        height: 48,
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
     },
     '& .MuiListItemIcon-root': {
-        minWidth: open ? '56px' : 'unset',
-        marginRight: open ? '16px' : 0,
-        justifyContent: 'center',
+        position: 'absolute',
+        left: '8px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        minWidth: '24px',
+        height: '24px',
     },
     '& .MuiListItemText-root': {
         display: open ? 'block' : 'none',
     },
+    // Target the text content directly, not the icon
+    '&': {
+        textIndent: '24px', // Push text content to the right
+    },
     '&.RaMenuItemLink-active': {
         backgroundColor: theme.palette.action.selected,
         borderRadius: theme.shape.borderRadius,
-        margin: theme.spacing(0.5),
     },
 }));
 
@@ -75,7 +90,7 @@ export const CollapsibleRightMenu: React.FC = () => {
                         onClick={handleMenuItemClick}
                     />
                 ) : (
-                    <Tooltip title="Dashboard" placement="left">
+                    <Tooltip title={"Dashboard"} placement="left">
                         <StyledMenuItemLink
                             open={open}
                             to={`${basename}/`}

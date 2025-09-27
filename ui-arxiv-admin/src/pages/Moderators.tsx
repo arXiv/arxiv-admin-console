@@ -23,6 +23,9 @@ import { addDays } from 'date-fns';
 
 import React from "react";
 import CategoryField from "../bits/CategoryField";
+import Typography from "@mui/material/Typography";
+import ArchiveSubjectClassInput from "../bits/ArchiveSubjectClassInput";
+import CategoryInput from "../bits/CategoryInput";
 /*
     id: str
     user_id: int
@@ -60,6 +63,8 @@ export const ModeratorList = () => {
     const sorter: SortPayload = {field: 'id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
+        <>
+            <Typography variant="h1">Moderators</Typography>
         <List filters={<ModeratorFilter />}>
             {isSmall ? (
                 <SimpleList
@@ -90,6 +95,7 @@ export const ModeratorList = () => {
                 </Datagrid>
             )}
         </List>
+        </>
     );
 };
 
@@ -101,6 +107,7 @@ const ModeratorTitle = () => {
 
 export const ModeratorEdit = () => (
     <Edit title={<ModeratorTitle />}>
+        <Typography variant="h1"><ModeratorTitle /></Typography>
         <SimpleForm>
             <ReferenceField source="user_id" reference="users" label={"User"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
@@ -123,6 +130,7 @@ export const ModeratorEdit = () => (
 
 export const ModeratorCreate = () => (
     <Create>
+        <Typography variant="h1">Add Moderator</Typography>
         <SimpleForm>
             <ReferenceInput source="user_id" reference="users">
                 <AutocompleteInput
@@ -130,8 +138,7 @@ export const ModeratorCreate = () => (
                 />
             </ReferenceInput>
 
-            <TextInput source="archive" />
-            <TextInput source="subject_class" />
+            <ArchiveSubjectClassInput source={'id'} label={'Category'} sourceCategory={'archive'} sourceClass={'subject_class'} />
 
             <BooleanInput source="is_public" label={"Public"}/>
             <BooleanInput source="no_email" label={"No Email"}/>

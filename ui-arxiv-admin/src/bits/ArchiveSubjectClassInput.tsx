@@ -2,8 +2,9 @@
 import React, {useContext, useEffect, useState} from 'react';
 import {useRecordContext, InputProps, useGetOne, useDataProvider, SelectArrayInput, choices} from 'react-admin';
 import {RuntimeContext} from "../RuntimeContext";
+import Typography from '@mui/material/Typography';
 
-interface CategoryInputFieldProps extends InputProps {
+interface ArchiveSubjectClassInputProps extends InputProps {
     sourceCategory: string;
     sourceClass: string;
 }
@@ -22,8 +23,8 @@ interface Category {
     name: string
 }
 
-const CategoryInputField: React.FC<CategoryInputFieldProps> = ({ sourceCategory, sourceClass, source }) => {
-    const record = useRecordContext<{ [key: string]: string }>();
+
+const ArchiveSubjectClassInput: React.FC<ArchiveSubjectClassInputProps> = ({ sourceCategory, sourceClass, source }) => {
     const [categories, setCategories] = useState<[Category] | null>(null); // Store the fetched category name
     const [loading, setLoading] = useState<boolean>(true);
     const runtimeProps = useContext(RuntimeContext);
@@ -51,17 +52,14 @@ const CategoryInputField: React.FC<CategoryInputFieldProps> = ({ sourceCategory,
 
     }, []);
 
-    if (!record) return null;
     if (!categories) return null;
-
-    console.log("submission: " + JSON.stringify(record));
 
     return (
         <>
             {loading ? (
                 <p>Loading categories...</p>
             ) : (
-                <SelectArrayInput
+                <SelectArrayInput label={"Categories"}
                     source={source}
                     choices={categories} // Use fetched categories
                     optionText="name" // Display category name
@@ -73,4 +71,4 @@ const CategoryInputField: React.FC<CategoryInputFieldProps> = ({ sourceCategory,
     );
 };
 
-export default CategoryInputField;
+export default ArchiveSubjectClassInput;

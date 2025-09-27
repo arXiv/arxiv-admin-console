@@ -150,7 +150,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
 
                 <Box sx={{flexGrow: 1}}/>
                 <Tooltip title={(
-                    <Typography variant="body1">
+                    <Typography variant="body1" color="white">
                         <p>Name search: Last name</p>
                         <p>Name search: "First name" "Last name"</p>
                         <p>Email search: foo@mit.edu</p>
@@ -178,7 +178,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
                 </Tooltip>
 
                 <Tooltip title={(
-                    <Typography variant="body1">
+                    <Typography variant="body1" color="white">
                         <p>Submission: nnnnnn</p>
                         <p>Submission: s/nnnnnn</p>
                         <p>Submission Title: {"s/<title>"}</p>

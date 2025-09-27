@@ -42,6 +42,8 @@ const templateFilters = [
 ];
 
 export const EmailTemplateList = () => (
+    <>
+        <Typography variant="h1">Email Templates</Typography>
     <List filters={templateFilters}>
         <Datagrid rowClick={false}>
             <TextField source="id" />
@@ -55,11 +57,12 @@ export const EmailTemplateList = () => (
             <EditButton />
         </Datagrid>
     </List>
+    </>
 );
 
 const TemplateTitle = () => {
     const record = useRecordContext();
-    return <span>Template {record ? `"${record.short_name}"` : ''}</span>;
+    return <span>Email Template {record ? `"${record.short_name}"` : ''}</span>;
 };
 
 
@@ -254,6 +257,7 @@ const EmailTemplateEditToolbar = () => {
 
 export const EmailTemplateEdit = () => (
     <Edit title={<TemplateTitle />} actions={false}>
+        <Typography variant="h1"><TemplateTitle /></Typography>
         <SimpleForm toolbar={<EmailTemplateEditToolbar />}>
             <Typography component={"span"} >
                 {"ID: "}

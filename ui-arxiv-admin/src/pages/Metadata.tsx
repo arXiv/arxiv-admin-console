@@ -33,6 +33,11 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
+const MetadataTitle = () => {
+    const record = useRecordContext();
+    return <span>{record ? `${record.paper_id} (v.${record.version}): ${record.title}` : ''}</span>;
+};
+
 
 interface MetadataVersionSelectorProps {
     metadataVersions: MetadataT[];
@@ -199,6 +204,7 @@ const MetadataEditContents = () => {
 
     return (
         <SimpleForm toolbar={<MetadataEditToolbar />}>
+            <Typography variant={"h1"} ><MetadataTitle /></Typography>
             <Box gap={1} display="flex" flexDirection="column"
                  sx={{
                      width: '100%',

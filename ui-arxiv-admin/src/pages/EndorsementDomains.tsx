@@ -38,6 +38,8 @@ const EndorsementDomainListActions = () => (
 );
 
 export const EndorsementDomainList = () => (
+    <>
+        <Typography variant="h1">Endorsement Domains</Typography>
     <List filters={endorsementDomainFilters} actions={<EndorsementDomainListActions />}>
         <Datagrid rowClick={"edit"}>
             <TextField source="id"/>
@@ -47,11 +49,12 @@ export const EndorsementDomainList = () => (
             <NumberField source="papers_to_endorse"/>
         </Datagrid>
     </List>
+    </>
 );
 
 const EndorsementDomainTitle = () => {
     const record = useRecordContext();
-    return <span>endorsementDomain {record ? `"${record.name}"` : ''}</span>;
+    return <span>endorsementDomain {record ? `"${record.id}"` : ''}</span>;
 };
 
 const EndorsementDomainFormFields: React.FC<{isCreate: boolean}> = ({isCreate}) => {
@@ -99,6 +102,7 @@ const EndorsementDomainFormFields: React.FC<{isCreate: boolean}> = ({isCreate}) 
 
 export const EndorsementDomainAdd = () => (
     <Create>
+        <Typography variant="h1">Add Endorsement Domain</Typography>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={true} />
         </SimpleForm>
@@ -106,7 +110,8 @@ export const EndorsementDomainAdd = () => (
 );
 
 export const EndorsementDomainEdit = () => (
-    <Edit title={<EndorsementDomainTitle/>}>
+    <Edit title={false}>
+        <Typography variant="h1"><EndorsementDomainTitle/></Typography>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={false} />
         </SimpleForm>
