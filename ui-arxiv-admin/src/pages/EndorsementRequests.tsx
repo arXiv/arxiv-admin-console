@@ -293,7 +293,7 @@ const EndorsementRequestTitle = () => {
 
     return (
         <span>
-            Endorsement Request: {user ? `${user.first_name} ${user.last_name}` : ''}
+            Endorsement Request: {user ? `${user.first_name} ${user.last_name} in ${record.archive}.${record.subject_class || "*"}` : ''}
         </span>
     );
 };

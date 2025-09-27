@@ -341,7 +341,8 @@ export const DocumentShow = () => {
 
     return (
         <Show title={false} actions={false}>
-            <Typography variant="h1"><DocumentTitle/></Typography>
+            <Typography variant="h1">Document</Typography>
+            <Typography variant="h2"><DocumentTitle/></Typography>
             <Box>
                 <DocumentContent/>
 
@@ -405,7 +406,7 @@ const DocumentTitle = () => {
 
 
 export const DocumentEdit = () => (
-    <Edit title={<DocumentTitle/>}>
+    <Edit title={false}>
         <SimpleForm>
             <DocumentContent/>
         </SimpleForm>

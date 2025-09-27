@@ -6,16 +6,19 @@ import {
     Typography,
 } from '@mui/material';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
+import Box from "@mui/material/Box";
 
 interface StandardAccordionProps {
     title: string;
     children: React.ReactNode;
+    summary?: string;
     defaultExpanded?: boolean;
 }
 
 export const StandardAccordion: React.FC<StandardAccordionProps> = ({
     title,
     children,
+    summary,
     defaultExpanded = false,
 }) => {
     return (
@@ -65,7 +68,10 @@ export const StandardAccordion: React.FC<StandardAccordionProps> = ({
                         }
                     }}
                 />
-                <Typography variant="h2">{title}</Typography>
+                <Box display="flex" alignItems="baseline">
+                    <Typography variant="h2">{title}</Typography>
+                    {summary && <Typography variant="body2" ml={3}>{summary}</Typography>}
+                </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ my: 0, py: 0 }}>
                 {children}

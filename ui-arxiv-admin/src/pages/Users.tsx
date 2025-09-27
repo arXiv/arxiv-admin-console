@@ -92,6 +92,7 @@ import ChangePasswordDialog from "../components/ChangePasswordDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
+type SubmissionSummaryT = adminApi['/v1/submissions/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
 
 const UserFilter = (props: any) => (
     <Filter {...props}>
@@ -571,6 +572,27 @@ const UserEditContent = () => {
     const notify = useNotify();
     const runtimeProps = useContext(RuntimeContext);
     const record = useRecordContext();
+    const dataProvider = useDataProvider();
+    const [submissionSummary, setSubmissionSummary] = useState<SubmissionSummaryT | null>(null);
+
+
+    useEffect(() => {
+        async function getUserSubmissionSummary() {
+            if (record?.id) {
+                try {
+                    const response = await dataProvider.getOne("user-submission-summary", {id: record.id})
+                    console.log("user submission summary: " + JSON.stringify(response));
+                    if (response) {
+                        setSubmissionSummary(response.data);
+                    }
+                }
+                catch (error) {
+                    console.error("Error fetching user submission summary:", error);
+                }
+            }
+        }
+        getUserSubmissionSummary();
+    }, [dataProvider, record?.id]);
 
     const switchProps: SxProps = {
         '& .MuiSwitch-root': {
@@ -709,6 +731,8 @@ const UserEditContent = () => {
     };
 
     const labelWidth = '6rem';
+
+    const usersSubSummary = submissionSummary ? `${submissionSummary.active} active, ${submissionSummary.submitted} submitted, ${submissionSummary.total} owned, ${submissionSummary.rejected} rejected` : "";
 
     return (
         <>
@@ -907,7 +931,7 @@ const UserEditContent = () => {
 
                     </StandardAccordion>
 
-                    <StandardAccordion title="Submissions">
+                    <StandardAccordion title="Submissions" summary={usersSubSummary}>
                         <UserSubmissionList/>
                     </StandardAccordion>
 

@@ -24,41 +24,72 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/submissions", dependencies=[Depends(is_any_user)])
 meta_router = APIRouter(prefix="/submissions/metadata")
 
+class SubmissionStatusClassification(str, Enum):
+    """Submission status classification"""
+    unknown = "unknown"
+    active = "active"
+    submitted = "submitted"
+    owned = "owned"
+    rejected = "rejected"
+
+
 class SubmissionStatusModel(BaseModel):
     id: int
     name: str
     group: str
+    classification: SubmissionStatusClassification
 
 _VALID_STATUS_LIST: List[SubmissionStatusModel] = [
     # WORKING
-    SubmissionStatusModel(id=0, name="Unsubmitted", group="working"),
+    SubmissionStatusModel(id=0, name="Unsubmitted", group="working",
+                          classification=SubmissionStatusClassification.active),
 
     # SUBMITTED
-    SubmissionStatusModel(id=1, name="Submitted", group="current"),
+    SubmissionStatusModel(id=1, name="Submitted", group="current",
+                          classification=SubmissionStatusClassification.submitted),
 
     # ON_HOLD
-    SubmissionStatusModel(id=2, name="On hold", group="current"),
-    SubmissionStatusModel(id=3, name="Unused", group="unuesd"),
+    SubmissionStatusModel(id=2, name="On hold", group="current",
+                          classification=SubmissionStatusClassification.submitted),
+    SubmissionStatusModel(id=3, name="Unused", group="unuesd",
+                          classification=SubmissionStatusClassification.unknown),
 
     # NEXT = "4"
-    SubmissionStatusModel(id=4, name="Next", group="current"),
-    SubmissionStatusModel(id=5, name="Processing", group="processing"),
-    SubmissionStatusModel(id=6, name="Needs_email", group="processing"),
-    SubmissionStatusModel(id=7, name="Published", group="accepted"),
+    SubmissionStatusModel(id=4, name="Next", group="current",
+                          classification=SubmissionStatusClassification.submitted),
+    SubmissionStatusModel(id=5, name="Processing", group="processing",
+                          classification=SubmissionStatusClassification.submitted),
+    SubmissionStatusModel(id=6, name="Needs_email", group="processing",
+                          classification=SubmissionStatusClassification.submitted),
+    SubmissionStatusModel(id=7, name="Published", group="accepted",
+                          classification=SubmissionStatusClassification.submitted),
 
     # STUCK = "8"
-    SubmissionStatusModel(id=8, name="Stuck", group="accepted"),
+    SubmissionStatusModel(id=8, name="Stuck", group="accepted",
+                          classification=SubmissionStatusClassification.submitted),
 
     # REMOVED = "9"
-    SubmissionStatusModel(id=9, name="Rejected", group="invalid"),
-    SubmissionStatusModel(id=10, name="User deleted", group="invalid"),
-    SubmissionStatusModel(id=19, name="Error state", group="invalid"),
-    SubmissionStatusModel(id=20, name='Deleted(working)', group='expired'),
-    SubmissionStatusModel(id=22, name='Deleted(on hold)', group='expired'),
-    SubmissionStatusModel(id=25, name='Deleted(processing)', group='expired'),
-    SubmissionStatusModel(id=27, name='Deleted(published)', group='expired'),
-    SubmissionStatusModel(id=29, name="Deleted(removed)", group='expired'),
-    SubmissionStatusModel(id=30, name='Deleted(user deleted)', group='expired'),
+    SubmissionStatusModel(id=9, name="Rejected", group="invalid",
+                          classification=SubmissionStatusClassification.rejected),
+
+    SubmissionStatusModel(id=10, name="User deleted", group="invalid",
+                          classification=SubmissionStatusClassification.unknown),
+
+    SubmissionStatusModel(id=19, name="Error state", group="invalid",
+                          classification=SubmissionStatusClassification.unknown),
+
+    SubmissionStatusModel(id=20, name='Deleted(working)', group='expired',
+                          classification=SubmissionStatusClassification.unknown),
+    SubmissionStatusModel(id=22, name='Deleted(on hold)', group='expired',
+                          classification=SubmissionStatusClassification.unknown),
+    SubmissionStatusModel(id=25, name='Deleted(processing)', group='expired',
+                          classification=SubmissionStatusClassification.unknown),
+    SubmissionStatusModel(id=27, name='Deleted(published)', group='expired',
+                          classification=SubmissionStatusClassification.unknown),
+    SubmissionStatusModel(id=29, name="Deleted(removed)", group='expired',
+                          classification=SubmissionStatusClassification.unknown),
+    SubmissionStatusModel(id=30, name='Deleted(user deleted)', group='expired',
+                          classification=SubmissionStatusClassification.unknown),
 ]
 
 
@@ -558,3 +589,50 @@ async def navigate(
         next_id=submission_walker(id, 1),
         prev_id=submission_walker(id, -1),
     )
+
+
+class SubmissionSummaryModel(BaseModel):
+    total: int
+    active: int
+    submitted: int
+    rejected: int
+
+@router.get("/user/{user_id:str}/summary")
+async def get_submission_summary_of_user(
+        user_id: str,
+        response: Response,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db),
+    ) -> SubmissionSummaryModel:
+    submissions = await list_submissions(
+        response, _sort=None, _order=None, _start=None, _end=None,
+        id=None, preset=None, start_date=None, end_date=None,
+        stage=None, submission_status=None, submission_status_group=None, title=None,
+        type=None, document_id=None, filter=None, start_submission_id=None, end_submission_id=None,
+        submitter_id=int(user_id), current_user=current_user, db=session)
+
+    result = SubmissionSummaryModel(
+        total=len(submissions),
+        active=0,
+        submitted=0,
+        rejected=0,
+    )
+
+    status_list = {entry.id: entry for entry in _VALID_STATUS_LIST}
+
+    submission: SubmissionModel
+    for submission in submissions:
+        if submission.status not in status_list:
+            continue
+        submission_status = status_list[submission.status]
+        match submission_status.classification:
+            case SubmissionStatusClassification.active:
+                result.active += 1
+            case SubmissionStatusClassification.submitted:
+                result.submitted += 1
+            case SubmissionStatusClassification.rejected:
+                result.rejected += 1
+            case SubmissionStatusClassification.unknown:
+                pass
+        pass
+    return result

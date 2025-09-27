@@ -204,7 +204,8 @@ const MetadataEditContents = () => {
 
     return (
         <SimpleForm toolbar={<MetadataEditToolbar />}>
-            <Typography variant={"h1"} ><MetadataTitle /></Typography>
+            <Typography variant={"h1"} >Edit Metadata</Typography>
+            <Typography variant={"h2"} ><MetadataTitle /></Typography>
             <Box gap={1} display="flex" flexDirection="column"
                  sx={{
                      width: '100%',

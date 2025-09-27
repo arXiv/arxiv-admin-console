@@ -275,10 +275,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * Update User Property
+         * Update User Demographic
          * @description Update user property - by PUT
          */
-        put: operations["update_user_property_v1_users__user_id__demographic_put"];
+        put: operations["update_user_demographic_v1_users__user_id__demographic_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -611,6 +611,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/endorsers/eligible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Eligible Endorsers */
+        get: operations["list_eligible_endorsers_v1_endorsers_eligible_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsers/precomputed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cached Eligible Endorsers
+         * @description Fetch cached endorsement candidates from GCP bucket object.
+         *
+         *     Returns precomputed endorsement candidates list from cloud storage,
+         *     providing faster response than real-time computation.
+         */
+        get: operations["get_cached_eligible_endorsers_v1_endorsers_precomputed_get"];
+        put?: never;
+        /**
+         * Upload Cached Eligible Endorsers
+         * @description Generate and upload fresh endorsement candidates to GCP bucket.
+         *
+         *     Computes endorsement candidates in real-time and uploads to cloud storage
+         *     for faster future access via the precomputed endpoint.
+         */
+        post: operations["upload_cached_eligible_endorsers_v1_endorsers_precomputed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsers/precomputed/category/{category}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cached Eligible Endorsers For The Category
+         * @description Fetch cached endorsement candidates for a specific category.
+         *
+         *     Returns precomputed endorsement candidates for the specified category
+         *     from cloud storage, providing faster response than real-time computation.
+         */
+        get: operations["get_cached_eligible_endorsers_for_the_category_v1_endorsers_precomputed_category__category__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsers/precomputed/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cached Endorser Candidates
+         * @description Fetch cached endorsement candidates for a specific category.
+         *
+         *     Returns precomputed endorsement candidates for the specified category
+         *     from cloud storage, providing faster response than real-time computation.
+         */
+        get: operations["get_cached_endorser_candidates_v1_endorsers_precomputed_user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/endorsement_requests_audit/": {
         parameters: {
             query?: never;
@@ -699,7 +792,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/paper_owners/authorize/": {
+    "/v1/paper_owners/authorize": {
         parameters: {
             query?: never;
             header?: never;
@@ -709,7 +802,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Register Paper Owner */
-        post: operations["register_paper_owner_v1_paper_owners_authorize__post"];
+        post: operations["register_paper_owner_v1_paper_owners_authorize_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1276,10 +1369,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Document Metadata
+         * Get Document Metadata Latest
          * @description List of metadata for a document.
          */
-        get: operations["get_document_metadata_v1_documents__id__metadata_latest_get"];
+        get: operations["get_document_metadata_latest_v1_documents__id__metadata_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/metadata/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Document Metadata Latest */
+        get: operations["list_document_metadata_latest_v1_documents_metadata_latest_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1500,6 +1610,23 @@ export interface paths {
         };
         /** Navigate */
         get: operations["navigate_v1_submissions_navigate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/submissions/user/{user_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Submission Summary Of User */
+        get: operations["get_submission_summary_of_user_v1_submissions_user__user_id__summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2448,6 +2575,38 @@ export interface components {
             /** Flag System */
             flag_system: boolean;
         };
+        /**
+         * EndorsementCandidate
+         * @description Model for endorsement candidate data.
+         */
+        EndorsementCandidate: {
+            /** Id */
+            id: number;
+            /** Category */
+            category: string;
+            /** Document Count */
+            document_count: number;
+            /**
+             * Latest
+             * Format: date-time
+             */
+            latest: string;
+        };
+        /**
+         * EndorsementCandidates
+         * @description Model for endorsement candidate data.
+         */
+        EndorsementCandidates: {
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Category */
+            category: string;
+            /** Candidates */
+            candidates: components["schemas"]["EndorsementCandidate"][];
+        };
         /** EndorsementCodeModel */
         EndorsementCodeModel: {
             /** Preflight */
@@ -3183,6 +3342,12 @@ export interface components {
             /** Next Id */
             next_id: number | null;
         };
+        /**
+         * SubmissionStatusClassification
+         * @description Submission status classification
+         * @enum {string}
+         */
+        SubmissionStatusClassification: "unknown" | "active" | "submitted" | "owned" | "rejected";
         /** SubmissionStatusModel */
         SubmissionStatusModel: {
             /** Id */
@@ -3191,6 +3356,18 @@ export interface components {
             name: string;
             /** Group */
             group: string;
+            classification: components["schemas"]["SubmissionStatusClassification"];
+        };
+        /** SubmissionSummaryModel */
+        SubmissionSummaryModel: {
+            /** Total */
+            total: number;
+            /** Active */
+            active: number;
+            /** Submitted */
+            submitted: number;
+            /** Rejected */
+            rejected: number;
         };
         /**
          * SubmissionType
@@ -3199,8 +3376,34 @@ export interface components {
         SubmissionType: "cross" | "jref" | "new" | "rep" | "wdr";
         /** SubmissionUpdateModel */
         SubmissionUpdateModel: {
-            /** Status */
-            status: string | null;
+            /** Source Format */
+            source_format?: string | null;
+            /** Source Flags */
+            source_flags?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Authors */
+            authors?: string | null;
+            /** Comments */
+            comments?: string | null;
+            /** Proxy */
+            proxy?: string | null;
+            /** Msc Class */
+            msc_class?: string | null;
+            /** Acm Class */
+            acm_class?: string | null;
+            /** Journal Ref */
+            journal_ref?: string | null;
+            /** Doi */
+            doi?: string | null;
+            /** Abstract */
+            abstract?: string | null;
+            /** Version */
+            version?: number | null;
+            /** Submitter Name */
+            submitter_name?: string | null;
+            /** Submitter Email */
+            submitter_email?: string | null;
         };
         /** TapirAdminAuditModel */
         TapirAdminAuditModel: {
@@ -4228,7 +4431,7 @@ export interface operations {
             };
         };
     };
-    update_user_property_v1_users__user_id__demographic_put: {
+    update_user_demographic_v1_users__user_id__demographic_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5235,6 +5438,173 @@ export interface operations {
             };
         };
     };
+    list_eligible_endorsers_v1_endorsers_eligible_get: {
+        parameters: {
+            query?: {
+                /** @description Paper count start time */
+                start_time?: string | null;
+                /** @description Paper count end time */
+                end_time?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementCandidates"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cached_eligible_endorsers_v1_endorsers_precomputed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementCandidates"][];
+                };
+            };
+        };
+    };
+    upload_cached_eligible_endorsers_v1_endorsers_precomputed_post: {
+        parameters: {
+            query?: {
+                /** @description Paper count start time */
+                start_time?: string | null;
+                /** @description Paper count end time */
+                end_time?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cached_eligible_endorsers_for_the_category_v1_endorsers_precomputed_category__category__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+            };
+            header?: never;
+            path: {
+                category: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cached_endorser_candidates_v1_endorsers_precomputed_user_get: {
+        parameters: {
+            query: {
+                category: string;
+                /** @description List of user IDs to filter by */
+                id?: number[] | null;
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_endorsement_requests_audit_v1_endorsement_requests_audit__get: {
         parameters: {
             query?: {
@@ -5518,7 +5888,7 @@ export interface operations {
             };
         };
     };
-    register_paper_owner_v1_paper_owners_authorize__post: {
+    register_paper_owner_v1_paper_owners_authorize_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -6476,7 +6846,7 @@ export interface operations {
             };
         };
     };
-    get_document_metadata_v1_documents__id__metadata_latest_get: {
+    get_document_metadata_latest_v1_documents__id__metadata_latest_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -6494,6 +6864,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetadataModel"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_document_metadata_latest_v1_documents_metadata_latest_get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description List of document IDs to filter by */
+                id?: number[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataModel"][];
                 };
             };
             /** @description Validation Error */
@@ -6988,6 +7396,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmissionNavi"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_submission_summary_of_user_v1_submissions_user__user_id__summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionSummaryModel"];
                 };
             };
             /** @description Validation Error */
