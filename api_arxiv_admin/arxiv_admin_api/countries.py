@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/countries", tags=["metadata"])
 
-COUNTRIES = [
+COUNTRIES: List[dict] = [
   {
     "name": "United States",
     "iso2": "US",
@@ -4098,14 +4098,15 @@ class CountryAlpha2Model(BaseModel):
     continent: str
 
 @router.get('/iso2')
-async def list_countries_in_iso2(
+def list_countries_in_iso2(
         response: Response,
         _sort: Optional[str] = Query("country_name", description="sort by country_name, continent or id"),
         _order: Optional[str] = Query("ASC", description="sort order ASC or DESC"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(len(COUNTRIES), alias="_end"),
     ) -> List[CountryAlpha2Model]:
-    if _start < 0 or _end < _start:
+
+    if _start and _end and (_start < 0 or _end < _start):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid start or end index")
 
@@ -4126,3 +4127,11 @@ async def list_countries_in_iso2(
     response.headers['X-Total-Count'] = str(len(COUNTRIES))
     return alpha2s
 
+
+@router.get('/iso2/{alpha2:str}')
+def get_country_by_iso2(alpha2: str) -> CountryAlpha2Model:
+    for country in COUNTRIES:
+        if country["iso2"] == alpha2:
+            return CountryAlpha2Model(id=country["iso2"], country_name=country["name"], continent=country["continent"])
+
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Country not found")
