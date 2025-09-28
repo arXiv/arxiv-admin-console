@@ -171,7 +171,7 @@ async def update_membership_institution_data(
                 updating_fields={"email", "contact_name", "phone"},
                 primary_key_field="id", primary_key_value=item2_1.id))
     elif body.email or body.contact_name or body.phone:
-        item2_1 = MemberInstitutionContact(email="", contact_name="", phone=body.phone)
+        item2_1 = MemberInstitutionContact(email="", contact_name="", phone=body.phone, sid=item.id)
         db.add(item2_1)
         db.flush()
         db.refresh(item2_1)
