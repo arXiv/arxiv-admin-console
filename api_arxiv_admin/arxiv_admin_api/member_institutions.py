@@ -82,7 +82,7 @@ class MemberInstitutionModel(BaseModel):
             MemberInstitutionContact.phone,
         ).outerjoin(
             MemberInstitutionContact,
-            MemberInstitutionContact.id == MemberInstitution.id
+            MemberInstitutionContact.sid == MemberInstitution.id
         )
 
 
