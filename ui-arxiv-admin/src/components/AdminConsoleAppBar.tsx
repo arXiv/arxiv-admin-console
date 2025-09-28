@@ -4,9 +4,13 @@ import {
     ToggleThemeButton,
     RefreshIconButton,
     UserMenu,
+    useRefresh,
+    useLoading,
 } from 'react-admin';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
@@ -30,6 +34,28 @@ interface AdminConsoleAppBarProps {
     onMenuClick?: () => void;
     open?: boolean;
 }
+
+const CustomRefreshButton: React.FC = () => {
+    const refresh = useRefresh();
+    const loading = useLoading();
+
+    return (
+        <Tooltip title="Refresh">
+            <IconButton
+                color="inherit"
+                onClick={refresh}
+                disabled={loading}
+                size="small"
+            >
+                {loading ? (
+                    <CircularProgress size={20} color="inherit" />
+                ) : (
+                    <RefreshIcon />
+                )}
+            </IconButton>
+        </Tooltip>
+    );
+};
 
 export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuClick, open }) => {
     const runtimeProps = React.useContext(RuntimeContext);
@@ -209,7 +235,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
 
                 {/* Right side controls in correct order: theme → refresh → profile → hamburger */}
                 <ToggleThemeButton />
-                <RefreshIconButton />
+                <CustomRefreshButton />
                 <ArxivUserMenu />
 
                 {/* Right-side hamburger menu for resource navigation - rightmost */}

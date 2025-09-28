@@ -58,7 +58,7 @@ const commonBaseTheme = {
         MuiTooltip: {
             styleOverrides: {
                 tooltip: {
-                    fontSize: '20px !important', // Force larger font size
+                    fontSize: '1rem !important', // Force larger font size
                     color: WHITE,
                 },
             },
@@ -156,6 +156,7 @@ const lightTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiTooltip.styleOverrides,
                 tooltip: {
+                    ...commonBaseTheme.components.MuiTooltip.styleOverrides.tooltip,
                     color: WHITE,
                 },
             },
@@ -245,6 +246,7 @@ const darkTheme = createTheme({
             styleOverrides: {
                 ...commonBaseTheme.components.MuiTooltip.styleOverrides,
                 tooltip: {
+                    ...commonBaseTheme.components.MuiTooltip.styleOverrides.tooltip,
                     color: WHITE,
                 },
             },

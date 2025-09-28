@@ -596,7 +596,7 @@ const UserEditContent = () => {
 
     const switchProps: SxProps = {
         '& .MuiSwitch-root': {
-            transform: 'scale(0.7)', // smaller than small
+            transform: 'scale(0.88)', // smaller than small
         },
         flex: 4,
         size: "small",

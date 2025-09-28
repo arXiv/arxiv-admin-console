@@ -2,7 +2,8 @@ import React from 'react';
 import {
     CheckForApplicationUpdate,
     Menu,
-    useSidebarState
+    useSidebarState,
+    LoadingIndicator
 } from 'react-admin';
 import { styled } from '@mui/material';
 import { AdminConsoleAppBar } from '../components/AdminConsoleAppBar';
