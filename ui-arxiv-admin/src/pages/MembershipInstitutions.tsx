@@ -29,14 +29,17 @@ const MembershipInstitutionListActions = () => (
 );
 
 export const MembershipInstitutionList = () => (
-    <List filters={membershipInstitutionFilters} actions={<MembershipInstitutionListActions />}>
-        <Datagrid rowClick={"edit"}>
-            <TextField source="name"/>
-            <TextField source="note"/>
-            <EmailField source="email"/>
-            <TextField source="contact_name"/>
-        </Datagrid>
-    </List>
+    <>
+        <Typography variant="h1">Membership Institutions</Typography>
+        <List filters={membershipInstitutionFilters} actions={<MembershipInstitutionListActions />}>
+            <Datagrid rowClick={"edit"}>
+                <TextField source="name"/>
+                <TextField source="note"/>
+                <EmailField source="email"/>
+                <TextField source="contact_name"/>
+            </Datagrid>
+        </List>
+    </>
 );
 
 const MembershipInstitutionTitle = () => {
