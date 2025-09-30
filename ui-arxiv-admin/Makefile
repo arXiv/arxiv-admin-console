@@ -114,3 +114,4 @@ api:
 	# cd account-app && npm install --save-dev openapi-typescript
 	npx openapi-typescript http://localhost:5100/aaa/openapi.json -o src/types/aaa-api.ts
 	npx openapi-typescript http://localhost:5100/admin-api/openapi.json -o src/types/admin-api.ts
+	npx openapi-typescript https://services.dev.arxiv.org/openapi.json -o src/types/mod-api.ts

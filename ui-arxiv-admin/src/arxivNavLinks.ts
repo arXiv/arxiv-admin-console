@@ -5,6 +5,7 @@ export interface ArxivNavLink {
     app: string;
     active: boolean;
     icon: string | null;
+    purpose?: string;
     items?: ArxivNavLink[];
 }
 
@@ -291,6 +292,7 @@ export const defaultArxivNavLinks: ArxivNavLink[] = [
         "app": "not_applicable",
         "active": true,
         "icon": null,
+        "purpose": "students",
         "items": [
             {
                 "id": "student_dashboard",

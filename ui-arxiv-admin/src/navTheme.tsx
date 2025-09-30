@@ -18,24 +18,43 @@ export const BLACK = '#000000';
 // Common base theme (sizes, spacing, behavior)
 const commonBaseTheme = {
     typography: {
-        fontFamily: 'IBM Plex Mono, monospace',
+        fontFamily: '"IBM Plex Sans Condensed"', // Primary font
         fontSize: 14,
         body1: {
             fontSize: '14px',
+            fontFamily: '"IBM Plex Sans Condensed"', // Primary font
         },
         body2: {
             fontSize: '13px',
+            fontFamily: '"IBM Plex Sans Condensed"', // Primary font
         },
         h1: {
             fontSize: '30px',
             fontWeight: 700,
+            fontFamily: '"IBM Plex Sans Condensed"', // Secondary font for headers
         },
         h2: {
             fontSize: '20px',
             fontWeight: 700,
+            fontFamily: '"IBM Plex Sans Condensed"', // Secondary font for headers
+        },
+        h3: {
+            fontFamily: '"IBM Plex Sans Condensed"', // Secondary font for headers
+        },
+        h4: {
+            fontFamily: '"IBM Plex Sans Condensed"', // Secondary font for headers
+        },
+        h5: {
+            fontFamily: '"IBM Plex Sans Condensed"', // Secondary font for headers
         },
         h6: {
             fontWeight: 700,
+            fontFamily: '"IBM Plex Sans Condensed"', // Secondary font for headers
+        },
+        // Custom variant for monospace content (System Data, code, etc.)
+        monospace: {
+            fontFamily: '"IBM Plex Mono", monospace', // Tertiary font
+            fontSize: '13px',
         },
     },
     components: {
