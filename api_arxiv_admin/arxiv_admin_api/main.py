@@ -72,7 +72,8 @@ ADMIN_APP_URL = os.environ.get('ADMIN_APP_URL', 'http://localhost.arxiv.org:5100
 #
 DB_URI = os.environ.get('CLASSIC_DB_URI')
 #
-#
+MODAPI_URL = os.environ.get('MODAPI_URL', "https://services.dev.arxiv.org")
+MODAPI_MODKEY = os.environ.get('MODAPI_MODKEY', "not-a-modkey")
 #
 AAA_LOGIN_REDIRECT_URL = os.environ.get("AAA_LOGIN_REDIRECT_URL", "http://localhost.arxiv.org:5100/aaa/login")
 # When it got the expired, ask the oauth server to refresh the token
@@ -215,6 +216,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         SMTP_URL = os.environ.get('SMTP_URL', "ssmtp://smtp.gmail.com:465?user=smtp-relay@arxiv.org&password=pwd"),
         API_SHARED_SECRET = os.environ.get('API_SHARED_SECRET', "not-very-secret"),
         ENDORSER_POOL_OBJECT_URL = os.environ.get('ENDORSER_POOL_OBJECT_URL'),
+        MODAPI_URL=MODAPI_URL,
+        MODAPI_MODKEY=MODAPI_MODKEY,
     )
 
     if ADMIN_APP_URL not in origins:

@@ -19,6 +19,8 @@ import {
 
 import LinkIcon from '@mui/icons-material/Link';
 import MetadataIcon from '@mui/icons-material/Edit';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import EditIcon from '@mui/icons-material/Edit';
 
 
 import {addDays} from 'date-fns';
@@ -33,8 +35,6 @@ import TableCell from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import Link from "@mui/material/Link";
 import PaperOwnersList from "../components/PaperOwnersList";
 import SubmissionHistoryList from "../bits/SubmissionHistoryList";
@@ -46,10 +46,11 @@ import FieldNameCell from "../bits/FieldNameCell";
 import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
 import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
 import ISODateField from '../bits/ISODateFiled';
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {StandardAccordion} from "../components/StandardAccordion";
+import {LazyAccordion} from "../components/LazyAccordion";
+import IconButton from '@mui/material/IconButton';
+import {TruncatedList} from "../components/TruncatedList";
+import {truncateList} from "../utils/truncateList";
 
 type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -200,75 +201,34 @@ const DocumentContent = () => {
     }
 
     return (
-        <Box gap={1} display="flex" flexDirection="column"
-             sx={{
-                 width: '100%',
-                 '& .MuiBox-root': {  // Targets all Box components inside
-                     width: '100%'
-                 },
-                 '& .MuiTable-root': {  // Targets all Table components inside
-                     width: '100%'
-                 }
-             }}
-        >
+        <Box gap={1} display="flex" flexDirection="column">
 
+            <Box gap={2} flexDirection={'row'} display="flex" alignItems="center">
+                <Button disabled={!metadata?.id} startIcon={<MetadataIcon/>} variant={"contained"}
+                        onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>
+                    Edit Metadata
+                </Button>
+                <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/pdf/${record?.paper_id}`, '_blank')}>PDF</Button>
+                <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/html/${record?.paper_id}`, '_blank')}>HTML</Button>
+                <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/abs/${record?.paper_id}`, '_blank')}>Abstract</Button>
+            </Box>
             {/* Paper Details */}
-            <Paper elevation={3} style={{padding: '1em'}}>
+            <Paper elevation={3} style={{padding: '1em'}} >
+
+
                 <Table size="small">
                     <TableRow>
-                        <FieldNameCell>Paper</FieldNameCell>
+                        <FieldNameCell>Announced ID</FieldNameCell>
                         <TableCell>
-                            <Box gap={2} flexDirection={'row'} display="flex" alignItems="center">
-                                <TextField source={"paper_id"}/>
-                                <Link href={`https://arxiv.org/abs/${record?.paper_id}`}
-                                      target="_blank">Abstract <LinkIcon/></Link>
-                                <Link href={`https://arxiv.org/pdf/${record?.paper_id}`} target="_blank">PDF <LinkIcon/></Link>
-                                <Button disabled={!metadata?.id} endIcon={<MetadataIcon/>}
-                                        onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>
-                                    Edit Metadata
-                                </Button>
-                            </Box>
+                            <TextField source="paper_id"/>
                         </TableCell>
                     </TableRow>
 
-                    <TableRow>
-                        <FieldNameCell>Title</FieldNameCell>
-                        <TableCell>
-                            <TextField source="title" variant={"body1"} fontSize={"1.25rem"}/>
-                        </TableCell>
-                    </TableRow>
-                    <TableRow>
-                        <FieldNameCell>Authors</FieldNameCell>
-                        <TableCell>
-                            <TextField source="authors" variant={"body1"}/>
-                        </TableCell>
-                    </TableRow>
-                </Table>
-
-                <Table size="small">
                     <TableRow>
                         <FieldNameCell>Document ID</FieldNameCell>
                         <TableCell>
-                            <Box gap={1}>
-                                <TextField source="id" variant="body1"/>
-                            </Box>
+                            <TextField source="id"/>
                         </TableCell>
-
-                        <FieldNameCell>Categories</FieldNameCell>
-                        <TableCell>
-                            <SubmissionCategoriesField/>
-                        </TableCell>
-                        <FieldNameCell>Paper PWD</FieldNameCell>
-                        <TableCell>
-                            <Box display="flex" sx={{m: 0, p: 0}}>
-                                <ReferenceField reference={"paper_pw"} source={"id"}>
-                                    <TextField source="password_enc" variant="body1"/>
-                                </ReferenceField>
-                                <Box flex={1}/>
-                                <Button onClick={() => setOpenRenewPaperPasswordDialog(true)}>Change Paper Password</Button>
-                            </Box>
-                        </TableCell>
-
                     </TableRow>
 
                     <TableRow>
@@ -276,58 +236,86 @@ const DocumentContent = () => {
                         <TableCell>
                             <Typography>{metadata?.version || "No metadata"}</Typography>
                         </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Announced Date</FieldNameCell>
+                        <TableCell>
+                            <ISODateField source="dated" />
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Title</FieldNameCell>
+                        <TableCell>
+                            <TextField source="title" />
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Authors</FieldNameCell>
+                        <TableCell>
+                            <TextField source="authors"/>
+                        </TableCell>
+                    </TableRow>
+
+
+                    <TableRow>
+
+                        <FieldNameCell>Categories</FieldNameCell>
+                        <TableCell>
+                            <SubmissionCategoriesField/>
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
                         <FieldNameCell>Source Format</FieldNameCell>
                         <TableCell>
                             <Typography>{metadata?.source_format || "No metadata"}</Typography>
                         </TableCell>
                     </TableRow>
+
+                    <TableRow>
+                        <FieldNameCell>Paper Password</FieldNameCell>
+                        <TableCell>
+                            <ReferenceField reference={"paper_pw"} source={"id"}>
+                                <TextField source="password_enc" variant="body1"/>
+                            </ReferenceField>
+                            <IconButton onClick={() => setOpenRenewPaperPasswordDialog(true)}><EditIcon /></IconButton>
+                        </TableCell>
+
+                    </TableRow>
                 </Table>
-
-            </Paper>
-
-            {/* Admin Log */}
-            <Paper elevation={3} style={{padding: '1em'}}>
-                <Typography variant="body1" fontWeight={"bold"}>
-                    Admin Log:
-                </Typography>
-                <AdminLogList paper_id={record?.paper_id}/>
             </Paper>
 
 
             {/* Paper Owners */}
-            <Paper elevation={3} style={{padding: '1em'}}>
-                <Box display="flex" alignItems="center">
-                    <Typography variant="body1" fontWeight={"bold"}>
-                        Paper owners:
-                    </Typography>
-                    <Button variant={"contained"} sx={{ml: 3}}
+            <StandardAccordion title="Paper owners" summary={truncateList(record?.authors, 3)} >
+                <Box display="flex" alignItems="center" mb={2}>
+                    <Button variant={"contained"}
                             onClick={() => setOpenAddOwnerDialog(true)}
                     >Add Owner</Button>
                 </Box>
                 <Box maxWidth={"sm"}>
                     <PaperOwnersList document_id={record?.id}/>
                 </Box>
-            </Paper>
+            </StandardAccordion>
+
+            {/* Admin Log */}
+            <StandardAccordion title="Admin Log">
+                <AdminLogList paper_id={record?.paper_id}/>
+            </StandardAccordion>
+
 
             {/* Submission History */}
-            <Accordion sx={{my: 0, py: 0}}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                    Submission history
-                </AccordionSummary>
-                <AccordionDetails  sx={{my: 0, py: 0}}>
-                    <SubmissionHistoryList document_id={record?.id}/>
-                </AccordionDetails>
-            </Accordion>
+            <StandardAccordion title="Submission history">
+                <SubmissionHistoryList document_id={record?.id}/>
+            </StandardAccordion>
 
             {/* Paper Information */}
-            <Accordion sx={{my: 0, py: 0}}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                    Show e-mail requests:
-                </AccordionSummary>
-                <AccordionDetails  sx={{my: 0, py: 0}}>
-                    <ShowEmailsRequestsList document_id={record?.id}/>
-                </AccordionDetails>
-            </Accordion>
+            <StandardAccordion title="Show e-mail requests:">
+                <ShowEmailsRequestsList document_id={record?.id}/>
+            </StandardAccordion>
 
             <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog}
                                       setOpen={setOpenAddOwnerDialog}/>
@@ -337,25 +325,24 @@ const DocumentContent = () => {
 };
 
 export const DocumentShow = () => {
-    const [showPdf, setShowPdf] = React.useState(true);
 
     return (
-        <Show title={false} actions={false}>
-            <Typography variant="h1">Document</Typography>
-            <Typography variant="h2"><DocumentTitle/></Typography>
-            <Box>
+        <Show title={false} actions={false} sx={{
+            backgroundColor: 'background.default',
+            '& .RaShow-card': {
+                backgroundColor: 'background.default',
+                boxShadow: 'none'
+            }
+        }}>
+            <Box maxWidth={"lg"} sx={{ margin: '0 auto', backgroundColor: 'background.default' }}>
+                <StyledDocumentTitle prefix={""}/>
                 <DocumentContent/>
 
-                <FormControlLabel
-                    control={
-                        <Switch checked={showPdf} onChange={() => setShowPdf(!showPdf)}
-                                inputProps={{'aria-label': 'controlled'}}/>
-                    }
-                    label="PDF"/>
-                {
-                    showPdf ? <ShowArxivPdf/> : null
-                }
-
+                <Box my={1}>
+                <LazyAccordion title="PDF">
+                    <ShowArxivPdf/>
+                </LazyAccordion>
+                </Box>
 
             </Box>
 
@@ -404,15 +391,24 @@ const DocumentTitle = () => {
     return <span>{record ? `${record.paper_id}: ${record.title}` : ''}</span>;
 };
 
+export const StyledDocumentTitle : React.FC<{prefix: string}> = ({prefix}) => {
+    const record = useRecordContext();
+    return (
+        <Typography variant={"h1"} fontSize={"2rem"}>{prefix}{record ? `${record.paper_id}: ` : ''}
+            <Typography component="span" fontSize="1.5rem" fontWeight={700}>{record ? record.title : ''}</Typography>
+        </Typography>
+    );
+};
+
 
 export const DocumentEdit = () => (
-    <Edit title={false}>
+    <Edit title={false} sx={{ backgroundColor: 'background.default' }}>
         <SimpleForm>
             <DocumentContent/>
         </SimpleForm>
     </Edit>
 );
-
+/*
 export const DocumentCreate = () => (
     <Create>
         <SimpleForm>
@@ -442,3 +438,4 @@ export const DocumentCreate = () => (
         </SimpleForm>
     </Create>
 );
+ */

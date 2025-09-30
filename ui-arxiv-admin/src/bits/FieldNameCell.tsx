@@ -9,9 +9,9 @@ interface FieldNameCellProps extends TableCellProps {
 
 
 const FieldNameCell: React.FC<FieldNameCellProps> = (
-    {children, width = '120px', sx,  ...props}) => (
+    {children, width = '180px', sx,  ...props}) => (
     <TableCell
-        sx={{width: width, minWidth: width, maxWidth: width, ...sx}}
+        sx={{width: width, minWidth: width, maxWidth: width, fontWeight: 700,  ...sx}}
         align="right"
         {...props}
     >

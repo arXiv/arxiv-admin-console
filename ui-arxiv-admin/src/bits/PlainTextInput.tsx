@@ -28,7 +28,7 @@ const PlainTextInput: React.FC<PlainTextInputProps> = ({
         sx={{
             '& .MuiInputBase-input': {
                 fontSize,
-                padding: '0px 8px',
+                padding: '6px 8px',
                 minHeight: 'auto',
                 resize: getResizeValue(),
                 overflow: 'auto'

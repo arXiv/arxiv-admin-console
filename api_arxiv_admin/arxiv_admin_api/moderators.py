@@ -16,10 +16,21 @@ from arxiv.base import logging
 from arxiv.db.models import t_arXiv_moderators, TapirUser
 
 from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
+from .biz.modapi_clear_user_cache import modapi_clear_user_cache
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/moderators")
+
+
+def _modapi_clear_user_cache(user_id: int, request: Request):
+    try:
+        modapi_clear_user_cache(user_id,
+                                base_url=request.app.extra["MODAPI_URL"],
+                                modkey=request.app.extra["MODAPI_MODKEY"])
+    except:
+        logger.warning("Failed to clear user cache", exc_info=True, extra={"user_id": user_id})
+    pass
 
 """
 <?php
@@ -264,6 +275,7 @@ async def update_moderator(request: Request, id: str,
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
+    _modapi_clear_user_cache(user_id, request)
     return ModeratorModel.model_validate(item)
 
 
@@ -326,6 +338,7 @@ async def create_moderator(
         )
 
         session.commit()
+        _modapi_clear_user_cache(user_id, request)
         return ModeratorModel.model_validate(item)
 
     except Exception as e:
@@ -366,6 +379,7 @@ def _delete_moderator(session: Session,
     )
 
     session.commit()
+    _modapi_clear_user_cache(user_id, request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

@@ -30,6 +30,7 @@ import {
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import CircularProgress from "@mui/material/CircularProgress";
+import { StyledDocumentTitle } from "./Documents";
 
 type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -88,7 +89,12 @@ const MetadataVersionSelector: React.FC<MetadataVersionSelectorProps> = ({
     const isNextDisabled = currentIndex >= sortedVersions.length - 1 || currentIndex === -1;
 
     return (
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box display="flex" alignItems="center" gap={1} >
+            {/* Label and dropdown */}
+            <Typography component="span" variant="body1">
+                {label}
+            </Typography>
+
             {/* Navigation buttons on the left */}
             <IconButton
                 size="small"
@@ -108,10 +114,6 @@ const MetadataVersionSelector: React.FC<MetadataVersionSelectorProps> = ({
                 <NavigateNextIcon />
             </IconButton>
 
-            {/* Label and dropdown */}
-            <Typography component="span" variant="body1">
-                {label}
-            </Typography>
 
             <FormControl size="small" variant="outlined" sx={{ minWidth: 120 }}>
                 <Select
@@ -204,10 +206,10 @@ const MetadataEditContents = () => {
 
     return (
         <SimpleForm toolbar={<MetadataEditToolbar />}>
-            <Typography variant={"h1"} >Edit Metadata</Typography>
-            <Typography variant={"h2"} ><MetadataTitle /></Typography>
+            <StyledDocumentTitle prefix={"Metadata Edit - "}/>
             <Box gap={1} display="flex" flexDirection="column"
                  sx={{
+                     backgroundColor: 'background.default',
                      width: '100%',
                      '& .MuiBox-root': {
                          width: '100%'
@@ -223,18 +225,12 @@ const MetadataEditContents = () => {
                                    width: '100%'
                                },
                                '& .MuiTableCell-root': {
-                                   padding: '4px 6px'
-                               },
-                               '& .MuiFormControl-root': {
-                                   margin: '0px 0px'
-                               },
-                               '& .MuiInputBase-root': {
-                                   padding: '2px 2px'
+                                   padding: '8px 6px'
                                },
                            }}
                     >
                         <TableRow>
-                            <FieldNameCell>ID/Version</FieldNameCell>
+                            <FieldNameCell>Metadata ID/Version</FieldNameCell>
                             <TableCell>
                                 {otherVersions}
                             </TableCell>
@@ -320,16 +316,16 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>Is Withdrawn</FieldNameCell>
                             <TableCell>
-                                <BooleanInput label={""} source={"is_withdrawn"} helperText={false} size={"small"} />
+                                <BooleanInput label={""} source={"is_withdrawn"} helperText={false} size={"small"} sx={{ml: 2}}/>
                             </TableCell>
                         </TableRow>
 
                         <TableRow>
-                            <FieldNameCell>
-                                <Tooltip title={PrepReportNum} >
-                                    <Typography>Report No.</Typography>
-                                </Tooltip>
-                            </FieldNameCell>
+                                <FieldNameCell>
+                                    <Tooltip title={PrepReportNum} >
+                                        <span>Report No.</span>
+                                    </Tooltip>
+                                </FieldNameCell>
                             <TableCell>
                                 <PlainTextInput source="report_num" />
                             </TableCell>
@@ -338,9 +334,9 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>
                                 <Tooltip title={PrepMSCClass}>
-                                    <Typography>
+                                    <span>
                                         MSC Class
-                                    </Typography>
+                                    </span>
                                 </Tooltip>
                             </FieldNameCell>
                             <TableCell>
@@ -351,9 +347,9 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>
                                 <Tooltip title={PrepACMClass}>
-                                    <Typography>
+                                    <span>
                                         ACM Class
-                                    </Typography>
+                                    </span>
                                 </Tooltip>
                             </FieldNameCell>
                             <TableCell>
@@ -364,7 +360,7 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>
                                 <Tooltip title={PrepJoyrnalRef} >
-                                    <Typography>JournalRef</Typography>
+                                    <span>JournalRef</span>
                                 </Tooltip>
                             </FieldNameCell>
                             <TableCell>
@@ -375,7 +371,7 @@ const MetadataEditContents = () => {
                         <TableRow>
                             <FieldNameCell>
                                 <Tooltip title={PrepDOI} >
-                                    <Typography>DOI</Typography>
+                                    <span>DOI</span>
                                 </Tooltip>
                             </FieldNameCell>
                             <TableCell>
@@ -391,9 +387,19 @@ const MetadataEditContents = () => {
 };
 
 export const MetadataEdit = () => (
-    <Edit redirect={false}>
-        <MetadataEditContents/>
-    </Edit>
+    <Box sx={{
+        backgroundColor: 'background.default',
+        '& .RaEdit-card': {
+            backgroundColor: 'background.default',
+            boxShadow: 'none'
+        },
+        margin: '0 auto',
+        maxWidth: "lg",
+    }}>
+        <Edit redirect={false}>
+                <MetadataEditContents/>
+        </Edit>
+    </Box>
 );
 
 export default MetadataVersionSelector;

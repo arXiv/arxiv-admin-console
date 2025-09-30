@@ -41,7 +41,7 @@ APP_DOCKER_RUN := docker run --cpus ${ADMINAPI_CPUS} --rm -p ${app_port}:${docke
 -e CLASSIC_COOKIE_NAME="${CLASSIC_COOKIE_NAME}" \
 --name "${app_name}" --security-opt="no-new-privileges=true"
 
-.PHONY: HELLO docker run stop bootstrap show-env
+.PHONY: HELLO docker run stop bootstrap show-env modapi
 
 default: HELLO
 
@@ -133,3 +133,13 @@ venv/lib/python3.12/site-packages/fastapi: venv/bin/poetry
 
 show-env:
 	sed -e 's/^/export /g' .env
+
+#-#
+#-# modapi:
+#-#   generates modapi stub
+modapi:
+	# openapi-python-client generate --url https://services.dev.arxiv.org/openapi.json --config arxiv_admin_api/apis/modapi_config.yaml --meta none --output-path ./arxiv_admin_api/apis/modapi --overwrite
+	rm -fr ./arxiv_admin_api/apis/modapi/*
+	cd  ./arxiv_admin_api/apis && bash modapi-gen.sh
+
+#-#

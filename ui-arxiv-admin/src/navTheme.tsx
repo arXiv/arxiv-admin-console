@@ -6,6 +6,7 @@ export const DarkLimeColor = '#1B3B1B';
 export const AccessLimeColor = '#C4D82E';
 export const DarkAccessLimeColor = '#7A8F1A';
 export const ArchivalBlueColor ='#1f5e96';
+export const ArchivalLightBlueColor ='#3091e6';
 export const LibraryGreyColor = '#6b6459'; // for light theme
 export const LighterLibraryGreyColor = '#a8a19a'; // for dark theme
 export const VeryLightGreyColor = '#f0f0f0'
@@ -18,7 +19,7 @@ export const BLACK = '#000000';
 const commonBaseTheme = {
     typography: {
         fontFamily: 'IBM Plex Mono, monospace',
-        fontSize: 16,
+        fontSize: 14,
         body1: {
             fontSize: '14px',
         },
@@ -26,7 +27,7 @@ const commonBaseTheme = {
             fontSize: '13px',
         },
         h1: {
-            fontSize: '40px',
+            fontSize: '30px',
             fontWeight: 700,
         },
         h2: {
@@ -47,11 +48,50 @@ const commonBaseTheme = {
         },
         MuiSwitch: {
             styleOverrides: {
-                switchBase: {
-                    // Size and behavior styles only
-                },
-                track: {
-                    // Size and behavior styles only
+                root: {
+                    width: 36,
+                    height: 22,
+                    padding: 0,
+                    marginRight: 8,
+                    '& .MuiSwitch-switchBase': {
+                        padding: 0,
+                        margin: 2,
+                        transitionDuration: '300ms',
+                        color: '#888',
+                        '&.Mui-checked': {
+                            transform: 'translateX(14px)',
+                            color: '#fff',
+                            '& + .MuiSwitch-track': {
+                                opacity: 1,
+                                border: 0,
+                            },
+                            '&.Mui-disabled + .MuiSwitch-track': {
+                                opacity: 0.5,
+                            },
+                        },
+                        '&.Mui-focusVisible .MuiSwitch-thumb': {
+                            color: AccessLimeColor,
+                            border: '6px solid #fff',
+                        },
+                        '&.Mui-disabled .MuiSwitch-thumb': {
+                            color: LibraryGreyColor,
+                        },
+                        '&.Mui-disabled + .MuiSwitch-track': {
+                            opacity: 0.7,
+                        },
+                    },
+                    '& .MuiSwitch-thumb': {
+                        boxSizing: 'border-box',
+                        width: 18,
+                        height: 18,
+                    },
+                    '& .MuiSwitch-track': {
+                        borderRadius: 22 / 2,
+                        backgroundColor: '#f0f0f0',
+                        border: '1px solid #888',
+                        opacity: 1,
+                        transition: 'background-color 300ms, border-color 300ms',
+                    },
                 },
             },
         },
@@ -138,17 +178,22 @@ const lightTheme = createTheme({
         MuiSwitch: {
             styleOverrides: {
                 ...commonBaseTheme.components.MuiSwitch.styleOverrides,
-                switchBase: {
-                    color: LibraryGreyColor, // Library Grey (inactive)
-                    '&.Mui-checked': {
-                        color: ArchivalBlueColor, // Archival Blue (active)
-                        '& + .MuiSwitch-track': {
-                            backgroundColor: ArchivalBlueColor, // Archival Blue (active track)
+                root: {
+                    ...commonBaseTheme.components.MuiSwitch.styleOverrides.root,
+                    '& .MuiSwitch-switchBase': {
+                        ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase'],
+                        '&.Mui-checked': {
+                            ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase']['&.Mui-checked'],
+                            '& + .MuiSwitch-track': {
+                                ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase']['&.Mui-checked']['& + .MuiSwitch-track'],
+                                backgroundColor: ArchivalBlueColor,
+                            },
+                        },
+                        '&.Mui-focusVisible .MuiSwitch-thumb': {
+                            ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase']['&.Mui-focusVisible .MuiSwitch-thumb'],
+                            color: ArchivalBlueColor,
                         },
                     },
-                },
-                track: {
-                    backgroundColor: LibraryGreyColor, // Library Grey (inactive track)
                 },
             },
         },
@@ -228,17 +273,27 @@ const darkTheme = createTheme({
         MuiSwitch: {
             styleOverrides: {
                 ...commonBaseTheme.components.MuiSwitch.styleOverrides,
-                switchBase: {
-                    color: LibraryGreyColor, // Library Grey (inactive)
-                    '&.Mui-checked': {
-                        color: ArchivalBlueColor, // Archival Blue (active)
-                        '& + .MuiSwitch-track': {
-                            backgroundColor: ArchivalBlueColor, // Archival Blue (active track)
+                root: {
+                    ...commonBaseTheme.components.MuiSwitch.styleOverrides.root,
+                    '& .MuiSwitch-switchBase': {
+                        ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase'],
+                        '&.Mui-checked': {
+                            ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase']['&.Mui-checked'],
+                            '& + .MuiSwitch-track': {
+                                ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase']['&.Mui-checked']['& + .MuiSwitch-track'],
+                                backgroundColor: ArchivalLightBlueColor,
+                            },
+                        },
+                        '&.Mui-focusVisible .MuiSwitch-thumb': {
+                            ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-switchBase']['&.Mui-focusVisible .MuiSwitch-thumb'],
+                            color: ArchivalLightBlueColor,
                         },
                     },
-                },
-                track: {
-                    backgroundColor: LibraryGreyColor, // Library Grey (inactive track)
+                    '& .MuiSwitch-track': {
+                        ...commonBaseTheme.components.MuiSwitch.styleOverrides.root['& .MuiSwitch-track'],
+                        backgroundColor: '#2a2a2a',
+                        border: '1px solid #888',
+                    },
                 },
             },
         },

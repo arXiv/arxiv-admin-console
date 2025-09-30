@@ -595,9 +595,6 @@ const UserEditContent = () => {
     }, [dataProvider, record?.id]);
 
     const switchProps: SxProps = {
-        '& .MuiSwitch-root': {
-            transform: 'scale(0.88)', // smaller than small
-        },
         flex: 4,
         size: "small",
         my: 0
@@ -606,20 +603,17 @@ const UserEditContent = () => {
     const statusInputs: statusInputType[][] = [
         [
             {source: "flag_approved", label: "Approved"},
-            {source: "flag_banned", label: "Banned", disabled: false, component: "FlaggedToggle"},
-            {source: "flag_deleted", label: "Deleted", disabled: false, component: "FlaggedToggle"},
             {source: "flag_suspect", label: "Flagged", disabled: false, component: "FlaggedToggle"},
+            {source: "flag_proxy", label: "Proxy"},
         ],
         [
-            {source: "flag_proxy", label: "Proxy"},
-            null,
-            null,
+            {source: "flag_banned", label: "Banned", disabled: false, component: "FlaggedToggle"},
+            {source: "flag_deleted", label: "Deleted", disabled: false, component: "FlaggedToggle"},
             null,
         ],
         [
             {source: "flag_xml", label: "API Submitter"},
             {source: "flag_allow_tex_produced", label: "Allow PDF from TeX"},
-            null,
             null,
         ]
     ];
@@ -627,15 +621,13 @@ const UserEditContent = () => {
     const adminInputs: statusInputType[][] = [
         [
             {source: "flag_edit_users", label: "Admin", component: "FlaggedToggle"},
-            null,
-            null,
-            null,
+            {source: "flag_edit_system", label: "Owner", component: "FlaggedToggle"},
+            {source: "flag_can_lock", label: "Can Lock", component: "FlaggedToggle"},
         ],
         [
-            {source: "flag_edit_system", label: "Owner", component: "FlaggedToggle"},
             {source: "flag_group_test", label: "Test"},
             {source: "flag_internal", label: "Internal", component: "FlaggedToggle"},
-            {source: "flag_can_lock", label: "Can Lock", component: "FlaggedToggle"},
+            null,
         ],
     ];
 
@@ -819,7 +811,7 @@ const UserEditContent = () => {
                                         />
                                     </Box>
 
-                                    <Box display="flex" flexDirection="row">
+                                    <Box display="flex" flexDirection="row" ml={2} gap={2}>
                                         <EmailVerificationSwitch onUpdateEmailVerified={updateEmailVerified}/>
                                         <BooleanInput source="email_bouncing" label={"Email bouncing"}
                                                       helperText={false}

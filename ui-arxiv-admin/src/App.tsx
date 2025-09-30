@@ -39,7 +39,6 @@ const EndorsementCreate = lazy(() => import('./pages/Endorsements').then(module 
 const EndorsementEdit = lazy(() => import('./pages/Endorsements').then(module => ({ default: module.EndorsementEdit })));
 const EndorsementList = lazy(() => import('./pages/Endorsements').then(module => ({ default: module.EndorsementList })));
 
-const DocumentCreate = lazy(() => import('./pages/Documents').then(module => ({ default: module.DocumentCreate })));
 const DocumentList = lazy(() => import('./pages/Documents').then(module => ({ default: module.DocumentList })));
 const DocumentShow = lazy(() => import('./pages/Documents').then(module => ({ default: module.DocumentShow })));
 

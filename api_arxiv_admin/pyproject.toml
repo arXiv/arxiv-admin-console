@@ -29,6 +29,7 @@ asgi-correlation-id = "^4.3.4"
 asgi-logger = "^0.1.0"
 python-multipart = "^0.0.20"
 google-cloud-pubsub = "^2.31.1"
+attrs = ">=22.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -36,6 +37,7 @@ uvicorn = "^0.34.0"
 mypy = "^1.15.0"
 pytest = "^8.3.5"
 types-pymysql = "^1.1.0.20250516"
+openapi-generator-cli = "^7.16.0"
 
 [build-system]
 requires = ["poetry-core"]

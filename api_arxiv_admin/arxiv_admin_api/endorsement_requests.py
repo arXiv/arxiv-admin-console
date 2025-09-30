@@ -24,6 +24,7 @@ from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, Tapi
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
 from .biz.endorsement_code import endorsement_code
 from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate
+from .biz.endorser_list_v2 import list_endorsement_candidates_v2
 
 # Cache for SQLite connections to avoid repeated deserialization
 _db_cache = {}
@@ -667,7 +668,39 @@ async def upload_cached_eligible_endorsers(
 
     # Generate fresh endorsement candidates
     logger.info("Generating fresh endorsement candidates for cache upload")
+    # data_v2 = await list_endorsement_candidates_v2(session, start_date=start_time, end_date=end_time)
+
     data = await list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+
+    # Compare v1 and v2 results (order-insensitive)
+    # logger.info("Comparing v1 and v2 endorsement candidate results")
+
+    # Convert to sets for order-insensitive comparison
+    # v1_candidates = set()
+    # v2_candidates = set()
+
+    # for endorsement_cats in data:
+    #     for candidate in endorsement_cats.candidates:
+    #         v1_candidates.add((candidate.id, endorsement_cats.category, candidate.document_count, candidate.latest))
+    #
+    # for endorsement_cats in data_v2:
+    #     for candidate in endorsement_cats.candidates:
+    #         v2_candidates.add((candidate.id, endorsement_cats.category, candidate.document_count, candidate.latest))
+    #
+    # # Log comparison results
+    # if v1_candidates == v2_candidates:
+    #     logger.info(f"✓ v1 and v2 results match perfectly ({len(v1_candidates)} candidates)")
+    # else:
+    #     only_in_v1 = v1_candidates - v2_candidates
+    #     only_in_v2 = v2_candidates - v1_candidates
+    #     logger.warning(f"⚠ v1 and v2 results differ:")
+    #     logger.warning(f"  v1 total: {len(v1_candidates)}, v2 total: {len(v2_candidates)}")
+    #     logger.warning(f"  Only in v1: {len(only_in_v1)}")
+    #     logger.warning(f"  Only in v2: {len(only_in_v2)}")
+    #     if only_in_v1:
+    #         logger.debug(f"  v1 exclusive: {list(only_in_v1)[:5]}...")  # Show first 5
+    #     if only_in_v2:
+    #         logger.debug(f"  v2 exclusive: {list(only_in_v2)[:5]}...")  # Show first 5
 
     # Parse storage info from configuration
     scheme, location, path = _parse_storage_url(request)

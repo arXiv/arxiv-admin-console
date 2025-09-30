@@ -1,0 +1,7 @@
+.gitlab-ci.yml
+.openapi-generator/
+.openapi-generator-ignore
+.ruff_cache/
+.travis.yml
+/modapi/modapi_client/test/*
+/modapi/modapi_client/docs/*

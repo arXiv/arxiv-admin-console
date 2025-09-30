@@ -7,8 +7,9 @@
 from typing import Optional, List, Iterator
 from arxiv.base import logging
 from arxiv.db.models import Metadata, Document, PaperOwner, EndorsementDomain, Category, Demographic
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, text, Integer, String, DateTime
 from sqlalchemy.orm import Session, aliased
+from sqlalchemy.sql import select
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta, timezone
 import os
@@ -140,6 +141,7 @@ def _process_categories(
 ) -> List[EndorsementCandidates]:
     """Process all categories to filter qualified candidates."""
     endorsement_candidates_result: List[EndorsementCandidates] = []
+    per_cat = {}
 
     for cat, candidates in endorsement_candidates.items():
         criteria = endorsement_criteria.get(cat)
@@ -446,3 +448,5 @@ async def list_endorsement_candidates(
             return endorsement_candidates_result
         else:
             raise
+
+
