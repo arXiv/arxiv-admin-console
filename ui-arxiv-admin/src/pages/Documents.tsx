@@ -36,6 +36,7 @@ import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
+import TruncatedTextField from "../bits/TruncatedTextField";
 import Link from "@mui/material/Link";
 import PaperOwnersList from "../components/PaperOwnersList";
 import SubmissionHistoryList from "../bits/SubmissionHistoryList";
@@ -372,7 +373,7 @@ export const DocumentList = () => {
                     <TextField source={"first_name"}/>
                 </ReferenceField>
 
-                <TextField source="authors"/>
+                <TruncatedTextField source="authors" maxItems={3} />
                 <TextField source="abs_categories" label={"Categories"}/>
                 <ISODateField source="created" label={"Created"}/>
 
