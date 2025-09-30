@@ -28,7 +28,7 @@ const purposeColorSchemes = {
 
 // Default color scheme
 const defaultColorScheme = {
-    backgroundColor: 'transparent',
+    backgroundColor: 'background.paper',
     color: 'text.primary',
 };
 

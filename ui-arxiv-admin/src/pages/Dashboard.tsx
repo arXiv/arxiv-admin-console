@@ -98,7 +98,8 @@ export const Dashboard = () => {
                 width: '100%',
                 display: 'flex',
                 justifyContent: 'center',
-                p: 2
+                p: 3,
+                mt: 3
             }}
         >
             <Box
@@ -108,10 +109,12 @@ export const Dashboard = () => {
                 }}
             >
                 <Typography fontSize={"3rem"} fontWeight={700} component={"h1"}>Welcome {runtimeProps.currentUser?.first_name}</Typography>
-                <Box sx={{ my: 2, display: 'flex', gap: 2 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+                <Box sx={{ my: 2, display: 'flex', gap: 2, mt: 4 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
                         {runtimeProps.arxivNavLinks.map(navSection => (
-                            <NavCard key={navSection.id} navSection={navSection} />
+                            <Box key={navSection.id} sx={{ flex: 1 }}>
+                                <NavCard navSection={navSection} />
+                            </Box>
                         ))}
                     </Box>
                 </Box>
