@@ -39,7 +39,7 @@ const EndorsementDomainListActions = () => (
 );
 
 export const EndorsementDomainList = () => (
-    <>
+    <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
         <ConsoleTitle>Endorsement Domains</ConsoleTitle>
     <List filters={endorsementDomainFilters} actions={<EndorsementDomainListActions />}>
         <Datagrid rowClick={"edit"}>
@@ -50,7 +50,7 @@ export const EndorsementDomainList = () => (
             <NumberField source="papers_to_endorse"/>
         </Datagrid>
     </List>
-    </>
+    </Box>
 );
 
 const EndorsementDomainTitle = () => {

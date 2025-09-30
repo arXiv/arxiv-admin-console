@@ -161,7 +161,7 @@ const OwnershipRequestFilter = (props: any) => {
 
 export const OwnershipRequestList = () => {
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Ownership Requests</ConsoleTitle>
 
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
@@ -183,7 +183,7 @@ export const OwnershipRequestList = () => {
                 </ReferenceField>
             </Datagrid>
         </List>
-        </>
+        </Box>
 
     );
 };

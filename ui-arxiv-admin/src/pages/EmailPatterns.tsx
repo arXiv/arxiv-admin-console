@@ -21,16 +21,16 @@ import {
     CreateButton,
     ExportButton
 } from 'react-admin';
-import { Button, Box, Menu, MenuItem, IconButton } from '@mui/material';
+import {Button, Box, Menu, MenuItem, IconButton} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import UploadIcon from '@mui/icons-material/Upload';
 import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useState, useContext } from 'react';
-import { EmailPatternUploadDialog } from '../components/EmailPatternUploadDialog';
-import { EmailPatternDownloadDialog } from '../components/EmailPatternDownloadDialog';
-import { RuntimeContext } from '../RuntimeContext';
+import {useState, useContext} from 'react';
+import {EmailPatternUploadDialog} from '../components/EmailPatternUploadDialog';
+import {EmailPatternDownloadDialog} from '../components/EmailPatternDownloadDialog';
+import {RuntimeContext} from '../RuntimeContext';
 import {emailPatternPurposeOptions} from "../types/definitions";
 import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
@@ -45,7 +45,7 @@ const EmailPatternFilter = (props: any) => {
                 alwaysOn
                 emptyValue={emailPatternPurposeOptions[0].id}
                 emptyText={emailPatternPurposeOptions[0].name}
-                sx={{ minWidth: "8rem" }}
+                sx={{minWidth: "8rem"}}
             />
             <TextInput label={"Pattern"} source={"pattern"} alwaysOn/>
         </Filter>
@@ -58,7 +58,7 @@ const EmailPatternBulkDeleteButton = () => {
     const notify = useNotify();
     const refresh = useRefresh();
     const unselectAll = useUnselectAll('email_patterns');
-    const { selectedIds, data } = useListContext();
+    const {selectedIds, data} = useListContext();
 
     const handleClick = async () => {
         if (selectedIds.length > 0 && data) {
@@ -83,7 +83,7 @@ const EmailPatternBulkDeleteButton = () => {
         <Button
             variant="contained"
             color="error"
-            startIcon={<DeleteIcon />}
+            startIcon={<DeleteIcon/>}
             onClick={handleClick}
             disabled={selectedIds.length === 0}
             size="small"
@@ -94,7 +94,7 @@ const EmailPatternBulkDeleteButton = () => {
 };
 
 // Custom pagination with rows per page selector
-const EmailPatternPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100]} />;
+const EmailPatternPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100]}/>;
 
 // Custom list actions with create, export and hamburger menu
 const EmailPatternListActions = () => {
@@ -123,14 +123,14 @@ const EmailPatternListActions = () => {
 
     return (
         <TopToolbar>
-            <CreateButton />
-            <ExportButton />
+            <CreateButton/>
+            <ExportButton/>
             <IconButton
                 onClick={handleMenuClick}
-                sx={{ ml: 1 }}
+                sx={{ml: 1}}
                 aria-label="more actions"
             >
-                <MoreVertIcon />
+                <MoreVertIcon/>
             </IconButton>
             <Menu
                 anchorEl={anchorEl}
@@ -146,11 +146,11 @@ const EmailPatternListActions = () => {
                 }}
             >
                 <MenuItem onClick={handleUploadClick}>
-                    <UploadIcon sx={{ mr: 1 }} />
+                    <UploadIcon sx={{mr: 1}}/>
                     Bulk Upload
                 </MenuItem>
                 <MenuItem onClick={handleDownloadClick}>
-                    <DownloadIcon sx={{ mr: 1 }} />
+                    <DownloadIcon sx={{mr: 1}}/>
                     Bulk Download
                 </MenuItem>
             </Menu>
@@ -167,27 +167,27 @@ const EmailPatternListActions = () => {
 };
 
 export const EmailPatternList = () => (
-<>
-    <ConsoleTitle>Email Patterns</ConsoleTitle>
-    <List
-        filters={<EmailPatternFilter/>} 
-        filterDefaultValues={{purpose: 'black'}}
-        actions={<EmailPatternListActions />}
-    >
-        <Datagrid rowClick={false} bulkActionButtons={<EmailPatternBulkDeleteButton />}>
-            <TextField source="id" label="Pattern" />
-        </Datagrid>
-    </List>
-</>
+    <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
+        <ConsoleTitle>Email Patterns</ConsoleTitle>
+        <List
+            filters={<EmailPatternFilter/>}
+            filterDefaultValues={{purpose: 'black'}}
+            actions={<EmailPatternListActions/>}
+        >
+            <Datagrid rowClick={false} bulkActionButtons={<EmailPatternBulkDeleteButton/>}>
+                <TextField source="id" label="Pattern"/>
+            </Datagrid>
+        </List>
+    </Box>
 );
 
 export const EmailPatternCreate = () => (
     <Create>
         <ConsoleTitle>Add Pattern</ConsoleTitle>
         <SimpleForm>
-            <TextInput source="id" label="Pattern" />
-            <SelectInput 
-                source="purpose" 
+            <TextInput source="id" label="Pattern"/>
+            <SelectInput
+                source="purpose"
                 choices={emailPatternPurposeOptions}
                 label="Purpose"
             />

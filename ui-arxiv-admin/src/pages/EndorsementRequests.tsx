@@ -248,7 +248,7 @@ const EndorsementRequestFilter = (props: any) => {
 export const EndorsementRequestList = () => {
     const sorter: SortPayload = {field: 'endorsementRequest_id', order: 'DESC'};
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Endorsement Requests</ConsoleTitle>
             <List filters={<EndorsementRequestFilter />}
               filterDefaultValues={{positive: false}}
@@ -273,7 +273,7 @@ export const EndorsementRequestList = () => {
                 <PointValueBooleanField source="point_value" label={"Open"} />
             </Datagrid>
         </List>
-        </>
+        </Box>
     );
 };
 

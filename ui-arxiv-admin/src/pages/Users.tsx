@@ -195,7 +195,7 @@ export const UserList = () => {
     }, [location.search, navigate, location.pathname]);
 
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto', backgroundColor: 'background.default' }}>
             <ConsoleTitle>Users</ConsoleTitle>
             <List filters={<UserFilter/>}>
                 <Datagrid rowClick="edit" bulkActionButtons={false}>
@@ -216,7 +216,7 @@ export const UserList = () => {
                     </ReferenceField>
                 </Datagrid>
             </List>
-        </>
+        </Box>
     );
 };
 

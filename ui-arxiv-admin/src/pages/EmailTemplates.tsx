@@ -43,7 +43,7 @@ const templateFilters = [
 ];
 
 export const EmailTemplateList = () => (
-    <>
+    <Box maxWidth={"lg"} sx={{ margin: '0 auto'}}>
         <ConsoleTitle>Email Templates</ConsoleTitle>
     <List filters={templateFilters}>
         <Datagrid rowClick={false}>
@@ -58,7 +58,7 @@ export const EmailTemplateList = () => (
             <EditButton />
         </Datagrid>
     </List>
-    </>
+    </Box>
 );
 
 const TemplateTitle = () => {

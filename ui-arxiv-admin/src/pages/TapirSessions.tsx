@@ -195,7 +195,7 @@ const TapirSessionFilter = (props: any) => {
 
 export const TapirSessionList = () => {
     return (
-        <>
+        <Box maxWidth={"lg"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Tapir Sessions</ConsoleTitle>
         <List filters={<TapirSessionFilter/>}>
             <Datagrid rowClick="edit" bulkActionButtons={<TapirSessionBulkActionButtons/>}>
@@ -214,7 +214,7 @@ export const TapirSessionList = () => {
                 <ISODateField source="end_time" showTime/>
             </Datagrid>
         </List>
-        </>
+        </Box>
     );
 };
 

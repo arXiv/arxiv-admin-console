@@ -268,7 +268,7 @@ const EndorsementNavigation = ({currentId, filters}: { currentId?: Identifier, f
 
 export const EndorsementList = () => {
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Endorsements</ConsoleTitle>
         <List
             filters={<EndorsementFilter/>}
@@ -304,8 +304,7 @@ export const EndorsementList = () => {
                 </ReferenceField>
             </Datagrid>
         </List>
-        </>
-
+        </Box>
     );
 };
 

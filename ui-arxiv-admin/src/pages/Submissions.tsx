@@ -133,7 +133,7 @@ export const SubmissionList = () => {
     const defaultDates = calculatePresetDates('last_28_days');
 
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Submissions</ConsoleTitle>
         <List filters={<SubmissionFilter/>}
               filterDefaultValues={{
@@ -162,7 +162,7 @@ export const SubmissionList = () => {
                 <IsOkField source="is_ok" label={"OK?"}/>
             </Datagrid>
         </List>
-        </>
+        </Box>
     );
 };
 

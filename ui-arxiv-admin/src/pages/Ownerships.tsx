@@ -28,6 +28,7 @@ import { addDays } from 'date-fns';
 
 import React from "react";
 import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import ConsoleTitle from "../bits/ConsoleTitle";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
@@ -151,7 +152,7 @@ const OwnershipBulkActions = () => {
 
 export const OwnershipList = () => {
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Ownerships</ConsoleTitle>
         <List filters={<OwnershipFilter />}>
             <Datagrid rowClick="edit" bulkActionButtons={<PaperOwnerBulkActionButtons />}>
@@ -170,7 +171,7 @@ export const OwnershipList = () => {
                 <BooleanField source={"flag_auto"} label={"Auto"}/>
             </Datagrid>
         </List>
-        </>
+        </Box>
     );
 };
 

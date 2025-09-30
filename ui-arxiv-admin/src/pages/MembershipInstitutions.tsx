@@ -30,7 +30,7 @@ const MembershipInstitutionListActions = () => (
 );
 
 export const MembershipInstitutionList = () => (
-    <>
+    <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
         <ConsoleTitle>Membership Institutions</ConsoleTitle>
         <List filters={membershipInstitutionFilters} actions={<MembershipInstitutionListActions />}>
             <Datagrid rowClick={"edit"}>
@@ -40,7 +40,7 @@ export const MembershipInstitutionList = () => (
                 <TextField source="contact_name"/>
             </Datagrid>
         </List>
-    </>
+    </Box>
 );
 
 const MembershipInstitutionTitle = () => {

@@ -1,4 +1,4 @@
-import { useMediaQuery } from '@mui/material';
+import {useMediaQuery} from '@mui/material';
 import {
     List,
     SimpleList,
@@ -19,10 +19,11 @@ import {
     AutocompleteInput
 } from 'react-admin';
 
-import { addDays } from 'date-fns';
+import {addDays} from 'date-fns';
 
 import React from "react";
 import CategoryField from "../bits/CategoryField";
+import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
 import ArchiveSubjectClassInput from "../bits/ArchiveSubjectClassInput";
@@ -41,7 +42,7 @@ import CategoryInput from "../bits/CategoryInput";
 
 
 const ModeratorFilter = (props: any) => {
-    const { setFilters, filterValues } = useListContext();
+    const {setFilters, filterValues} = useListContext();
     const handlePresetChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setFilters({
             ...filterValues,
@@ -50,11 +51,11 @@ const ModeratorFilter = (props: any) => {
 
     return (
         <Filter {...props}>
-            <TextInput label="Archive" source="archive" alwaysOn  />
-            <TextInput label="Subject" source="subject_class" alwaysOn />
-            <TextInput label="Last name" source="last_name" alwaysOn />
-            <TextInput label="First name" source="first_name" alwaysOn />
-            <TextInput label="Email" source="email" alwaysOn />
+            <TextInput label="Archive" source="archive" alwaysOn/>
+            <TextInput label="Subject" source="subject_class" alwaysOn/>
+            <TextInput label="Last name" source="last_name" alwaysOn/>
+            <TextInput label="First name" source="first_name" alwaysOn/>
+            <TextInput label="Email" source="email" alwaysOn/>
         </Filter>
     );
 };
@@ -64,39 +65,41 @@ export const ModeratorList = () => {
     const sorter: SortPayload = {field: 'id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{margin: '0 auto'}}>
+
             <ConsoleTitle>Moderators</ConsoleTitle>
-        <List filters={<ModeratorFilter />}>
-            {isSmall ? (
-                <SimpleList
-                    primaryText={record => record.name}
-                    secondaryText={record => record.moderatorname}
-                    tertiaryText={record => record.email}
-                />
-            ) : (
+            <List filters={<ModeratorFilter/>}>
+                {isSmall ? (
+                    <SimpleList
+                        primaryText={record => record.name}
+                        secondaryText={record => record.moderatorname}
+                        tertiaryText={record => record.email}
+                    />
+                ) : (
 
-                <Datagrid rowClick="show" sort={sorter}>
-                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category" />
+                    <Datagrid rowClick="show" sort={sorter}>
+                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"
+                                       label="Category"/>
 
-                    <ReferenceField source="user_id" reference="users" label={"Moderator"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <TextField source={"last_name"} />
-                        {", "}
-                        <TextField source={"first_name"} />
-                        {" ("}
-                        <TextField source={"id"} />
-                        {")"}
-                    </ReferenceField>
+                        <ReferenceField source="user_id" reference="users" label={"Moderator"}
+                                        link={(record, reference) => `/${reference}/${record.id}`}>
+                            <TextField source={"last_name"}/>
+                            {", "}
+                            <TextField source={"first_name"}/>
+                            {" ("}
+                            <TextField source={"id"}/>
+                            {")"}
+                        </ReferenceField>
 
-                    <ReferenceField source="user_id" reference="users" label={"Email"}
-                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                        <EmailField source={"email"} />
-                    </ReferenceField>
+                        <ReferenceField source="user_id" reference="users" label={"Email"}
+                                        link={(record, reference) => `/${reference}/${record.id}`}>
+                            <EmailField source={"email"}/>
+                        </ReferenceField>
 
-                </Datagrid>
-            )}
-        </List>
-        </>
+                    </Datagrid>
+                )}
+            </List>
+        </Box>
     );
 };
 
@@ -107,18 +110,18 @@ const ModeratorTitle = () => {
 };
 
 export const ModeratorEdit = () => (
-    <Edit title={<ModeratorTitle />}>
-        <ConsoleTitle><ModeratorTitle /></ConsoleTitle>
+    <Edit title={<ModeratorTitle/>}>
+        <ConsoleTitle><ModeratorTitle/></ConsoleTitle>
         <SimpleForm>
             <ReferenceField source="user_id" reference="users" label={"User"}
-                            link={(record, reference) => `/${reference}/${record.id}`} >
-                <TextField source={"last_name"} />
+                            link={(record, reference) => `/${reference}/${record.id}`}>
+                <TextField source={"last_name"}/>
                 {", "}
-                <TextField source={"first_name"} />
+                <TextField source={"first_name"}/>
             </ReferenceField>
 
-            <TextInput source="archive" />
-            <TextInput source="subject_class" />
+            <TextInput source="archive"/>
+            <TextInput source="subject_class"/>
 
             <BooleanInput source="is_public" label={"Public"}/>
             <BooleanInput source="no_email" label={"No Email"}/>
@@ -139,7 +142,8 @@ export const ModeratorCreate = () => (
                 />
             </ReferenceInput>
 
-            <ArchiveSubjectClassInput source={'id'} label={'Category'} sourceCategory={'archive'} sourceClass={'subject_class'} />
+            <ArchiveSubjectClassInput source={'id'} label={'Category'} sourceCategory={'archive'}
+                                      sourceClass={'subject_class'}/>
 
             <BooleanInput source="is_public" label={"Public"}/>
             <BooleanInput source="no_email" label={"No Email"}/>

@@ -70,7 +70,7 @@ export const CategoryList = () => {
     const sorter: SortPayload = {field: 'archive', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
-        <>
+        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
             <ConsoleTitle>Categories</ConsoleTitle>
         <List filters={<CategoryFilter />}>
             {isSmall ? (
@@ -89,7 +89,7 @@ export const CategoryList = () => {
                 </Datagrid>
             )}
         </List>
-        </>
+        </Box>
     );
 };
 
