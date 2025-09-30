@@ -29,7 +29,7 @@ const TruncatedTextField: React.FC<TruncatedTextFieldProps> = ({
     }
 
     // Split by separator and trim whitespace from each element
-    const items = text.split(separator).map(item => item.trim()).filter(item => item !== '');
+    const items = text.split(separator).map((item: string) => item.trim()).filter((item: string) => item !== '');
 
     if (items.length === 0) {
         return <span>{emptyText}</span>;

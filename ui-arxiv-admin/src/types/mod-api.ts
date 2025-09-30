@@ -718,7 +718,7 @@ export interface paths {
          * Admin Fastly Purge
          * @description route will purge the fastly cache for all data from one paper
          */
-        get: operations["admin_fastly_purge_admin_fastly_purge_post"];
+        get: operations["admin_fastly_purge_admin_fastly_purge_get"];
         put?: never;
         /**
          * Admin Fastly Purge
@@ -3731,7 +3731,7 @@ export interface operations {
             };
         };
     };
-    admin_fastly_purge_admin_fastly_purge_post: {
+    admin_fastly_purge_admin_fastly_purge_get: {
         parameters: {
             query: {
                 paper_id: string;
