@@ -51,6 +51,12 @@ class EndorsementCandidates(BaseModel):
         from_attributes = True
 
 
+class EndorsementCandidateCategories(BaseModel):
+    """Model for a single user with multiple categories."""
+    id: int
+    data: List[EndorsementCandidate]
+    class Config:
+        from_attributes = True
 
 
 def _process_candidates(

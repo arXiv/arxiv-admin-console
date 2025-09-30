@@ -45,7 +45,7 @@ import {
     SaveButton,
     DeleteButton, useNotify, useEditContext, useRefresh,
     Confirm,
-    useGetRecordId
+    useGetRecordId, ArrayField
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -83,6 +83,7 @@ import EndorsementRequestListField from '../bits/EndorsementRequestListField';
 import UserFlagDialog from '../components/UserFlagDialog';
 import BooleanField from '../bits/BooleanNumberField';
 import UserNameField from "../bits/UserNameField";
+import EndorsementCategoriesField from "../bits/EndorsementCategoriesField";
 import UserNameDialog from "../components/UserNameDialog";
 import {UserSubmissionList} from "../components/UserSumissionList";
 import BulkPaperOwnerDialog from "../components/BulkPaperOwnerDialog";
@@ -317,7 +318,7 @@ function UserDemographic() {
 
      */
     return (
-        <Card sx={{backgroundColor: '#1c1a17', borderRadius: '16px'}}>
+        <Card sx={{backgroundColor: '#1c1a17', borderRadius: '16px', mb: 2}}>
             <CardHeader
                 title="System Data"
                 sx={{
@@ -911,9 +912,18 @@ const UserEditContent = () => {
 
                         <Box mt={2}>
                             <Typography variant={"h6"}>Endorses: </Typography>
+                            {
+                                /*
                             <Button size={"small"} variant={"contained"} onClick={() => setCanEndorseForOpen(true)} >
                                 Can Endorsed for?</Button>
                             <CanEndorseForDialog open={canEndorseForOpen} setOpen={setCanEndorseForOpen}/>
+
+                                 */
+                            }
+                            <ReferenceField reference={"can-endorse-for"} source={"id"} >
+                                <EndorsementCategoriesField source="data" emptyText={"None"}/>
+                            </ReferenceField>
+
                         </Box>
 
                         <Box mt={2}>

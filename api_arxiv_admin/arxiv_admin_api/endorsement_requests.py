@@ -7,6 +7,7 @@ from typing import Optional, List
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, ApiToken, get_authn_or_none
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
+from pip._internal.models import candidate
 
 from sqlalchemy import case, and_  # select, update, func, Select, distinct, exists, and_, or_
 from sqlalchemy.orm import Session #, joinedload
@@ -23,7 +24,8 @@ from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, Tapi
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
 from .biz.endorsement_code import endorsement_code
-from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate
+from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate, \
+    EndorsementCandidateCategories
 from .biz.endorser_list_v2 import list_endorsement_candidates_v2
 
 # Cache for SQLite connections to avoid repeated deserialization
@@ -199,6 +201,31 @@ def _query_users_from_db(conn: sqlite3.Connection, category: str, user_ids: Opti
             category=category,
             document_count=row[1],
             latest=datetime.fromisoformat(row[2])
+        )
+        for row in rows
+    ]
+
+
+def _query_user_from_db(conn: sqlite3.Connection, user_id: int) -> List[EndorsementCandidate]:
+    """
+    Query a single user from database, returning all matching records across all categories.
+    """
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT c.id, cat.category, c.document_count, c.latest
+        FROM endorsement_candidates c
+        JOIN endorsement_categories cat ON c.category_id = cat.id
+        WHERE c.id = ?
+    ''', (user_id,))
+
+    rows = cursor.fetchall()
+    return [
+        EndorsementCandidate(
+            id=row[0],
+            category=row[1],
+            document_count=row[2],
+            latest=datetime.fromisoformat(row[3])
         )
         for row in rows
     ]
@@ -940,12 +967,12 @@ async def get_cached_eligible_endorsers_for_the_category(
     return response_body
 
 
-@endorsers_router.get('/precomputed/user')
+@endorsers_router.get('/precomputed/category/{category:str}/user')
 async def get_cached_endorser_candidates(
         category: str,
         request: Request,
         response: Response,
-        id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
+        id: Optional[List[int] | int] = Query(None, description="List of user IDs to filter by"),
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
@@ -964,6 +991,9 @@ async def get_cached_endorser_candidates(
     conn = _get_cached_db_connection(request)
 
     # Query users from database with optional filtering
+    if id is not None and (not isinstance(id, list)):
+        id = [id]
+
     candidates = _query_users_from_db(conn, category, id)
     if not candidates:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No candidates found for category {category}")
@@ -986,3 +1016,44 @@ async def get_cached_endorser_candidates(
     return response_body
 
 
+
+@endorsers_router.get('/precomputed/user')
+async def get_cached_endorser_candidate_categories(
+        request: Request,
+        response: Response,
+        id: Optional[List[int] | int] = Query(None, description="List of user IDs to filter by"),
+        _sort: Optional[str] = Query("id", description="sort by"),
+        _order: Optional[str] = Query("ASC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        authn: ArxivUserClaims | ApiToken = Depends(get_authn),
+) -> List[EndorsementCandidateCategories]:
+    """
+    Fetch cached endorsement candidates for a specific category.
+
+    Returns precomputed endorsement candidates for the specified category
+    from cloud storage, providing faster response than real-time computation.
+    """
+    if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
+    conn = _get_cached_db_connection(request)
+
+    # Query users from database with optional filtering
+    if id is not None and (not isinstance(id, list)):
+        id = [id]
+
+    candidates = [
+        EndorsementCandidateCategories(id=user_id, data=_query_user_from_db(conn, user_id)) for user_id in id
+    ]
+
+    # Apply sorting
+    reverse_order = _order.upper() == "DESC"
+    if _sort == "id":
+        candidates.sort(key=lambda x: x.id, reverse=reverse_order)
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
+
+    response_body = candidates[_start:_end]
+    response.headers['X-Total-Count'] = str(len(candidates))
+    return response_body
