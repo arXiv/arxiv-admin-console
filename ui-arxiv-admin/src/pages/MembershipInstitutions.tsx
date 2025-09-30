@@ -15,6 +15,7 @@ import {
 import IPv4AddressInput from '../components/IPv4AddressInput';
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import CardHeader from "@mui/material/CardHeader";
 import DashIcon from "@mui/icons-material/ArrowRightAlt";
 
@@ -30,7 +31,7 @@ const MembershipInstitutionListActions = () => (
 
 export const MembershipInstitutionList = () => (
     <>
-        <Typography variant="h1">Membership Institutions</Typography>
+        <ConsoleTitle>Membership Institutions</ConsoleTitle>
         <List filters={membershipInstitutionFilters} actions={<MembershipInstitutionListActions />}>
             <Datagrid rowClick={"edit"}>
                 <TextField source="name"/>
@@ -132,7 +133,7 @@ export const MembershipInstitutionAdd = () => (
 export const MembershipInstitutionEdit = () => (
     <Box width="80%" ml="10%">
     <Edit title={false}>
-        <Typography variant="h1">Edit Membership</Typography>
+        <ConsoleTitle>Edit Membership</ConsoleTitle>
         <Typography variant="h2"><MembershipInstitutionTitle /></Typography>
         <SimpleForm>
             <MembershipInstitutionFormFields />

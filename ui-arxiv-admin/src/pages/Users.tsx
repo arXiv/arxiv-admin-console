@@ -56,6 +56,7 @@ import PersonNameField from "../bits/PersonNameField";
 import CareereStatusField from "../bits/CareereStatusField";
 import TapirSessionInfo from "../bits/TapirSessionInfo";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import OwnedPaperList from "../bits/OwnedPaperList";
 import {AdminAuditList} from "../bits/TapirAdminLogs";
 import Button from '@mui/material/Button';
@@ -195,7 +196,7 @@ export const UserList = () => {
 
     return (
         <>
-            <Typography variant="h1">Users</Typography>
+            <ConsoleTitle>Users</ConsoleTitle>
             <List filters={<UserFilter/>}>
                 <Datagrid rowClick="edit" bulkActionButtons={false}>
                     <TextField source={"id"} label="ID"/>

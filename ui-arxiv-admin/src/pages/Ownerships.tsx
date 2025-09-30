@@ -28,6 +28,7 @@ import { addDays } from 'date-fns';
 
 import React from "react";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import ISODateField from "../bits/ISODateFiled";
@@ -151,7 +152,7 @@ const OwnershipBulkActions = () => {
 export const OwnershipList = () => {
     return (
         <>
-            <Typography variant="h1">Ownerships</Typography>
+            <ConsoleTitle>Ownerships</ConsoleTitle>
         <List filters={<OwnershipFilter />}>
             <Datagrid rowClick="edit" bulkActionButtons={<PaperOwnerBulkActionButtons />}>
                 <ReferenceField reference={"documents"} source={"document_id"} >

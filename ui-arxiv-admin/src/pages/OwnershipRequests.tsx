@@ -11,6 +11,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
+import ConsoleTitle from "../bits/ConsoleTitle";
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -161,7 +162,7 @@ const OwnershipRequestFilter = (props: any) => {
 export const OwnershipRequestList = () => {
     return (
         <>
-            <Typography variant="h1">Ownership Requests</Typography>
+            <ConsoleTitle>Ownership Requests</ConsoleTitle>
 
         <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
             <Datagrid rowClick="edit">
@@ -685,7 +686,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
 
     return (
         <Edit title={false} redirect={false}>
-            <Typography variant="h1"><OwnershipRequestTitle /></Typography>
+            <ConsoleTitle><OwnershipRequestTitle /></ConsoleTitle>
 
             <SimpleForm toolbar={<OwnershipRequestToolbar
                 prevId={prevId} nextId={nextId} ok={ok_to_save} setWorkflowStatus={setWorkflowStatus} />}>

@@ -36,6 +36,7 @@ import TableCell from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 
 import BooleanField from "../bits/BooleanNumberField";
 import CategoryField from "../bits/CategoryField";
@@ -248,7 +249,7 @@ export const EndorsementRequestList = () => {
     const sorter: SortPayload = {field: 'endorsementRequest_id', order: 'DESC'};
     return (
         <>
-            <Typography variant="h1">Endorsement Requests</Typography>
+            <ConsoleTitle>Endorsement Requests</ConsoleTitle>
             <List filters={<EndorsementRequestFilter />}
               filterDefaultValues={{positive: false}}
               sort={sorter}
@@ -540,9 +541,9 @@ export const EndorsementRequestEdit = () => {
         <Box width="80%" ml={"10%"}>
         <Edit title={false} actions={false} >
             <Box sx={{display: 'flex', flexDirection: 'column', gap: 1}} >
-                <Typography variant="h1">
+                <ConsoleTitle>
                     Edit Endorsement Request
-                </Typography>
+                </ConsoleTitle>
 
                 <Typography variant="h2" ml={"1em"}>
                     <EndorsementRequestTitle/>

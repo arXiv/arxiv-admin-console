@@ -24,6 +24,7 @@ import {
 import React from "react";
 import CategoryField from "../bits/CategoryField";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import Box from "@mui/material/Box";
 
 /*
@@ -70,7 +71,7 @@ export const CategoryList = () => {
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <>
-            <Typography variant="h1">Categories</Typography>
+            <ConsoleTitle>Categories</ConsoleTitle>
         <List filters={<CategoryFilter />}>
             {isSmall ? (
                 <SimpleList
@@ -102,7 +103,7 @@ export const CategoryEdit = () => (
     <Box width="80%" ml="10%">
 
     <Edit title={<CategoryTitle />}>
-        <Typography variant="h1"><CategoryTitle /></Typography>
+        <ConsoleTitle><CategoryTitle /></ConsoleTitle>
 
         <SimpleForm>
             <TextInput source="archive" />

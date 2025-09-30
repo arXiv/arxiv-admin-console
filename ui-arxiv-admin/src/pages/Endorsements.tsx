@@ -43,6 +43,7 @@ import React from "react";
 import CategoryField from "../bits/CategoryField";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import Tooltip from '@mui/material/Tooltip';
 import UserNameField from "../bits/UserNameField";
 import UserStatusField from "../bits/UserStatusField";
@@ -268,7 +269,7 @@ const EndorsementNavigation = ({currentId, filters}: { currentId?: Identifier, f
 export const EndorsementList = () => {
     return (
         <>
-            <Typography variant="h1">Endorsements</Typography>
+            <ConsoleTitle>Endorsements</ConsoleTitle>
         <List
             filters={<EndorsementFilter/>}
             filterDefaultValues={{
@@ -569,7 +570,7 @@ export const EndorsementEdit = () => {
 
     return (
         <>
-            <Typography variant="h1">Endorsement</Typography>
+            <ConsoleTitle>Endorsement</ConsoleTitle>
         <Box display="flex" flexDirection="row" gap={2}>
             <Box width={90}>
                 <EndorsementNavigation currentId={currentId}

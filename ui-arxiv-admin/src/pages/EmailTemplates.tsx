@@ -21,6 +21,7 @@ import {
 } from 'react-admin';
 import ISODateField from "../bits/ISODateFiled";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import UserNameField from "../bits/UserNameField";
 import {useContext, useState} from "react";
 import {
@@ -43,7 +44,7 @@ const templateFilters = [
 
 export const EmailTemplateList = () => (
     <>
-        <Typography variant="h1">Email Templates</Typography>
+        <ConsoleTitle>Email Templates</ConsoleTitle>
     <List filters={templateFilters}>
         <Datagrid rowClick={false}>
             <TextField source="id" />
@@ -257,7 +258,7 @@ const EmailTemplateEditToolbar = () => {
 
 export const EmailTemplateEdit = () => (
     <Edit title={<TemplateTitle />} actions={false}>
-        <Typography variant="h1"><TemplateTitle /></Typography>
+        <ConsoleTitle><TemplateTitle /></ConsoleTitle>
         <SimpleForm toolbar={<EmailTemplateEditToolbar />}>
             <Typography component={"span"} >
                 {"ID: "}

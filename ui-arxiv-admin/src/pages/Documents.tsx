@@ -35,6 +35,7 @@ import TableCell from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import Link from "@mui/material/Link";
 import PaperOwnersList from "../components/PaperOwnersList";
 import SubmissionHistoryList from "../bits/SubmissionHistoryList";
@@ -354,8 +355,8 @@ export const DocumentList = () => {
     // const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <>
-            <Typography variant="h1">Documents</Typography>
-        <List filters={<DocumentFilter/>}>
+            <ConsoleTitle>Documents</ConsoleTitle>
+            <List filters={<DocumentFilter/>}>
             <Datagrid rowClick="show">
                 <TextField source="id" label={"ID"}/>
                 <ISODateField source="dated" label={"Date"}/>
@@ -394,7 +395,7 @@ const DocumentTitle = () => {
 export const StyledDocumentTitle : React.FC<{prefix: string}> = ({prefix}) => {
     const record = useRecordContext();
     return (
-        <Typography variant={"h1"} fontSize={"2rem"}>{prefix}{record ? `${record.paper_id}: ` : ''}
+        <Typography variant={"h1"} fontSize={"2rem"} sx={{mt: 3, mb: 2}}>{prefix}{record ? `${record.paper_id}: ` : ''}
             <Typography component="span" fontSize="1.5rem" fontWeight={700}>{record ? record.title : ''}</Typography>
         </Typography>
     );

@@ -24,6 +24,7 @@ import { addDays } from 'date-fns';
 import React from "react";
 import CategoryField from "../bits/CategoryField";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import ArchiveSubjectClassInput from "../bits/ArchiveSubjectClassInput";
 import CategoryInput from "../bits/CategoryInput";
 /*
@@ -64,7 +65,7 @@ export const ModeratorList = () => {
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <>
-            <Typography variant="h1">Moderators</Typography>
+            <ConsoleTitle>Moderators</ConsoleTitle>
         <List filters={<ModeratorFilter />}>
             {isSmall ? (
                 <SimpleList
@@ -107,7 +108,7 @@ const ModeratorTitle = () => {
 
 export const ModeratorEdit = () => (
     <Edit title={<ModeratorTitle />}>
-        <Typography variant="h1"><ModeratorTitle /></Typography>
+        <ConsoleTitle><ModeratorTitle /></ConsoleTitle>
         <SimpleForm>
             <ReferenceField source="user_id" reference="users" label={"User"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
@@ -130,7 +131,7 @@ export const ModeratorEdit = () => (
 
 export const ModeratorCreate = () => (
     <Create>
-        <Typography variant="h1">Add Moderator</Typography>
+        <ConsoleTitle>Add Moderator</ConsoleTitle>
         <SimpleForm>
             <ReferenceInput source="user_id" reference="users">
                 <AutocompleteInput

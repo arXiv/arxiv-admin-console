@@ -24,6 +24,7 @@ import {
 import IPv4AddressInput from '../components/IPv4AddressInput';
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
+import ConsoleTitle from "../bits/ConsoleTitle";
 import CardHeader from "@mui/material/CardHeader";
 import DashIcon from "@mui/icons-material/ArrowRightAlt";
 
@@ -39,7 +40,7 @@ const EndorsementDomainListActions = () => (
 
 export const EndorsementDomainList = () => (
     <>
-        <Typography variant="h1">Endorsement Domains</Typography>
+        <ConsoleTitle>Endorsement Domains</ConsoleTitle>
     <List filters={endorsementDomainFilters} actions={<EndorsementDomainListActions />}>
         <Datagrid rowClick={"edit"}>
             <TextField source="id"/>
@@ -103,7 +104,7 @@ const EndorsementDomainFormFields: React.FC<{isCreate: boolean}> = ({isCreate}) 
 export const EndorsementDomainAdd = () => (
     <Box width="80%" ml="10%">
     <Create>
-        <Typography variant="h1">Add Endorsement Domain</Typography>
+        <ConsoleTitle>Add Endorsement Domain</ConsoleTitle>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={true} />
         </SimpleForm>
@@ -114,7 +115,7 @@ export const EndorsementDomainAdd = () => (
 export const EndorsementDomainEdit = () => (
     <Box width="80%" ml="10%">
     <Edit title={false}>
-        <Typography variant="h1">Edit Endorsement Domain</Typography>
+        <ConsoleTitle>Edit Endorsement Domain</ConsoleTitle>
         <Typography variant="h2" ml={"1em"}><EndorsementDomainTitle/></Typography>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={false} />

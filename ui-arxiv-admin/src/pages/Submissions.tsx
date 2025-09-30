@@ -1,4 +1,5 @@
 import {Box, Table, TableRow, TableCell, Typography} from '@mui/material';
+import ConsoleTitle from "../bits/ConsoleTitle";
 import {
     BooleanInput,
     Create,
@@ -133,7 +134,7 @@ export const SubmissionList = () => {
 
     return (
         <>
-            <Typography variant="h1" >Submissions</Typography>
+            <ConsoleTitle>Submissions</ConsoleTitle>
         <List filters={<SubmissionFilter/>}
               filterDefaultValues={{
                   submission_status: [],
@@ -196,7 +197,7 @@ export const SubmissionEdit = () => {
     return (
         <Box display={"flex"} flexDirection={"column"}>
             <Edit >
-                <Typography variant={"h1"}> { "Edit: "}<SubmissionTitle /></Typography>
+                <ConsoleTitle>Edit: <SubmissionTitle /></ConsoleTitle>
 
                 <SubmissionAdminLogAccordion />
                 <SimpleForm toolbar={<SubmissionEditToolbar />}>
@@ -525,7 +526,7 @@ export const SubmissionShow = () => {
     return (
         <Box display={"flex"} flexDirection={"column"}>
             <Show actions={false}>
-                <Typography variant={"h1"}> <SubmissionTitle /></Typography>
+                <ConsoleTitle><SubmissionTitle /></ConsoleTitle>
                 <SubmissionShowActions />
                 <SubmissionAdminLogAccordion />
                 <SimpleShowLayout>

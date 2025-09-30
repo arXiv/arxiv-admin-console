@@ -11,6 +11,7 @@ import { BoxProps } from '@mui/material/Box';
 import { RuntimeContext } from "../RuntimeContext";
 import Paper from "@mui/material/Paper";
 import NavCard from '../bits/NavCard';
+import ConsoleTitle from "../bits/ConsoleTitle";
 
 // import { useNavigate } from 'react-router-dom';
 
@@ -98,7 +99,6 @@ export const Dashboard = () => {
                 width: '100%',
                 display: 'flex',
                 justifyContent: 'center',
-                p: 3,
                 mt: 3
             }}
         >
@@ -108,7 +108,7 @@ export const Dashboard = () => {
                     maxWidth: '1200px'
                 }}
             >
-                <Typography fontSize={"3rem"} fontWeight={700} component={"h1"}>Welcome {runtimeProps.currentUser?.first_name}</Typography>
+                <ConsoleTitle>Welcome, {runtimeProps.currentUser?.first_name}</ConsoleTitle>
                 <Box sx={{ my: 2, display: 'flex', gap: 2, mt: 4 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
                         {runtimeProps.arxivNavLinks.map(navSection => (

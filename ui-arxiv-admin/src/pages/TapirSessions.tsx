@@ -1,4 +1,5 @@
 import {Grid, Table, TableCell, TableRow, useMediaQuery, Box, Button, LinearProgress, Typography} from '@mui/material';
+import ConsoleTitle from "../bits/ConsoleTitle";
 import {
     BooleanInput,
     Create,
@@ -195,7 +196,7 @@ const TapirSessionFilter = (props: any) => {
 export const TapirSessionList = () => {
     return (
         <>
-            <Typography variant="h1">Tapir Sessions</Typography>
+            <ConsoleTitle>Tapir Sessions</ConsoleTitle>
         <List filters={<TapirSessionFilter/>}>
             <Datagrid rowClick="edit" bulkActionButtons={<TapirSessionBulkActionButtons/>}>
                 <NumberField source="id" label="TapirSession ID"/>
@@ -248,7 +249,7 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
     return (
         <Box display="flex" flexDirection="column" sx={{gap: 1, m: 1}} maxWidth="sm">
             <Edit {...props} >
-                <Typography variant="h1"><TapirSessionTitle /></Typography>
+                <ConsoleTitle><TapirSessionTitle /></ConsoleTitle>
                 <SimpleForm toolbar={<SaveOnlyToolbar/>}>
                     <FormGroupContextProvider name="tapirSession">
                         <Table size={"small"}>
