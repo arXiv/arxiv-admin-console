@@ -26,6 +26,7 @@ import CategoryField from "../bits/CategoryField";
 import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
 import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 
 /*
     archive: Mapped[str] = mapped_column(ForeignKey('arXiv_archives.archive_id'), primary_key=True, nullable=False, server_default=FetchedValue())
@@ -102,25 +103,24 @@ const CategoryTitle = () => {
 export const CategoryEdit = () => (
     <Box width="80%" ml="10%">
 
-    <Edit title={<CategoryTitle />}>
+    <Edit title={<CategoryTitle />} component={"div"}>
         <ConsoleTitle><CategoryTitle /></ConsoleTitle>
+        <Paper >
+            <SimpleForm>
+                <TextInput source="archive" />
+                <TextInput source="subject_class" />
 
-        <SimpleForm>
-            <TextInput source="archive" />
-            <TextInput source="subject_class" />
+                <BooleanField source="definitive" FalseIcon={null}/>
+                <BooleanField source="active" FalseIcon={null}/>
+                <TextInput source="category_name" />
 
-            <BooleanField source="definitive" FalseIcon={null}/>
-            <BooleanField source="active" FalseIcon={null}/>
-            <TextInput source="category_name" />
+                <SelectInput source="endorse_all" label="Endorse All" choices={yesNoDefaultChoices} />
+                <SelectInput source="endorse_email" label="Endorse Email" choices={yesNoDefaultChoices} />
 
-            <SelectInput source="endorse_all" label="Endorse All" choices={yesNoDefaultChoices} />
-            <SelectInput source="endorse_email" label="Endorse Email" choices={yesNoDefaultChoices} />
-
-            <NumberInput source="papers_to_endorse" />
-            <TextInput source="endorsement_domain" />
-
-
-        </SimpleForm>
+                <NumberInput source="papers_to_endorse" />
+                <TextInput source="endorsement_domain" />
+            </SimpleForm>
+        </Paper>
     </Edit>
     </Box>
 );
