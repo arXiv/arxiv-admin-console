@@ -29,6 +29,7 @@ import {
 } from 'react-admin';
 
 import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
@@ -460,9 +461,12 @@ export const ListEndorsements = () => {
     }
 
     return (
+        <Card >
+            <CardHeader title="Endorsements" />
         <Table >
             {endorsements?.map((endorsement: any) => <Endorsement endorsement={endorsement} />)}
         </Table>
+        </Card>
     );
 }
 
@@ -537,7 +541,7 @@ export const EndorsementRequestEdit = () => {
 
 
     return (
-        <Box width={"80%"} ml={"10%"} maxWidth={"md"}>
+        <Box width={"80%"} ml={"10%"} maxWidth={"md"} gap={2}>
             <Edit title={false} actions={false} component={"div"}>
                 <ConsoleTitle sx={{ml: 2}}>
                     Edit Endorsement Request
@@ -547,10 +551,9 @@ export const EndorsementRequestEdit = () => {
                     <EndorsementRequestTitle/>
                 </Typography>
 
-                <Box display="flex" flexDirection="row" gap={2}>
-                    <Box flex={1}>
+                <Box display="flex" flexDirection="row" gap={2} m={2}>
+                    <Paper elevation={2}>
                         <SimpleForm toolbar={<EndorsementRequestEditToolbar />}>
-
                             <Box ml={3} flexGrow={1} display="flex" flexDirection="row" justifyContent="space-between">
                                 <BooleanInput source={"flag_valid"} label={"Valid"} />
                                 <BooleanInput source={"flag_open"} label={"Open"} />
@@ -609,15 +612,15 @@ export const EndorsementRequestEdit = () => {
 
                             </Table>
                         </SimpleForm>
-                    </Box>
+                    </Paper>
 
                     <Box mt={2}>
                         <ShowDemographic />
                     </Box>
-                    <Box mt={2}>
-                        <ListEndorsements />
-                    </Box>
+                </Box>
 
+                <Box mt={2}>
+                    <ListEndorsements />
                 </Box>
 
             </Edit>
