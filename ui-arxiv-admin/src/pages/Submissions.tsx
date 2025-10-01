@@ -195,6 +195,172 @@ const SubmissionEditToolbar = () => (
     </Toolbar>
 );
 
+const SubmissionTable = ({ mode }: { mode: 'edit' | 'show' }) => {
+    return (
+        <Table size="small" sx={{
+            '& .MuiTableCell-head': {
+                width: '10rem',
+                textAlign: 'right',
+            }
+        }}>
+            <TableRow>
+                <TableCell variant="head">ID</TableCell>
+                <TableCell>
+                    <ArxivCheckSubmissionLink source={"id"} />
+                    {mode === 'show' && (
+                        <>
+                            {" / "}
+                            <TextField source="document_id"/>
+                        </>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Source Format</TableCell>
+                <TableCell>
+                    <TextField source="source_format"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Source Size</TableCell>
+                <TableCell>
+                    <NumberField source="source_size"/>
+                    {" bytes"}
+                </TableCell>
+            </TableRow>
+
+            <TableRow>
+                <TableCell variant="head">Status</TableCell>
+                <TableCell>
+                    <SelectField source="status" choices={submissionStatusOptions} />
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">User Identity</TableCell>
+                <TableCell>
+                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <TextField source={"last_name"}/>
+                        {", "}
+                        <TextField source={"first_name"}/>
+                    </ReferenceField>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Email</TableCell>
+                <TableCell>
+                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
+                        <EmailField source={"email"}/>
+                    </ReferenceField>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">From Name</TableCell>
+                <TableCell>
+                    {mode === 'edit' ? (
+                        <TextInput source="submitter_name" helperText={false}/>
+                    ) : (
+                        <TextField source="submitter_name"/>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">From Email</TableCell>
+                <TableCell>
+                    {mode === 'edit' ? (
+                        <TextInput source="submitter_email" helperText={false}/>
+                    ) : (
+                        <TextField source="submitter_email"/>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Date Created</TableCell>
+                <TableCell>
+                    <ISODateField source="created" label="Created"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Date Updated</TableCell>
+                <TableCell>
+                    <ISODateField source="updated"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Submission Date</TableCell>
+                <TableCell>
+                    <ISODateField source="submit_time"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Release Time</TableCell>
+                <TableCell>
+                    <ISODateField source="release_time"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Categories</TableCell>
+                <TableCell >
+                    {mode === 'edit' ? (
+                        <ArchiveSubjectClassInput source="id" sourceCategory="archive"
+                                                  sourceClass="subject_class"
+                                                  helperText={false}
+                        />
+                    ) : (
+                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Title</TableCell>
+                <TableCell >
+                    {mode === 'edit' ? (
+                        <TextInput source="title" helperText={false}/>
+                    ) : (
+                        <TextField source="title"/>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Authors</TableCell>
+                <TableCell>
+                    {mode === 'edit' ? (
+                        <TextInput source="authors" helperText={false}/>
+                    ) : (
+                        <TextField source="authors"/>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Comments</TableCell>
+                <TableCell>
+                    {mode === 'edit' ? (
+                        <TextInput source="comments" helperText={false}/>
+                    ) : (
+                        <TextField source="comments"/>
+                    )}
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">License</TableCell>
+                <TableCell>
+                    <TextField source="license"/>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell variant="head">Abstract</TableCell>
+                <TableCell>
+                    {mode === 'edit' ? (
+                        <TextInput source="abstract" multiline rows={20} helperText={false}/>
+                    ) : (
+                        <TextField source="abstract"/>
+                    )}
+                </TableCell>
+            </TableRow>
+        </Table>
+    );
+};
+
 const SubmissionEditContent = () => {
     const record = useRecordContext();
     const runtimeProps = useContext(RuntimeContext);
@@ -223,116 +389,11 @@ const SubmissionEditContent = () => {
             </Box>
 
             <Paper elevation={2} sx={{width: "100%", maxWidth: "lg", margin: "0 auto"}}>
-
-            <SubmissionAdminLogAccordion />
-            <SimpleForm toolbar={<SubmissionEditToolbar />}>
-                    <Table size="small">
-                        <TableRow>
-                            <TableCell>ID</TableCell>
-                            <TableCell>
-                                <ArxivCheckSubmissionLink source={"id"} />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Source Format</TableCell>
-                            <TableCell>
-                                <TextField source="source_format"/>
-                                {" - "}
-                                <NumberField source="source_size"/>
-                                {" bytes"}
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Status</TableCell>
-                            <TableCell>
-                                <SelectField source="status" choices={submissionStatusOptions} />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>User Identity</TableCell>
-                            <TableCell>
-                                <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
-                                                link={(record, reference) => `/${reference}/${record.id}`}>
-                                    <TextField source={"last_name"}/>
-                                    {", "}
-                                    <TextField source={"first_name"}/>
-                                </ReferenceField>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Email</TableCell>
-                            <TableCell>
-                                <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
-                                    <EmailField source={"email"}/>
-                                </ReferenceField>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>From Name</TableCell>
-                            <TableCell>
-                                <TextInput source="submitter_name" helperText={false}/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>From Email</TableCell>
-                            <TableCell>
-                                <TextInput source="submitter_email" helperText={false}/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Date Created</TableCell>
-                            <TableCell>
-                                <ISODateField source="created" label="Created"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Date Updated</TableCell>
-                            <TableCell>
-                                <ISODateField source="updated"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Categories</TableCell>
-                            <TableCell colSpan={3}>
-                                <ArchiveSubjectClassInput source="id" sourceCategory="archive"
-                                                          sourceClass="subject_class"
-                                                          helperText={false}
-                                />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Title</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextInput source="title" helperText={false}/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Authors</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextInput source="authors" helperText={false}/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Comments</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextInput source="comments" helperText={false}/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>License</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextField source="license"/>
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>Abstract</TableCell>
-                            <TableCell colSpan={3}>
-                                <TextInput source="abstract" multiline rows={20} helperText={false}/>
-                            </TableCell>
-                        </TableRow>
-                    </Table>
+                <SubmissionAdminLogAccordion />
+                <SimpleForm toolbar={<SubmissionEditToolbar />}>
+                    <SubmissionTable mode="edit" />
                 </SimpleForm>
-                </Paper>
+            </Paper>
         </>
     );
 };
@@ -432,125 +493,10 @@ const SubmissionShowActions = () => {
 };
 
 const SubmissionRecordContent = () => {
-
-    return (<Paper elevation={2}>
-        <Table size="small">
-            <TableRow>
-                <TableCell variant={"head"} sx={{minWidth: "10rem"}}>ID</TableCell>
-                <TableCell>
-                    <ArxivCheckSubmissionLink source={"id"} />
-                    {" / "}
-                    <TextField source="document_id"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Source Format</TableCell>
-                <TableCell>
-                    <TextField source="source_format"/>
-                    {" - "}
-                    <NumberField source="source_size"/>
-                    {" bytes"}
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Status</TableCell>
-                <TableCell>
-                    <SelectField source="status" choices={submissionStatusOptions}/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>User Identity</TableCell>
-                <TableCell>
-                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
-                                    link={(record, reference) => `/${reference}/${record.id}`}>
-                        <TextField source={"last_name"}/>
-                        {", "}
-                        <TextField source={"first_name"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Email</TableCell>
-                <TableCell>
-                    <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
-                        <EmailField source={"email"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>From Name</TableCell>
-                <TableCell>
-                    <TextField source="submitter_name"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>From Email</TableCell>
-                <TableCell>
-                    <TextField source="submitter_email"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Date Created</TableCell>
-                <TableCell>
-                    <ISODateField source="created" label="Created"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Date Updated</TableCell>
-                <TableCell>
-                    <ISODateField source="updated"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Submission Date</TableCell>
-                <TableCell>
-                    <ISODateField source="submit_time"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Release Time</TableCell>
-                <TableCell>
-                    <ISODateField source="release_time"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Categories</TableCell>
-                <TableCell colSpan={3}>
-                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Title</TableCell>
-                <TableCell colSpan={3}>
-                    <TextField source="title"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Authors</TableCell>
-                <TableCell colSpan={3}>
-                    <TextField source="authors"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Comments</TableCell>
-                <TableCell colSpan={3}>
-                    <TextField source="comments"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>License</TableCell>
-                <TableCell colSpan={3}>
-                    <TextField source="license"/>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell variant={"head"}>Abstract</TableCell>
-                <TableCell colSpan={3}>
-                    <TextField source="abstract"/>
-                </TableCell>
-            </TableRow>
-        </Table>
-</Paper>
+    return (
+        <Paper elevation={2}>
+            <SubmissionTable mode="show" />
+        </Paper>
     );
 }
 
