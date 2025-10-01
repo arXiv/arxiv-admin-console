@@ -256,7 +256,22 @@ class adminApiDataProvider implements DataProvider {
             } catch (error) {
                 handleHttpError(error, 'Failed to load document metadata');
             }
+        }
+        else if (resource === 'user-paper-ownership-summary') {
+            const { id } = params; // user id
 
+            try {
+                const getUserPaperOwnershipSummary = this.runtimeProps.adminFetcher.path('/v1/paper_owners/user/{user_id}/summary').method('get').create();
+                const response = await getUserPaperOwnershipSummary({
+                    user_id: String(id)
+                });
+
+                return {
+                    data: {...response.data, id: id} as unknown as T
+                };
+            } catch (error) {
+                handleHttpError(error, 'Failed to load document metadata');
+            }
         }
 
         return this.dataProvider.getOne(resource, params);

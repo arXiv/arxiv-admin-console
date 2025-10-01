@@ -26,7 +26,6 @@ const EmailTemplateEdit = lazy(() => import('./pages/EmailTemplates').then(modul
 
 const UserList = lazy(() => import('./pages/Users').then(module => ({ default: module.UserList })));
 const UserEdit = lazy(() => import('./pages/Users').then(module => ({ default: module.UserEdit })));
-const UserCreate = lazy(() => import('./pages/Users').then(module => ({ default: module.UserCreate })));
 
 const EndorsementRequestList = lazy(() => import('./pages/EndorsementRequests').then(module => ({ default: module.EndorsementRequestList })));
 const EndorsementRequestCreate = lazy(() => import('./pages/EndorsementRequests').then(module => ({ default: module.EndorsementRequestCreate })));
@@ -180,7 +179,6 @@ const AdminConsole: React.FC = () => {
                     icon={UserIcon}
                     recordRepresentation="name"
                     edit={UserEdit}
-                    create={UserCreate}
                 />
 
                 <Resource

@@ -681,7 +681,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/precomputed/user": {
+    "/v1/endorsers/precomputed/category/{category}/user": {
         parameters: {
             query?: never;
             header?: never;
@@ -695,7 +695,30 @@ export interface paths {
          *     Returns precomputed endorsement candidates for the specified category
          *     from cloud storage, providing faster response than real-time computation.
          */
-        get: operations["get_cached_endorser_candidates_v1_endorsers_precomputed_user_get"];
+        get: operations["get_cached_endorser_candidates_v1_endorsers_precomputed_category__category__user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsers/precomputed/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cached Endorser Candidate Categories
+         * @description Fetch cached endorsement candidates for a specific category.
+         *
+         *     Returns precomputed endorsement candidates for the specified category
+         *     from cloud storage, providing faster response than real-time computation.
+         */
+        get: operations["get_cached_endorser_candidate_categories_v1_endorsers_precomputed_user_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -871,6 +894,23 @@ export interface paths {
         };
         /** Pwc Link */
         get: operations["pwc_link_v1_paper_owners_pwc_link__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/paper_owners/user/{user_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Paper Ownership Summary Of User */
+        get: operations["get_paper_ownership_summary_of_user_v1_paper_owners_user__user_id__summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1832,6 +1872,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/countries/iso2/{alpha2}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Country By Iso2 */
+        get: operations["get_country_by_iso2_v1_countries_iso2__alpha2__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public-users/{user_id}": {
         parameters: {
             query?: never;
@@ -2593,6 +2650,16 @@ export interface components {
             latest: string;
         };
         /**
+         * EndorsementCandidateCategories
+         * @description Model for a single user with multiple categories.
+         */
+        EndorsementCandidateCategories: {
+            /** Id */
+            id: number;
+            /** Data */
+            data: components["schemas"]["EndorsementCandidate"][];
+        };
+        /**
          * EndorsementCandidates
          * @description Model for endorsement candidate data.
          */
@@ -3090,6 +3157,13 @@ export interface components {
             verify_id: boolean;
             /** Is Author */
             is_author: boolean;
+        };
+        /** PaperOwnershipSummaryModel */
+        PaperOwnershipSummaryModel: {
+            /** Total */
+            total: number;
+            /** Author */
+            author: number;
         };
         /** PaperOwnershipUpdateRequest */
         PaperOwnershipUpdateRequest: {
@@ -4929,7 +5003,7 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 /** @description user, auto, admin */
-                type?: string | string[] | null;
+                type?: string[] | string | null;
                 /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
@@ -5177,7 +5251,7 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 /** @description user, auto, admin */
-                type?: string | string[] | null;
+                type?: string[] | string | null;
                 /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
@@ -5566,12 +5640,51 @@ export interface operations {
             };
         };
     };
-    get_cached_endorser_candidates_v1_endorsers_precomputed_user_get: {
+    get_cached_endorser_candidates_v1_endorsers_precomputed_category__category__user_get: {
         parameters: {
-            query: {
-                category: string;
+            query?: {
                 /** @description List of user IDs to filter by */
-                id?: number[] | null;
+                id?: number[] | number | null;
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+            };
+            header?: never;
+            path: {
+                category: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cached_endorser_candidate_categories_v1_endorsers_precomputed_user_get: {
+        parameters: {
+            query?: {
+                /** @description List of user IDs to filter by */
+                id?: number[] | number | null;
                 /** @description sort by */
                 _sort?: string | null;
                 /** @description sort order */
@@ -5591,7 +5704,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementCandidate"][];
+                    "application/json": components["schemas"]["EndorsementCandidateCategories"][];
                 };
             };
             /** @description Validation Error */
@@ -5971,6 +6084,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_paper_ownership_summary_of_user_v1_paper_owners_user__user_id__summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperOwnershipSummaryModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -7936,6 +8080,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CountryAlpha2Model"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_country_by_iso2_v1_countries_iso2__alpha2__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alpha2: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountryAlpha2Model"];
                 };
             };
             /** @description Validation Error */

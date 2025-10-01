@@ -1003,3 +1003,21 @@ async def bulk_upload_ownership_request(
         valid=True,
         auto=False
     )
+
+
+class PaperOwnershipSummaryModel(BaseModel):
+    total: int
+    author: int
+
+@router.get("/user/{user_id:str}/summary")
+async def get_paper_ownership_summary_of_user(
+        user_id: str,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db),
+    ) -> PaperOwnershipSummaryModel:
+    if not current_user.is_admin and str(current_user.user_id) != str(user_id):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    valid_count = session.query(PaperOwner).filter(PaperOwner.user_id == user_id, PaperOwner.valid == 1).count()
+    authored_count = session.query(PaperOwner).filter(PaperOwner.user_id == user_id, PaperOwner.valid == 1, PaperOwner.flag_author == 1).count()
+    result = PaperOwnershipSummaryModel(total=valid_count, author=authored_count)
+    return result

@@ -89,12 +89,14 @@ import UserNameDialog from "../components/UserNameDialog";
 import {UserSubmissionList} from "../components/UserSumissionList";
 import BulkPaperOwnerDialog from "../components/BulkPaperOwnerDialog";
 import {StandardAccordion} from "../components/StandardAccordion";
+import {LazyAccordion} from "../components/LazyAccordion";
 import {DottedLineRow} from "../components/DottedLineRow";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
 type SubmissionSummaryT = adminApi['/v1/submissions/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
+type PaperOwnershipSummaryT = adminApi['/v1/paper_owners/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
 
 const UserFilter = (props: any) => (
     <Filter {...props}>
@@ -395,7 +397,7 @@ function UserDemographic() {
 
                     <DottedLineRow label="ORCID">
                         <ReferenceField reference={"orcid_ids"} source={"id"}>
-                            <TextField source="orcid" emptyText={"No ORCID"}/>
+                            <TextField source="orcid" />
                         </ReferenceField>
                     </DottedLineRow>
                 </Box>
@@ -576,6 +578,7 @@ const UserEditContent = () => {
     const record = useRecordContext();
     const dataProvider = useDataProvider();
     const [submissionSummary, setSubmissionSummary] = useState<SubmissionSummaryT | null>(null);
+    const [paperOwnershipSummary, setPaperOwnershipSummary] = useState<PaperOwnershipSummaryT | null>(null);
 
 
     useEffect(() => {
@@ -593,7 +596,23 @@ const UserEditContent = () => {
                 }
             }
         }
+
+        async function getPaperOwnershipSummary() {
+            if (record?.id) {
+                try {
+                    const response = await dataProvider.getOne("user-paper-ownership-summary", {id: record.id})
+                    if (response) {
+                        setPaperOwnershipSummary(response.data);
+                    }
+                }
+                catch (error) {
+                    console.error("Error fetching user submission summary:", error);
+                }
+            }
+        }
+
         getUserSubmissionSummary();
+        getPaperOwnershipSummary();
     }, [dataProvider, record?.id]);
 
     const switchProps: SxProps = {
@@ -726,7 +745,8 @@ const UserEditContent = () => {
 
     const labelWidth = '6rem';
 
-    const usersSubSummary = submissionSummary ? `${submissionSummary.active} active, ${submissionSummary.submitted} submitted, ${submissionSummary.total} owned, ${submissionSummary.rejected} rejected` : "";
+    const usersSubSummary = submissionSummary ? `${submissionSummary.active.toLocaleString()} active, ${submissionSummary.submitted.toLocaleString()} submitted, ${submissionSummary.total.toLocaleString()} owned, ${submissionSummary.rejected.toLocaleString()} rejected` : "";
+    const usersOwnershipSummary = paperOwnershipSummary ? `${paperOwnershipSummary.total.toLocaleString()} total, ${paperOwnershipSummary.author.toLocaleString()} authored` : "";
 
     return (
         <>
@@ -934,13 +954,13 @@ const UserEditContent = () => {
 
                     </StandardAccordion>
 
-                    <StandardAccordion title="Submissions" summary={usersSubSummary}>
+                    <LazyAccordion title="Submissions" summary={usersSubSummary}>
                         <UserSubmissionList/>
-                    </StandardAccordion>
+                    </LazyAccordion>
 
-                    <StandardAccordion title="Owned Papers">
+                    <LazyAccordion title="Owned Papers" summary={usersOwnershipSummary}>
                         <OwnedPaperList/>
-                    </StandardAccordion>
+                    </LazyAccordion>
 
                     <StandardAccordion title="User Activity">
                         <Typography variant={"h6"}>Audit Logs</Typography>
@@ -986,6 +1006,7 @@ export const UserEdit = () => {
     )
 };
 
+/*
 export const UserCreate = () => (
     <Create>
         <SimpleForm>
@@ -1000,4 +1021,4 @@ export const UserCreate = () => (
         </SimpleForm>
     </Create>
 );
-
+*/
