@@ -197,7 +197,7 @@ export const UserList = () => {
     }, [location.search, navigate, location.pathname]);
 
     return (
-        <Box maxWidth={"xl"} sx={{ margin: '0 auto', backgroundColor: 'background.default' }}>
+        <Box maxWidth={"lg"} sx={{backgroundColor: 'background.default' }} ml={"10%"} width={"80%"}>
             <ConsoleTitle>Users</ConsoleTitle>
             <List filters={<UserFilter/>}>
                 <Datagrid rowClick="edit" bulkActionButtons={false}>
