@@ -124,6 +124,13 @@ const commonBaseTheme = {
                 },
             },
         },
+        MuiTableCell: {
+            styleOverrides: {
+                head: {
+                    fontWeight: 700,
+                },
+            },
+        },
     },
 };
 

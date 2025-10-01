@@ -1,4 +1,4 @@
-import {Box, Table, TableRow, TableCell, Typography} from '@mui/material';
+import {Box, Table, TableRow, TableCell, Typography, Link} from '@mui/material';
 import ConsoleTitle from "../bits/ConsoleTitle";
 import {
     BooleanInput,
@@ -42,9 +42,11 @@ import ArxivCheckSubmissionLink from "../bits/ArxivCheckSubmissionLink";
 import ISODateField from '../bits/ISODateFiled';
 import UriTemplate from 'uri-templates';
 import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import LinkIcon from '@mui/icons-material/Link';
+import LaunchIcon from '@mui/icons-material/Launch';
 import { useNavigate } from 'react-router-dom';
 import { StandardAccordion } from '../components/StandardAccordion';
 
@@ -193,14 +195,37 @@ const SubmissionEditToolbar = () => (
     </Toolbar>
 );
 
-export const SubmissionEdit = () => {
-    return (
-        <Box display={"flex"} flexDirection={"column"}>
-            <Edit >
-                <ConsoleTitle>Edit: <SubmissionTitle /></ConsoleTitle>
+const SubmissionEditContent = () => {
+    const record = useRecordContext();
+    const runtimeProps = useContext(RuntimeContext);
 
-                <SubmissionAdminLogAccordion />
-                <SimpleForm toolbar={<SubmissionEditToolbar />}>
+    const arxivCheckUrl = record?.id ? UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
+        arxivCheck: runtimeProps.ARXIV_CHECK,
+        submissionId: record.id,
+    }) : '';
+
+    return (
+        <>
+            <ConsoleTitle>Edit: <SubmissionTitle /></ConsoleTitle>
+
+            <Box sx={{ mb: 2 }}>
+                <Button
+                    component="a"
+                    href={arxivCheckUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="outlined"
+                    disabled={!record?.id}
+                    endIcon={<LaunchIcon />}
+                >
+                    Jump to arXiv Check
+                </Button>
+            </Box>
+
+            <Paper elevation={2} sx={{width: "100%", maxWidth: "lg", margin: "0 auto"}}>
+
+            <SubmissionAdminLogAccordion />
+            <SimpleForm toolbar={<SubmissionEditToolbar />}>
                     <Table size="small">
                         <TableRow>
                             <TableCell>ID</TableCell>
@@ -307,6 +332,16 @@ export const SubmissionEdit = () => {
                         </TableRow>
                     </Table>
                 </SimpleForm>
+                </Paper>
+        </>
+    );
+};
+
+export const SubmissionEdit = () => {
+    return (
+        <Box display={"flex"} flexDirection={"column"} width={"80%"} ml={"10%"} maxWidth={"lg"}>
+            <Edit component={"div"}>
+                <SubmissionEditContent />
             </Edit>
         </Box>
     );
@@ -355,25 +390,23 @@ const SubmissionShowActions = () => {
         }
     };
 
-    const handleArxivCheck = () => {
-        if (record?.id) {
-            const url = UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
-                arxivCheck: runtimeProps.ARXIV_CHECK,
-                submissionId: record.id,
-            });
-            window.open(url, '_blank');
-        }
-    };
+    const arxivCheckUrl = record?.id ? UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
+        arxivCheck: runtimeProps.ARXIV_CHECK,
+        submissionId: record.id,
+    }) : '';
 
     return (
         <TopToolbar sx={{ justifyContent: 'space-between' }}>
             <Button
+                component="a"
+                href={arxivCheckUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 variant="outlined"
-                startIcon={<LinkIcon />}
-                onClick={handleArxivCheck}
                 disabled={!record?.id}
+                endIcon={<LaunchIcon />}
             >
-                arXiv Check
+                Jump to arXiv Check
             </Button>
             <Box display="flex" gap={1}>
                 <EditButton />
@@ -400,10 +433,10 @@ const SubmissionShowActions = () => {
 
 const SubmissionRecordContent = () => {
 
-    return (<>
+    return (<Paper elevation={2}>
         <Table size="small">
             <TableRow>
-                <TableCell>ID</TableCell>
+                <TableCell variant={"head"} sx={{minWidth: "10rem"}}>ID</TableCell>
                 <TableCell>
                     <ArxivCheckSubmissionLink source={"id"} />
                     {" / "}
@@ -411,7 +444,7 @@ const SubmissionRecordContent = () => {
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Source Format</TableCell>
+                <TableCell variant={"head"}>Source Format</TableCell>
                 <TableCell>
                     <TextField source="source_format"/>
                     {" - "}
@@ -420,13 +453,13 @@ const SubmissionRecordContent = () => {
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Status</TableCell>
+                <TableCell variant={"head"}>Status</TableCell>
                 <TableCell>
                     <SelectField source="status" choices={submissionStatusOptions}/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>User Identity</TableCell>
+                <TableCell variant={"head"}>User Identity</TableCell>
                 <TableCell>
                     <ReferenceField source="submitter_id" reference="users" label={"Submitter"}
                                     link={(record, reference) => `/${reference}/${record.id}`}>
@@ -437,7 +470,7 @@ const SubmissionRecordContent = () => {
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Email</TableCell>
+                <TableCell variant={"head"}>Email</TableCell>
                 <TableCell>
                     <ReferenceField source="submitter_id" reference="users" label={"Submitter"}>
                         <EmailField source={"email"}/>
@@ -445,87 +478,87 @@ const SubmissionRecordContent = () => {
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>From Name</TableCell>
+                <TableCell variant={"head"}>From Name</TableCell>
                 <TableCell>
                     <TextField source="submitter_name"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>From Email</TableCell>
+                <TableCell variant={"head"}>From Email</TableCell>
                 <TableCell>
                     <TextField source="submitter_email"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Date Created</TableCell>
+                <TableCell variant={"head"}>Date Created</TableCell>
                 <TableCell>
                     <ISODateField source="created" label="Created"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Date Updated</TableCell>
+                <TableCell variant={"head"}>Date Updated</TableCell>
                 <TableCell>
                     <ISODateField source="updated"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Submission Date</TableCell>
+                <TableCell variant={"head"}>Submission Date</TableCell>
                 <TableCell>
                     <ISODateField source="submit_time"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Release Time</TableCell>
+                <TableCell variant={"head"}>Release Time</TableCell>
                 <TableCell>
                     <ISODateField source="release_time"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Categories</TableCell>
+                <TableCell variant={"head"}>Categories</TableCell>
                 <TableCell colSpan={3}>
                     <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Title</TableCell>
+                <TableCell variant={"head"}>Title</TableCell>
                 <TableCell colSpan={3}>
                     <TextField source="title"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Authors</TableCell>
+                <TableCell variant={"head"}>Authors</TableCell>
                 <TableCell colSpan={3}>
                     <TextField source="authors"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Comments</TableCell>
+                <TableCell variant={"head"}>Comments</TableCell>
                 <TableCell colSpan={3}>
                     <TextField source="comments"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>License</TableCell>
+                <TableCell variant={"head"}>License</TableCell>
                 <TableCell colSpan={3}>
                     <TextField source="license"/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell>Abstract</TableCell>
+                <TableCell variant={"head"}>Abstract</TableCell>
                 <TableCell colSpan={3}>
                     <TextField source="abstract"/>
                 </TableCell>
             </TableRow>
         </Table>
-</>
+</Paper>
     );
 }
 
 
 export const SubmissionShow = () => {
     return (
-        <Box display={"flex"} flexDirection={"column"}>
-            <Show actions={false}>
+        <Box display={"flex"} flexDirection={"column"} width={"80%"} ml={"10%"} maxWidth={"lg"}>
+            <Show actions={false} component={"div"}>
                 <ConsoleTitle><SubmissionTitle /></ConsoleTitle>
                 <SubmissionShowActions />
                 <SubmissionAdminLogAccordion />
