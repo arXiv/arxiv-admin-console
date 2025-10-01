@@ -1,6 +1,9 @@
 import { createTheme } from '@mui/material/styles';
 import { defaultTheme, defaultDarkTheme } from 'react-admin';
 
+export const AdminConsoleBackgroundColor = '#F9F7F7';
+export const AdminConsoleBackgroundColor2 = '#EAE8E8';
+
 export const LightLimeColor = '#F0F5CF';
 export const DarkLimeColor = '#1B3B1B';
 export const AccessLimeColor = '#C4D82E';
@@ -9,8 +12,8 @@ export const ArchivalBlueColor ='#1f5e96';
 export const ArchivalLightBlueColor ='#3091e6';
 export const LibraryGreyColor = '#6b6459'; // for light theme
 export const LighterLibraryGreyColor = '#a8a19a'; // for dark theme
-export const VeryLightGreyColor = '#f0f0f0'
-export const VeryVeryLightGreyColor = '#f8f8f8'
+export const VeryLightGreyColor = AdminConsoleBackgroundColor2
+export const VeryVeryLightGreyColor = AdminConsoleBackgroundColor
 export const WHITE = '#FFFFFF';
 export const BLACK = '#000000';
 

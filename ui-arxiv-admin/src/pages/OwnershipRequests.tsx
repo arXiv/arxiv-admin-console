@@ -685,7 +685,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
     const ownedPapers = paperOwners.filter((paper) => paper.valid).map((paper) => paper.document_id);
 
     return (
-        <Edit title={false} redirect={false}>
+        <Edit title={false} redirect={false} component={"div"}>
             <ConsoleTitle><OwnershipRequestTitle /></ConsoleTitle>
 
             <SimpleForm toolbar={<OwnershipRequestToolbar
@@ -760,7 +760,11 @@ export const OwnershipRequestEdit = () => {
 
     if (!id || !this_request || !this_user) return null;
 
-    return <OwnershipRequestEditContent key={id} id={id} nameFragments={nameFragments} ownershipRequest={this_request} />
+    return (
+        <Box ml={"10%"} width={"80%"} maxWidth={"xl"}>
+            <OwnershipRequestEditContent key={id} id={id} nameFragments={nameFragments} ownershipRequest={this_request} />
+        </Box>
+    );
 }
 
 export const OwnershipRequestCreate = () => (

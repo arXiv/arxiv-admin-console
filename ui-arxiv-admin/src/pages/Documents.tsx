@@ -329,26 +329,17 @@ const DocumentContent = () => {
 export const DocumentShow = () => {
 
     return (
-        <Show title={false} actions={false} sx={{
-            backgroundColor: 'background.default',
-            '& .RaShow-card': {
-                backgroundColor: 'background.default',
-                boxShadow: 'none'
-            }
-        }}>
-            <Box maxWidth={"lg"} sx={{ margin: '0 auto', backgroundColor: 'background.default' }}>
+        <Box maxWidth={"lg"} ml={"10%"} width={"80%"}>
+            <Show title={false} actions={false} component={"div"}>
                 <StyledDocumentTitle prefix={""}/>
                 <DocumentContent/>
-
                 <Box my={1}>
-                <LazyAccordion title="PDF">
-                    <ShowArxivPdf/>
-                </LazyAccordion>
+                    <LazyAccordion title="PDF">
+                        <ShowArxivPdf/>
+                    </LazyAccordion>
                 </Box>
-
-            </Box>
-
-        </Show>
+            </Show>
+        </Box>
     )
 };
 
@@ -404,7 +395,7 @@ export const StyledDocumentTitle : React.FC<{prefix: string}> = ({prefix}) => {
 
 
 export const DocumentEdit = () => (
-    <Edit title={false} sx={{ backgroundColor: 'background.default' }}>
+    <Edit title={false} component={"div"}>
         <SimpleForm>
             <DocumentContent/>
         </SimpleForm>

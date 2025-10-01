@@ -29,7 +29,6 @@ import {
 } from 'react-admin';
 
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import Table from "@mui/material/Table";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
@@ -44,6 +43,10 @@ import CategoryField from "../bits/CategoryField";
 import PointValueBooleanField from "../bits/PointValueBooleanField";
 import ISODateField from "../bits/ISODateFiled";
 import UserNameField from "../bits/UserNameField";
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from "@mui/material/CardContent";
+import {DottedLineRow} from "../components/DottedLineRow";
 
 interface Category {
     id: string;
@@ -307,94 +310,90 @@ export const ShowDemographic = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchDemographic = async (userId: number) => {
-            try {
-                const response = await dataProvider.getOne('demographics', {id: userId});
-                setDemographic(response.data);
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching demographic data:", error);
-                setLoading(false);
+        const fetchDemographic = async () => {
+            if (record) {
+                console.log("fetchDemo " + JSON.stringify(record));
+                const userId = record.endorsee_id;
+                try {
+                    const response = await dataProvider.getOne('demographics', {id: userId});
+                    setDemographic(response.data);
+                    setLoading(false);
+                } catch (error) {
+                    console.error("Error fetching demographic data:", error);
+                    setLoading(false);
+                }
             }
         };
 
-        if (record) {
-            fetchDemographic(record.endorsee_id);
-        }
+        fetchDemographic();
     }, [dataProvider, record]);
 
 
     return (
-        <Table size="small" >
-            <TableRow>
-                <TableCell>Session ID</TableCell>
-                <TableCell>
-                    <ReferenceField source={"id"} reference="endorsement_requests_audit" link={(record, reference) => `/tapir_sessions/${record.id}/edit`}>
-                        <TextField source={"session_id"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>Session Start/End</TableCell>
-                <TableCell>
-                    <ReferenceField source={"id"} reference="endorsement_requests_audit" >
-                        <ReferenceField source={"id"} reference="tapir_sessions">
-                            <ISODateField source={"start_time"} showTime />
+        <Card sx={{backgroundColor: '#1c1a17', borderRadius: '16px', mb: 2}}>
+            <CardHeader
+                title="Demographic"
+                sx={{
+                    '& .MuiCardHeader-title': {
+                        color: '#c4d82e',
+                        fontSize: '1em',
+                        fontWeight: 'bold'
+                    }
+                }}
+            />
+            <CardContent>
+                <Box display="flex" flexDirection="column" gap={1}>
+                    <DottedLineRow label="Session ID">
+                        <ReferenceField source={"id"} reference="endorsement_requests_audit" link={(record, reference) => `/tapir_sessions/${record.id}/edit`}>
+                            <TextField source={"session_id"}/>
                         </ReferenceField>
-                    </ReferenceField>
-                    {" ->  "}
-                    <ReferenceField source={"id"} reference="endorsement_requests_audit" >
-                        <ReferenceField source={"id"} reference="tapir_sessions">
-                            <ISODateField source={"end_time"} showTime />
+                    </DottedLineRow>
+
+                    <DottedLineRow label="Session Start/End">
+                        <ReferenceField source={"id"} reference="endorsement_requests_audit" >
+                            <ReferenceField source={"id"} reference="tapir_sessions">
+                                <ISODateField source={"start_time"} showTime />
+                            </ReferenceField>
                         </ReferenceField>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>Remote Hostname</TableCell>
-                <TableCell>
-                    <ReferenceField source={"id"} reference="endorsement_requests_audit">
-                        <TextField source={"remote_host"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>Remote Address</TableCell>
-                <TableCell>
-                    <ReferenceField source={"id"} reference="endorsement_requests_audit">
-                        <TextField source={"remote_addr"}/>
-                    </ReferenceField>
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell>Endorsement Code</TableCell>
-                <TableCell>
-                    <TextField source={"secret"}/>
-                </TableCell>
-            </TableRow>
-            <RecordContextProvider value={demographic}>
-                <TableRow>
-                    <TableCell>Affiliation</TableCell>
-                    <TableCell>
+                        <ReferenceField source={"id"} reference="endorsement_requests_audit" >
+                            <ReferenceField source={"id"} reference="tapir_sessions">
+                                <ISODateField source={"end_time"} showTime />
+                            </ReferenceField>
+                        </ReferenceField>
+                    </DottedLineRow>
+
+                    <DottedLineRow label="Remote Hostname">
+                        <ReferenceField source={"id"} reference="endorsement_requests_audit">
+                            <TextField source={"remote_host"}/>
+                        </ReferenceField>
+                    </DottedLineRow>
+
+                    <DottedLineRow label="Remote Address">
+                        <ReferenceField source={"id"} reference="endorsement_requests_audit">
+                            <TextField source={"remote_addr"}/>
+                        </ReferenceField>
+                    </DottedLineRow>
+
+                    <DottedLineRow label="Endorsement Code">
+                        <TextField source={"secret"}/>
+                    </DottedLineRow>
+
+                    <RecordContextProvider value={demographic}>
+                        <DottedLineRow label="Affiliation">
                             <TextField source={"affiliation"}/>
-                    </TableCell>
-                </TableRow>
-                <TableRow>
-                    <TableCell>Country</TableCell>
-                    <TableCell>
-                        <TextField source={"country"}/>
-                    </TableCell>
-                </TableRow>
-                <TableRow>
-                    <TableCell>URL</TableCell>
-                    <TableCell>
-                        <RecordContextProvider value={demographic}>
+                        </DottedLineRow>
+
+                        <DottedLineRow label="Country">
+                            <TextField source={"country"}/>
+                        </DottedLineRow>
+
+                        <DottedLineRow label="URL">
                             <TextField source={"url"}/>
-                        </RecordContextProvider>
-                    </TableCell>
-                </TableRow>
-            </RecordContextProvider>
-        </Table>
+                        </DottedLineRow>
+                    </RecordContextProvider>
+                </Box>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -538,10 +537,9 @@ export const EndorsementRequestEdit = () => {
 
 
     return (
-        <Box width="80%" ml={"10%"}>
-        <Edit title={false} actions={false} >
-            <Box sx={{display: 'flex', flexDirection: 'column', gap: 1}} >
-                <ConsoleTitle>
+        <Box width={"80%"} ml={"10%"} maxWidth={"md"}>
+            <Edit title={false} actions={false} component={"div"}>
+                <ConsoleTitle sx={{ml: 2}}>
                     Edit Endorsement Request
                 </ConsoleTitle>
 
@@ -549,74 +547,81 @@ export const EndorsementRequestEdit = () => {
                     <EndorsementRequestTitle/>
                 </Typography>
 
-                <Grid size={6}>
-                    <SimpleForm toolbar={<EndorsementRequestEditToolbar />}>
-                        <Box flexGrow={1} display="flex" flexDirection="row" justifyContent="space-between">
+                <Box display="flex" flexDirection="row" gap={2}>
+                    <Box flex={1}>
+                        <SimpleForm toolbar={<EndorsementRequestEditToolbar />}>
+
+                            <Box ml={3} flexGrow={1} display="flex" flexDirection="row" justifyContent="space-between">
                                 <BooleanInput source={"flag_valid"} label={"Valid"} />
                                 <BooleanInput source={"flag_open"} label={"Open"} />
-                        </Box>
-                        <Table size={"small"}>
-                            <TableRow>
-                                <TableCell>
-                                    ID
-                                </TableCell>
-                                <TableCell>
-                                    <TextField source="id" />
-                                </TableCell>
-                            </TableRow>
+                            </Box>
 
-                            <TableRow>
-                                <TableCell>
-                                    Category
-                                </TableCell>
-                                <TableCell>
-                                    <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} label={"Category"}/>
-                                </TableCell>
-                            </TableRow>
+                            <Table size={"small"}>
+                                <TableRow>
+                                    <TableCell>
+                                        ID
+                                    </TableCell>
+                                    <TableCell>
+                                        <TextField source="id" />
+                                    </TableCell>
+                                </TableRow>
 
-                            <TableRow>
-                                <TableCell>
-                                    Endorsee
-                                </TableCell>
-                                <TableCell>
-                                    <ReferenceField source="endorsee_id" reference="users"
-                                                    link={(record, reference) => `/${reference}/${record.id}`} >
-                                        <UserNameField withEmail withUsername />
-                                    </ReferenceField>
-                                </TableCell>
-                            </TableRow>
+                                <TableRow>
+                                    <TableCell>
+                                        Category
+                                    </TableCell>
+                                    <TableCell>
+                                        <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} label={"Category"}/>
+                                    </TableCell>
+                                </TableRow>
 
-                            <TableRow>
-                                <TableCell>
-                                    Endorser
-                                </TableCell>
-                                <TableCell>
-                                    <ReferenceInput source="endorser_id" reference="users">
-                                        <UserNameField withEmail withUsername />
-                                    </ReferenceInput>
-                                </TableCell>
-                            </TableRow>
+                                <TableRow>
+                                    <TableCell>
+                                        Endorsee
+                                    </TableCell>
+                                    <TableCell>
+                                        <ReferenceField source="endorsee_id" reference="users"
+                                                        link={(record, reference) => `/${reference}/${record.id}`} >
+                                            <UserNameField withEmail withUsername />
+                                        </ReferenceField>
+                                    </TableCell>
+                                </TableRow>
 
-                            <TableRow>
-                                <TableCell>
-                                    Issued when
-                                </TableCell>
-                                <TableCell>
-                                    <ISODateField source="issued_when"  label={"Issued"}/>
-                                </TableCell>
-                            </TableRow>
+                                <TableRow>
+                                    <TableCell>
+                                        Endorser
+                                    </TableCell>
+                                    <TableCell>
+                                        <ReferenceInput source="endorser_id" reference="users">
+                                            <UserNameField withEmail withUsername />
+                                        </ReferenceInput>
+                                    </TableCell>
+                                </TableRow>
 
-                        </Table>
-                    </SimpleForm>
-                    <Grid >
+                                <TableRow>
+                                    <TableCell>
+                                        Issued when
+                                    </TableCell>
+                                    <TableCell>
+                                        <ISODateField source="issued_when"  label={"Issued"}/>
+                                    </TableCell>
+                                </TableRow>
+
+                            </Table>
+                        </SimpleForm>
+                    </Box>
+
+                    <Box mt={2}>
+                        <ShowDemographic />
+                    </Box>
+                    <Box mt={2}>
                         <ListEndorsements />
-                    </Grid>
-                </Grid>
-                <Grid size={6}>
-                    <ShowDemographic />
-                </Grid>
-            </Box>
-        </Edit>
+                    </Box>
+
+                </Box>
+
+            </Edit>
+
         </Box>
     );
 }

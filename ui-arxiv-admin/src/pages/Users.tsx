@@ -998,8 +998,8 @@ const UserEditContent = () => {
 
 export const UserEdit = () => {
     return (
-        <Box width={"80%"} ml={"10%"}>
-            <Edit actions={false} redirect={false}>
+        <Box maxWidth={"lg"} ml={"10%"} width={"80%"}>
+            <Edit actions={false} redirect={false} component={"div"}>
                 <UserEditContent/>
             </Edit>
         </Box>

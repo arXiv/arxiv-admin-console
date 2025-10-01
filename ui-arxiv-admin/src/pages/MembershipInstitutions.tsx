@@ -45,15 +45,15 @@ export const MembershipInstitutionList = () => (
 
 const MembershipInstitutionTitle = () => {
     const record = useRecordContext();
-    return <span>Membership Institution {record ? `"${record.name}"` : ''}</span>;
+    return <span>{record ? record.name : ''}</span>;
 };
 
 const MembershipInstitutionFormFields = () => {
     const labelCellWidth = "10rem";
     
     return (
-        <>
-            <Card sx={{width: "100%"}}>
+        <Box gap={2} sx={{width: "100%"}}>
+            <Card >
                 <CardHeader title={<TextField source={"name"} variant={"h5"}/>}/>
 
                 <Table size="small">
@@ -83,7 +83,7 @@ const MembershipInstitutionFormFields = () => {
                     </TableRow>
                 </Table>
             </Card>
-            <Card sx={{width: "100%"}}>
+            <Card sx={{my: 2}}>
                 <CardHeader title={"Open URL"}/>
 
                 <Table size="small" >
@@ -103,7 +103,7 @@ const MembershipInstitutionFormFields = () => {
 
                 </Table>
             </Card>
-            <Card sx={{width: "100%"}}>
+            <Card>
                 <CardHeader title={"IP Addresses and Ranges"}/>
 
                 <ArrayInput source="ip_ranges">
@@ -116,7 +116,7 @@ const MembershipInstitutionFormFields = () => {
                     </SimpleFormIterator>
                 </ArrayInput>
             </Card>
-        </>
+        </Box>
     );
 };
 
@@ -132,12 +132,11 @@ export const MembershipInstitutionAdd = () => (
 
 export const MembershipInstitutionEdit = () => (
     <Box width="80%" ml="10%">
-    <Edit title={false}>
-        <ConsoleTitle>Edit Membership</ConsoleTitle>
-        <Typography variant="h2"><MembershipInstitutionTitle /></Typography>
-        <SimpleForm>
-            <MembershipInstitutionFormFields />
-        </SimpleForm>
-    </Edit>
+        <Edit title={false} component={"div"}>
+            <ConsoleTitle><span>Edit Membership - </span><MembershipInstitutionTitle /></ConsoleTitle>
+            <SimpleForm>
+                <MembershipInstitutionFormFields />
+            </SimpleForm>
+        </Edit>
     </Box>
 );

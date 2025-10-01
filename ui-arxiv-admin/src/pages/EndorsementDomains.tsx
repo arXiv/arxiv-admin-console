@@ -114,9 +114,8 @@ export const EndorsementDomainAdd = () => (
 
 export const EndorsementDomainEdit = () => (
     <Box width="80%" ml="10%">
-    <Edit title={false}>
-        <ConsoleTitle>Edit Endorsement Domain</ConsoleTitle>
-        <Typography variant="h2" ml={"1em"}><EndorsementDomainTitle/></Typography>
+    <Edit title={false} component={"div"}>
+        <ConsoleTitle><EndorsementDomainTitle/></ConsoleTitle>
         <SimpleForm>
             <EndorsementDomainFormFields isCreate={false} />
         </SimpleForm>
