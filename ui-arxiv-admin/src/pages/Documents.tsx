@@ -303,28 +303,34 @@ const DocumentContent = () => {
                             onClick={() => setOpenAddOwnerDialog(true)}
                     >Add Owner</Button>
                 </Box>
-                <Box maxWidth={"sm"}>
+                <Paper sx={{maxWidth: "md"}}>
                     <PaperOwnersList document_id={record?.id}/>
-                </Box>
+                </Paper>
             </StandardAccordion>
 
             {/* Admin Log */}
             <Divider />
             <StandardAccordion title="Admin Log">
-                <AdminLogList paper_id={record?.paper_id}/>
+                <Paper sx={{mb: 2, maxWidth: "md"}}>
+                    <AdminLogList paper_id={record?.paper_id}/>
+                </Paper>
             </StandardAccordion>
 
 
             {/* Submission History */}
             <Divider />
             <StandardAccordion title="Submission history">
-                <SubmissionHistoryList document_id={record?.id}/>
+                <Paper sx={{mb: 2, maxWidth: "md"}}>
+                    <SubmissionHistoryList document_id={record?.id}/>
+                </Paper>
             </StandardAccordion>
 
             {/* Paper Information */}
             <Divider />
             <StandardAccordion title="Show e-mail requests:">
-                <ShowEmailsRequestsList document_id={record?.id}/>
+                <Paper sx={{mb: 2, maxWidth: "md"}}>
+                    <ShowEmailsRequestsList document_id={record?.id}/>
+                </Paper>
             </StandardAccordion>
 
             <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog}

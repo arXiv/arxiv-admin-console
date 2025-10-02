@@ -34,7 +34,6 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: Identifier}> = 
     if (controllerProps.error) return <p>Error loading paper ownership data.</p>;
 
     return (
-        <Paper >
         <ListContextProvider value={controllerProps}>
             <Datagrid
                 bulkActionButtons={false}
@@ -64,7 +63,6 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: Identifier}> = 
             </Datagrid>
             <Pagination />
         </ListContextProvider>
-        </Paper>
     );
 };
 
