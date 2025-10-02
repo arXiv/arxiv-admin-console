@@ -246,7 +246,7 @@ const lightTheme = createTheme({
                 ...commonBaseTheme.components.MuiDivider?.styleOverrides,
                 root: {
                     ...commonBaseTheme.components.MuiDivider?.styleOverrides?.root,
-                    borderColor: 'rgba(0, 0, 0, 0.4)', // Darker for light theme
+                    borderColor: '#6b6459', // Darker for light theme
                 },
             },
         },

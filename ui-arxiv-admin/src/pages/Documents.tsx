@@ -53,6 +53,7 @@ import {LazyAccordion} from "../components/LazyAccordion";
 import IconButton from '@mui/material/IconButton';
 import {TruncatedList} from "../components/TruncatedList";
 import {truncateList} from "../utils/truncateList";
+import Divider from '@mui/material/Divider';
 
 type MetadataT = adminApi['/v1/metadata/document/{document_id}']['get']['responses']['200']['content']['application/json'];
 
@@ -215,10 +216,15 @@ const DocumentContent = () => {
                 <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/abs/${record?.paper_id}`, '_blank')}>Abstract</Button>
             </Box>
             {/* Paper Details */}
-            <Paper elevation={3} style={{padding: '1em'}} >
 
 
-                <Table size="small">
+                <Table size="small" sx={{
+                    '& .MuiTableRow-root': {
+                        '& .MuiTableCell-root': {
+                            border: 'none',
+                        }
+                    }
+                }}>
                     <TableRow>
                         <FieldNameCell>Announced ID</FieldNameCell>
                         <TableCell>
@@ -288,10 +294,9 @@ const DocumentContent = () => {
 
                     </TableRow>
                 </Table>
-            </Paper>
-
 
             {/* Paper Owners */}
+            <Divider />
             <StandardAccordion title="Paper owners" summary={truncateList(record?.authors, 3)} >
                 <Box display="flex" alignItems="center" mb={2}>
                     <Button variant={"contained"}
@@ -304,17 +309,20 @@ const DocumentContent = () => {
             </StandardAccordion>
 
             {/* Admin Log */}
+            <Divider />
             <StandardAccordion title="Admin Log">
                 <AdminLogList paper_id={record?.paper_id}/>
             </StandardAccordion>
 
 
             {/* Submission History */}
+            <Divider />
             <StandardAccordion title="Submission history">
                 <SubmissionHistoryList document_id={record?.id}/>
             </StandardAccordion>
 
             {/* Paper Information */}
+            <Divider />
             <StandardAccordion title="Show e-mail requests:">
                 <ShowEmailsRequestsList document_id={record?.id}/>
             </StandardAccordion>
@@ -333,6 +341,7 @@ export const DocumentShow = () => {
             <Show title={false} actions={false} component={"div"}>
                 <StyledDocumentTitle prefix={""}/>
                 <DocumentContent/>
+                <Divider />
                 <Box my={1}>
                     <LazyAccordion title="PDF">
                         <ShowArxivPdf/>

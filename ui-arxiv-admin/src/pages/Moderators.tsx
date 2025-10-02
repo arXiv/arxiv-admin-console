@@ -16,7 +16,8 @@ import {
     BooleanInput,
     ReferenceField,
     useListContext,
-    AutocompleteInput
+    AutocompleteInput,
+    useGetOne
 } from 'react-admin';
 
 import {addDays} from 'date-fns';
@@ -65,7 +66,7 @@ export const ModeratorList = () => {
     const sorter: SortPayload = {field: 'id', order: 'ASC'};
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
-        <Box maxWidth={"xl"} sx={{margin: '0 auto'}}>
+        <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
 
             <ConsoleTitle>Moderators</ConsoleTitle>
             <List filters={<ModeratorFilter/>}>
@@ -104,14 +105,32 @@ export const ModeratorList = () => {
 };
 
 
-const ModeratorTitle = () => {
+const ModeratorEditTitle = () => {
     const record = useRecordContext();
-    return <span>Moderator {record ? `${record.paper_id}: ${record.title} by ${record.authors}` : ''}</span>;
+    const { data: user, isLoading } = useGetOne(
+        'users',
+        { id: record?.user_id },
+        { enabled: !!record?.user_id }
+    );
+
+    if (!record) return <span>Moderator</span>;
+    if (isLoading) return <span>Loading...</span>;
+
+    const userName = user ? `${user.first_name} ${user.last_name}` : 'User';
+    const category = record.subject_class
+        ? `${record.archive}.${record.subject_class}`
+        : record.archive;
+
+    return <span>{userName} for {category}</span>;
 };
 
 export const ModeratorEdit = () => (
-    <Edit title={<ModeratorTitle/>}>
-        <ConsoleTitle><ModeratorTitle/></ConsoleTitle>
+    <Box maxWidth={"md"} sx={{margin: '0 auto'}} >
+    <Edit component={"div"}>
+        <ConsoleTitle>
+            <ModeratorEditTitle />
+        </ConsoleTitle>
+
         <SimpleForm>
             <ReferenceField source="user_id" reference="users" label={"User"}
                             link={(record, reference) => `/${reference}/${record.id}`}>
@@ -130,6 +149,7 @@ export const ModeratorEdit = () => (
             <BooleanInput source="daily_update" label={"Daily Update"}/>
         </SimpleForm>
     </Edit>
+    </Box>
 );
 
 export const ModeratorCreate = () => (
