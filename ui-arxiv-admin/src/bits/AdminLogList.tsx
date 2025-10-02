@@ -17,6 +17,7 @@ import {
 import React from 'react';
 import ISODateField from "./ISODateFiled";
 import UserNameField from "./UserNameField";
+import Paper from '@mui/material/Paper';
 
 
 const AdminLogList: React.FC<{paper_id?: string, submission_id?: Identifier}> = ({paper_id, submission_id}) => {
@@ -33,6 +34,7 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: Identifier}> = 
     if (controllerProps.error) return <p>Error loading paper ownership data.</p>;
 
     return (
+        <Paper >
         <ListContextProvider value={controllerProps}>
             <Datagrid
                 bulkActionButtons={false}
@@ -62,6 +64,7 @@ const AdminLogList: React.FC<{paper_id?: string, submission_id?: Identifier}> = 
             </Datagrid>
             <Pagination />
         </ListContextProvider>
+        </Paper>
     );
 };
 

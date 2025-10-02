@@ -56,6 +56,7 @@ import CategoryField from "../bits/CategoryField";
 import PrimaryCategoryField from "../bits/PirmaryCategoryField";
 import AdminLogField from "../bits/AdminLogField";
 import SingleUserInputField from "../components/SingleUserInputField";
+import Divider from "@mui/material/Divider";
 
 
 type SubmissionModel = adminComponents['schemas']['SubmissionModel'];
@@ -371,7 +372,7 @@ const SubmissionEditContent = () => {
     }) : '';
 
     return (
-        <>
+        <Box my={1}>
             <ConsoleTitle>Edit: <SubmissionTitle /></ConsoleTitle>
 
             <Box sx={{ mb: 2 }}>
@@ -389,12 +390,13 @@ const SubmissionEditContent = () => {
             </Box>
 
             <Paper elevation={2} sx={{width: "100%", maxWidth: "lg", margin: "0 auto"}}>
-                <SubmissionAdminLogAccordion />
                 <SimpleForm toolbar={<SubmissionEditToolbar />}>
                     <SubmissionTable mode="edit" />
                 </SimpleForm>
             </Paper>
-        </>
+            <Divider sx={{my: 2}}/>
+            <SubmissionAdminLogAccordion />
+        </Box>
     );
 };
 
@@ -507,10 +509,11 @@ export const SubmissionShow = () => {
             <Show actions={false} component={"div"}>
                 <ConsoleTitle><SubmissionTitle /></ConsoleTitle>
                 <SubmissionShowActions />
-                <SubmissionAdminLogAccordion />
                 <SimpleShowLayout>
                     <SubmissionRecordContent />
                 </SimpleShowLayout>
+                <Divider/>
+                <SubmissionAdminLogAccordion />
             </Show>
         </Box>
     );
