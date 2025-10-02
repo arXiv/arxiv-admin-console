@@ -393,11 +393,12 @@ export const MetadataEdit = () => (
             backgroundColor: 'background.default',
             boxShadow: 'none'
         },
-        margin: '0 auto',
         maxWidth: "lg",
+        ml: "10%",
+        width: "80%",
     }}>
         <Edit redirect={false}>
-                <MetadataEditContents/>
+            <MetadataEditContents/>
         </Edit>
     </Box>
 );

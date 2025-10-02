@@ -211,9 +211,9 @@ const DocumentContent = () => {
                         onClick={() => navigate(`/metadata/${metadata?.id}/edit`)}>
                     Edit Metadata
                 </Button>
-                <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/pdf/${record?.paper_id}`, '_blank')}>PDF</Button>
-                <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/html/${record?.paper_id}`, '_blank')}>HTML</Button>
-                <Button endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/abs/${record?.paper_id}`, '_blank')}>Abstract</Button>
+                <Button variant={"outlined"} endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/pdf/${record?.paper_id}`, '_blank')}>PDF</Button>
+                <Button variant={"outlined"} endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/html/${record?.paper_id}`, '_blank')}>HTML</Button>
+                <Button variant={"outlined"} endIcon={<OpenInNewIcon/>} onClick={() => window.open(`https://arxiv.org/abs/${record?.paper_id}`, '_blank')}>Abstract</Button>
             </Box>
             {/* Paper Details */}
 
