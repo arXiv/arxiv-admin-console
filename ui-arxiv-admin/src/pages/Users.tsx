@@ -18,6 +18,7 @@ import TableHead from '@mui/material/TableHead';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
 import EmailIcon from '@mui/icons-material/Email';
 import EditIcon from '@mui/icons-material/Edit';
 
@@ -959,22 +960,30 @@ const UserEditContent = () => {
                     <Divider />
 
                     <LazyAccordion title="Submissions" summary={usersSubSummary}>
-                        <UserSubmissionList/>
+                        <Paper>
+                            <UserSubmissionList/>
+                        </Paper>
                     </LazyAccordion>
 
                     <Divider />
 
                     <LazyAccordion title="Owned Papers" summary={usersOwnershipSummary}>
-                        <OwnedPaperList/>
+                        <Paper>
+                            <OwnedPaperList/>
+                        </Paper>
                     </LazyAccordion>
 
                     <Divider />
 
                     <StandardAccordion title="User Activity">
                         <Typography variant={"h6"}>Audit Logs</Typography>
-                        <AdminAuditList/>
+                        <Paper>
+                            <AdminAuditList/>
+                        </Paper>
                         <Typography variant={"h6"}>Email History</Typography>
-                        <EmailHistoryList/>
+                        <Paper>
+                            <EmailHistoryList/>
+                        </Paper>
                     </StandardAccordion>
 
                 </Box>
