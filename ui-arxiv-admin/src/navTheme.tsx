@@ -17,6 +17,8 @@ export const VeryVeryLightGreyColor = AdminConsoleBackgroundColor
 export const WHITE = '#FFFFFF';
 export const BLACK = '#000000';
 
+export const MainContentBackgroundColor = VeryVeryLightGreyColor;
+export const PaperBackgroundColor = WHITE;
 
 // Common base theme (sizes, spacing, behavior)
 const commonBaseTheme = {
@@ -168,8 +170,8 @@ const lightTheme = createTheme({
         ...defaultTheme.palette,
         background: {
             ...defaultTheme.palette?.background,
-            default: VeryLightGreyColor, // Very light grey for main content background
-            paper: VeryVeryLightGreyColor, // Keep paper/card backgrounds white
+            default: MainContentBackgroundColor, // Very light grey for main content background
+            paper: PaperBackgroundColor, // Keep paper/card backgrounds white
         },
     },
     components: {
