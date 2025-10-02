@@ -16,6 +16,7 @@ export const VeryLightGreyColor = AdminConsoleBackgroundColor2
 export const VeryVeryLightGreyColor = AdminConsoleBackgroundColor
 export const WHITE = '#FFFFFF';
 export const BLACK = '#000000';
+export const LightestWarmGrayColor = '#FFFAFA'; // (lightest warm gray) for universal header
 
 export const MainContentBackgroundColor = VeryVeryLightGreyColor;
 export const PaperBackgroundColor = WHITE;
@@ -180,7 +181,7 @@ const lightTheme = createTheme({
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: '#e7e7e7', // Background color for AppBar in light theme
+                    backgroundColor: LightestWarmGrayColor, // Background color for AppBar in light theme
                     color: '#222', // White text for grey background
                     '& .MuiTypography-root': {
                         color: '#222',

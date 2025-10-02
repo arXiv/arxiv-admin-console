@@ -164,12 +164,8 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
         <AppBar position="fixed" sx={{zIndex: 1200}}>
             <Toolbar sx={{display: 'flex', alignItems: 'center', width: '100%', mx: 0, minHeight: '32px !important',}}>
                 {
-                    isVerySmall ? null : (<>
-                        <img src={"arxiv-logo.png"} alt="Arxiv Logo" style={{height: '14px', marginRight: '0px'}}/>
-                            <Tooltip title={"Wombat"}>
-                                <img src={"wombat-keyboard.png"} alt="Wombat" style={{height: '48px', marginRight: '2px'}}/>
-                            </Tooltip>
-                        </>
+                    isVerySmall ? null : (
+                        <img src={"arxiv-lockup-admin-horizontal.png"} alt="Admin Console Logo" style={{height: '40px', marginRight: '0px'}}/>
                     )
                 }
                 <ArxivNavMenu/>
