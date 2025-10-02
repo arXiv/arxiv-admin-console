@@ -186,7 +186,9 @@ const SubmissionAdminLogList = () => {
 
 const SubmissionAdminLogAccordion = () => (
     <StandardAccordion title="Admin Logs">
-        <SubmissionAdminLogList />
+        <Paper>
+            <SubmissionAdminLogList />
+        </Paper>
     </StandardAccordion>
 );
 
@@ -372,7 +374,7 @@ const SubmissionEditContent = () => {
     }) : '';
 
     return (
-        <Box my={1}>
+        <Box my={1} >
             <ConsoleTitle>Edit: <SubmissionTitle /></ConsoleTitle>
 
             <Box sx={{ mb: 2 }}>
@@ -394,7 +396,7 @@ const SubmissionEditContent = () => {
                     <SubmissionTable mode="edit" />
                 </SimpleForm>
             </Paper>
-            <Divider sx={{my: 2}}/>
+            <Divider />
             <SubmissionAdminLogAccordion />
         </Box>
     );
@@ -505,15 +507,16 @@ const SubmissionRecordContent = () => {
 
 export const SubmissionShow = () => {
     return (
-        <Box display={"flex"} flexDirection={"column"} width={"80%"} ml={"10%"} maxWidth={"lg"}>
+        <Box display={"flex"} flexDirection={"column"} width={"80%"} ml={"10%"} maxWidth={"lg"} >
             <Show actions={false} component={"div"}>
                 <ConsoleTitle><SubmissionTitle /></ConsoleTitle>
                 <SubmissionShowActions />
                 <SimpleShowLayout>
                     <SubmissionRecordContent />
                 </SimpleShowLayout>
-                <Divider/>
+                <Divider sx={{ my: 3 }} />
                 <SubmissionAdminLogAccordion />
+
             </Show>
         </Box>
     );
