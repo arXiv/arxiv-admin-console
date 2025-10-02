@@ -64,41 +64,30 @@ const ModeratorFilter = (props: any) => {
 
 export const ModeratorList = () => {
     const sorter: SortPayload = {field: 'id', order: 'ASC'};
-    const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('sm'));
     return (
         <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
-
             <ConsoleTitle>Moderators</ConsoleTitle>
-            <List filters={<ModeratorFilter/>}>
-                {isSmall ? (
-                    <SimpleList
-                        primaryText={record => record.name}
-                        secondaryText={record => record.moderatorname}
-                        tertiaryText={record => record.email}
-                    />
-                ) : (
+            <List filters={<ModeratorFilter/>} >
+                <Datagrid rowClick="edit" sort={sorter}>
+                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"
+                                   label="Category"/>
 
-                    <Datagrid rowClick="show" sort={sorter}>
-                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"
-                                       label="Category"/>
+                    <ReferenceField source="user_id" reference="users" label={"Moderator"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <TextField source={"last_name"}/>
+                        {", "}
+                        <TextField source={"first_name"}/>
+                        {" ("}
+                        <TextField source={"id"}/>
+                        {")"}
+                    </ReferenceField>
 
-                        <ReferenceField source="user_id" reference="users" label={"Moderator"}
-                                        link={(record, reference) => `/${reference}/${record.id}`}>
-                            <TextField source={"last_name"}/>
-                            {", "}
-                            <TextField source={"first_name"}/>
-                            {" ("}
-                            <TextField source={"id"}/>
-                            {")"}
-                        </ReferenceField>
+                    <ReferenceField source="user_id" reference="users" label={"Email"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <EmailField source={"email"}/>
+                    </ReferenceField>
 
-                        <ReferenceField source="user_id" reference="users" label={"Email"}
-                                        link={(record, reference) => `/${reference}/${record.id}`}>
-                            <EmailField source={"email"}/>
-                        </ReferenceField>
-
-                    </Datagrid>
-                )}
+                </Datagrid>
             </List>
         </Box>
     );
