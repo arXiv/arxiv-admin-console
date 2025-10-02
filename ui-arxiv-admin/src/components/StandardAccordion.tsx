@@ -24,11 +24,15 @@ export const StandardAccordion: React.FC<StandardAccordionProps> = ({
     return (
         <Accordion
             defaultExpanded={defaultExpanded}
+            elevation={0}
             sx={{
                 my: 0,
                 py: 0,
                 '&.MuiAccordion-root': {
                     margin: 0,
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    elevation: 0,
                 },
                 '&.MuiAccordion-root:before': {
                     display: 'none',
@@ -73,7 +77,8 @@ export const StandardAccordion: React.FC<StandardAccordionProps> = ({
                     {summary && <Typography variant="body2" ml={3}>{summary}</Typography>}
                 </Box>
             </AccordionSummary>
-            <AccordionDetails sx={{ my: 0, py: 0 }}>
+            <AccordionDetails sx={{ my: 0, py: 0 }}
+            >
                 {children}
             </AccordionDetails>
         </Accordion>

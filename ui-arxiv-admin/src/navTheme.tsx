@@ -131,6 +131,13 @@ const commonBaseTheme = {
                 },
             },
         },
+        MuiDivider: {
+            styleOverrides: {
+                root: {
+                    borderBottomWidth: 2,
+                },
+            },
+        },
     },
 };
 
@@ -234,6 +241,15 @@ const lightTheme = createTheme({
                 },
             },
         },
+        MuiDivider: {
+            styleOverrides: {
+                ...commonBaseTheme.components.MuiDivider?.styleOverrides,
+                root: {
+                    ...commonBaseTheme.components.MuiDivider?.styleOverrides?.root,
+                    borderColor: 'rgba(0, 0, 0, 0.4)', // Darker for light theme
+                },
+            },
+        },
     },
 });
 
@@ -331,6 +347,15 @@ const darkTheme = createTheme({
                 tooltip: {
                     ...commonBaseTheme.components.MuiTooltip.styleOverrides.tooltip,
                     color: WHITE,
+                },
+            },
+        },
+        MuiDivider: {
+            styleOverrides: {
+                ...commonBaseTheme.components.MuiDivider?.styleOverrides,
+                root: {
+                    ...commonBaseTheme.components.MuiDivider?.styleOverrides?.root,
+                    borderColor: 'rgba(255, 255, 255, 0.2)', // Lighter for dark theme
                 },
             },
         },

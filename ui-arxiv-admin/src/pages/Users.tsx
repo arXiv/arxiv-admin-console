@@ -794,7 +794,7 @@ const UserEditContent = () => {
                         </Button>
                     </Box>
 
-                    <Divider/>
+                    <Divider />
 
                     <StandardAccordion title="User Metadata and Status" defaultExpanded={true}>
                         <Box sx={{
@@ -905,6 +905,8 @@ const UserEditContent = () => {
 
                     </StandardAccordion>
 
+                    <Divider />
+
                     <StandardAccordion title="Moderation, Submission and Endorsement Categories">
 
                         <Box>
@@ -954,13 +956,19 @@ const UserEditContent = () => {
 
                     </StandardAccordion>
 
+                    <Divider />
+
                     <LazyAccordion title="Submissions" summary={usersSubSummary}>
                         <UserSubmissionList/>
                     </LazyAccordion>
 
+                    <Divider />
+
                     <LazyAccordion title="Owned Papers" summary={usersOwnershipSummary}>
                         <OwnedPaperList/>
                     </LazyAccordion>
+
+                    <Divider />
 
                     <StandardAccordion title="User Activity">
                         <Typography variant={"h6"}>Audit Logs</Typography>

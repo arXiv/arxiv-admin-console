@@ -35,11 +35,15 @@ export const LazyAccordion: React.FC<LazyAccordionProps> = ({
         <Accordion
             expanded={isExpanded}
             onChange={handleChange}
+            elevation={0}
             sx={{
                 my: 0,
                 py: 0,
                 '&.MuiAccordion-root': {
                     margin: 0,
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    elevation: 0,
                 },
                 '&.MuiAccordion-root:before': {
                     display: 'none',
