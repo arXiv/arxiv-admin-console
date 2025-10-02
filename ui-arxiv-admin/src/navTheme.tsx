@@ -204,11 +204,11 @@ const lightTheme = createTheme({
                 outlined: {
                     backgroundColor: WHITE, // White background
                     color: BLACK, // Black text
-                    border: '2px solid ' + AccessLimeColor, // Access Lime border
+                    border: '3px solid ' + AccessLimeColor, // Access Lime border
                     '&:hover': {
                         backgroundColor: LightLimeColor, // Light Lime
                         color: BLACK, // Black text (no change)
-                        border: '2px solid ' + AccessLimeColor, // Same border (no change)
+                        border: '3px solid ' + AccessLimeColor, // Same border (no change)
                     },
                 },
             },
@@ -308,11 +308,11 @@ const darkTheme = createTheme({
                 outlined: {
                     backgroundColor: '#2A2A2A', // Dark background instead of white
                     color: WHITE, // White text for dark theme
-                    border: '2px solid ' + DarkAccessLimeColor, // Darker Access Lime border
+                    border: '3px solid ' + DarkAccessLimeColor, // Darker Access Lime border
                     '&:hover': {
                         backgroundColor: DarkLimeColor, // Very dark green for dark theme
                         color: WHITE, // White text (no change)
-                        border: '2px solid ' + DarkAccessLimeColor, // Same border (no change)
+                        border: '3px solid ' + DarkAccessLimeColor, // Same border (no change)
                     },
                 },
             },
