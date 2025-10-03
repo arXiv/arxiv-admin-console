@@ -27,8 +27,9 @@ const UserTapirSessionsList: React.FC = () => {
     if (controllerProps.isLoading) return null;
     if (controllerProps.error) return <p>Error loading sessions.</p>;
 
-    const handleRowClick = (id: any) => {
+    const handleRowClick = (id: any): false => {
         navigate(`/tapir_sessions/${id}/edit`);
+        return false;
     };
 
     return (
