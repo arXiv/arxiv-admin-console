@@ -13,6 +13,7 @@ interface StandardAccordionProps {
     children: React.ReactNode;
     summary?: string;
     defaultExpanded?: boolean;
+    onChange?: (event: React.SyntheticEvent, expanded: boolean) => void;
 }
 
 export const StandardAccordion: React.FC<StandardAccordionProps> = ({
@@ -20,10 +21,12 @@ export const StandardAccordion: React.FC<StandardAccordionProps> = ({
     children,
     summary,
     defaultExpanded = false,
+    onChange,
 }) => {
     return (
         <Accordion
             defaultExpanded={defaultExpanded}
+            onChange={onChange}
             elevation={0}
             sx={{
                 my: 0,

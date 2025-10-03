@@ -78,6 +78,7 @@ import OwnershipConclusionButton from '../bits/OwnershipConclusionButton';
 import PaperOwnersList from "../components/PaperOwnersList";
 import UserNameField from "../bits/UserNameField";
 import UserStatusField from '../bits/UserStatusField';
+import {StandardAccordion} from "../components/StandardAccordion";
 
 
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
@@ -213,110 +214,70 @@ const OwnershipRequestTitle = () => {
 };
 
 
+const PaperOwnerListContent: React.FC = () => {
+    const { total } = useListContext();
+
+    return (
+        <Datagrid bulkActionButtons={false}>
+            <ReferenceField source="document_id" reference="documents" link="show" label="arXiv ID">
+                <TextField source="paper_id" />
+            </ReferenceField>
+            <ReferenceField source="document_id" reference="documents" label="Title">
+                <TextField source="title" />
+            </ReferenceField>
+            <ReferenceField source="document_id" reference="documents" label="Date">
+                <TextField source="dated" />
+            </ReferenceField>
+        </Datagrid>
+    );
+};
+
 const PaperOwnerList: React.FC<{
     nameFragments: string[];
 }> = ({nameFragments}) => {
     const record = useRecordContext<PaperOwnerType>();
-    const dataProvider = useDataProvider();
-    const [paperOwners, setPaperOwners] = useState<PaperOwnerType[]>([]);
-    const [documents, setDocuments] = useState<DocumentType[] | undefined>(undefined);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(25);
     const [expanded, setExpanded] = useState<boolean>(false);
-
-    useEffect(() => {
-        if (record?.user_id) {
-            const fetchPaperOwners = async () => {
-                const paperOwners = await dataProvider.getList('paper_owners', {
-                    filter: {user_id: record.user_id}});
-                setPaperOwners(paperOwners.data);
-            };
-            fetchPaperOwners();
-        }
-    }, [record, dataProvider]);
-
-    useEffect(() => {
-        if (paperOwners) {
-            const fetchDocuments = async () => {
-                const documentPromises = paperOwners.map((ownership) =>
-                    dataProvider.getOne<DocumentType>('documents', {id: ownership.document_id})
-                );
-
-                const documentResponses = await Promise.all(documentPromises);
-                setDocuments(documentResponses.map(response => response.data));
-            };
-
-            fetchDocuments();
-        }
-    }, [paperOwners, dataProvider]);
-
-
-    const handleChangePage = (event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
+    const [documentCount, setDocumentCount] = useState<number>(0);
 
     const handleAccordionChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
         setExpanded(isExpanded);
     };
 
-    if (documents === undefined) {
-        return (<Typography>
-            Other papers owned by the user - loading...
-            </Typography>)
+    if (!record?.user_id) {
+        return null;
     }
 
     return (
-        <Accordion expanded={expanded} onChange={handleAccordionChange}>
-            <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls="paper-owner-list-content"
-                id="paper-owner-list-header"
-            >
-                <Typography>
-                    Other papers owned by the user -{` ${documents.length} documents`}
-                </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-                <Table>
-                    <TableHead>
-                        <TableCell>
-                            Owner
-                        </TableCell>
-                        <TableCell>Paper</TableCell>
-                        <TableCell>Title</TableCell>
-                        <TableCell>Authors</TableCell>
-                        <TableCell>Date</TableCell>
-                    </TableHead>
-                    {documents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((document, index) => (
-                        <TableRow key={`doc_${document.id}_row_${index}`}>
-                            <TableCell key={`doc_${document.id}_row_${index}_owner`}>
-                                {paperOwners[index]?.flag_author ? <YesIcon /> : null}
-                            </TableCell>
-                            <TableCell  key={`doc_${document.id}_row_${index}_doc`}>
-                                <ReferenceField source="id" reference="documents" record={document} link="show">
-                                    <TextField source="paper_id" />
-                                </ReferenceField>
-                            </TableCell>
-                            <TableCell key={`doc_${document.id}_row_${index}_title`}>
-                                {document.title}
-                            </TableCell>
-                            <TableCell key={`doc_${document.id}_row_${index}_authors`}>
-                                <HighlightText text={document.authors || ""} highlighters={nameFragments}/>
-                            </TableCell>
-                            <TableCell key={`doc_${document.id}_row_${index}_dated`}>
-                                {document.dated}
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </Table>
-            </AccordionDetails>
-        </Accordion>
+        <StandardAccordion
+            title="Other papers owned by the user"
+            summary={documentCount > 0 ? `${documentCount} documents` : undefined}
+            onChange={handleAccordionChange}
+        >
+            <Paper>
+                <List
+                    resource="paper_owners"
+                    filter={{ user_id: record.user_id }}
+                    actions={false}
+                    component="div"
+                    perPage={25}
+                >
+                    <PaperOwnerListContentWrapper setDocumentCount={setDocumentCount} />
+                </List>
+            </Paper>
+        </StandardAccordion>
     );
+};
+
+const PaperOwnerListContentWrapper: React.FC<{ setDocumentCount: (count: number) => void }> = ({ setDocumentCount }) => {
+    const { total } = useListContext();
+
+    useEffect(() => {
+        if (total !== undefined) {
+            setDocumentCount(total);
+        }
+    }, [total, setDocumentCount]);
+
+    return <PaperOwnerListContent />;
 };
 
 interface RequestedPaperListProps {
@@ -688,9 +649,9 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
         <Edit title={false} redirect={false} component={"div"}>
             <ConsoleTitle><OwnershipRequestTitle /></ConsoleTitle>
 
+            <Paper >
             <SimpleForm toolbar={<OwnershipRequestToolbar
                 prevId={prevId} nextId={nextId} ok={ok_to_save} setWorkflowStatus={setWorkflowStatus} />}>
-                <Paper >
                     <Table>
                         <TableHead>
                             <TableCell>User</TableCell>
@@ -737,10 +698,11 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                         setSelectedDocuments={selectionChanged}
                         ownedPapers={ownedPapers}
                     />
-                </Paper>
                 <input type="hidden" name="workflow_status" value={workflowStatus} />
 
             </SimpleForm>
+            </Paper>
+
             <PaperOwnerList nameFragments={nameFragments}/>
         </Edit>
     );
