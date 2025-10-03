@@ -12,6 +12,7 @@ const ConsoleTitle: React.FC<ConsoleTitleProps> = ({ children, sx = {} }) => {
             variant="h1"
             sx={{
                 mt: "3rem",
+                mb: "1.5rem",
                 ...sx
             }}
         >
