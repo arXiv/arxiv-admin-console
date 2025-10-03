@@ -11,7 +11,7 @@ import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 interface LazyAccordionProps {
     title: string;
     children: React.ReactNode;
-    summary?: string;
+    summary?: React.ReactNode;
     defaultExpanded?: boolean;
 }
 
@@ -85,7 +85,15 @@ export const LazyAccordion: React.FC<LazyAccordionProps> = ({
                 />
                 <Box display="flex" alignItems="baseline">
                     <Typography variant="h2">{title}</Typography>
-                    {summary && <Typography variant="body2" ml={3}>{summary}</Typography>}
+                    {summary && (
+                        <Box ml={3} display="flex" alignItems="center">
+                            {typeof summary === 'string' ? (
+                                <Typography variant="body2">{summary}</Typography>
+                            ) : (
+                                summary
+                            )}
+                        </Box>
+                    )}
                 </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ my: 0, py: 0 }}>

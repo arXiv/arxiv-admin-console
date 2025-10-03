@@ -44,6 +44,7 @@ import {useFormContext} from 'react-hook-form';
 import SaveOnlyToolbar from "../bits/SaveOnlyToolbar";
 import ISODateField from "../bits/ISODateFiled";
 import UserNameField from "../bits/UserNameField";
+import Paper from "@mui/material/Paper";
 
 const presetOptions = [
     {id: 'last_1_day', name: 'Last 1 Day'},
@@ -247,9 +248,10 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
      */
 
     return (
-        <Box display="flex" flexDirection="column" sx={{gap: 1, m: 1}} maxWidth="sm">
-            <Edit {...props} >
+        <Box display="flex" flexDirection="column" sx={{gap: 1, m: 1}} maxWidth="sm" alignItems={"center"}>
+            <Edit {...props} component={"div"}>
                 <ConsoleTitle><TapirSessionTitle /></ConsoleTitle>
+                <Paper sx={{mt: "3em"}}>
                 <SimpleForm toolbar={<SaveOnlyToolbar/>}>
                     <FormGroupContextProvider name="tapirSession">
                         <Table size={"small"}>
@@ -288,6 +290,7 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
                         </Table>
                     </FormGroupContextProvider>
                 </SimpleForm>
+                </Paper>
             </Edit>
         </Box>
     );

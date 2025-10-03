@@ -21,7 +21,7 @@ import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import EmailIcon from '@mui/icons-material/Email';
-import EditIcon from '@mui/icons-material/Edit';
+import ConsoleEditIcon from '../bits/ConsoleEditIcon';
 
 
 import {
@@ -94,6 +94,7 @@ import {StandardAccordion} from "../components/StandardAccordion";
 import {LazyAccordion} from "../components/LazyAccordion";
 import {DottedLineRow} from "../components/DottedLineRow";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
+import UserTapirSessionsList from "../bits/UserTapirSessionsList";
 
 type ModeratorT = adminApi['/v1/moderators/']['get']['responses']['200']['content']['application/json'][0];
 type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['content']['application/json'][0];
@@ -379,7 +380,7 @@ function UserDemographic() {
                         <TextField source="country"/>
                     </DottedLineRow>
 
-                    <DottedLineRow label="URL">
+                    <DottedLineRow label="User's Webpage">
                         <TextField source="url"/>
                     </DottedLineRow>
 
@@ -643,8 +644,8 @@ const UserEditContent = () => {
 
     const adminInputs: statusInputType[][] = [
         [
-            {source: "flag_edit_users", label: "Admin", component: "FlaggedToggle"},
-            {source: "flag_edit_system", label: "Owner", component: "FlaggedToggle"},
+            {source: "flag_edit_users", label: "Admin Permissions", component: "FlaggedToggle"},
+            {source: "flag_edit_system", label: "Developer Permissions", component: "FlaggedToggle"},
             {source: "flag_can_lock", label: "Can Lock", component: "FlaggedToggle"},
         ],
         [
@@ -759,7 +760,7 @@ const UserEditContent = () => {
                     </Typography>
 
                     {/* Action buttons moved under user name */}
-                    <Box sx={{display: 'flex', flexDirection: 'row', gap: 1, mb: 2}}>
+                    <Box sx={{display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, mb: 2}}>
                         <SaveButton/>
                         <Button
                             variant="contained"
@@ -811,7 +812,7 @@ const UserEditContent = () => {
                                     <Typography component={"span"} variant={"body1"} alignContent={"center"}>
                                         <UserNameField/>
                                         <IconButton onClick={() => setChangeUserNameOpen(true)}>
-                                            <EditIcon/>
+                                            <ConsoleEditIcon/>
                                         </IconButton>
                                     </Typography>
                                     <UserNameDialog
@@ -826,7 +827,7 @@ const UserEditContent = () => {
                                         <Typography width={labelWidth} variant={"h6"}>Email</Typography>
                                         <EmailField source="email" fontSize={"large"}/>
                                         <IconButton onClick={() => setChangeEmailOpen(true)} size="small">
-                                            <EditIcon/>
+                                            <ConsoleEditIcon/>
                                         </IconButton>
                                         <ChangeEmailDialog
                                             open={changeEmailOpen}
@@ -852,7 +853,7 @@ const UserEditContent = () => {
                                         <IconButton
                                             onClick={() => setVetoStatusOpen(true)}
                                         >
-                                            <EditIcon/>
+                                            <ConsoleEditIcon/>
                                         </IconButton>
                                     </Box>
 
@@ -914,7 +915,7 @@ const UserEditContent = () => {
                         <Box>
                             <Typography variant={"h6"}>Moderates: </Typography>
                             <IconButton onClick={() => setIsModOpen(true)}>
-                                <EditIcon />
+                                <ConsoleEditIcon />
                             </IconButton>
 
                             <UserModerationCategories open={isModOpen} setOpen={setIsModOpen}/>
@@ -931,7 +932,7 @@ const UserEditContent = () => {
                         <Box mt={2}>
                             <Typography variant={"h6"}>Is endorsed for: </Typography>
                             <IconButton
-                                onClick={() => setIsEndorsementsOpen(true)}><EditIcon /></IconButton>
+                                onClick={() => setIsEndorsementsOpen(true)}><ConsoleEditIcon /></IconButton>
                             <UserEndorsements open={isEndorsementsOpen} setOpen={setIsEndorsementsOpen}/>
                         </Box>
 
@@ -977,11 +978,16 @@ const UserEditContent = () => {
                     <Divider />
 
                     <StandardAccordion title="User Activity">
-                        <Typography variant={"h6"}>Audit Logs</Typography>
-                        <Paper>
+                        <Typography variant={"h6"}>User sessions</Typography>
+                        <Paper sx={{ mb: 3 }}>
+                            <UserTapirSessionsList />
+                        </Paper>
+
+                        <Typography variant={"h6"} sx={{ mt: 3 }}>Audit Logs</Typography>
+                        <Paper sx={{ mb: 3 }}>
                             <AdminAuditList/>
                         </Paper>
-                        <Typography variant={"h6"}>Email History</Typography>
+                        <Typography variant={"h6"} sx={{ mt: 3 }}>Email History</Typography>
                         <Paper>
                             <EmailHistoryList/>
                         </Paper>

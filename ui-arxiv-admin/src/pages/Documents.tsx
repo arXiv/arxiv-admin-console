@@ -20,7 +20,7 @@ import {
 import LinkIcon from '@mui/icons-material/Link';
 import MetadataIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import EditIcon from '@mui/icons-material/Edit';
+import ConsoleEditIcon from '../bits/ConsoleEditIcon';
 
 
 import {addDays} from 'date-fns';
@@ -298,7 +298,7 @@ const DocumentContent = () => {
                             <ReferenceField reference={"paper_pw"} source={"id"}>
                                 <TextField source="password_enc" variant="body1"/>
                             </ReferenceField>
-                            <IconButton onClick={() => setOpenRenewPaperPasswordDialog(true)}><EditIcon /></IconButton>
+                            <IconButton onClick={() => setOpenRenewPaperPasswordDialog(true)}><ConsoleEditIcon /></IconButton>
                         </TableCell>
 
                     </TableRow>
