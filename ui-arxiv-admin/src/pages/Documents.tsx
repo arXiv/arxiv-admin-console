@@ -254,6 +254,15 @@ const DocumentContent = () => {
                     </TableRow>
 
                     <TableRow>
+                        <FieldNameCell>Submit Date</FieldNameCell>
+                        <TableCell>
+                            <ReferenceField reference={"submissions"} source={"last_submission_id"}>
+                                <ISODateField source="submit_time" />
+                            </ReferenceField>
+                        </TableCell>
+                    </TableRow>
+
+                    <TableRow>
                         <FieldNameCell>Title</FieldNameCell>
                         <TableCell>
                             <TextField source="title" />
@@ -327,7 +336,7 @@ const DocumentContent = () => {
 
             {/* Paper Information */}
             <Divider />
-            <StandardAccordion title="Show e-mail requests:">
+            <StandardAccordion title="Show e-mail requests">
                 <Paper sx={{mb: 2, maxWidth: "md"}}>
                     <ShowEmailsRequestsList document_id={record?.id}/>
                 </Paper>
