@@ -6,6 +6,7 @@ import {
     Card,
     CardContent,
     CardHeader,
+    LinearProgress,
 } from '@mui/material';
 
 // import ToggleButton from '@mui/material/ToggleButton';
@@ -746,8 +747,8 @@ const UserEditContent = () => {
 
     const labelWidth = '6rem';
 
-    const usersSubSummary = submissionSummary ? `${submissionSummary.active.toLocaleString()} active, ${submissionSummary.submitted.toLocaleString()} submitted, ${submissionSummary.total.toLocaleString()} owned, ${submissionSummary.rejected.toLocaleString()} rejected` : "";
-    const usersOwnershipSummary = paperOwnershipSummary ? `${paperOwnershipSummary.total.toLocaleString()} total, ${paperOwnershipSummary.author.toLocaleString()} authored` : "";
+    const usersSubSummary = submissionSummary ? `${submissionSummary.active.toLocaleString()} active, ${submissionSummary.submitted.toLocaleString()} submitted, ${submissionSummary.total.toLocaleString()} owned, ${submissionSummary.rejected.toLocaleString()} rejected` : <LinearProgress sx={{ width: '100px' }} />;
+    const usersOwnershipSummary = paperOwnershipSummary ? `${paperOwnershipSummary.total.toLocaleString()} total, ${paperOwnershipSummary.author.toLocaleString()} authored` : <LinearProgress sx={{ width: '100px' }} />;
 
     return (
         <>
