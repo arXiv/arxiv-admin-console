@@ -463,9 +463,13 @@ export const ListEndorsements = () => {
     return (
         <Card >
             <CardHeader title="Endorsements" />
-        <Table >
-            {endorsements?.map((endorsement: any) => <Endorsement endorsement={endorsement} />)}
-        </Table>
+            {endorsements && endorsements.length > 0 ? (
+                <Table >
+                    {endorsements.map((endorsement: any) => <Endorsement endorsement={endorsement} />)}
+                </Table>
+            ) : (
+                <Typography sx={{ m: 1, p: 1 }} variant={"body2"} fontWeight={"700"}>No existing endorsements</Typography>
+            )}
         </Card>
     );
 }
@@ -552,7 +556,7 @@ export const EndorsementRequestEdit = () => {
                 </Typography>
 
                 <Box display="flex" flexDirection="row" gap={2} m={2}>
-                    <Paper elevation={2}>
+                    <Paper elevation={3} sx={{ mb: 1, pb: 0, alignSelf: 'flex-start' }}>
                         <SimpleForm toolbar={<EndorsementRequestEditToolbar />}>
                             <Box ml={3} flexGrow={1} display="flex" flexDirection="row" justifyContent="space-between">
                                 <BooleanInput source={"flag_valid"} label={"Valid"} />
@@ -614,9 +618,7 @@ export const EndorsementRequestEdit = () => {
                         </SimpleForm>
                     </Paper>
 
-                    <Box mt={2}>
-                        <ShowDemographic />
-                    </Box>
+                    <ShowDemographic />
                 </Box>
 
                 <Box mt={2}>
