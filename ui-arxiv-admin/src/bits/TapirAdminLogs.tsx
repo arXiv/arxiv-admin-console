@@ -25,7 +25,7 @@ export const AdminAuditList: React.FC = () => {
 
     return (
         <ListContextProvider value={controllerProps}>
-            <Datagrid rowClick="show" empty={<p><b>No audits for this user</b></p>} size="small"
+            <Datagrid rowClick={false} empty={<p><b>No audits for this user</b></p>} size="small"
                       bulkActionButtons={false}
             >
                 <ISODateField source="log_date" />

@@ -33,7 +33,7 @@ const EmailHistoryList: React.FC = () => {
     return (
         <ListContextProvider value={controllerProps}>
             <Datagrid empty={<p><b>User has no email change history</b></p>} size="small"
-            bulkActionButtons={false}>
+            bulkActionButtons={false} rowClick={false}>
                 <TextField source={"email"} />
                 <ISODateField source={"start_date"} />
                 <ISODateField source={"end_date"} />
