@@ -110,9 +110,18 @@ export const Dashboard = () => {
             >
                 <ConsoleTitle>Welcome, {runtimeProps.currentUser?.first_name}</ConsoleTitle>
                 <Box sx={{ my: 2, display: 'flex', gap: 2, mt: 4 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'row', md: 'row' },
+                        flexWrap: { xs: 'wrap', md: 'nowrap' },
+                        gap: 2,
+                        width: '100%'
+                    }}>
                         {runtimeProps.arxivNavLinks.map(navSection => (
-                            <Box key={navSection.id} sx={{ flex: 1 }}>
+                            <Box key={navSection.id} sx={{
+                                flex: { xs: '1 1 calc(50% - 8px)', md: 1 },
+                                minWidth: { xs: 'calc(50% - 8px)', md: 0 }
+                            }}>
                                 <NavCard navSection={navSection} />
                             </Box>
                         ))}
