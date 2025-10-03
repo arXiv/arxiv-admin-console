@@ -16,13 +16,17 @@ import LaunchIcon from '@mui/icons-material/Launch';
 // Color scheme dictionary based on purpose
 const purposeColorSchemes = {
     students: {
-        backgroundColor: 'grey.600',
-        color: 'text.contrastText',
+        backgroundColor: '#1c1a17',
+        color: '#ffffff',
+        linkColor: '#ffffff',
+        subheaderColor: '#ffffff',
     },
     // Add more purpose-based color schemes here as needed
     // moderator: {
     //     backgroundColor: 'warning.main',
     //     color: 'warning.contrastText',
+    //     linkColor: 'warning.contrastText',
+    //     subheaderColor: 'warning.contrastText',
     // },
 };
 
@@ -30,6 +34,8 @@ const purposeColorSchemes = {
 const defaultColorScheme = {
     backgroundColor: 'background.paper',
     color: 'text.primary',
+    linkColor: 'text.primary',
+    subheaderColor: 'text.primary',
 };
 
 interface NavCardProps {
@@ -72,7 +78,7 @@ const NavCard: React.FC<NavCardProps> = ({ navSection }) => {
                             py: 1,
                             px: level * 2,
                             backgroundColor: 'transparent',
-                            color: 'inherit',
+                            color: colorScheme.subheaderColor,
                         }}
                     >
                         {item.title}
@@ -99,7 +105,7 @@ const NavCard: React.FC<NavCardProps> = ({ navSection }) => {
                                     rel="noopener noreferrer"
                                     sx={{
                                         fontSize: '1rem',
-                                        color: 'inherit',
+                                        color: colorScheme.linkColor,
                                         textDecoration: 'none',
                                         '&:hover': {
                                             textDecoration: 'underline'
@@ -119,7 +125,7 @@ const NavCard: React.FC<NavCardProps> = ({ navSection }) => {
                 <ListItem key={item.id} sx={{ pl: level * 2 + 2, py: 0.5 }}>
                     <ListItemText
                         primary={
-                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'inherit' }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: colorScheme.color }}>
                                 {item.title}
                             </Typography>
                         }
