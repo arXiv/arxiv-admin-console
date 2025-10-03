@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef} from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
@@ -11,20 +11,34 @@ import Tooltip from "@mui/material/Tooltip";
 const ArxivNavMenu = () => {
     const runtimeProps = React.useContext(RuntimeContext);
     const [anchorEls, setAnchorEls] = useState<{ [key: string]: HTMLElement | null }>({});
+    const closeTimeoutsRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
     const isSmall = useMediaQuery<any>(theme => theme.breakpoints.down('lg'));
 
-    const handleMenuClick = (menuId: string) => (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEls(prev => ({
-            ...prev,
-            [menuId]: event.currentTarget
-        }));
+    const handleMenuOpen = (menuId: string) => (event?: React.MouseEvent<HTMLElement>) => {
+        // Clear any pending close timeout for this menu
+        if (closeTimeoutsRef.current[menuId]) {
+            clearTimeout(closeTimeoutsRef.current[menuId]);
+            delete closeTimeoutsRef.current[menuId];
+        }
+
+        if (event) {
+            setAnchorEls(prev => ({
+                ...prev,
+                [menuId]: event.currentTarget
+            }));
+        }
     };
 
     const handleMenuClose = (menuId: string) => () => {
-        setAnchorEls(prev => ({
-            ...prev,
-            [menuId]: null
-        }));
+        // Set a timeout before closing the menu
+        const timeout = setTimeout(() => {
+            setAnchorEls(prev => ({
+                ...prev,
+                [menuId]: null
+            }));
+        }, 150); // Shorter delay
+
+        closeTimeoutsRef.current[menuId] = timeout;
     };
 
     const handleMenuItemClick = (url: string, app: string) => {
@@ -71,7 +85,8 @@ const ArxivNavMenu = () => {
                         <React.Fragment key={categorySection.id}>
                             <Button
                                 color="inherit"
-                                onClick={handleMenuClick(categorySection.id)}
+                                onMouseEnter={handleMenuOpen(categorySection.id)}
+                                onMouseLeave={handleMenuClose(categorySection.id)}
                             >
                                 {categorySection.title}
                             </Button>
@@ -79,6 +94,32 @@ const ArxivNavMenu = () => {
                                 anchorEl={anchorEls[categorySection.id]}
                                 open={Boolean(anchorEls[categorySection.id])}
                                 onClose={handleMenuClose(categorySection.id)}
+                                anchorOrigin={{
+                                    vertical: 'bottom',
+                                    horizontal: 'left',
+                                }}
+                                transformOrigin={{
+                                    vertical: 'top',
+                                    horizontal: 'left',
+                                }}
+                                MenuListProps={{
+                                    onMouseEnter: () => handleMenuOpen(categorySection.id)(),
+                                    onMouseLeave: handleMenuClose(categorySection.id),
+                                    sx: { pt: 0 }
+                                }}
+                                slotProps={{
+                                    root: {
+                                        sx: {
+                                            pointerEvents: 'none',
+                                        }
+                                    },
+                                    paper: {
+                                        sx: {
+                                            pointerEvents: 'auto',
+                                            mt: 0
+                                        }
+                                    }
+                                }}
                             >
                                 {flattenedItems.map(({item, level}) => {
                                     const isNotApplicable = item.app === 'not_applicable';
