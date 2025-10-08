@@ -167,7 +167,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
                     isVerySmall ? null : (
                         <Box
                             component="a"
-                            href="/#/"
+                            href="/admin-console"
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',

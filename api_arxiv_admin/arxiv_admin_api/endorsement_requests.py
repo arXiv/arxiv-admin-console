@@ -11,299 +11,21 @@ from pip._internal.models import candidate
 
 from sqlalchemy import case, and_  # select, update, func, Select, distinct, exists, and_, or_
 from sqlalchemy.orm import Session #, joinedload
-import sqlite3
-import gzip
-import io
 from google.cloud import storage
-from urllib.parse import urlparse
 from pathlib import Path
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, TapirUser
+from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, TapirUser, Category
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
 from .biz.endorsement_code import endorsement_code
-from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate, \
-    EndorsementCandidateCategories
-from .biz.endorser_list_v2 import list_endorsement_candidates_v2
+#from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate, \
+#    EndorsementCandidateCategories
+#from .biz.endorser_list_v2 import list_endorsement_candidates_v2
+from .endorsing import endorsing_db
+from .endorsing.endorsing_models import EndorsementCandidate, EndorsementCandidates
 
-# Cache for SQLite connections to avoid repeated deserialization
-_db_cache = {}
-
-def _get_cache_key(request: Request) -> str:
-    """Generate cache key based on storage URL."""
-    scheme, location, path = _parse_storage_url(request)
-    return f"{scheme}://{location}/{path}" if scheme == 'gs' else f"file://{path}"
-
-def _invalidate_db_cache():
-    """Clear the database cache."""
-    global _db_cache
-    for conn in _db_cache.values():
-        if conn:
-            conn.close()
-    _db_cache.clear()
-
-def _get_cached_db_connection(request: Request) -> sqlite3.Connection:
-    """Get cached database connection or create new one."""
-    cache_key = _get_cache_key(request)
-
-    if cache_key not in _db_cache:
-        _db_cache[cache_key] = _read_cached_data(request)
-
-    return _db_cache[cache_key]
-
-def _create_endorsement_db() -> sqlite3.Connection:
-    """
-    Create an in-memory SQLite database for endorsement candidates.
-
-    Returns connection to in-memory database with tables created.
-    """
-    conn = sqlite3.connect(':memory:')
-    cursor = conn.cursor()
-
-    # Create tables
-    cursor.execute('''
-        CREATE TABLE endorsement_categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category TEXT NOT NULL UNIQUE,
-            timestamp TEXT NOT NULL
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE endorsement_candidates (
-            id INTEGER NOT NULL,
-            category_id INTEGER NOT NULL,
-            document_count INTEGER NOT NULL,
-            latest TEXT NOT NULL,
-            FOREIGN KEY (category_id) REFERENCES endorsement_categories (id),
-            PRIMARY KEY (id, category_id)
-        )
-    ''')
-
-    conn.commit()
-    return conn
-
-
-def _populate_endorsement_db(conn: sqlite3.Connection, data: List[EndorsementCandidates]) -> None:
-    """
-    Populate SQLite database with endorsement candidates data.
-    """
-    cursor = conn.cursor()
-
-    for category_data in data:
-        # Insert category
-        cursor.execute('''
-            INSERT OR REPLACE INTO endorsement_categories (category, timestamp)
-            VALUES (?, ?)
-        ''', (category_data.category, category_data.timestamp.isoformat()))
-
-        category_id = cursor.lastrowid
-
-        # Insert candidates for this category
-        for candidate in category_data.candidates:
-            cursor.execute('''
-                INSERT OR REPLACE INTO endorsement_candidates
-                (id, category_id, document_count, latest)
-                VALUES (?, ?, ?, ?)
-            ''', (candidate.id, category_id, candidate.document_count, candidate.latest.isoformat()))
-
-    conn.commit()
-
-
-def _serialize_db_to_gzip(conn: sqlite3.Connection) -> bytes:
-    """
-    Serialize SQLite database to gzipped bytes using in-memory serialization.
-    """
-    # Serialize the database to bytes directly from memory
-    db_bytes = conn.serialize()
-
-    # Compress with gzip
-    buffer = io.BytesIO()
-    with gzip.GzipFile(fileobj=buffer, mode='wb') as gz_file:
-        gz_file.write(db_bytes)
-
-    return buffer.getvalue()
-
-
-def _deserialize_gzip_to_db(gzip_data: bytes) -> sqlite3.Connection:
-    """
-    Deserialize gzipped SQLite database bytes back to in-memory connection.
-    """
-    # Decompress gzip data to get raw SQLite database bytes
-    with gzip.GzipFile(fileobj=io.BytesIO(gzip_data), mode='rb') as gz_file:
-        db_bytes = gz_file.read()
-
-    # Create in-memory connection and deserialize the database
-    conn = sqlite3.connect(':memory:')
-    conn.deserialize(db_bytes)
-
-    return conn
-
-
-def _query_category_from_db(conn: sqlite3.Connection, category: str) -> Optional[List[EndorsementCandidate]]:
-    """
-    Query specific category candidates from SQLite database.
-    """
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT c.id, c.document_count, c.latest
-        FROM endorsement_candidates c
-        JOIN endorsement_categories cat ON c.category_id = cat.id
-        WHERE cat.category = ?
-    ''', (category,))
-
-    rows = cursor.fetchall()
-    if not rows:
-        return None
-
-    return [
-        EndorsementCandidate(
-            id=row[0],
-            category=category,
-            document_count=row[1],
-            latest=datetime.fromisoformat(row[2])
-        )
-        for row in rows
-    ]
-
-
-def _query_users_from_db(conn: sqlite3.Connection, category: str, user_ids: Optional[List[int]] = None) -> List[EndorsementCandidate]:
-    """
-    Query specific users from database, optionally filtered by user IDs.
-    """
-    cursor = conn.cursor()
-
-    if user_ids:
-        # Query specific user IDs in the category
-        placeholders = ','.join('?' * len(user_ids))
-        cursor.execute(f'''
-            SELECT c.id, c.document_count, c.latest
-            FROM endorsement_candidates c
-            JOIN endorsement_categories cat ON c.category_id = cat.id
-            WHERE cat.category = ? AND c.id IN ({placeholders})
-        ''', [category] + user_ids)
-    else:
-        # Query all users in the category
-        cursor.execute('''
-            SELECT c.id, c.document_count, c.latest
-            FROM endorsement_candidates c
-            JOIN endorsement_categories cat ON c.category_id = cat.id
-            WHERE cat.category = ?
-        ''', (category,))
-
-    rows = cursor.fetchall()
-    return [
-        EndorsementCandidate(
-            id=row[0],
-            category=category,
-            document_count=row[1],
-            latest=datetime.fromisoformat(row[2])
-        )
-        for row in rows
-    ]
-
-
-def _query_user_from_db(conn: sqlite3.Connection, user_id: int) -> List[EndorsementCandidate]:
-    """
-    Query a single user from database, returning all matching records across all categories.
-    """
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT c.id, cat.category, c.document_count, c.latest
-        FROM endorsement_candidates c
-        JOIN endorsement_categories cat ON c.category_id = cat.id
-        WHERE c.id = ?
-    ''', (user_id,))
-
-    rows = cursor.fetchall()
-    return [
-        EndorsementCandidate(
-            id=row[0],
-            category=row[1],
-            document_count=row[2],
-            latest=datetime.fromisoformat(row[3])
-        )
-        for row in rows
-    ]
-
-
-def _query_all_categories_from_db(conn: sqlite3.Connection) -> List[EndorsementCandidates]:
-    """
-    Query all categories and candidates from SQLite database.
-    """
-    cursor = conn.cursor()
-
-    # Get all categories
-    cursor.execute('SELECT id, category, timestamp FROM endorsement_categories')
-    categories = cursor.fetchall()
-
-    result = []
-    for cat_id, category, timestamp in categories:
-        # Get candidates for this category
-        cursor.execute('''
-            SELECT id, document_count, latest
-            FROM endorsement_candidates
-            WHERE category_id = ?
-        ''', (cat_id,))
-
-        candidates = [
-            EndorsementCandidate(
-                id=row[0],
-                category=category,
-                document_count=row[1],
-                latest=datetime.fromisoformat(row[2])
-            )
-            for row in cursor.fetchall()
-        ]
-
-        result.append(EndorsementCandidates(
-            timestamp=datetime.fromisoformat(timestamp),
-            category=category,
-            candidates=candidates
-        ))
-
-    return result
-
-
-def _parse_storage_url(request: Request) -> tuple[str, str, str]:
-    """
-    Parse storage URL from app configuration and return scheme, location, and path.
-
-    Supports:
-    - GCS: gs://bucket-name/path/to/object.json
-    - Local file: file:///path/to/file.json
-
-    Returns:
-        Tuple of (scheme, location, path) where:
-        - For GCS: ('gs', bucket_name, object_name)
-        - For file: ('file', '', file_path)
-    """
-    url = request.app.extra.get('ENDORSER_POOL_OBJECT_URL')
-    if not url:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ENDORSER_POOL_OBJECT_URL is not configured"
-        )
-
-    # Parse URL using urlparse
-    parsed_url = urlparse(url)
-
-    if parsed_url.scheme == 'gs':
-        bucket_name = parsed_url.netloc
-        object_name = parsed_url.path.lstrip('/')  # Remove leading slash from path
-        return 'gs', bucket_name, object_name
-    elif parsed_url.scheme == 'file':
-        file_path = parsed_url.path
-        return 'file', '', file_path
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Invalid storage URL format. Expected gs://bucket-name/object-name or file:///path/to/file.json"
-        )
 # from .categories import CategoryModel
 from .dao.endorsement_request_model import EndorsementRequestRequestModel
 
@@ -671,7 +393,7 @@ async def list_eligible_endorsers(
 ) -> List[EndorsementCandidates]:
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
-    data =  list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+    data = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
     response.headers['X-Total-Count'] = str(len(data))
     return data
 
@@ -693,52 +415,24 @@ async def upload_cached_eligible_endorsers(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    # Generate fresh endorsement candidates
-    logger.info("Generating fresh endorsement candidates for cache upload")
-    # data_v2 = await list_endorsement_candidates_v2(session, start_date=start_time, end_date=end_time)
-
-    data = await list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
-
-    # Compare v1 and v2 results (order-insensitive)
-    # logger.info("Comparing v1 and v2 endorsement candidate results")
-
-    # Convert to sets for order-insensitive comparison
-    # v1_candidates = set()
-    # v2_candidates = set()
-
-    # for endorsement_cats in data:
-    #     for candidate in endorsement_cats.candidates:
-    #         v1_candidates.add((candidate.id, endorsement_cats.category, candidate.document_count, candidate.latest))
-    #
-    # for endorsement_cats in data_v2:
-    #     for candidate in endorsement_cats.candidates:
-    #         v2_candidates.add((candidate.id, endorsement_cats.category, candidate.document_count, candidate.latest))
-    #
-    # # Log comparison results
-    # if v1_candidates == v2_candidates:
-    #     logger.info(f"✓ v1 and v2 results match perfectly ({len(v1_candidates)} candidates)")
-    # else:
-    #     only_in_v1 = v1_candidates - v2_candidates
-    #     only_in_v2 = v2_candidates - v1_candidates
-    #     logger.warning(f"⚠ v1 and v2 results differ:")
-    #     logger.warning(f"  v1 total: {len(v1_candidates)}, v2 total: {len(v2_candidates)}")
-    #     logger.warning(f"  Only in v1: {len(only_in_v1)}")
-    #     logger.warning(f"  Only in v2: {len(only_in_v2)}")
-    #     if only_in_v1:
-    #         logger.debug(f"  v1 exclusive: {list(only_in_v1)[:5]}...")  # Show first 5
-    #     if only_in_v2:
-    #         logger.debug(f"  v2 exclusive: {list(only_in_v2)[:5]}...")  # Show first 5
-
     # Parse storage info from configuration
-    scheme, location, path = _parse_storage_url(request)
+    scheme, location, path = endorsing_db.endorsing_db_parse_storage_url(request)
 
     # Create in-memory SQLite database and populate with data
-    conn = _create_endorsement_db()
-    _populate_endorsement_db(conn, data)
+    endorsing_engine = endorsing_db.endorsing_db_create()
+
+    # get all of categories
+    categories = session.query(Category).filter(Category.active == 1).all()
+    endorsing_db.populate_categories(endorsing_engine, categories)
+
+    # Generate fresh endorsement candidates
+    logger.info("Generating fresh endorsement candidates for cache upload")
+    data = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+
+    endorsing_db.populate_endorsements(endorsing_engine, data)
 
     # Serialize database to gzipped bytes
-    gzip_data = _serialize_db_to_gzip(conn)
-    conn.close()
+    gzip_data = endorsing_db.endorsing_db_serialize_to_gzip(endorsing_engine)
 
     try:
         if scheme == 'gs':
@@ -757,9 +451,9 @@ async def upload_cached_eligible_endorsers(
             logger.info(f"Successfully uploaded {len(data)} endorsement categories to GCS")
 
             # Invalidate old cache and register new cache
-            _invalidate_db_cache()
-            cache_key = _get_cache_key(request)
-            _db_cache[cache_key] = conn
+            endorsing_db.endorsing_db_invalidate_cache()
+            cache_key = endorsing_db.endorsing_db_get_cache(request)
+            endorsing_db._db_cache[cache_key] = endorsing_engine
 
             return {
                 "message": "Endorsement candidates uploaded successfully",
@@ -783,9 +477,9 @@ async def upload_cached_eligible_endorsers(
             logger.info(f"Successfully uploaded {len(data)} endorsement categories to file")
 
             # Invalidate old cache and register new cache
-            _invalidate_db_cache()
-            cache_key = _get_cache_key(request)
-            _db_cache[cache_key] = conn
+            endorsing_db.endorsing_db_invalidate_cache()
+            cache_key = endorsing_db.endorsing_db_get_cache(request)
+            endorsing_db._db_cache[cache_key] = endorsing_engine
 
             return {
                 "message": "Endorsement candidates uploaded successfully",
@@ -821,83 +515,6 @@ async def upload_cached_eligible_endorsers(
         )
 
 
-def _read_cached_data(request: Request) -> sqlite3.Connection:
-    """
-    Helper function to read cached endorsement data from storage.
-
-    Returns SQLite connection from either GCS or local file storage.
-    """
-    # Parse storage info from configuration
-    scheme, location, path = _parse_storage_url(request)
-
-    try:
-        if scheme == 'gs':
-            logger.info(f"Fetching cached endorsement candidates from gs://{location}/{path}")
-
-            # Initialize GCS client (uses default credentials from environment)
-            client = storage.Client()
-            bucket = client.bucket(location)
-            blob = bucket.blob(path)
-
-            # Download and parse JSON content
-            if not blob.exists():
-                logger.error(f"Object {path} not found in bucket {location}")
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Cached endorsement data not found"
-                )
-
-            # Download gzipped database bytes
-            gzip_data = blob.download_as_bytes()
-
-        elif scheme == 'file':
-            logger.info(f"Fetching cached endorsement candidates from file://{path}")
-
-            # Check if file exists
-            file_path = Path(path)
-            if not file_path.exists():
-                logger.error(f"File {path} not found")
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Cached endorsement data file not found"
-                )
-
-            # Read gzipped database bytes
-            gzip_data = file_path.read_bytes()
-        else:
-            raise ValueError(f"Invalid storage scheme: {scheme}")
-
-        # Deserialize gzipped data to SQLite database
-        conn = _deserialize_gzip_to_db(gzip_data)
-        logger.debug(f"Successfully fetched cached endorsement candidates from {scheme} storage")
-        return conn
-
-    except (gzip.BadGzipFile, sqlite3.Error) as e:
-        logger.error(f"Invalid database format in cached data: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Invalid database format in cached endorsement data"
-        )
-    except storage.exceptions.NotFound:
-        logger.error(f"Bucket {location} or object {path} not found")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cached endorsement data not found in storage"
-        )
-    except storage.exceptions.Forbidden:
-        logger.error(f"Access denied to bucket {location}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied to endorsement data storage"
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error fetching cached data: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch cached endorsement data from storage"
-        )
-
-
 @endorsers_router.get('/precomputed')
 async def get_cached_eligible_endorsers(
         request: Request,
@@ -913,10 +530,10 @@ async def get_cached_eligible_endorsers(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    conn = _get_cached_db_connection(request)
+    conn = endorsing_db.endorsing_db_get_cached_db(request)
 
     # Query all categories from database
-    data = _query_all_categories_from_db(conn)
+    data = endorsing_db.endorsing_db_query_all_categories(conn)
     response.headers['X-Total-Count'] = str(len(data))
 
     return data
@@ -942,10 +559,10 @@ async def get_cached_eligible_endorsers_for_the_category(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    conn = _get_cached_db_connection(request)
+    conn = endorsing_db.endorsing_db_get_cached_db(request)
 
     # Query specific category from database
-    candidates = _query_category_from_db(conn, category)
+    candidates = endorsing_db.endorsing_db_query_users_in_categories(conn, category)
     if candidates is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement category {category} not found")
 
@@ -988,13 +605,13 @@ async def get_cached_endorser_candidates(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    conn = _get_cached_db_connection(request)
+    conn = endorsing_db.endorsing_db_get_cached_db(request)
 
     # Query users from database with optional filtering
     if id is not None and (not isinstance(id, list)):
         id = [id]
 
-    candidates = _query_users_from_db(conn, category, id)
+    candidates = endorsing_db.endorsing_db_query_users_in_category(conn, category, id)
     if not candidates:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No candidates found for category {category}")
 
@@ -1017,6 +634,12 @@ async def get_cached_endorser_candidates(
 
 
 
+class EndorsementCandidateCategories(BaseModel):
+    """Model for a single user with multiple categories."""
+    id: int # user id
+    data: List[EndorsementCandidate]
+
+
 @endorsers_router.get('/precomputed/user')
 async def get_cached_endorser_candidate_categories(
         request: Request,
@@ -1037,14 +660,14 @@ async def get_cached_endorser_candidate_categories(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    conn = _get_cached_db_connection(request)
+    conn = endorsing_db.endorsing_db_get_cached_db(request)
 
     # Query users from database with optional filtering
     if id is not None and (not isinstance(id, list)):
         id = [id]
 
     candidates = [
-        EndorsementCandidateCategories(id=user_id, data=_query_user_from_db(conn, user_id)) for user_id in id
+        EndorsementCandidateCategories(id=user_id, data=endorsing_db.query_user_from_db(conn, user_id)) for user_id in id
     ]
 
     # Apply sorting
@@ -1057,3 +680,51 @@ async def get_cached_endorser_candidate_categories(
     response_body = candidates[_start:_end]
     response.headers['X-Total-Count'] = str(len(candidates))
     return response_body
+
+
+
+@endorsers_router.get('/')
+async def get_cached_eligible_endorsers_for_the_category(
+        request: Request,
+        response: Response,
+        _sort: Optional[str] = Query("id", description="sort by"),
+        _order: Optional[str] = Query("ASC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
+        category: Optional[List[str]] = Query(None, description="Category to filter by"),
+        authn: ArxivUserClaims | ApiToken = Depends(get_authn),
+) -> List[EndorsementCandidate]:
+    """
+    Fetch cached endorsement candidates for a specific category.
+
+    Returns precomputed endorsement candidates for the specified category
+    from cloud storage, providing faster response than real-time computation.
+    """
+    if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
+    conn = endorsing_db.endorsing_db_get_cached_db(request)
+
+    # Query specific category from database
+    candidates = endorsing_db.endorsing_db_query_users_in_categories(conn, category)
+    if candidates is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement category {category} not found")
+
+    # Apply sorting
+    reverse_order = _order.upper() == "DESC"
+    if _sort == "id":
+        candidates.sort(key=lambda x: x.id, reverse=reverse_order)
+    elif _sort == "category":
+        candidates.sort(key=lambda x: x.category, reverse=reverse_order)
+    elif _sort == "document_count":
+        candidates.sort(key=lambda x: x.document_count, reverse=reverse_order)
+    elif _sort == "latest":
+        candidates.sort(key=lambda x: x.latest, reverse=reverse_order)
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
+
+    response_body = candidates[_start:_end]
+    response.headers['X-Total-Count'] = str(len(candidates))
+    return response_body
+
+

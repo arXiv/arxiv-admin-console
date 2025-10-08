@@ -20,7 +20,7 @@ from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row, 
 from sqlalchemy.orm import Session, aliased
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
-                             t_arXiv_black_email, Category, OrcidIds)
+                             t_arXiv_black_email, Category, OrcidIds, TapirSession, AdminLog)
 from arxiv_bizlogic.bizmodels.user_model import UserModel, VetoStatusEnum, _tapir_user_utf8_fields_, \
     _demographic_user_utf8_fields_, list_mod_cats_n_arcs, ACCOUNT_MANAGEMENT_FIELDS
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
@@ -997,3 +997,26 @@ async def list_users_by_username(
     response.headers['X-Total-Count'] = str(count)
     result = [UserByUsernameModel.to_model(user) for user in query.offset(_start).limit(_end - _start).all()]
     return result
+
+
+class UserActivitySummary(BaseModel):
+    tapir_sessions_count: int
+    admin_log_count: int
+    # email_history_count: int
+    # it is in AAA - I could borrow the code but not worth it
+    class Config:
+        from_attributes = True
+
+
+@router.get("/{user_id:int}/activity-summary")
+def get_user_activity_summary(user_id:int,
+                              current_user: ArxivUserClaims = Depends(get_authn_user),
+                              session: Session = Depends(get_db)) -> UserActivitySummary:
+    check_authnz(None, current_user, user_id)
+    tapir_sessions_count = session.query(TapirSession).filter(TapirSession.user_id == user_id).count()
+    admin_log_count = session.query(AdminLog).filter(AdminLog.user_id == user_id).count()
+
+    return UserActivitySummary(
+        tapir_sessions_count=tapir_sessions_count,
+        admin_log_count=admin_log_count,
+    )

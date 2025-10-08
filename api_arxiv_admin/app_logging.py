@@ -12,6 +12,6 @@ def setup_logger():
     logger.handlers.clear()
     logger.addHandler(logHandler)
     logger.setLevel(logging.DEBUG)
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
     logging.getLogger("hypercorn.access").handlers.clear()
     logging.getLogger("hypercorn.access").propagate = False
