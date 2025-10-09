@@ -393,7 +393,7 @@ async def list_eligible_endorsers(
 ) -> List[EndorsementCandidates]:
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
-    data = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+    data, _timestamp, _start_time, _end_time = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
     response.headers['X-Total-Count'] = str(len(data))
     return data
 
@@ -427,9 +427,9 @@ async def upload_cached_eligible_endorsers(
 
     # Generate fresh endorsement candidates
     logger.info("Generating fresh endorsement candidates for cache upload")
-    data = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
+    data, ts1, st1, et1 = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
 
-    endorsing_db.populate_endorsements(endorsing_engine, data)
+    endorsing_db.populate_endorsements(endorsing_engine, data, ts1, st1, et1)
 
     # Serialize database to gzipped bytes
     gzip_data = endorsing_db.endorsing_db_serialize_to_gzip(endorsing_engine)
@@ -574,8 +574,8 @@ async def get_cached_eligible_endorsers_for_the_category(
         candidates.sort(key=lambda x: x.category, reverse=reverse_order)
     elif _sort == "document_count":
         candidates.sort(key=lambda x: x.document_count, reverse=reverse_order)
-    elif _sort == "latest":
-        candidates.sort(key=lambda x: x.latest, reverse=reverse_order)
+    elif _sort == "latest_document_id":
+        candidates.sort(key=lambda x: x.latest_document_id, reverse=reverse_order)
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
 
@@ -623,8 +623,8 @@ async def get_cached_endorser_candidates(
         candidates.sort(key=lambda x: x.category, reverse=reverse_order)
     elif _sort == "document_count":
         candidates.sort(key=lambda x: x.document_count, reverse=reverse_order)
-    elif _sort == "latest":
-        candidates.sort(key=lambda x: x.latest, reverse=reverse_order)
+    elif _sort == "latest_document_id":
+        candidates.sort(key=lambda x: x.latest_document_id, reverse=reverse_order)
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
 
@@ -660,14 +660,14 @@ async def get_cached_endorser_candidate_categories(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    conn = endorsing_db.endorsing_db_get_cached_db(request)
+    engine = endorsing_db.endorsing_db_get_cached_db(request)
 
     # Query users from database with optional filtering
     if id is not None and (not isinstance(id, list)):
         id = [id]
 
     candidates = [
-        EndorsementCandidateCategories(id=user_id, data=endorsing_db.query_user_from_db(conn, user_id)) for user_id in id
+        EndorsementCandidateCategories(id=user_id, data=endorsing_db.endorsing_db_query_user(engine, user_id)) for user_id in id
     ]
 
     # Apply sorting
@@ -718,8 +718,8 @@ async def get_cached_eligible_endorsers_for_the_category(
         candidates.sort(key=lambda x: x.category, reverse=reverse_order)
     elif _sort == "document_count":
         candidates.sort(key=lambda x: x.document_count, reverse=reverse_order)
-    elif _sort == "latest":
-        candidates.sort(key=lambda x: x.latest, reverse=reverse_order)
+    elif _sort == "latest_document_id":
+        candidates.sort(key=lambda x: x.latest_document_id, reverse=reverse_order)
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
 

@@ -18,7 +18,8 @@ from sqlalchemy.orm import Session
 from arxiv.base import logging
 from arxiv.db.models import Category, Document, Metadata, PaperOwner, Demographic, EndorsementDomain
 
-from .endorsing_models import EndorsingBase, EndorsingCategoryModel, EndorsingCandidateModel, EndorsementCandidates, EndorsementCandidate
+from .endorsing_models import EndorsingBase, EndorsingCategoryModel, EndorsingCandidateModel, EndorsementCandidates, \
+    EndorsementCandidate, EndorsingMetadataModel
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +39,14 @@ class DocumentRecord:
 
 class AggregatedCandidate:
     """Holds aggregated data for a user-category pair."""
-    __slots__ = ('user_id', 'category', 'count', 'latest')
+    __slots__ = ('user_id', 'category', 'count', 'latest', 'latest_document_id')
 
-    def __init__(self, user_id: int, category: str, count: int, latest: datetime):
+    def __init__(self, user_id: int, category: str, count: int, latest: datetime, latest_document_id: int):
         self.user_id = user_id
         self.category = category
         self.count = count
         self.latest = latest
+        self.latest_document_id = latest_document_id
 
 
 def endorsing_db_get_cache(request: Request) -> str:
@@ -112,11 +114,18 @@ def populate_categories(engine: Engine, categories: List[Category]):
         session.commit()
 
 
-def populate_endorsements(engine: Engine, data: List[EndorsementCandidate]) -> None:
+def populate_endorsements(engine: Engine, data: List[EndorsementCandidate], timestamp: datetime, start_time: datetime, end_time: datetime) -> None:
     """
     Populate SQLite database with endorsement candidates data using SQLAlchemy 2.0.
     Uses autocommit mode for direct writes without transaction overhead.
     """
+    # Write out metadata first
+    with Session(engine) as session:
+        session.add(EndorsingMetadataModel(key='timestamp', value=str(timestamp)))
+        session.add(EndorsingMetadataModel(key='start_time', value=str(start_time)))
+        session.add(EndorsingMetadataModel(key='end_time', value=str(end_time)))
+        session.commit()
+
     # Get categories once outside the loop
     with Session(engine) as session:
         categories: Dict[str, EndorsingCategoryModel] = {cat.category: cat for cat in session.query(EndorsingCategoryModel).all()}
@@ -136,12 +145,12 @@ def populate_endorsements(engine: Engine, data: List[EndorsementCandidate]) -> N
                 continue
 
             category: EndorsingCategoryModel = categories[candidate.category]
-            values.append((candidate.id, category.id, candidate.document_count, candidate.latest, candidate.timestamp))
+            values.append((candidate.id, category.id, candidate.document_count, candidate.latest_document_id, ))
 
         # Insert all at once with executemany
         if values:
             cursor.executemany(
-                "INSERT INTO endorsement_candidates (user_id, category_id, document_count, latest, timestamp) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO endorsement_candidates (user_id, category_id, document_count, latest_document_id) VALUES (?, ?, ?, ?)",
                 values
             )
             conn.commit()  # Explicit commit
@@ -182,9 +191,9 @@ def endorsing_db_deserialize_from_gzip(gzip_data: bytes) -> Engine:
     conn.deserialize(db_bytes)
 
     # Create SQLAlchemy engine from the connection
-    # We need to use the NullPool to avoid connection pooling issues
-    from sqlalchemy.pool import NullPool
-    engine = create_engine("sqlite:///:memory:", poolclass=NullPool, creator=lambda: conn, echo=False)
+    # We need to use StaticPool to keep the single in-memory connection alive
+    from sqlalchemy.pool import StaticPool
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool, creator=lambda: conn, echo=False)
 
     return engine
 
@@ -205,8 +214,7 @@ def endorsing_db_query_users_in_categories(engine: Engine, category: str | List[
             EndorsingCandidateModel.user_id.label('id'),
             EndorsingCategoryModel.category,
             EndorsingCandidateModel.document_count,
-            EndorsingCandidateModel.latest,
-            EndorsingCandidateModel.timestamp
+            EndorsingCandidateModel.latest_document_id,
         ).join(EndorsingCategoryModel).filter(EndorsingCategoryModel.category.in_(categories)).all()
         return [EndorsementCandidate.model_validate(candidate) for candidate in results]
 
@@ -223,8 +231,7 @@ def endorsing_db_query_users_in_category(engine: Engine, category: str, user_ids
             EndorsingCandidateModel.user_id.label('id'),
             EndorsingCategoryModel.category,
             EndorsingCandidateModel.document_count,
-            EndorsingCandidateModel.latest,
-            EndorsingCandidateModel.timestamp
+            EndorsingCandidateModel.latest_document_id,
         ).join(EndorsingCategoryModel, EndorsingCandidateModel.category_id == EndorsingCategoryModel.id).filter(EndorsingCategoryModel.category == category)
 
         # Add user ID filter if provided
@@ -242,9 +249,8 @@ def endorsing_db_query_user(engine: Engine, user_id: int) -> List[EndorsementCan
             EndorsingCandidateModel.user_id.label('id'),
             EndorsingCategoryModel.category,
             EndorsingCandidateModel.document_count,
-            EndorsingCandidateModel.latest,
-            EndorsingCandidateModel.timestamp
-        ).join(EndorsingCategoryModel).filter(EndorsingCategoryModel.id == EndorsingCandidateModel.category_id)
+            EndorsingCandidateModel.latest_document_id,
+        ).filter(EndorsingCandidateModel.user_id == user_id).join(EndorsingCategoryModel).filter(EndorsingCategoryModel.id == EndorsingCandidateModel.category_id)
         return [EndorsementCandidate.model_validate(candidate) for candidate in query.all()]
 
 
@@ -470,7 +476,7 @@ def _fetch_documents_batched(
 
             if doc_id in doc_users_map and dated is not None:
                 for user_id in doc_users_map[doc_id]:
-                    yield (user_id, dated, abs_categories)
+                    yield (user_id, doc_id, dated, abs_categories)
 
         offset += batch_size
 
@@ -495,7 +501,7 @@ def _worker_process(input_queue: Queue, output_queue: Queue, valid_categories: s
         if item is None:
             break
 
-        user_id, dated_timestamp, category = item
+        user_id, doc_id, dated_timestamp, category = item
 
         if category not in valid_categories:
             continue
@@ -506,14 +512,16 @@ def _worker_process(input_queue: Queue, output_queue: Queue, valid_categories: s
         if key in aggregates:
             agg = aggregates[key]
             agg.count += 1
-            # Keep the earliest date (becomes "latest" in output)
-            if dated < agg.latest:
+            # Keep the latest date (becomes "latest" in output)
+            if dated > agg.latest:
                 agg.latest = dated
+                agg.latest_document_id = doc_id
         else:
             aggregates[key] = AggregatedCandidate(
                 user_id=user_id,
                 category=category,
                 count=1,
+                latest_document_id=doc_id,
                 latest=dated
             )
 
@@ -533,7 +541,7 @@ def _worker_process(input_queue: Queue, output_queue: Queue, valid_categories: s
 
         # Only include if meets threshold
         if agg.count >= criteria['papers_to_endorse']:
-            qualified_results.append((agg.user_id, agg.category, agg.count, agg.latest))
+            qualified_results.append((agg.user_id, agg.category, agg.count, agg.latest, agg.latest_document_id))
 
     output_queue.put(qualified_results)
 
@@ -543,7 +551,6 @@ def _process_concurrently(
     num_workers: int,
     valid_categories: set,
     endorsement_domains: Dict[str, EndorsementDomain],
-    timestamp: datetime
 ) -> List[EndorsementCandidate]:
     """
     Process pre-fetched data using multiprocessing workers.
@@ -578,7 +585,7 @@ def _process_concurrently(
     logger.info("Distributing batched data to workers...")
 
     # Distribute data from generator to workers
-    for user_id, dated, abs_categories in data_generator:
+    for user_id, doc_id, dated, abs_categories in data_generator:
         # Split categories by space
         categories = abs_categories.split()
         for cat in categories:
@@ -587,7 +594,7 @@ def _process_concurrently(
 
             # Send to queue based on user_id mod N
             channel_idx = user_id % num_workers
-            input_queues[channel_idx].put((user_id, dated, cat))
+            input_queues[channel_idx].put((user_id, doc_id, dated, cat))
 
     # Send sentinel values to stop workers
     for q in input_queues:
@@ -605,13 +612,12 @@ def _process_concurrently(
 
     # Convert tuples to EndorsementCandidate objects
     result = []
-    for user_id, category, count, latest in all_aggregates:
+    for user_id, category, count, latest, latest_document_id in all_aggregates:
         result.append(EndorsementCandidate(
             id=user_id,
             category=category,
             document_count=count,
-            latest=latest,
-            timestamp=timestamp
+            latest_document_id=latest_document_id
         ))
 
     return result
@@ -621,13 +627,12 @@ def post_process(all_aggregates, timestamp):
     # Group qualified candidates by category
     candidates_by_category: Dict[str, List[EndorsementCandidate]] = defaultdict(list)
 
-    for user_id, category, count, latest in all_aggregates:
+    for user_id, category, count, latest, latest_document_id in all_aggregates:
         candidates_by_category[category].append(EndorsementCandidate(
             id=user_id,
             category=category,
             document_count=count,
-            latest=latest,
-            timestamp=timestamp
+            latest_document_id=latest_document_id,
         ))
 
     # Build final result
@@ -643,7 +648,7 @@ async def endorsing_db_list_endorsement_candidates(
     end_date: Optional[date] = None,
     num_workers: int = 4,
     batch_size: int = 10000
-) -> List[EndorsementCandidate]:
+) -> Tuple[List[EndorsementCandidate], datetime, datetime, datetime]:
     """
     Query endorsement candidates from MySQL database using batched queries and concurrent processing.
 
@@ -718,14 +723,13 @@ async def endorsing_db_list_endorsement_candidates(
             num_workers,
             valid_categories,
             endorsement_domains,
-            timestamp
         )
 
         total_time = time.time() - start_time
         logger.info(f"Endorsement processing: {total_time:.3f}s total, "
                     f"{len(result)} qualified candidates")
 
-        return result
+        return result, timestamp, start_date, end_date
 
     finally:
         # Restore original echo setting

@@ -37,8 +37,7 @@ class EndorsingCandidateModel(EndorsingBase):
     user_id: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("endorsement_categories.id"))
     document_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    latest: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    latest_document_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Relationship to category
     category_ref: Mapped["EndorsingCategoryModel"] = relationship(back_populates="candidates")
@@ -47,13 +46,23 @@ class EndorsingCandidateModel(EndorsingBase):
         return f"EndorsementCandidateModel(id={self.id}, category_id={self.category_id}, document_count={self.document_count}, latest={self.latest}, timestamp={self.timestamp})"
 
 
+class EndorsingMetadataModel(EndorsingBase):
+    """Model for endorsement candidates."""
+    __tablename__ = "metadata"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True) # surrogate key
+    value: Mapped[str] = mapped_column(String)
+
+    def __repr__(self) -> str:
+        return f"EndorsingMetadataModel(key={self.key}, value={self.value!r})"
+
+
 class EndorsementCandidate(BaseModel):
     """Model for endorsement candidate data."""
     id: int # user id
     category: str
     document_count: int
-    latest: datetime
-    timestamp: datetime
+    latest_document_id: int
     class Config:
         from_attributes = True
 
