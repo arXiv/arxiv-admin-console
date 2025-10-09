@@ -33,6 +33,9 @@ from .biz.endorsement_biz import can_user_submit_to, can_user_endorse_for, Endor
 from .dao.react_admin import ReactAdminUpdateResult, ReactAdminCreateResult
 from logging import getLogger
 
+from .endorsing import endorsing_db
+from .endorsing.endorsing_models import EndorsementCandidate
+
 logger = getLogger(__name__)
 
 router = APIRouter(prefix="/users")
@@ -203,6 +206,7 @@ def get_user_by_username(username: str,
 
 @router.get("/")
 async def list_users(
+        request: Request,
         response: Response,
         _sort: Optional[str] = Query("last_name,first_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
@@ -223,6 +227,7 @@ async def list_users(
         email_bouncing: Optional[bool] = Query(None),
         clue: Optional[str] = Query(None),
         suspect: Optional[bool] = Query(None),
+        endorsing_categories: Optional[List[str]] = Query(None),
         start_joined_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_joined_date: Optional[date] = Query(None, description="End date for filtering"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
@@ -386,6 +391,12 @@ async def list_users(
                     query = query.filter(TapirUser.first_name.like(names[1] + "%"))
                 if len(names) > 2:
                     query = query.filter(TapirUser.suffix_name.like(names[2] + "%"))
+
+        if endorsing_categories is not None:
+            engine = endorsing_db.endorsing_db_get_cached_db(request)
+            candidates: List[EndorsementCandidate] = endorsing_db.endorsing_db_query_users_in_categories(engine, endorsing_categories)
+            user_ids = [candidate.id for candidate in candidates]
+            query = query.filter(TapirUser.user_id.in_(user_ids))
 
     for column in order_columns:
         if _order == "DESC":

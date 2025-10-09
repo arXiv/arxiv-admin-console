@@ -29,6 +29,8 @@ import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
 import ArchiveSubjectClassInput from "../bits/ArchiveSubjectClassInput";
 import CategoryInput from "../bits/CategoryInput";
+import Paper from "@mui/material/Paper";
+import SingleUserInputField from "../components/SingleUserInputField";
 /*
     id: str
     user_id: int
@@ -120,7 +122,10 @@ export const ModeratorEdit = () => (
             <ModeratorEditTitle />
         </ConsoleTitle>
 
+        <Paper>
         <SimpleForm>
+            <Box margin={2} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '80%' }}>
+
             <ReferenceField source="user_id" reference="users" label={"User"}
                             link={(record, reference) => `/${reference}/${record.id}`}>
                 <TextField source={"last_name"}/>
@@ -128,39 +133,40 @@ export const ModeratorEdit = () => (
                 <TextField source={"first_name"}/>
             </ReferenceField>
 
-            <TextInput source="archive"/>
-            <TextInput source="subject_class"/>
+            <TextField source="archive"/>
+            <TextField source="subject_class"/>
 
             <BooleanInput source="is_public" label={"Public"}/>
             <BooleanInput source="no_email" label={"No Email"}/>
             <BooleanInput source="no_web_email" label={"No Web Email"}/>
             <BooleanInput source="no_reply_to" label={"No Reply-To"}/>
             <BooleanInput source="daily_update" label={"Daily Update"}/>
+            </Box>
         </SimpleForm>
+        </Paper>
     </Edit>
     </Box>
 );
 
 export const ModeratorCreate = () => (
-    <Create>
-        <ConsoleTitle>Add Moderator</ConsoleTitle>
+    <Create component={"div"}>
+        <ConsoleTitle sx={{ml: "3em"}}>Add Moderator</ConsoleTitle>
+        <Paper sx={{maxWidth: "sm", margin: "0 auto"}}>
         <SimpleForm>
-            <ReferenceInput source="user_id" reference="users">
-                <AutocompleteInput
-                    optionText={(record) => `${record.last_name}, ${record.first_name} (${record.email}) ${record.id}`}
-                />
-            </ReferenceInput>
+            <Box margin={2} sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '80%' }}>
+            <SingleUserInputField source={"user_id"} variant={"dialog"} required={true} fullWidth/>
 
-            <ArchiveSubjectClassInput source={'id'} label={'Category'} sourceCategory={'archive'}
-                                      sourceClass={'subject_class'}/>
+            <ArchiveSubjectClassInput source={'categories'} label={'Category'} sourceCategory={'archive'}
+                                      sourceClass={'subject_class'} isRequired={true} fullWidth/>
 
             <BooleanInput source="is_public" label={"Public"}/>
             <BooleanInput source="no_email" label={"No Email"}/>
             <BooleanInput source="no_web_email" label={"No Web Mail"}/>
             <BooleanInput source="no_reply_to" label={"No Reply-To"}/>
             <BooleanInput source="daily_update" label={"Daily Update"}/>
-
+            </Box>
         </SimpleForm>
+        </Paper>
     </Create>
 );
 

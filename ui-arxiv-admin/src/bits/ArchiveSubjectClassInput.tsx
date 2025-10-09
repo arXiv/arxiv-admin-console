@@ -24,7 +24,7 @@ interface Category {
 }
 
 
-const ArchiveSubjectClassInput: React.FC<ArchiveSubjectClassInputProps> = ({ sourceCategory, sourceClass, source }) => {
+const ArchiveSubjectClassInput: React.FC<ArchiveSubjectClassInputProps> = ({ sourceCategory, sourceClass, source, ...rest }) => {
     const [categories, setCategories] = useState<[Category] | null>(null); // Store the fetched category name
     const [loading, setLoading] = useState<boolean>(true);
     const runtimeProps = useContext(RuntimeContext);
@@ -65,6 +65,7 @@ const ArchiveSubjectClassInput: React.FC<ArchiveSubjectClassInputProps> = ({ sou
                     optionText="name" // Display category name
                     optionValue="id" // Use category ID for selection
                     helperText={false}
+                    {...rest}
                 />
             )}
         </>

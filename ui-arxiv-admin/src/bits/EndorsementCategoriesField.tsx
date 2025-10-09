@@ -1,13 +1,10 @@
-import React from 'react';
-import { useRecordContext } from 'react-admin';
+import React, {useEffect, useState} from 'react';
+import {useDataProvider, useEditContext, useRecordContext} from 'react-admin';
 import { Chip, Box, Tooltip } from '@mui/material';
 
-interface EndorsementCandidate {
-    id: number;
-    category: string;
-    document_count: number;
-    latest: string;
-}
+import {components as adminComponents} from '../types/admin-api';
+
+type EndorsementCandidate = adminComponents['schemas']['EndorsementCandidate'];
 
 interface EndorsementCategoriesFieldProps {
     source?: string;
@@ -49,7 +46,6 @@ const EndorsementCategoriesField: React.FC<EndorsementCategoriesFieldProps> = ({
                         <div>
                             <div><strong>Category:</strong> {item.category}</div>
                             <div><strong>Document Count:</strong> {item.document_count}</div>
-                            <div><strong>Latest Submission:</strong> {formatDate(item.latest)}</div>
                         </div>
                     }
                     placement="top"

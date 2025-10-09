@@ -377,6 +377,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users/{user_id}/activity-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User Activity Summary */
+        get: operations["get_user_activity_summary_v1_users__user_id__activity_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users-by-username/": {
         parameters: {
             query?: never;
@@ -719,6 +736,29 @@ export interface paths {
          *     from cloud storage, providing faster response than real-time computation.
          */
         get: operations["get_cached_endorser_candidate_categories_v1_endorsers_precomputed_user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/endorsers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cached Eligible Endorsers For The Category
+         * @description Fetch cached endorsement candidates for a specific category.
+         *
+         *     Returns precomputed endorsement candidates for the specified category
+         *     from cloud storage, providing faster response than real-time computation.
+         */
+        get: operations["get_cached_eligible_endorsers_for_the_category_v1_endorsers__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2643,11 +2683,8 @@ export interface components {
             category: string;
             /** Document Count */
             document_count: number;
-            /**
-             * Latest
-             * Format: date-time
-             */
-            latest: string;
+            /** Latest Document Id */
+            latest_document_id: number;
         };
         /**
          * EndorsementCandidateCategories
@@ -2664,11 +2701,6 @@ export interface components {
          * @description Model for endorsement candidate data.
          */
         EndorsementCandidates: {
-            /**
-             * Timestamp
-             * Format: date-time
-             */
-            timestamp: string;
             /** Category */
             category: string;
             /** Candidates */
@@ -3525,6 +3557,13 @@ export interface components {
         TapirSessionUpdateModel: {
             /** Close Session */
             close_session: boolean;
+        };
+        /** UserActivitySummary */
+        UserActivitySummary: {
+            /** Tapir Sessions Count */
+            tapir_sessions_count: number;
+            /** Admin Log Count */
+            admin_log_count: number;
         };
         /** UserByUsernameModel */
         UserByUsernameModel: {
@@ -4450,6 +4489,7 @@ export interface operations {
                 email_bouncing?: boolean | null;
                 clue?: string | null;
                 suspect?: boolean | null;
+                endorsing_categories?: string[] | null;
                 /** @description Start date for filtering */
                 start_joined_date?: string | null;
                 /** @description End date for filtering */
@@ -4690,6 +4730,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryYesNo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_activity_summary_v1_users__user_id__activity_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserActivitySummary"];
                 };
             };
             /** @description Validation Error */
@@ -5705,6 +5776,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EndorsementCandidateCategories"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cached_eligible_endorsers_for_the_category_v1_endorsers__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description Category to filter by */
+                category?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EndorsementCandidate"][];
                 };
             };
             /** @description Validation Error */

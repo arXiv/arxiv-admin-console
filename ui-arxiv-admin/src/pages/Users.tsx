@@ -47,7 +47,8 @@ import {
     SaveButton,
     DeleteButton, useNotify, useEditContext, useRefresh,
     Confirm,
-    useGetRecordId, ArrayField
+    useGetRecordId, ArrayField,
+    AutocompleteInput
 } from 'react-admin';
 
 import DoDisturbOnIcon from '@mui/icons-material/DoDisturbOn';
@@ -101,22 +102,53 @@ type EndorsementT = adminApi['/v1/endorsements/']['get']['responses']['200']['co
 type SubmissionSummaryT = adminApi['/v1/submissions/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
 type PaperOwnershipSummaryT = adminApi['/v1/paper_owners/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
 
-const UserFilter = (props: any) => (
-    <Filter {...props}>
-        <BooleanInput label="Admin" source="flag_edit_users" defaultValue={true}/>
-        <BooleanInput label="Mod" source="flag_is_mod" defaultValue={true}/>
-        <TextInput label="Search by Email" source="email" alwaysOn/>
-        <TextInput label="Login name" source="username"/>
-        <TextInput label="Search by First name" source="first_name"/>
-        <TextInput label="Search by Last Name" source="last_name"/>
-        <BooleanInput label="Email bouncing" source="email_bouncing" defaultValue={true}/>
-        <BooleanInput label="Flagged" source="suspect" defaultValue={true}/>
-        <BooleanInput label="Non-academit email" source="is_non_academic" defaultValue={true}/>
-        <BooleanInput label="Email verified" source="flag_email_verified" defaultValue={true}/>
-        <DateInput label="Start joined date" source="start_joined_date"/>
-        <DateInput label="End joined date" source="end_joined_date"/>
-    </Filter>
-);
+const UserFilter = (props: any) => {
+    const [categories, setCategories] = React.useState<any[]>([]);
+    const dataProvider = useDataProvider();
+    const notify = useNotify();
+
+    React.useEffect(() => {
+        async function getCategories() {
+            try {
+                const response = await dataProvider.getList("categories", {
+                    pagination: { page: 1, perPage: 1000 },
+                    sort: { field: 'archive', order: 'ASC' },
+                    filter: {active: true}
+                });
+                const categoryOptions = response.data.map((cat: any) => ({
+                    id: `${cat.archive}.${cat.subject_class}`,
+                    name: `${cat.archive}.${cat.subject_class} - ${cat.category_name ?? "Unknown Category"}`
+                }));
+                setCategories(categoryOptions);
+            }
+            catch (error: any) {
+                const msg = "Error fetching categories: " + error?.data?.detail;
+                notify(msg, {type: "warning"});
+                console.error(msg);
+            }
+        }
+        getCategories();
+    }, [dataProvider]);
+
+    return (
+        <Filter {...props}>
+            <BooleanInput label="Admin" source="flag_edit_users" defaultValue={true}/>
+            <BooleanInput label="Mod" source="flag_is_mod" defaultValue={true}/>
+            <TextInput label="Search by Email" source="email" alwaysOn/>
+            <TextInput label="Login name" source="username"/>
+            <TextInput label="Search by First name" source="first_name"/>
+            <TextInput label="Search by Last Name" source="last_name"/>
+            <BooleanInput label="Email bouncing" source="email_bouncing" defaultValue={true}/>
+            <BooleanInput label="Flagged" source="suspect" defaultValue={true}/>
+            <BooleanInput label="Non-academit email" source="is_non_academic" defaultValue={true}/>
+            <BooleanInput label="Email verified" source="flag_email_verified" defaultValue={true}/>
+            <DateInput label="Start joined date" source="start_joined_date"/>
+            <DateInput label="End joined date" source="end_joined_date"/>
+            <AutocompleteInput label="Endorsing Category" source="endorsing_categories" choices={categories} />
+            <TextInput label="User ID" source="id"/>
+        </Filter>
+    );
+};
 
 // export default UserFilter;
 

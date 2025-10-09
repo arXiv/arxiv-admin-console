@@ -23,11 +23,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/moderators")
 
 
-def _modapi_clear_user_cache(user_id: int, request: Request):
+async def _modapi_clear_user_cache(user_id: int, request: Request):
     try:
-        modapi_clear_user_cache(user_id,
-                                base_url=request.app.extra["MODAPI_URL"],
-                                modkey=request.app.extra["MODAPI_MODKEY"])
+        await modapi_clear_user_cache(
+            user_id,
+            base_url=request.app.extra["MODAPI_URL"],
+            modkey=request.app.extra["MODAPI_MODKEY"])
     except:
         logger.warning("Failed to clear user cache", exc_info=True, extra={"user_id": user_id})
     pass
@@ -275,79 +276,100 @@ async def update_moderator(request: Request, id: str,
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    _modapi_clear_user_cache(user_id, request)
+    await _modapi_clear_user_cache(user_id, request)
     return ModeratorModel.model_validate(item)
 
+
+class ModeratorCreateModel(BaseModel):
+    user_id: int
+    categories: List[str]
+    is_public: bool
+    no_email: bool
+    no_web_email: bool
+    no_reply_to: bool
+    daily_update: bool
 
 @router.post('/')
 async def create_moderator(
         request: Request,
-        body: ModeratorModel,
+        body: ModeratorCreateModel,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         remote_ip: Optional[str] = Depends(get_client_host),
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
-        session: Session = Depends(get_db)) -> ModeratorModel:
+        session: Session = Depends(get_db)) -> List[ModeratorModel]:
 
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
+    user_id = body.user_id
+    if session.query(TapirUser).filter(TapirUser.user_id == user_id).count() == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     data = body.model_dump()
-    if "id" in data:
-        del data["id"]
+    mods = []
 
-    existing = ModeratorModel.base_query(session).filter(
-        and_(
-            t_arXiv_moderators.c.user_id == int(body.user_id),
-            t_arXiv_moderators.c.archive == body.archive,
-            t_arXiv_moderators.c.subject_class == body.subject_class,
-        )
-    ).one_or_none()
-
-    if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Moderator already exists.")
-
-    stmt = insert(t_arXiv_moderators).values(**data)
-
-    try:
-        result = session.execute(stmt)
-        session.flush()
-
-        # Retrieve the inserted row using a SELECT query
-
-        item = ModeratorModel.base_query(session).filter(
+    for category in body.categories:
+        [archive, subject_class] = category.split(".")
+        existing = ModeratorModel.base_query(session).filter(
             and_(
                 t_arXiv_moderators.c.user_id == int(body.user_id),
-                t_arXiv_moderators.c.archive == body.archive,
-                t_arXiv_moderators.c.subject_class == body.subject_class)).one_or_none()
-
-        if not item:
-            raise HTTPException(status_code=500, detail="Failed to fetch inserted record")
-
-        admin_audit(
-            session,
-            AdminAudit_MakeModerator(
-                current_user.user_id,
-                body.user_id,
-                current_user.tapir_session_id,
-                category=f"{body.archive}.{body.subject_class}",
-                remote_ip=remote_ip,
-                remote_hostname=remote_hostname,
-                tracking_cookie=tracking_cookie,
+                t_arXiv_moderators.c.archive == archive,
+                t_arXiv_moderators.c.subject_class == subject_class,
             )
-        )
+        ).one_or_none()
 
-        session.commit()
-        _modapi_clear_user_cache(user_id, request)
-        return ModeratorModel.model_validate(item)
+        if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Moderator already exists.")
 
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        one = data.copy()
+        del one['categories']
+        one['archive'] = archive
+        one['subject_class'] = subject_class
+
+        stmt = insert(t_arXiv_moderators).values(**one)
+
+        try:
+            result = session.execute(stmt)
+            session.flush()
+
+            # Retrieve the inserted row using a SELECT query
+
+            item = ModeratorModel.base_query(session).filter(
+                and_(
+                    t_arXiv_moderators.c.user_id == int(body.user_id),
+                    t_arXiv_moderators.c.archive == archive,
+                    t_arXiv_moderators.c.subject_class == subject_class)).one_or_none()
+
+            if not item:
+                raise HTTPException(status_code=500, detail="Failed to fetch inserted record")
+
+            admin_audit(
+                session,
+                AdminAudit_MakeModerator(
+                    current_user.user_id,
+                    body.user_id,
+                    current_user.tapir_session_id,
+                    category=category,
+                    remote_ip=remote_ip,
+                    remote_hostname=remote_hostname,
+                    tracking_cookie=tracking_cookie,
+                )
+            )
+
+            mods.append(ModeratorModel.model_validate(item))
+
+        except Exception as e:
+            session.rollback()
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    session.commit()
+    await _modapi_clear_user_cache(user_id, request)
+    return mods
 
 
-
-def _delete_moderator(session: Session,
+def _delete_moderator(request: Request,
+                      session: Session,
                       current_user: ArxivUserClaims,
                       user_id: str, archive: str, subject_class: str,
                       remote_ip: str, remote_hostname: str, tracking_cookie: str
@@ -387,17 +409,19 @@ def _delete_moderator(session: Session,
                description="""parameter ID is user_id "+" archive "+" subject_class where + is a literal character.
  This is because react-admin's delete row must have a single ID, and I chose to use + as separator."""
                )
-async def delete_moderator(id: str,
-                           current_user: ArxivUserClaims = Depends(get_authn_user),
-                           remote_ip: Optional[str] = Depends(get_client_host),
-                           remote_hostname: Optional[str] = Depends(get_client_host_name),
-                           tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
-                           session: Session = Depends(get_db)) -> Response:
+async def delete_moderator(
+        request: Request,
+        id: str,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> Response:
     """
     delete_moderator:
     """
     [user_id, archive, subject_class] = id.split("+")
-    return _delete_moderator(session, current_user, user_id, archive, subject_class,
+    return _delete_moderator(request, session, current_user, user_id, archive, subject_class,
                              remote_ip, remote_hostname, tracking_cookie)
 
 
@@ -405,14 +429,16 @@ async def delete_moderator(id: str,
                status_code=status.HTTP_204_NO_CONTENT,
                description="Delete moderator operation in a straightforward interface."
                )
-async def delete_moderator_2(user_id: str,
-                             archive: str,
-                             subject_class: str,
-                             current_user: ArxivUserClaims = Depends(get_authn_user),
-                             remote_ip: Optional[str] = Depends(get_client_host),
-                             remote_hostname: Optional[str] = Depends(get_client_host_name),
-                             tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
-                             session: Session = Depends(get_db)) -> Response:
-    return _delete_moderator(session, current_user, user_id, archive, subject_class,
+async def delete_moderator_2(
+        request: Request,
+        user_id: str,
+        archive: str,
+        subject_class: str,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> Response:
+    return _delete_moderator(request, session, current_user, user_id, archive, subject_class,
                              remote_ip, remote_hostname, tracking_cookie)
 

@@ -391,6 +391,22 @@ class adminApiDataProvider implements DataProvider {
             }
 
         }
+        else if (resource === "moderators") {
+            const {data, } = params;
+            /*
+hook.js:608 The response to 'create' must be like { data: { id: 123, ... } }, but the received data does not have an 'id' key. The dataProvider is probably wrong for 'create'
+             */
+            const createModerator = this.runtimeProps.adminFetcher.path('/v1/moderators/').method('post').create();
+
+            try {
+                const response = await createModerator(data);
+                return {data: response.data[0]};
+            }
+            catch (error) {
+                handleHttpError(error, 'Failed to create moderator record');
+            }
+
+        }
         return this.dataProvider.create(addTrailingSlash(resource), params);
     }
 

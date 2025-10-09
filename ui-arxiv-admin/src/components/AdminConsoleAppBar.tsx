@@ -73,7 +73,12 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
         const searchTerm = userSearch.trim().replace(/\s+/g, ' '); // Remove extra spaces/tabs
 
         if (e.key === 'Enter' && searchTerm) {
-            if (searchTerm.endsWith('@')) {
+            const isAllDigits = /^\d+$/.test(searchTerm);
+
+            if (isAllDigits) {
+                criteria = {id: searchTerm}
+            }
+            else if (searchTerm.endsWith('@')) {
                 criteria = {username: searchTerm.substring(0, searchTerm.length - 1)}
             } else if (searchTerm.includes('@')) {
                 criteria = {email: searchTerm}
@@ -188,6 +193,7 @@ export const AdminConsoleAppBar: React.FC<AdminConsoleAppBarProps> = ({ onMenuCl
                         <p>Name search: "First name" "Last name"</p>
                         <p>Email search: foo@mit.edu</p>
                         <p>Username search: foo@</p>
+                        <p>User ID: NNN...</p>
                     </Typography>)}>
                     <TextField
                         variant="outlined"
