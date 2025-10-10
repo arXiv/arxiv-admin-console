@@ -219,6 +219,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         ENDORSER_POOL_OBJECT_URL = os.environ.get('ENDORSER_POOL_OBJECT_URL'),
         MODAPI_URL=MODAPI_URL,
         MODAPI_MODKEY=MODAPI_MODKEY,
+        GCP_SERVICE_REQUEST_SA=os.environ.get('GCP_SERVICE_REQUEST_SA'),
+        GCP_SERVICE_REQUEST_ENDPOINT=os.environ.get('GCP_SERVICE_REQUEST_ENDPOINT', "localhost:8080"),
     )
 
     if ADMIN_APP_URL not in origins:

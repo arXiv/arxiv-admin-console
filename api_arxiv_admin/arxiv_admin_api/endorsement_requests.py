@@ -6,6 +6,7 @@ from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, ApiToken, get_authn_or_none
+from arxiv_bizlogic.gcp_helper import verify_gcp_oidc_token
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from pip._internal.models import candidate
 
@@ -401,11 +402,12 @@ async def list_eligible_endorsers(
 
 @endorsers_router.post('/precomputed')
 async def upload_cached_eligible_endorsers(
-    request: Request,
-    authn: ArxivUserClaims | ApiToken = Depends(get_authn),
-    start_time: Optional[datetime] = Query(None, description="Paper count start time"),
-    end_time: Optional[datetime] = Query(None, description="Paper count end time"),
-    session: Session = Depends(get_db)
+        request: Request,
+        authn: Optional[ArxivUserClaims | ApiToken] = Depends(get_authn_or_none),
+        gcp_token = Depends(verify_gcp_oidc_token),
+        start_time: Optional[datetime] = Query(None, description="Paper count start time"),
+        end_time: Optional[datetime] = Query(None, description="Paper count end time"),
+        session: Session = Depends(get_db)
 ) -> dict:
     """
     Generate and upload fresh endorsement candidates to GCP bucket.
@@ -413,7 +415,7 @@ async def upload_cached_eligible_endorsers(
     Computes endorsement candidates in real-time and uploads to cloud storage
     for faster future access via the precomputed endpoint.
     """
-    if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
+    if not (gcp_token or (isinstance(authn, ArxivUserClaims) and authn.is_admin)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     # Parse storage info from configuration
