@@ -28,6 +28,7 @@ interface SingleUserInputFieldProps extends Omit<InputProps, 'source'> {
     variant?: 'autocomplete' | 'dialog';
     placeholder?: string;
     required?: boolean;
+    fullWidth?: boolean;
 }
 
 interface UserSelectDialogProps {
@@ -197,6 +198,7 @@ const SingleUserInputField: React.FC<SingleUserInputFieldProps> = ({
     variant = 'autocomplete',
     placeholder,
     required = false,
+    fullWidth = false,
     ...props
 }) => {
     const { field } = useInput({ source, ...props });
@@ -279,7 +281,7 @@ const SingleUserInputField: React.FC<SingleUserInputFieldProps> = ({
                             />
                         )
                     }}
-                    fullWidth
+                    fullWidth={fullWidth}
                 />
                 <UserSelectDialog
                     open={dialogOpen}
@@ -337,7 +339,7 @@ const SingleUserInputField: React.FC<SingleUserInputFieldProps> = ({
                     }}
                 />
             )}
-            fullWidth
+            fullWidth={fullWidth}
         />
     );
 };

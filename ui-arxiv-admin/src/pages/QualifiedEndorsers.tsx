@@ -18,7 +18,7 @@ import CategoryListInput from "../bits/CategoryListInput";
 const QualifiedEndorserFilter = (props: any) => {
     return (
         <Filter {...props}>
-            <CategoryListInput source="category" alwaysOn/>
+            <CategoryListInput source="category" alwaysOn sx={{ minWidth: '24em' }}/>
             <NumberInput source="minimum_count"/>
         </Filter>
     );

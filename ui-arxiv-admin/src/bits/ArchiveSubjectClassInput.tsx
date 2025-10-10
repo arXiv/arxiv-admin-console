@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 interface ArchiveSubjectClassInputProps extends InputProps {
     sourceCategory: string;
     sourceClass: string;
+    fullWidth?: boolean;
 }
 
 interface Category {

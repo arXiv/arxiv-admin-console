@@ -399,8 +399,8 @@ hook.js:608 The response to 'create' must be like { data: { id: 123, ... } }, bu
             const createModerator = this.runtimeProps.adminFetcher.path('/v1/moderators/').method('post').create();
 
             try {
-                const response = await createModerator(data);
-                return {data: response.data[0]};
+                const response = await createModerator(data as any);
+                return {data: response.data[0] as unknown as T};
             }
             catch (error) {
                 handleHttpError(error, 'Failed to create moderator record');
