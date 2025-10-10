@@ -198,20 +198,26 @@ def endorsing_db_deserialize_from_gzip(gzip_data: bytes) -> Engine:
     return engine
 
 
-def endorsing_db_query_users_in_categories(engine: Engine, category: str | List[str]) -> Optional[List[EndorsementCandidate]]:
+def endorsing_db_query_users_in_categories(engine: Engine, category: Optional[str | List[str]]) -> Optional[List[EndorsementCandidate]]:
     """
     Query specific category candidates from SQLite database using SQLAlchemy 2.0.
     Supports both single category (str) or list of categories (List[str]).
     When multiple categories are provided, returns union of all candidates.
     """
     # Convert single category to list for uniform processing
+    if category is None:
+        with Session(engine) as session:
+            stmt = select(EndorsingCategoryModel)
+            category = session.execute(stmt).scalars().all()
+
     categories = [category] if isinstance(category, str) else category
 
     all_candidates: List[EndorsementCandidate] = []
 
     with Session(engine) as session:
         results = session.query(
-            EndorsingCandidateModel.user_id.label('id'),
+            EndorsingCandidateModel.id,
+            EndorsingCandidateModel.user_id,
             EndorsingCategoryModel.category,
             EndorsingCandidateModel.document_count,
             EndorsingCandidateModel.latest_document_id,
@@ -228,7 +234,8 @@ def endorsing_db_query_users_in_category(engine: Engine, category: str, user_ids
     with Session(engine) as session:
         # Build base query
         query = session.query(
-            EndorsingCandidateModel.user_id.label('id'),
+            EndorsingCandidateModel.id,
+            EndorsingCandidateModel.user_id,
             EndorsingCategoryModel.category,
             EndorsingCandidateModel.document_count,
             EndorsingCandidateModel.latest_document_id,
@@ -246,7 +253,8 @@ def endorsing_db_query_user(engine: Engine, user_id: int) -> List[EndorsementCan
     """
     with Session(engine) as session:
         query = session.query(
-            EndorsingCandidateModel.user_id.label('id'),
+            EndorsingCandidateModel.id,
+            EndorsingCandidateModel.user_id,
             EndorsingCategoryModel.category,
             EndorsingCandidateModel.document_count,
             EndorsingCandidateModel.latest_document_id,

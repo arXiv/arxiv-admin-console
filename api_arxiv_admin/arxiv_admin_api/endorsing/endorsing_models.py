@@ -59,7 +59,8 @@ class EndorsingMetadataModel(EndorsingBase):
 
 class EndorsementCandidate(BaseModel):
     """Model for endorsement candidate data."""
-    id: int # user id
+    id: int # surrogate ID
+    user_id: int # user id
     category: str
     document_count: int
     latest_document_id: int

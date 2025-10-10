@@ -628,7 +628,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/eligible": {
+    "/v1/qualified_endorsers/eligible": {
         parameters: {
             query?: never;
             header?: never;
@@ -636,7 +636,7 @@ export interface paths {
             cookie?: never;
         };
         /** List Eligible Endorsers */
-        get: operations["list_eligible_endorsers_v1_endorsers_eligible_get"];
+        get: operations["list_eligible_endorsers_v1_qualified_endorsers_eligible_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -645,7 +645,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/precomputed": {
+    "/v1/qualified_endorsers/precomputed": {
         parameters: {
             query?: never;
             header?: never;
@@ -659,7 +659,7 @@ export interface paths {
          *     Returns precomputed endorsement candidates list from cloud storage,
          *     providing faster response than real-time computation.
          */
-        get: operations["get_cached_eligible_endorsers_v1_endorsers_precomputed_get"];
+        get: operations["get_cached_eligible_endorsers_v1_qualified_endorsers_precomputed_get"];
         put?: never;
         /**
          * Upload Cached Eligible Endorsers
@@ -668,14 +668,14 @@ export interface paths {
          *     Computes endorsement candidates in real-time and uploads to cloud storage
          *     for faster future access via the precomputed endpoint.
          */
-        post: operations["upload_cached_eligible_endorsers_v1_endorsers_precomputed_post"];
+        post: operations["upload_cached_eligible_endorsers_v1_qualified_endorsers_precomputed_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/precomputed/category/{category}": {
+    "/v1/qualified_endorsers/precomputed/category/{category}": {
         parameters: {
             query?: never;
             header?: never;
@@ -689,7 +689,7 @@ export interface paths {
          *     Returns precomputed endorsement candidates for the specified category
          *     from cloud storage, providing faster response than real-time computation.
          */
-        get: operations["get_cached_eligible_endorsers_for_the_category_v1_endorsers_precomputed_category__category__get"];
+        get: operations["get_cached_eligible_endorsers_for_the_category_v1_qualified_endorsers_precomputed_category__category__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -698,7 +698,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/precomputed/category/{category}/user": {
+    "/v1/qualified_endorsers/precomputed/category/{category}/user": {
         parameters: {
             query?: never;
             header?: never;
@@ -712,7 +712,7 @@ export interface paths {
          *     Returns precomputed endorsement candidates for the specified category
          *     from cloud storage, providing faster response than real-time computation.
          */
-        get: operations["get_cached_endorser_candidates_v1_endorsers_precomputed_category__category__user_get"];
+        get: operations["get_cached_endorser_candidates_v1_qualified_endorsers_precomputed_category__category__user_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -721,7 +721,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/precomputed/user": {
+    "/v1/qualified_endorsers/precomputed/user": {
         parameters: {
             query?: never;
             header?: never;
@@ -735,7 +735,7 @@ export interface paths {
          *     Returns precomputed endorsement candidates for the specified category
          *     from cloud storage, providing faster response than real-time computation.
          */
-        get: operations["get_cached_endorser_candidate_categories_v1_endorsers_precomputed_user_get"];
+        get: operations["get_cached_endorser_candidate_categories_v1_qualified_endorsers_precomputed_user_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -744,7 +744,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/endorsers/": {
+    "/v1/qualified_endorsers/": {
         parameters: {
             query?: never;
             header?: never;
@@ -758,7 +758,7 @@ export interface paths {
          *     Returns precomputed endorsement candidates for the specified category
          *     from cloud storage, providing faster response than real-time computation.
          */
-        get: operations["get_cached_eligible_endorsers_for_the_category_v1_endorsers__get"];
+        get: operations["get_cached_eligible_endorsers_for_the_category_v1_qualified_endorsers__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2679,6 +2679,8 @@ export interface components {
         EndorsementCandidate: {
             /** Id */
             id: number;
+            /** User Id */
+            user_id: number;
             /** Category */
             category: string;
             /** Document Count */
@@ -3018,6 +3020,23 @@ export interface components {
             is_current?: number | null;
             /** Is Withdrawn */
             is_withdrawn: boolean;
+        };
+        /** ModeratorCreateModel */
+        ModeratorCreateModel: {
+            /** User Id */
+            user_id: number;
+            /** Categories */
+            categories: string[];
+            /** Is Public */
+            is_public: boolean;
+            /** No Email */
+            no_email: boolean;
+            /** No Web Email */
+            no_web_email: boolean;
+            /** No Reply To */
+            no_reply_to: boolean;
+            /** Daily Update */
+            daily_update: boolean;
         };
         /** ModeratorModel */
         ModeratorModel: {
@@ -5074,7 +5093,7 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 /** @description user, auto, admin */
-                type?: string[] | string | null;
+                type?: string | string[] | null;
                 /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
@@ -5322,7 +5341,7 @@ export interface operations {
                 /** @description End date for filtering */
                 end_date?: string | null;
                 /** @description user, auto, admin */
-                type?: string[] | string | null;
+                type?: string | string[] | null;
                 /** @description Valid endorsements only */
                 flag_valid?: boolean | null;
                 endorsee_id?: number | null;
@@ -5583,7 +5602,7 @@ export interface operations {
             };
         };
     };
-    list_eligible_endorsers_v1_endorsers_eligible_get: {
+    list_eligible_endorsers_v1_qualified_endorsers_eligible_get: {
         parameters: {
             query?: {
                 /** @description Paper count start time */
@@ -5617,7 +5636,7 @@ export interface operations {
             };
         };
     };
-    get_cached_eligible_endorsers_v1_endorsers_precomputed_get: {
+    get_cached_eligible_endorsers_v1_qualified_endorsers_precomputed_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5637,7 +5656,7 @@ export interface operations {
             };
         };
     };
-    upload_cached_eligible_endorsers_v1_endorsers_precomputed_post: {
+    upload_cached_eligible_endorsers_v1_qualified_endorsers_precomputed_post: {
         parameters: {
             query?: {
                 /** @description Paper count start time */
@@ -5673,7 +5692,7 @@ export interface operations {
             };
         };
     };
-    get_cached_eligible_endorsers_for_the_category_v1_endorsers_precomputed_category__category__get: {
+    get_cached_eligible_endorsers_for_the_category_v1_qualified_endorsers_precomputed_category__category__get: {
         parameters: {
             query?: {
                 /** @description sort by */
@@ -5711,7 +5730,7 @@ export interface operations {
             };
         };
     };
-    get_cached_endorser_candidates_v1_endorsers_precomputed_category__category__user_get: {
+    get_cached_endorser_candidates_v1_qualified_endorsers_precomputed_category__category__user_get: {
         parameters: {
             query?: {
                 /** @description List of user IDs to filter by */
@@ -5751,7 +5770,7 @@ export interface operations {
             };
         };
     };
-    get_cached_endorser_candidate_categories_v1_endorsers_precomputed_user_get: {
+    get_cached_endorser_candidate_categories_v1_qualified_endorsers_precomputed_user_get: {
         parameters: {
             query?: {
                 /** @description List of user IDs to filter by */
@@ -5789,7 +5808,7 @@ export interface operations {
             };
         };
     };
-    get_cached_eligible_endorsers_for_the_category_v1_endorsers__get: {
+    get_cached_eligible_endorsers_for_the_category_v1_qualified_endorsers__get: {
         parameters: {
             query?: {
                 /** @description sort by */
@@ -6700,7 +6719,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ModeratorModel"];
+                "application/json": components["schemas"]["ModeratorCreateModel"];
             };
         };
         responses: {
@@ -6710,7 +6729,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ModeratorModel"];
+                    "application/json": components["schemas"]["ModeratorModel"][];
                 };
             };
             /** @description Validation Error */

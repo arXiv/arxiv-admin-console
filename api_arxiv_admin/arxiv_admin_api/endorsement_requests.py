@@ -24,7 +24,8 @@ from .biz.endorsement_code import endorsement_code
 #    EndorsementCandidateCategories
 #from .biz.endorser_list_v2 import list_endorsement_candidates_v2
 from .endorsing import endorsing_db
-from .endorsing.endorsing_models import EndorsementCandidate, EndorsementCandidates
+from .endorsing.endorsing_models import EndorsementCandidate, EndorsementCandidates, EndorsingCandidateModel, \
+    EndorsingCategoryModel
 
 # from .categories import CategoryModel
 from .dao.endorsement_request_model import EndorsementRequestRequestModel
@@ -32,7 +33,7 @@ from .dao.endorsement_request_model import EndorsementRequestRequestModel
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/endorsement_requests", dependencies=[Depends(is_any_user)])
-endorsers_router = APIRouter(prefix="/endorsers")
+endorsers_router = APIRouter(prefix="/qualified_endorsers")
 
 
 class EndorsementRequestModel(BaseModel):
@@ -687,11 +688,12 @@ async def get_cached_endorser_candidate_categories(
 async def get_cached_eligible_endorsers_for_the_category(
         request: Request,
         response: Response,
-        _sort: Optional[str] = Query("id", description="sort by"),
+        _sort: Optional[str] = Query("user_id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
         category: Optional[List[str]] = Query(None, description="Category to filter by"),
+        minimum_count: Optional[int] = Query(None, description="Minimum document count"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidate]:
     """
@@ -703,28 +705,58 @@ async def get_cached_eligible_endorsers_for_the_category(
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
-    conn = endorsing_db.endorsing_db_get_cached_db(request)
+    engine = endorsing_db.endorsing_db_get_cached_db(request)
 
     # Query specific category from database
-    candidates = endorsing_db.endorsing_db_query_users_in_categories(conn, category)
-    if candidates is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement category {category} not found")
+    with Session(engine) as session:
+        order_columns = []
 
-    # Apply sorting
-    reverse_order = _order.upper() == "DESC"
-    if _sort == "id":
-        candidates.sort(key=lambda x: x.id, reverse=reverse_order)
-    elif _sort == "category":
-        candidates.sort(key=lambda x: x.category, reverse=reverse_order)
-    elif _sort == "document_count":
-        candidates.sort(key=lambda x: x.document_count, reverse=reverse_order)
-    elif _sort == "latest_document_id":
-        candidates.sort(key=lambda x: x.latest_document_id, reverse=reverse_order)
-    else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
+        if _sort:
+            if _sort == "user_id":
+                order_columns.append(EndorsingCandidateModel.user_id)
+            elif _sort == "category":
+                order_columns.append(EndorsingCategoryModel.category)
+            elif _sort == "document_count":
+                order_columns.append(EndorsingCandidateModel.document_count)
+            elif _sort == "latest_document_id":
+                order_columns.append(EndorsingCandidateModel.latest_document_id)
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid sort parameter: {_sort}")
 
-    response_body = candidates[_start:_end]
-    response.headers['X-Total-Count'] = str(len(candidates))
-    return response_body
+        # Get all categories with their candidates
+        query = session.query(
+            EndorsingCandidateModel.id,
+            EndorsingCandidateModel.user_id,
+            EndorsingCategoryModel.category,
+            EndorsingCandidateModel.document_count,
+            EndorsingCandidateModel.latest_document_id,
+        ).join(EndorsingCategoryModel, EndorsingCategoryModel.id == EndorsingCandidateModel.category_id)
+
+        if category is not None:
+            if not isinstance(category, list):
+                query = query.filter(EndorsingCategoryModel.category == category)
+            else:
+                query = query.filter(EndorsingCategoryModel.category.in_(category))
+
+        if minimum_count:
+            query = query.filter(EndorsingCandidateModel.document_count >= minimum_count)
+
+        for column in order_columns:
+            if _order == "DESC":
+                query = query.order_by(column.desc())
+            else:
+                query = query.order_by(column.asc())
+
+        count = query.count()
+        response.headers['X-Total-Count'] = str(count)
+        if _start is None:
+            _start = 0
+
+        if _end is None:
+            _end = 100
+
+        result = [EndorsementCandidate.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
+
+        return result
 
 
