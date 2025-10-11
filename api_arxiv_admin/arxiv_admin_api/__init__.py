@@ -1,5 +1,7 @@
 """Things used for API implementation"""
 from http.client import HTTPException
+
+from arxiv_bizlogic.gcp_helper import verify_gcp_oidc_token
 from fastapi import Request, HTTPException, status as http_status, Depends
 import os
 
@@ -7,6 +9,8 @@ import os
 from arxiv_bizlogic.fastapi_helpers import (
     is_any_user, is_admin_user, get_current_user, get_db, get_hostname,
     get_client_host_name, get_client_host, datetime_to_epoch, VERY_OLDE, get_authn_or_none)
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from .helpers.session_cookie_middleware import TapirSessionData
 from .models import *
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -77,3 +81,13 @@ def check_authnz(_token: None, current_user: ArxivUserClaims | None, user_id: st
 
     if not is_authorized(None, current_user, str(user_id)):
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+
+_security_ = HTTPBearer()
+
+async def get_gcp_token_or_none(request: Request,
+                                credentials: HTTPAuthorizationCredentials = Depends(_security_)
+                                ):
+    try:
+        return await verify_gcp_oidc_token(request, credentials)
+    except HTTPException:
+        return None

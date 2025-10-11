@@ -19,7 +19,8 @@ from pydantic import BaseModel
 from arxiv.base import logging
 from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, TapirUser, Category
 
-from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user #  is_admin_user,
+from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, get_current_user, \
+    get_gcp_token_or_none  # is_admin_user,
 from .biz.endorsement_code import endorsement_code
 #from .biz.endorser_list import list_endorsement_candidates, EndorsementCandidates, EndorsementCandidate, \
 #    EndorsementCandidateCategories
@@ -404,7 +405,7 @@ async def list_eligible_endorsers(
 async def upload_cached_eligible_endorsers(
         request: Request,
         authn: Optional[ArxivUserClaims | ApiToken] = Depends(get_authn_or_none),
-        gcp_token = Depends(verify_gcp_oidc_token),
+        gcp_token = Depends(get_gcp_token_or_none),
         start_time: Optional[datetime] = Query(None, description="Paper count start time"),
         end_time: Optional[datetime] = Query(None, description="Paper count end time"),
         session: Session = Depends(get_db)
@@ -415,7 +416,7 @@ async def upload_cached_eligible_endorsers(
     Computes endorsement candidates in real-time and uploads to cloud storage
     for faster future access via the precomputed endpoint.
     """
-    if not (gcp_token or (isinstance(authn, ArxivUserClaims) and authn.is_admin)):
+    if not (gcp_token or (isinstance(authn, ArxivUserClaims) and authn.is_admin) or isinstance(authn, ApiToken)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     # Parse storage info from configuration
