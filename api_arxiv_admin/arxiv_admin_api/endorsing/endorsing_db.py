@@ -145,7 +145,7 @@ def populate_endorsements(engine: Engine, data: List[EndorsementCandidate], time
                 continue
 
             category: EndorsingCategoryModel = categories[candidate.category]
-            values.append((candidate.id, category.id, candidate.document_count, candidate.latest_document_id, ))
+            values.append((candidate.user_id, category.id, candidate.document_count, candidate.latest_document_id, ))
 
         # Insert all at once with executemany
         if values:
@@ -622,7 +622,8 @@ def _process_concurrently(
     result = []
     for user_id, category, count, latest, latest_document_id in all_aggregates:
         result.append(EndorsementCandidate(
-            id=user_id,
+            id=0,
+            user_id=user_id,
             category=category,
             document_count=count,
             latest_document_id=latest_document_id

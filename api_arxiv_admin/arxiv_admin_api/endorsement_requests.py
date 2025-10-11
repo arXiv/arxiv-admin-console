@@ -715,7 +715,9 @@ async def get_cached_eligible_endorsers_for_the_category(
         order_columns = []
 
         if _sort:
-            if _sort == "user_id":
+            if _sort == "id":
+                order_columns.append(EndorsingCandidateModel.id)
+            elif _sort == "user_id":
                 order_columns.append(EndorsingCandidateModel.user_id)
             elif _sort == "category":
                 order_columns.append(EndorsingCategoryModel.category)
