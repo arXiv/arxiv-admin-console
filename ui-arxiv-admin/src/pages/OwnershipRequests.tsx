@@ -332,7 +332,7 @@ const RequestedPaperRow: React.FC<{
 
     return (
         <>
-            <TableRow>
+            <TableRow sx={{ height: 'auto' }}>
                 <TableCell>
                     <IconButton size="small" onClick={() => setOpen(!open)}>
                         {open ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
@@ -344,7 +344,7 @@ const RequestedPaperRow: React.FC<{
                         onClick={() => docSelectionChange(document)}
                         value={`user_${userId}-doc_${document.id}`}
                         selected={authoredDocuments.includes(document.id)}
-                        sx={{minWidth: "4em"}}
+                        sx={{minWidth: "4em", padding: "2px"}} // Reduce padding here too
                     >
                         {authoredDocuments.includes(document.id) ? 'Yes' : 'No'}
                     </ToggleButton>
@@ -432,10 +432,16 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
 
     return (
         <>
-            <Typography>
+            <Typography variant={"h6"} m={2}>
                 Requested papers
             </Typography>
-            <Table sx={{ '& .MuiTableCell-root': { px: "3px" } }}>
+            <Table sx={{ 
+                '& .MuiTableCell-root': { px: "3px", py: "6px" },
+                '& .MuiTableHead-root .MuiTableCell-root': { 
+                    paddingBottom: "0px", // Reduce bottom padding of header cells
+                    paddingTop: "4px"     // Optionally reduce top padding too for balance
+                }
+            }}>
                 <TableHead>
                     <TableCell />
                     <TableCell>
