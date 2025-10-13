@@ -3,11 +3,17 @@ import sqlite3
 import gzip
 import io
 import asyncio
-from multiprocessing import Queue, Process
+import threading
+from queue import Queue
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict, Tuple
 from pathlib import Path
 from collections import defaultdict
+
+# Using threading instead of multiprocessing due to Hypercorn daemon process restrictions
+# This maintains the same structure but uses threads instead of processes
+_non_daemon_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="endorsing_worker")
 
 from google.cloud import storage
 from urllib.parse import urlparse
@@ -579,16 +585,16 @@ def _process_concurrently(
         for domain, criteria in endorsement_domains.items()
     }
 
-    # Create worker queues
+    # Create worker queues (using threading.Queue which uses 'maxsize' parameter)
     input_queues = [Queue(maxsize=100) for _ in range(num_workers)]
     output_queue = Queue()
 
-    # Start workers
+    # Start worker threads (changed from processes to threads)
     workers = []
     for i in range(num_workers):
-        p = Process(target=_worker_process, args=(input_queues[i], output_queue, valid_categories, endorsement_domains_serialized))
-        p.start()
-        workers.append(p)
+        t = threading.Thread(target=_worker_process, args=(input_queues[i], output_queue, valid_categories, endorsement_domains_serialized))
+        t.start()
+        workers.append(t)
 
     logger.info("Distributing batched data to workers...")
 
@@ -614,9 +620,9 @@ def _process_concurrently(
         worker_results = output_queue.get()
         all_aggregates.extend(worker_results)
 
-    # Wait for all workers to finish
-    for p in workers:
-        p.join()
+    # Wait for all worker threads to finish
+    for t in workers:
+        t.join()
 
     # Convert tuples to EndorsementCandidate objects
     result = []
@@ -725,8 +731,12 @@ async def endorsing_db_list_endorsement_candidates(
             batch_size
         )
 
-        # Process with workers - run in thread pool to avoid blocking the event loop
-        result = await asyncio.to_thread(
+        # Process with workers - run in non-daemon thread pool to allow spawning child processes
+        # Using custom executor instead of asyncio.to_thread() because the default thread pool
+        # creates daemon threads which cannot spawn multiprocessing.Process children
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            _non_daemon_executor,
             _process_concurrently,
             data_generator,
             num_workers,
