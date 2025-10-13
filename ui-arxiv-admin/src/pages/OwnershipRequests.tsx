@@ -6,10 +6,15 @@ import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
 import TablePagination from '@mui/material/TablePagination';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
+import IconButton from '@mui/material/IconButton';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import ConsoleTitle from "../bits/ConsoleTitle";
 import Accordion from '@mui/material/Accordion';
@@ -315,6 +320,96 @@ const AuthorsField : React.FC<{
 }
 
 
+const RequestedPaperRow: React.FC<{
+    document: DocumentType;
+    userId: number;
+    nameFragments: string[];
+    authoredDocuments: DocumentIdType[];
+    ownedPapers: number[];
+    docSelectionChange: (doc: DocumentType) => void;
+}> = ({ document, userId, nameFragments, authoredDocuments, ownedPapers, docSelectionChange }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <>
+            <TableRow>
+                <TableCell>
+                    <IconButton size="small" onClick={() => setOpen(!open)}>
+                        {open ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
+                    </IconButton>
+                </TableCell>
+                <TableCell>
+                    <ToggleButton
+                        id={`author-user_${userId}-doc_${document.id}`}
+                        onClick={() => docSelectionChange(document)}
+                        value={`user_${userId}-doc_${document.id}`}
+                        selected={authoredDocuments.includes(document.id)}
+                        sx={{minWidth: "4em"}}
+                    >
+                        {authoredDocuments.includes(document.id) ? 'Yes' : 'No'}
+                    </ToggleButton>
+                </TableCell>
+                <TableCell>
+                    {document.title}
+                </TableCell>
+                <TableCell>
+                    <ReferenceField source="submitter_id" reference="users" record={document} link="edit">
+                        <UserNameField />
+                    </ReferenceField>
+                </TableCell>
+                <TableCell>
+                    <AuthorsField nameFragments={nameFragments} document={document} />
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+                    <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 1 }}>
+                            <Typography variant="h6" gutterBottom component="div">
+                                Details
+                            </Typography>
+                            <Table size="small">
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell><strong>Document ID:</strong></TableCell>
+                                        <TableCell>
+                                            <ReferenceField source="id" reference="documents" record={document} link="show">
+                                                <Chip
+                                                    id={`owner-user_${userId}-doc_${document.id}`}
+                                                    label={ownedPapers.includes(document.id) ? 'Owns' : document.id}
+                                                    variant={ownedPapers.includes(document.id) ? 'filled' : 'outlined'}
+                                                />
+                                            </ReferenceField>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><strong>Paper ID:</strong></TableCell>
+                                        <TableCell>
+                                            <ReferenceField source="id" reference="documents" record={document} link="show">
+                                                <TextField source="paper_id" />
+                                            </ReferenceField>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><strong>Date:</strong></TableCell>
+                                        <TableCell>{document.dated}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><strong>Owners:</strong></TableCell>
+                                        <TableCell>
+                                            <PaperOwnersCompactList document_id={document.id} />
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </Box>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </>
+    );
+};
+
 const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflowStatus, nameFragments, documents, authoredDocuments, setSelectedDocuments, ownedPapers}) => {
     const {register, setValue} = useFormContext();
     register('authored_documents');
@@ -342,69 +437,27 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
             </Typography>
             <Table sx={{ '& .MuiTableCell-root': { px: "3px" } }}>
                 <TableHead>
+                    <TableCell />
                     <TableCell>
                         <Tooltip title={"If this is on, the user is already a owner"}><span>Owner</span></Tooltip>
                     </TableCell>
-                    <TableCell>
-                        <Tooltip title={"Author/non-Author"}><span>Document</span></Tooltip>
-                    </TableCell>
-                    <TableCell>Paper</TableCell>
                     <TableCell>Title</TableCell>
                     <TableCell>Submitter</TableCell>
                     <TableCell>Authors</TableCell>
-                    <TableCell>Owners</TableCell>
-                    <TableCell>Date</TableCell>
                 </TableHead>
-                {documents.map((document, index) => (
-                    <TableRow key={document.id}>
-                        <TableCell>
-                            <ToggleButton
-                                id={`author-user_${userId}-doc_${document.id}`}
-                                onClick={() => docSelectionChange(document)}
-                                value={`user_${userId}-doc_${document.id}`}
-                                selected={authoredDocuments.includes(document.id)}
-                                sx={{minWidth: "4em"}}
-                            >
-                                {authoredDocuments.includes(document.id) ? 'Yes' : 'No'}
-                            </ToggleButton>
-                        </TableCell>
-
-                        <TableCell>
-                            <ReferenceField source="id" reference="documents" record={document} link="show">
-
-                            <Chip
-                                id={`owner-user_${userId}-doc_${document.id}`}
-                                label={ownedPapers.includes(document.id) ? 'Owns' : document.id}
-                                variant={ownedPapers.includes(document.id) ? 'filled' : 'outlined'}
-                            />
-                            </ReferenceField>
-                        </TableCell>
-
-                        <TableCell>
-                            <ReferenceField source="id" reference="documents" record={document} link="show">
-                                <TextField source="paper_id" />
-                            </ReferenceField>
-                        </TableCell>
-                        <TableCell>
-                            {document.title}
-                        </TableCell>
-                        <TableCell>
-                            <ReferenceField source="submitter_id" reference="users" record={document} link="edit">
-                                <UserNameField />
-                            </ReferenceField>
-                        </TableCell>
-
-                        <TableCell>
-                            <AuthorsField nameFragments={nameFragments} document={document} />
-                        </TableCell>
-                        <TableCell>
-                            <PaperOwnersCompactList document_id={document.id} />
-                        </TableCell>
-                        <TableCell>
-                            {document.dated}
-                        </TableCell>
-                    </TableRow>
-                ))}
+                <TableBody>
+                    {documents.map((document, index) => (
+                        <RequestedPaperRow
+                            key={document.id}
+                            document={document}
+                            userId={userId}
+                            nameFragments={nameFragments}
+                            authoredDocuments={authoredDocuments}
+                            ownedPapers={ownedPapers}
+                            docSelectionChange={docSelectionChange}
+                        />
+                    ))}
+                </TableBody>
             </Table>
         </>
     );
