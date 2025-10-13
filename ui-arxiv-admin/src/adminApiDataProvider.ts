@@ -216,7 +216,7 @@ class adminApiDataProvider implements DataProvider {
             return this.dataProvider.getList<T>("documents/metadata/latest", params);
         }
         else if (resource === 'can-endorse-for') {
-            return this.dataProvider.getList<T>("endorsers/precomputed/user", params);
+            return this.dataProvider.getList<T>("qualified_endorsers/precomputed/user", params);
         }
         return this.dataProvider.getList<T>(addTrailingSlash(resource), params);
     }
@@ -288,7 +288,7 @@ class adminApiDataProvider implements DataProvider {
             return this.dataProvider.getMany<T>("documents/metadata/latest", params);
         }
         else if (resource === 'can-endorse-for') {
-            return this.dataProvider.getMany<T>("endorsers/precomputed/user", params);
+            return this.dataProvider.getMany<T>("qualified_endorsers/precomputed/user", params);
         }
 
         return this.dataProvider.getMany<T>(addTrailingSlash(resource), params);
