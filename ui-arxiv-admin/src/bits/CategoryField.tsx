@@ -26,7 +26,7 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ source, sourceCategory, s
     let compudetSourceCategory =  record[sourceCategory];
     const combined = record[source];
 
-    if (!computedSourceClass && combined) {
+    if (!computedSourceClass && combined && typeof combined === 'string') {
         const parts = combined.split('.');
         if (parts.length === 2) {
             computedSourceClass = parts[1];
