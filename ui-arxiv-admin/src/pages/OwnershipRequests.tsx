@@ -79,6 +79,7 @@ import PaperOwnersList from "../components/PaperOwnersList";
 import UserNameField from "../bits/UserNameField";
 import UserStatusField from '../bits/UserStatusField';
 import {StandardAccordion} from "../components/StandardAccordion";
+import PaperOwnersCompactList from "../components/PaperOwnersCompactList";
 
 
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
@@ -339,13 +340,13 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
             <Typography>
                 Requested papers
             </Typography>
-            <Table>
+            <Table sx={{ '& .MuiTableCell-root': { px: "3px" } }}>
                 <TableHead>
                     <TableCell>
                         <Tooltip title={"If this is on, the user is already a owner"}><span>Owner</span></Tooltip>
                     </TableCell>
                     <TableCell>
-                        <Tooltip title={"Author/non-Author"}><span>Author</span></Tooltip>
+                        <Tooltip title={"Author/non-Author"}><span>Document</span></Tooltip>
                     </TableCell>
                     <TableCell>Paper</TableCell>
                     <TableCell>Title</TableCell>
@@ -362,7 +363,7 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
                                 onClick={() => docSelectionChange(document)}
                                 value={`user_${userId}-doc_${document.id}`}
                                 selected={authoredDocuments.includes(document.id)}
-                                sx={{minWidth: "5em"}}
+                                sx={{minWidth: "4em"}}
                             >
                                 {authoredDocuments.includes(document.id) ? 'Yes' : 'No'}
                             </ToggleButton>
@@ -397,7 +398,7 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
                             <AuthorsField nameFragments={nameFragments} document={document} />
                         </TableCell>
                         <TableCell>
-                            <PaperOwnersList document_id={document.id} />
+                            <PaperOwnersCompactList document_id={document.id} />
                         </TableCell>
                         <TableCell>
                             {document.dated}
