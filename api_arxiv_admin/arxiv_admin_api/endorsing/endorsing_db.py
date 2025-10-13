@@ -404,6 +404,75 @@ def endorsing_db_read_cached_data(request: Request) -> Engine:
         )
 
 
+def _fetch_user_docs_for_batch(engine: Engine, doc_ids: List[str]):
+    """
+    Step 2: Get user_id + document_id for qualifying authors.
+
+    Args:
+        engine: SQLAlchemy engine (thread-safe)
+        doc_ids: List of document IDs to query
+
+    Returns:
+        List of (user_id, document_id) tuples
+    """
+    import time
+    start_time = time.time()
+    # Create a new session for this thread
+    with Session(engine) as thread_session:
+        result = (
+            thread_session.query(
+                PaperOwner.user_id,
+                PaperOwner.document_id
+            )
+            .join(
+                Demographic,
+                Demographic.user_id == PaperOwner.user_id
+            )
+            .filter(
+                PaperOwner.document_id.in_(doc_ids),
+                PaperOwner.valid == 1,
+                PaperOwner.flag_author == 1,
+                Demographic.veto_status == 'ok'
+            )
+            .all()
+        )
+        elapsed = time.time() - start_time
+        logger.debug(f"_fetch_user_docs_for_batch: {len(result)} rows in {elapsed:.3f}s")
+        return result
+
+
+def _fetch_metadata_for_batch(engine: Engine, doc_ids: List[str]):
+    """
+    Step 3: Get abs_categories for documents.
+
+    Args:
+        engine: SQLAlchemy engine (thread-safe)
+        doc_ids: List of document IDs to query
+
+    Returns:
+        List of (document_id, abs_categories) tuples
+    """
+    import time
+    start_time = time.time()
+    # Create a new session for this thread
+    with Session(engine) as thread_session:
+        result = (
+            thread_session.query(
+                Metadata.document_id,
+                Metadata.abs_categories
+            )
+            .filter(
+                Metadata.document_id.in_(doc_ids),
+                Metadata.is_current == 1,
+                Metadata.is_withdrawn == 0
+            )
+            .all()
+        )
+        elapsed = time.time() - start_time
+        logger.debug(f"_fetch_metadata_for_batch: {len(result)} rows in {elapsed:.3f}s")
+        return result
+
+
 def _fetch_documents_batched(
     session: Session,
     start_timestamp: int,
@@ -444,46 +513,38 @@ def _fetch_documents_batched(
 
         logger.debug(f"Fetched batch at offset {offset}: {len(doc_ids)} documents")
 
-        # Step 2: Get user_id + document_id for qualifying authors
-        user_docs = (
-            session.query(
-                PaperOwner.user_id,
-                PaperOwner.document_id
-            )
-            .join(
-                Demographic,
-                Demographic.user_id == PaperOwner.user_id
-            )
-            .filter(
-                PaperOwner.document_id.in_(doc_ids),
-                PaperOwner.valid == 1,
-                PaperOwner.flag_author == 1,
-                Demographic.veto_status == 'ok'
-            )
-            .all()
-        )
+        # Steps 2 and 3 are independent queries - run them concurrently using simple threading
+        # Each thread will create its own session from the engine (which is thread-safe)
+        user_docs_result = []
+        metadata_batch_result = []
+        engine = session.bind
+
+        def fetch_user_docs():
+            nonlocal user_docs_result
+            user_docs_result[:] = _fetch_user_docs_for_batch(engine, doc_ids)
+
+        def fetch_metadata():
+            nonlocal metadata_batch_result
+            metadata_batch_result[:] = _fetch_metadata_for_batch(engine, doc_ids)
+
+        # Start both threads
+        thread1 = threading.Thread(target=fetch_user_docs)
+        thread2 = threading.Thread(target=fetch_metadata)
+
+        thread1.start()
+        thread2.start()
+
+        # Wait for both to complete
+        thread1.join()
+        thread2.join()
 
         # Build document_id -> list of user_ids mapping
         doc_users_map: Dict[str, List[int]] = defaultdict(list)
-        for user_id, doc_id in user_docs:
+        for user_id, doc_id in user_docs_result:
             doc_users_map[doc_id].append(user_id)
 
-        # Step 3: Get abs_categories for documents
-        metadata_batch = (
-            session.query(
-                Metadata.document_id,
-                Metadata.abs_categories
-            )
-            .filter(
-                Metadata.document_id.in_(doc_ids),
-                Metadata.is_current == 1,
-                Metadata.is_withdrawn == 0
-            )
-            .all()
-        )
-
         # Step 4: Merge results and yield
-        for metadata in metadata_batch:
+        for metadata in metadata_batch_result:
             doc_id = metadata.document_id
             abs_categories = metadata.abs_categories
             dated = doc_dated_map.get(doc_id)
