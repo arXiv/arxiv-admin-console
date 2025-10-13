@@ -84,7 +84,7 @@ import PaperOwnersList from "../components/PaperOwnersList";
 import UserNameField from "../bits/UserNameField";
 import UserStatusField from '../bits/UserStatusField';
 import {StandardAccordion} from "../components/StandardAccordion";
-import PaperOwnersCompactList from "../components/PaperOwnersCompactList";
+import PaperOwnersReadOnlyList from "../components/PaperOwnersReadOnlyList";
 
 
 // type ArxivDocument = adminApi['/v1/documents/paper_id/{paper_id}']['get']['responses']['200']['content']['application/json'];
@@ -397,7 +397,7 @@ const RequestedPaperRow: React.FC<{
                                     <TableRow>
                                         <TableCell><strong>Owners:</strong></TableCell>
                                         <TableCell>
-                                            <PaperOwnersCompactList document_id={document.id} />
+                                            <PaperOwnersReadOnlyList document_id={document.id} />
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
