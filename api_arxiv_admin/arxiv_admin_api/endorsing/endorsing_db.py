@@ -426,13 +426,14 @@ def _fetch_user_docs_for_batch(engine: Engine, doc_ids: List[str]):
             )
             .join(
                 Demographic,
-                Demographic.user_id == PaperOwner.user_id
-            )
+                Demographic.user_id == PaperOwner.user_id,
+        )
             .filter(
                 PaperOwner.document_id.in_(doc_ids),
                 PaperOwner.valid == 1,
                 PaperOwner.flag_author == 1,
-                Demographic.veto_status == 'ok'
+                Demographic.veto_status == 'ok',
+                Demographic.flag_proxy == 0
             )
             .all()
         )
