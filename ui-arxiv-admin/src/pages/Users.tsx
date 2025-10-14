@@ -417,7 +417,7 @@ function UserDemographic() {
                     </DottedLineRow>
 
                     <DottedLineRow label="Default Category">
-                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"/>
+                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive"/>
                     </DottedLineRow>
 
                     <DottedLineRow label="Career Status">
@@ -468,7 +468,7 @@ function UserEndorsements({open, setOpen}: { open: boolean, setOpen: (open: bool
             <RecordContextProvider value={domain}>
                 <ReferenceField source="id" reference="endorsements" label={""}
                                 link={(record, reference) => `/${reference}/${record.id}`}>
-                    <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
+                    <CategoryField source="archive" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
                 </ReferenceField>
             </RecordContextProvider>
         );
@@ -519,7 +519,7 @@ function UserModerationCategories({open, setOpen}: { open: boolean, setOpen: (op
             <RecordContextProvider value={domain}>
                 <ReferenceField source="id" reference="moderators" label={""}
                                 link={(record, reference) => `/${reference}/${record.id}`}>
-                    <CategoryField source="id" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
+                    <CategoryField source="archive" sourceCategory="archive" sourceClass="subject_class" renderAs={"chip"}/>
                 </ReferenceField>
             </RecordContextProvider>
         );

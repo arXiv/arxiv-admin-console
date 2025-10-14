@@ -310,7 +310,7 @@ const SubmissionTable = ({ mode }: { mode: 'edit' | 'show' }) => {
                                                   helperText={false}
                         />
                     ) : (
-                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
+                        <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive" label="Category"/>
                     )}
                 </TableCell>
             </TableRow>

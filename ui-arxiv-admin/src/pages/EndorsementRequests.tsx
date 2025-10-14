@@ -437,7 +437,7 @@ export const ListEndorsements = () => {
                             <NumberField source={"id"} />
                         </ReferenceField>
                     </TableCell>
-                    <TableCell><CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} /> </TableCell>
+                    <TableCell><CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"archive"} /> </TableCell>
                     <TableCell>
                         <ReferenceField reference={"users"} source={"endorser_id"}
                             link={(record, reference) => `/${reference}/${record.id}`} >
@@ -578,7 +578,7 @@ export const EndorsementRequestEdit = () => {
                                         Category
                                     </TableCell>
                                     <TableCell>
-                                        <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"id"} label={"Category"}/>
+                                        <CategoryField sourceCategory={"archive"} sourceClass={"subject_class"} source={"archive"} label={"Category"}/>
                                     </TableCell>
                                 </TableRow>
 

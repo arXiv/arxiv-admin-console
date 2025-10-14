@@ -71,7 +71,7 @@ export const ModeratorList = () => {
             <ConsoleTitle>Moderators</ConsoleTitle>
             <List filters={<ModeratorFilter/>} >
                 <Datagrid rowClick="edit" sort={sorter}>
-                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"
+                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive"
                                    label="Category"/>
 
                     <ReferenceField source="user_id" reference="users" label={"Moderator"}

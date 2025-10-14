@@ -52,7 +52,6 @@ import {RuntimeContext} from "../RuntimeContext";
 import SuspectIcon from '@mui/icons-material/Dangerous';
 
 
-
 /*
     endorser_id: Optional[int] # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
     endorsee_id: int # Mapped[int] = mapped_column(ForeignKey('tapir_users.user_id'), nullable=False, index=True, server_default=FetchedValue())
@@ -268,42 +267,46 @@ const EndorsementNavigation = ({currentId, filters}: { currentId?: Identifier, f
 
 export const EndorsementList = () => {
     return (
-        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
+        <Box maxWidth={"xl"} sx={{margin: '0 auto'}}>
             <ConsoleTitle>Endorsements</ConsoleTitle>
-        <List
-            filters={<EndorsementFilter/>}
-            filterDefaultValues={{
-                type: "user",
-                positive_endorsement: false
-            }}
-        >
-            <Datagrid rowClick="edit" bulkActionButtons={false}>
-                <NumberField source={"id"}/>
-                <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                                link={(record, reference) => `/${reference}/${record.id}`}>
-                    <UserNameField withUsername/>
-                    <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
-                </ReferenceField>
+            <List
+                filters={<EndorsementFilter/>}
+                filterDefaultValues={{
+                    type: "user",
+                }}
+            >
+                <Datagrid rowClick="edit" bulkActionButtons={false} expand={
+                    <span>
+                        <TextField source={"comment"} />
+                    </span>
+                }>
+                    <NumberField source={"id"}/>
+                    <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <UserNameField withUsername/>
+                        <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
+                    </ReferenceField>
 
-                <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                                link={(record, reference) => `/${reference}/${record.id}`}>
-                    <UserNameField withUsername/>
-                    <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
-                </ReferenceField>
+                    <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <UserNameField withUsername/>
+                        <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
+                    </ReferenceField>
 
-                <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
-                <ISODateField source="issued_when" label={"Issued"} showTime/>
-                <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null}/>
+                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive"
+                                   label="Category"/>
+                    <ISODateField source="issued_when" label={"Issued"} showTime/>
+                    <BooleanField source="flag_valid" label={"Valid"} FalseIcon={null}/>
 
-                <TextField source="type"/>
-                <NumberField source="point_value" label={"Point"}/>
+                    <TextField source="type"/>
+                    <NumberField source="point_value" label={"Point"}/>
 
-                <ReferenceField source="request_id" reference="endorsement_requests" label={"Request"}
-                                link={(record, reference) => `/${reference}/${record.id}`}>
-                    Show
-                </ReferenceField>
-            </Datagrid>
-        </List>
+                    <ReferenceField source="request_id" reference="endorsement_requests" label={"Request"}
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        Show
+                    </ReferenceField>
+                </Datagrid>
+            </List>
         </Box>
     );
 };
@@ -336,7 +339,7 @@ const EndorsementTitle = () => {
                 <TextField source={"last_name"}/>
             </ReferenceField>
             {" for "}
-            <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id" label="Category"/>
+            <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive" label="Category"/>
         </Box>
     )
 
@@ -358,24 +361,24 @@ const CurrentIdSetter = ({setCurrentId}: { setCurrentId: (id: Identifier) => voi
 // Custom form toolbar with only Save button (no Delete)
 const EndorsementFormToolbar = () => (
     <Toolbar>
-        <SaveButton />
+        <SaveButton/>
     </Toolbar>
 );
 
 // Custom toolbar for navigation filters
-const EndorsementEditToolbar = ({ 
-    navigationFilters, 
-    setNavigationFilters,
-    currentId,
-    endorsementIds
-}: { 
-    navigationFilters: any, 
+const EndorsementEditToolbar = ({
+                                    navigationFilters,
+                                    setNavigationFilters,
+                                    currentId,
+                                    endorsementIds
+                                }: {
+    navigationFilters: any,
     setNavigationFilters: (filters: any) => void,
     currentId?: Identifier,
     endorsementIds: number[]
 }) => {
     const navigate = useNavigate();
-    
+
     // Navigation logic
     const currentIndex = currentId ? endorsementIds.findIndex(id => id === Number(currentId)) : -1;
     const firstId = endorsementIds.length > 0 ? endorsementIds[0] : null;
@@ -398,17 +401,21 @@ const EndorsementEditToolbar = ({
         // Navigation to first will happen in the useEffect below when endorsementIds updates
     };
 
+    /*
     // Navigate to first endorsement when endorsementIds change (after filter update)
+    // This is a bad idea. Coming from the list, this forces to jump to the newly acquired list.
+    // Don't do this
     useEffect(() => {
         if (endorsementIds.length > 0 && currentId !== endorsementIds[0]) {
             // Only navigate if current ID is not already the first one
             const currentIndex = currentId ? endorsementIds.findIndex(id => id === Number(currentId)) : -1;
             if (currentIndex === -1) {
                 // Current ID is not in the new results, navigate to first
-                handleNavigate(endorsementIds[0]);
+                // handleNavigate(endorsementIds[0]);
             }
         }
     }, [endorsementIds, currentId]);
+    */
 
     const handleTypeChange = (event: any) => {
         const value = event.target.value;
@@ -448,41 +455,41 @@ const EndorsementEditToolbar = ({
     };
 
     return (
-        <TopToolbar sx={{ justifyContent: 'flex-start' }}>
+        <TopToolbar sx={{justifyContent: 'flex-start'}}>
             <Box display="flex" gap={2} alignItems="center">
                 {/* Navigation buttons */}
                 <Box display="flex" gap={0.5}>
-                    <IconButton 
-                        onClick={handleFirst} 
-                        disabled={!firstId || currentId === firstId} 
+                    <IconButton
+                        onClick={handleFirst}
+                        disabled={!firstId || currentId === firstId}
                         size="small"
                         title="First"
                     >
-                        <FirstPage fontSize="small" />
+                        <FirstPage fontSize="small"/>
                     </IconButton>
-                    <IconButton 
-                        onClick={handlePrevious} 
-                        disabled={!prevId} 
+                    <IconButton
+                        onClick={handlePrevious}
+                        disabled={!prevId}
                         size="small"
                         title="Previous"
                     >
-                        <NavigateBefore fontSize="small" />
+                        <NavigateBefore fontSize="small"/>
                     </IconButton>
-                    <IconButton 
-                        onClick={handleNext} 
-                        disabled={!nextId} 
+                    <IconButton
+                        onClick={handleNext}
+                        disabled={!nextId}
                         size="small"
                         title="Next"
                     >
-                        <NavigateNext fontSize="small" />
+                        <NavigateNext fontSize="small"/>
                     </IconButton>
-                    <IconButton 
-                        onClick={handleLast} 
-                        disabled={!lastId || currentId === lastId} 
+                    <IconButton
+                        onClick={handleLast}
+                        disabled={!lastId || currentId === lastId}
                         size="small"
                         title="Last"
                     >
-                        <LastPage fontSize="small" />
+                        <LastPage fontSize="small"/>
                     </IconButton>
                 </Box>
 
@@ -494,7 +501,7 @@ const EndorsementEditToolbar = ({
                     ID
                 </TableSortLabel>
 
-                <FormControl size="small" sx={{ minWidth: 100 }}>
+                <FormControl size="small" sx={{minWidth: 100}}>
                     <InputLabel>Type</InputLabel>
                     <Select
                         value={navigationFilters.type || ''}
@@ -510,7 +517,7 @@ const EndorsementEditToolbar = ({
                     </Select>
                 </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 120 }}>
+                <FormControl size="small" sx={{minWidth: 120}}>
                     <InputLabel>Preset</InputLabel>
                     <Select
                         value={navigationFilters.preset || ''}
@@ -526,7 +533,7 @@ const EndorsementEditToolbar = ({
                     </Select>
                 </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 80 }}>
+                <FormControl size="small" sx={{minWidth: 80}}>
                     <InputLabel>Positive</InputLabel>
                     <Select
                         value={
@@ -560,147 +567,148 @@ export const EndorsementEdit = () => {
     const leftWidth = "80px";
     const [currentId, setCurrentId] = useState<Identifier | undefined>(undefined);
     const [navigationFilters, setNavigationFilters] = useState<any>(
-        {type: null, positive_endorsement: false}
+        {type: null, positive_endorsement: null}
     );
-    
+
     // Get endorsement IDs for navigation
-    const { endorsementIds, totalCount } = useEndorsementIds(navigationFilters);
+    const {endorsementIds, totalCount} = useEndorsementIds(navigationFilters);
 
 
     return (
         <>
             <ConsoleTitle>Endorsement</ConsoleTitle>
-        <Box display="flex" flexDirection="row" gap={2}>
-            <Box width={90}>
-                <EndorsementNavigation currentId={currentId}
-                                       filters={navigationFilters}/>
-            </Box>
-            <Box flex={1}>
-                <Edit 
-                    title={<EndorsementTitle/>}
-                    actions={<EndorsementEditToolbar 
-                        navigationFilters={navigationFilters} 
-                        setNavigationFilters={setNavigationFilters}
-                        currentId={currentId}
-                        endorsementIds={endorsementIds}
-                    />}
-                >
-                    <SimpleForm toolbar={<EndorsementFormToolbar />}>
-                        <CurrentIdSetter setCurrentId={setCurrentId}/>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gridTemplateRows: 'repeat(2, 1fr)',
-                            height: '100%',
-                            minWidth: '60%',
-                            gap: '0px 8px',
-                        }}>
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"ID: "}</Typography>
-                                <NumberField source="id"/>
-                            </Box>
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Request ID: "}</Typography>
-                                <ReferenceField source="request_id" reference="endorsement_requests"
-                                                label={"Endorsement Request"}
-                                                link={(record, reference) => `/${reference}/${record.id}`}>
-                                    <NumberField source={"id"}/>
-                                </ReferenceField>
-                            </Box>
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Category: "}</Typography>
-                                <CategoryField sourceCategory="archive" sourceClass="subject_class" source="id"
-                                               label="Category"/>
-                            </Box>
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Issued on: "}</Typography>
-                                <ISODateField source="issued_when"/>
-                            </Box>
-
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Endorser: "}</Typography>
-
-                                <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
-                                                link={(record, reference) => `/${reference}/${record.id}`}>
-                                    <UserNameField/>
-                                    <UserStatusField source={"id"}/>
-                                </ReferenceField>
-                            </Box>
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Session: "}</Typography>
-                                <ReferenceField source="session_id" reference="tapir_sessions" label={"Session ID"}
-                                                link={(record, reference) => `/${reference}/${record.id}/edit`}>
+            <Box display="flex" flexDirection="row" gap={2}>
+                <Box width={90}>
+                    <EndorsementNavigation currentId={currentId}
+                                           filters={navigationFilters}/>
+                </Box>
+                <Box flex={1}>
+                    <Edit
+                        title={<EndorsementTitle/>}
+                        actions={<EndorsementEditToolbar
+                            navigationFilters={navigationFilters}
+                            setNavigationFilters={setNavigationFilters}
+                            currentId={currentId}
+                            endorsementIds={endorsementIds}
+                        />}
+                    >
+                        <SimpleForm toolbar={<EndorsementFormToolbar/>}>
+                            <CurrentIdSetter setCurrentId={setCurrentId}/>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gridTemplateRows: 'repeat(2, 1fr)',
+                                height: '100%',
+                                minWidth: '60%',
+                                gap: '0px 8px',
+                            }}>
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"ID: "}</Typography>
                                     <NumberField source="id"/>
-                                </ReferenceField>
+                                </Box>
 
-                                <ReferenceField source="session_id" reference="tapir_sessions" label={"Session ID"} link={false}>
-                                    {" "}
-                                    <ISODateField source="start_time" showTime/>
-                                    {" - "}
-                                    <ISODateField source="end_time" showTime/>
-                                </ReferenceField>
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Request ID: "}</Typography>
+                                    <ReferenceField source="request_id" reference="endorsement_requests"
+                                                    label={"Endorsement Request"}
+                                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                                        <NumberField source={"id"}/>
+                                    </ReferenceField>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Category: "}</Typography>
+                                    <CategoryField sourceCategory="archive" sourceClass="subject_class" source="archive"
+                                                   label="Category"/>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Issued on: "}</Typography>
+                                    <ISODateField source="issued_when"/>
+                                </Box>
+
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Endorser: "}</Typography>
+
+                                    <ReferenceField source="endorser_id" reference="users" label={"Endorser"}
+                                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                                        <UserNameField/>
+                                        <UserStatusField source={"id"}/>
+                                    </ReferenceField>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Session: "}</Typography>
+                                    <ReferenceField source="session_id" reference="tapir_sessions" label={"Session ID"}
+                                                    link={(record, reference) => `/${reference}/${record.id}/edit`}>
+                                        <NumberField source="id"/>
+                                    </ReferenceField>
+
+                                    <ReferenceField source="session_id" reference="tapir_sessions" label={"Session ID"}
+                                                    link={false}>
+                                        {" "}
+                                        <ISODateField source="start_time" showTime/>
+                                        {" - "}
+                                        <ISODateField source="end_time" showTime/>
+                                    </ReferenceField>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Endorsee: "}</Typography>
+                                    <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
+                                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                                        <UserNameField/>
+                                        <UserStatusField source={"id"}/>
+                                    </ReferenceField>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Remote Hostname: "}</Typography>
+                                    <TextField source={"remote_host"}/>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Endorsement type: "}</Typography>
+                                    <SelectField source="type" choices={endorsementTypeOptions}/>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Remote Address: "}</Typography>
+                                    <TextField source={"remote_addr"}/>
+                                </Box>
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Knows Presonally: "}</Typography>
+                                    <BooleanField source="flag_knows_personally"/>
+                                    <Typography minWidth={leftWidth}>{"Seen Paper: "}</Typography>
+                                    <BooleanField source="flag_seen_paper"/>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Tracking Cookie: "}</Typography>
+                                    <TextField source="tracking_cookie"/>
+                                </Box>
+                            </div>
+                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                <Typography minWidth={leftWidth}>{"Point Value: "}</Typography>
+                                <NumberField source={"point_value"}/>
                             </Box>
 
                             <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Endorsee: "}</Typography>
-                                <ReferenceField source="endorsee_id" reference="users" label={"Endorsee"}
-                                                link={(record, reference) => `/${reference}/${record.id}`}>
-                                    <UserNameField/>
-                                    <UserStatusField source={"id"}/>
-                                </ReferenceField>
+                                <Typography minWidth={leftWidth}>{"Comment: "}</Typography>
+                                <TextField source={"comment"}/>
                             </Box>
 
                             <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Remote Hostname: "}</Typography>
-                                <TextField source={"remote_host"}/>
+                                <BooleanInput source="flag_valid" label={"Valid"} size={"small"} helperText={false}/>
+                                <BooleanInput source="positive_endorsement" label={"Positive"} size={"small"}
+                                              helperText={false}/>
                             </Box>
 
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Endorsement type: "}</Typography>
-                                <SelectField source="type" choices={endorsementTypeOptions}/>
-                            </Box>
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Remote Address: "}</Typography>
-                                <TextField source={"remote_addr"}/>
-                            </Box>
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Knows Presonally: "}</Typography>
-                                <BooleanField source="flag_knows_personally"/>
-                                <Typography minWidth={leftWidth}>{"Seen Paper: "}</Typography>
-                                <BooleanField source="flag_seen_paper"/>
-                            </Box>
-
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Tracking Cookie: "}</Typography>
-                                <TextField source="tracking_cookie"/>
-                            </Box>
-                        </div>
-                        <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                            <Typography minWidth={leftWidth}>{"Point Value: "}</Typography>
-                            <NumberField source={"point_value"}/>
-                        </Box>
-
-                        <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                            <Typography minWidth={leftWidth}>{"Comment: "}</Typography>
-                            <TextField source={"comment"}/>
-                        </Box>
-
-                        <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                            <BooleanInput source="flag_valid" label={"Valid"} size={"small"} helperText={false}/>
-                            <BooleanInput source="positive_endorsement" label={"Positive"} size={"small"}
-                                          helperText={false}/>
-                        </Box>
-
-                    </SimpleForm>
-                </Edit>
+                        </SimpleForm>
+                    </Edit>
+                </Box>
             </Box>
-        </Box>
         </>
     );
 }

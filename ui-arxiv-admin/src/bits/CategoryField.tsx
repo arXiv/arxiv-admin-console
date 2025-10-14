@@ -23,14 +23,18 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ source, sourceCategory, s
     if (!record) return null;
 
     let computedSourceClass =  record[sourceClass];
-    let compudetSourceCategory =  record[sourceCategory];
-    const combined = record[source];
+    let computedSourceCategory =  record[sourceCategory];
+    let combined = record[source];
 
-    if (!computedSourceClass && combined && typeof combined === 'string') {
+    if (computedSourceClass && computedSourceCategory) {
+        combined = computedSourceCategory + "." + (computedSourceClass || '*');
+    }
+
+    if ((!computedSourceClass) && (source !== "archive") && combined && typeof combined === 'string') {
         const parts = combined.split('.');
         if (parts.length === 2) {
             computedSourceClass = parts[1];
-            compudetSourceCategory = parts[0];
+            computedSourceCategory = parts[0];
         }
     }
 
@@ -40,7 +44,7 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ source, sourceCategory, s
             setLoading(true);
 
             const fetchCategory = async () => {
-                const url = `${runtimeProps.ADMIN_API_BACKEND_URL}/v1/categories/${compudetSourceCategory}/subject-class/${computedSourceClass || "*"}`;
+                const url = `${runtimeProps.ADMIN_API_BACKEND_URL}/v1/categories/${computedSourceCategory}/subject-class/${computedSourceClass || "*"}`;
                 try {
                     const response = await fetch(url);
                     // const text = await response.clone().text()
@@ -58,8 +62,7 @@ const CategoryField: React.FC<CategoryFieldProps> = ({ source, sourceCategory, s
         }
     }, [hovered, categoryName, record, source, sourceCategory, sourceClass]);
 
-
-    const categoryText = combined ? combined : computedSourceClass + "." + (compudetSourceCategory || '*');
+    const categoryText = combined;
 
     const renderContent = (): ReactNode => {
         const label = <Typography fontWeight={primary ? "bolder" : "normal" } component={"span"} sx={{m:0, p:0}}>{primary ? "(Primary) " : ""}{categoryText}</Typography>;
