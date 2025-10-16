@@ -103,12 +103,12 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
         }
         else if (status === 403) {
             console.log("auth: checkError 403");
-            // await fetch(`${runtimeProps.AAA_URL}/logouf`, {method: 'GET', credentials: 'include'});
+            // await fetch(`${runtimeProps.AAA_URL}/logout`, {method: 'GET', credentials: 'include'});
             return Promise.reject();
         }
         else if (status === undefined) {
             console.log("auth: checkError undefined");
-            // await fetch(`${runtimeProps.AAA_URL}/logouf`, {method: 'GET', credentials: 'include'});
+            // await fetch(`${runtimeProps.AAA_URL}/logout`, {method: 'GET', credentials: 'include'});
             return Promise.resolve();
         }
         console.log(`auth: good - checkError status=${status} `);
@@ -117,6 +117,10 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
 
     // called when the user navigates to a new location, to check for authentication
     checkAuth: async () => {
+        if ((!runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME) || (!runtimeProps.ARXIV_COOKIE_NAME)) {
+            return Promise.resolve();
+        }
+
         // I stopped using keycloak access token in URL
         // const urlParams = new URLSearchParams(window.location.search);
         const token = getCookie(runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME);

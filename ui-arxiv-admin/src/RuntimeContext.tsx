@@ -44,12 +44,12 @@ export interface RuntimeProps
 
 const defaultRuntimeProps : RuntimeProps = {
     arxivNavLinks: defaultArxivNavLinks,
-    AAA_URL: 'http://localhost.arxiv.org:5000/aaa',
-    ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5000/admin-api',
+    AAA_URL: '',
+    ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5100/admin-api',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
-    ARXIV_COOKIE_NAME: "arxiv_oidc_session",
+    ARXIV_COOKIE_NAME: "",
     TAPIR_COOKIE_NAME: "tapir_session",
-    ARXIV_KEYCLOAK_COOKIE_NAME: "arxiv_keycloak_token",
+    ARXIV_KEYCLOAK_COOKIE_NAME: "",
     ARXIV_CHECK: "https://check.dev.arxiv.org",
     URLS: arXivURLs,
     currentUser: null,
@@ -133,6 +133,9 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
     useEffect(() => {
         const fetchUserData = async () => {
+            if (!runtimeEnv.AAA_URL)
+                return;
+
             const it = Fetcher.for<paths>();
             it.configure({baseUrl: runtimeEnv.AAA_URL});
             updateRuntimeEnv({aaaFetcher: it});
@@ -144,11 +147,15 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 const userResponse = await getCurrentUserFetch({});
 
                 if (userResponse.ok) {
+                    console.log("1. fetching current user - ok");
+
                     updateRuntimeEnv({
                         currentUser: userResponse.data,
                         currentUserLoading: false
                     });
                 } else {
+                    console.log("1. fetching current user - not ok");
+
                     updateRuntimeEnv({
                         currentUser: null,
                         currentUserLoading: false

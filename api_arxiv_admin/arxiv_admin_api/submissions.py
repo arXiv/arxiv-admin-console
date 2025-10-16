@@ -15,6 +15,7 @@ from google.protobuf.internal.wire_format import INT32_MAX
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text, cast, LargeBinary, Row, and_  # select, update, func, case, Select, distinct, exists, and_
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
 
 from . import get_db, VERY_OLDE, is_any_user
 from .helpers.mui_datagrid import MuiDataGridFilter
@@ -446,7 +447,7 @@ async def get_submission(
     sub = query.one_or_none()
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
-    submission: SubmissionModel = SubmissionModel.model_validate(sub)
+    submission: SubmissionModel = SubmissionModel.to_model(sub, session)
     submission.submission_categories = [SubmissionCategoryModel.model_validate(cat) for cat in SubmissionCategoryModel.base_select(session).filter(SubmissionCategory.submission_id == id).all()]
     return submission
 
@@ -455,7 +456,7 @@ async def get_submission(
 async def delete_submission(
         id: int,
         current_user: ArxivUserClaims = Depends(get_authn_user),
-        session: Session = Depends(get_db)) -> SubmissionModel:
+        session: Session = Depends(get_db)) -> JSONResponse:
     """Delete a submission"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not logged in")
@@ -471,7 +472,7 @@ async def delete_submission(
     sub.is_withdrawn = True
     session.commit()
     
-    return SubmissionModel.model_validate(SubmissionModel.base_select(session).filter(Submission.submission_id == id).first())
+    return {"id": str(id)}
 
 
 class SubmissionUpdateModel(BaseModel):

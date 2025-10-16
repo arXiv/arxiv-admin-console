@@ -248,7 +248,7 @@ def create_app(*args, **kwargs) -> FastAPI:
 
     app.add_middleware(LogMiddleware)
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
-    app.add_middleware(SessionCookieMiddleware)
+    # app.add_middleware(SessionCookieMiddleware)
 
     # app.include_router(auth_router)
     app.include_router(admin_log_router, prefix="/v1")
@@ -308,11 +308,13 @@ def create_app(*args, **kwargs) -> FastAPI:
         try:
             secret = request.app.extra['JWT_SECRET']
             if secret and token:
-                tokens, jwt_payload = ArxivUserClaims.unpack_token(token)
-                expires_at = datetime.strptime(tokens['expires_at'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
+                kc_tokens = {}
+                jwt_payload = token
+                claims = ArxivUserClaims.decode_jwt_payload(kc_tokens, jwt_payload, secret)
+                expires_at = claims.expires_at
                 remain = expires_at - datetime.now(timezone.utc)
                 need_token_refresh = remain.total_seconds() < 60
-                if need_token_refresh and 'refresh' in tokens:
+                if need_token_refresh and 'refresh' in kc_tokens:
                     logger.debug(f"Ping: refresh {token}")
                     cookies = request.cookies
                     AAA_TOKEN_REFRESH_URL = request.app.extra['AAA_TOKEN_REFRESH_URL']

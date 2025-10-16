@@ -114,8 +114,9 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
             request.state.tapir_session = None
 
         if session_cookie is not None:
-            tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
-            user_id = tokens['sub']
+            kc_tokens = {}
+            claims = ArxivUserClaims.decode_jwt_payload(kc_tokens, session_cookie, secret)
+            user_id = claims.user_id
 
             while claims is None and session_cookie is not None:
                 try:
@@ -126,13 +127,10 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
                     # cache exists
                     if user_cookies and user_cookies.get('session') and user_cookies.get('session') != session_cookie:
                         # I already have the valid cookie in the cache. So use it
-                        refreshed_tokens = user_cookies
                         session_cookie = user_cookies['session']
-                        if session_cookie:
-                            tokens, jwt_payload = ArxivUserClaims.unpack_token(session_cookie)
 
                     try:
-                        claims = ArxivUserClaims.decode_jwt_payload(tokens, jwt_payload, secret)
+                        claims = ArxivUserClaims.decode_jwt_payload(kc_tokens, session_cookie, secret)
                         break
 
                     except jwcrypto.jwt.JWTExpired:
