@@ -49,10 +49,17 @@ class TapirSessionModel(BaseModel):
             case(
                 (TapirSession.end_time == 0, False),
                 else_=True
-            ).label("close_session"),
-            TapirSessionsAudit.ip_addr.label("remote_ip"),
-            TapirSessionsAudit.remote_host,
-        ).outerjoin(TapirSessionsAudit, TapirSessionsAudit.session_id == TapirSession.session_id)
+            ).label("close_session")
+        )
+
+    @classmethod
+    def to_model(cls, session: Session, data) -> 'TapirSessionModel':
+        data0 = TapirSessionModel.model_validate(data).model_dump()
+        supplement = session.query(TapirSessionsAudit.ip_addr, TapirSessionsAudit.remote_host).filter(TapirSessionsAudit.session_id == data0['id']).all()
+        if len(supplement) > 0:
+            data0['remote_ip'] = supplement[0][0]
+            data0['remote_host'] = supplement[0][1]
+        return TapirSessionModel.model_validate(data0)
 
 
 @router.get('/')
@@ -71,6 +78,8 @@ async def list_tapir_sessions(
         remote_ip: Optional[str] = Query(None, description="Remode IP address"),
         session: Session = Depends(get_db)
     ) -> List[TapirSessionModel]:
+    audit_joined = False
+    all_rows = True
     query = TapirSessionModel.base_query(session)
 
     if id is not None:
@@ -80,6 +89,7 @@ async def list_tapir_sessions(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Invalid start or end index")
         if preset is not None or start_date is not None or end_date is not None:
+            all_rows = False
             t0 = datetime.datetime.now(datetime.UTC)
             if preset is not None:
                 matched = re.search(r"last_(\d+)_days", preset)
@@ -97,22 +107,31 @@ async def list_tapir_sessions(
                     query = query.filter(TapirSession.start_time.between(t_begin, t_end))
 
         if user_id:
+            all_rows = False
             query = query.filter(TapirSession.user_id == user_id)
 
         if is_open is not None:
+            all_rows = False
             if is_open:
                 query = query.filter(TapirSession.end_time == 0)
             else:
                 query = query.filter(TapirSession.end_time != 0)
 
         if remote_ip is not None:
-            query = query.filter(TapirSessionsAudit.ip_addr.startswith(remote_ip))
+            all_rows = False
+            audit_joined = True
+            query = query.join(TapirSessionsAudit, TapirSessionsAudit.session_id == TapirSession.session_id).filter(TapirSessionsAudit.ip_addr.startswith(remote_ip))
 
     order_columns = []
     if _sort:
         keys = _sort.split(",")
         for key in keys:
             if key == "remote_ip":
+                if not audit_joined:
+                    query = query.join(TapirSessionsAudit,
+                                       TapirSessionsAudit.session_id == TapirSession.session_id)
+                    audit_joined = True
+                    pass
                 order_column = getattr(TapirSessionsAudit, key)
                 order_columns.append(order_column)
                 continue
@@ -125,15 +144,20 @@ async def list_tapir_sessions(
             except AttributeError:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid start or end index")
+
     for column in order_columns:
         if _order == "DESC":
             query = query.order_by(column.desc())
         else:
             query = query.order_by(column.asc())
 
-    count = query.count()
+    if all_rows:
+        count = session.query(TapirSession).count()
+    else:
+        count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [TapirSessionModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [TapirSessionModel.to_model(session, item) for item in query.offset(_start).limit(_end - _start).all()]
+
     return result
 
 

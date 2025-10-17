@@ -45,6 +45,7 @@ import SaveOnlyToolbar from "../bits/SaveOnlyToolbar";
 import ISODateField from "../bits/ISODateFiled";
 import UserNameField from "../bits/UserNameField";
 import Paper from "@mui/material/Paper";
+import IPv4AddressInput from "../components/IPv4AddressInput";
 
 const presetOptions = [
     {id: 'last_1_day', name: 'Last 1 Day'},
@@ -189,6 +190,7 @@ const TapirSessionFilter = (props: any) => {
                 />
             </ReferenceInput>
             <BooleanInput label="Open session" source="is_open"/>
+            <IPv4AddressInput label="Remote IP Address" source="remote_ip"/>
         </Filter>
     );
 };
@@ -213,6 +215,7 @@ export const TapirSessionList = () => {
                 <ISODateField source="last_reissue" showTime/>
                 <ISODateField source="start_time" showTime/>
                 <ISODateField source="end_time" showTime/>
+                <TextField source="remote_ip" />
             </Datagrid>
         </List>
         </Box>
