@@ -85,7 +85,7 @@ AAA_TOKEN_REFRESH_URL = os.environ.get("AAA_TOKEN_REFRESH_URL", "http://localhos
 LOGOUT_REDIRECT_URL = os.environ.get("LOGOUT_REDIRECT_URL", ADMIN_APP_URL)
 #
 JWT_SECRET = os.environ.get("JWT_SECRET")
-AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "arxiv_oidc_session")
+AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "ARXIVNG_SESSION_ID")
 CLASSIC_COOKIE_NAME = os.environ.get("CLASSIC_COOKIE_NAME", "tapir_session")
 TRACKING_COOKIE_NAME = os.environ.get("TRACKING_COOKIE_NAME", "tapir_tracking")
 

@@ -253,8 +253,8 @@ async def update_endorsement(
                         ))
 
     if changed:
-        if body.comment is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Comment is required")
+        if body.admin_comment is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Admin comment is required")
 
         session.commit()
 

@@ -16,7 +16,7 @@ from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, field_validator
 from requests import session
 
-from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row, or_
+from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row, or_, func, literal
 from sqlalchemy.orm import Session, aliased
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
@@ -103,6 +103,33 @@ ADMIN_AUDIT_TAPIR_USER_FIELDS = {
     "flag_banned",
     "flag_can_lock"
 }
+
+
+def is_ascii_only(value: str) -> bool:
+    """
+    Check if a string contains only ASCII characters.
+
+    :param value: The string to check
+    :return: True if the string contains only ASCII characters
+    """
+    try:
+        value.encode('ascii')
+        return True
+    except UnicodeEncodeError:
+        return False
+
+
+def encode_for_latin1_column(value: str) -> bytes:
+    """
+    Encode a UTF-8 string as bytes for querying Latin1 database columns.
+
+    This converts the UTF-8 string to bytes that can be compared with Latin1 columns
+    containing UTF-8 data. The database stores UTF-8 data as raw bytes in Latin1 columns.
+
+    :param value: The UTF-8 string to convert
+    :return: UTF-8 encoded bytes
+    """
+    return value.encode('utf-8')
 
 
 
@@ -337,10 +364,22 @@ async def list_users(
 
 
         if first_name:
-            query = query.filter(TapirUser.first_name.startswith(first_name))
+            if is_ascii_only(first_name):
+                # Fast indexed search for ASCII/Latin-only names
+                query = query.filter(TapirUser.first_name.startswith(first_name))
+            else:
+                # Binary comparison for non-Latin characters (no case folding needed)
+                query = query.filter(cast(TapirUser.first_name, LargeBinary).like(
+                    encode_for_latin1_column(first_name + '%')))
 
         if last_name:
-            query = query.filter(TapirUser.last_name.startswith(last_name))
+            if is_ascii_only(last_name):
+                # Fast indexed search for ASCII/Latin-only names
+                query = query.filter(TapirUser.last_name.startswith(last_name))
+            else:
+                # Binary comparison for non-Latin characters (no case folding needed)
+                query = query.filter(cast(TapirUser.last_name, LargeBinary).like(
+                    encode_for_latin1_column(last_name + '%')))
 
         if email:
             query = query.filter(TapirUser.email.startswith(email))

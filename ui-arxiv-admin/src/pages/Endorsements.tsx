@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import {NavigateBefore, NavigateNext, FirstPage, LastPage} from '@mui/icons-material';
 import {useNavigate} from 'react-router-dom';
+import {useFormContext} from 'react-hook-form';
 import {
     List,
     SimpleList,
@@ -358,12 +359,80 @@ const CurrentIdSetter = ({setCurrentId}: { setCurrentId: (id: Identifier) => voi
     return null; // This component doesn't render anything
 };
 
-// Custom form toolbar with only Save button (no Delete)
-const EndorsementFormToolbar = () => (
-    <Toolbar>
-        <SaveButton/>
-    </Toolbar>
-);
+// Admin comment input with validation helper text
+const AdminCommentWithValidation = () => {
+    const { watch } = useFormContext();
+    const record = useRecordContext();
+
+    // Watch form values to trigger re-render on changes
+    const flagValid = watch('flag_valid');
+    const positiveEndorsement = watch('positive_endorsement');
+    const adminComment = watch('admin_comment');
+
+    // Check if either boolean field has changed
+    const flagValidChanged = record && flagValid !== undefined &&
+        Boolean(flagValid) !== Boolean(record.flag_valid);
+    const positiveEndorsementChanged = record && positiveEndorsement !== undefined &&
+        Boolean(positiveEndorsement) !== Boolean(record.positive_endorsement);
+
+    // Check if admin comment is provided and not empty
+    const hasAdminComment = adminComment && adminComment.trim() !== '';
+
+    // Determine helper text
+    const requiresComment = flagValidChanged || positiveEndorsementChanged;
+    const helperText = requiresComment && !hasAdminComment
+        ? "Admin comment is required when changing Valid or Positive Endorsement"
+        : requiresComment && hasAdminComment
+        ? "Comment provided for boolean field changes"
+        : "";
+
+    return (
+        <TextInput
+            source="admin_comment"
+            multiline={true}
+            rows={4}
+            label="Admin Comment"
+            fullWidth
+            helperText={helperText}
+            FormHelperTextProps={{
+                sx: {
+                    color: requiresComment && !hasAdminComment ? 'error.main' : 'success.main',
+                    fontWeight: 'bold'
+                }
+            }}
+        />
+    );
+};
+
+// Custom form toolbar with validation for admin comment requirement
+const EndorsementFormToolbar = () => {
+    const { watch } = useFormContext();
+    const record = useRecordContext();
+
+    // Watch form values to trigger re-render on changes
+    const flagValid = watch('flag_valid');
+    const positiveEndorsement = watch('positive_endorsement');
+    const adminComment = watch('admin_comment');
+
+    // Check if either boolean field has changed
+    const flagValidChanged = record && flagValid !== undefined &&
+        Boolean(flagValid) !== Boolean(record.flag_valid);
+    const positiveEndorsementChanged = record && positiveEndorsement !== undefined &&
+        Boolean(positiveEndorsement) !== Boolean(record.positive_endorsement);
+
+    // Check if admin comment is provided and not empty
+    const hasAdminComment = adminComment && adminComment.trim() !== '';
+
+    // Determine if save should be disabled
+    // If either boolean changed, require admin comment
+    const shouldDisableSave = (flagValidChanged || positiveEndorsementChanged) && !hasAdminComment;
+
+    return (
+        <Toolbar>
+            <SaveButton disabled={shouldDisableSave} />
+        </Toolbar>
+    );
+};
 
 // Custom toolbar for navigation filters
 const EndorsementEditToolbar = ({
@@ -591,6 +660,11 @@ export const EndorsementEdit = () => {
                             currentId={currentId}
                             endorsementIds={endorsementIds}
                         />}
+                        transform={(data) => ({
+                            flag_valid: data.flag_valid,
+                            positive_endorsement: data.positive_endorsement,
+                            admin_comment: data.admin_comment
+                        })}
                     >
                         <SimpleForm toolbar={<EndorsementFormToolbar/>}>
                             <CurrentIdSetter setCurrentId={setCurrentId}/>
@@ -700,17 +774,19 @@ export const EndorsementEdit = () => {
                                     <Typography minWidth={leftWidth}>{"Point Value: "}</Typography>
                                     <NumberField source={"point_value"}/>
                                 </Box>
-
-
-
                             </div>
+
                             <Box display="flex" justifyContent="left" alignItems="center" gap={1} m={1}>
                                 <Typography minWidth={leftWidth}>{"Comment: "}</Typography>
                                 <TextField source={"comment"}/>
                             </Box>
 
+                            <AdminCommentWithValidation />
 
-
+                            <Box display="flex" justifyContent="left" alignItems="center" gap={2} m={2}>
+                                <BooleanInput source="flag_valid" label="Valid"/>
+                                <BooleanInput source="positive_endorsement" label="Positive Endorsement"/>
+                            </Box>
 
                         </SimpleForm>
                     </Edit>
