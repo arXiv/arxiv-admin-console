@@ -1,7 +1,7 @@
 import { AuthProvider } from 'react-admin';
 // import {useEffect, useState, useContext} from "react";
 import {RuntimeProps} from "./RuntimeContext";
-import {getRemainingTimeInSeconds} from "./helpers/timeDiff";
+// import {getRemainingTimeInSeconds} from "./helpers/timeDiff";
 
 function getCookie(name: string): string | null {
     const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
@@ -117,26 +117,36 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
 
     // called when the user navigates to a new location, to check for authentication
     checkAuth: async () => {
-        if ((!runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME) || (!runtimeProps.ARXIV_COOKIE_NAME)) {
+        if ((!runtimeProps.KEYCLOAK_ACCESS_TOKEN_NAME) || (!runtimeProps.ARXIV_COOKIE_NAME)) {
             return Promise.resolve();
         }
 
-        // I stopped using keycloak access token in URL
-        // const urlParams = new URLSearchParams(window.location.search);
-        const token = getCookie(runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME);
-        // const token_type = 'Bearer';
-        // If no token, reject the promise
-        const arxiv_token = getCookie(runtimeProps.ARXIV_COOKIE_NAME);
-
-        // If no token, reject the promise
-
-        if (token && arxiv_token) {
+        if (runtimeProps.KEYCLOAK_ACCESS_TOKEN_NAME) {
+            const kc_access_token = getCookie(runtimeProps.KEYCLOAK_ACCESS_TOKEN_NAME);
             // Store the token in local storage
-            localStorage.setItem('access_token', token);
-            localStorage.setItem('arxiv_session_token', arxiv_token);
+            if (kc_access_token) {
+                localStorage.setItem('keycloak_access_token', kc_access_token);
+            }
+        }
+
+        if (runtimeProps.KEYCLOAK_REFRESH_TOKEN_NAME) {
+            const kc_refresh_token = getCookie(runtimeProps.KEYCLOAK_REFRESH_TOKEN_NAME);
+            if (kc_refresh_token) {
+                localStorage.setItem('keycloak_refresh_token', kc_refresh_token);
+            }
+        }
+
+        // store the user claims (now it is also NG cookie) as access token
+        // Since cookie has it, this isn't necessary but random API may want to use the authorization header.
+        // retryHttpClient uses access_token from local storage in authorization header. (I hope I don't regret
+        // this)
+        if (runtimeProps.ARXIV_COOKIE_NAME) {
+            const arxiv_token = getCookie(runtimeProps.ARXIV_COOKIE_NAME);
+            if (arxiv_token) {
+                localStorage.setItem('access_token', arxiv_token);
+            }
             return Promise.resolve();
         }
-        console.log(`checkAuth: no cookie for token "${runtimeProps.ARXIV_KEYCLOAK_COOKIE_NAME}"="${token}" arxiv_token "${runtimeProps.ARXIV_COOKIE_NAME}"="${arxiv_token}" `);
 
         console.log(JSON.stringify(document.cookie));
         return Promise.reject();

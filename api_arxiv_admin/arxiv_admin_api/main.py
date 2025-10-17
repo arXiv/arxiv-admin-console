@@ -128,8 +128,8 @@ class LogMiddleware(BaseHTTPMiddleware):
         # Log request details
         body = await request.body()
         print(f"Request: {request.method} {request.url}")
-        print(f"Request Headers: {request.headers}")
-        #print(f"Request Body: {body.decode('utf-8')}")
+        # print(f"Request Headers: {request.headers}")
+        # print(f"Request Body: {body.decode('utf-8')}")
 
         # Call the next middleware or endpoint
         response = await call_next(request)

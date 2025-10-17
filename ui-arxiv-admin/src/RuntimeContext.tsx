@@ -32,7 +32,8 @@ export interface RuntimeProps
     ADMIN_APP_ROOT: string;
     ARXIV_COOKIE_NAME: string;
     TAPIR_COOKIE_NAME: string;
-    ARXIV_KEYCLOAK_COOKIE_NAME: string;
+    KEYCLOAK_ACCESS_TOKEN_NAME: string;
+    KEYCLOAK_REFRESH_TOKEN_NAME: string;
     ARXIV_CHECK: string;
     URLS: ArxiURLs;
     currentUser: UserType | null;
@@ -49,7 +50,8 @@ const defaultRuntimeProps : RuntimeProps = {
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
     ARXIV_COOKIE_NAME: "",
     TAPIR_COOKIE_NAME: "tapir_session",
-    ARXIV_KEYCLOAK_COOKIE_NAME: "",
+    KEYCLOAK_ACCESS_TOKEN_NAME: "",
+    KEYCLOAK_REFRESH_TOKEN_NAME: "",
     ARXIV_CHECK: "https://check.dev.arxiv.org",
     URLS: arXivURLs,
     currentUser: null,
@@ -115,6 +117,8 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
                     ARXIV_COOKIE_NAME: cookie_names.session,
                     TAPIR_COOKIE_NAME: cookie_names.classic,
+                    KEYCLOAK_ACCESS_TOKEN_NAME: cookie_names.keycloak_access,
+                    KEYCLOAK_REFRESH_TOKEN_NAME: cookie_names.keycloak_refresh,
                     aaaFetcher: aaaFetcher,
                     adminFetcher: adminFetcher,
                 };
