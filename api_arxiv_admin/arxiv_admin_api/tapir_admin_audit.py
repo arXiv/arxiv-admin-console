@@ -50,7 +50,7 @@ class TapirAdminAuditModel(BaseModel):
             TapirAdminAudit.affected_user,
             TapirAdminAudit.tracking_cookie,
             TapirAdminAudit.action,
-            TapirAdminAudit.data,
+            cast(TapirAdminAudit.data, LargeBinary).label("data"),
             cast(TapirAdminAudit.comment, LargeBinary).label("comment"))
 
 
