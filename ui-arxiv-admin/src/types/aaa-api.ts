@@ -1715,9 +1715,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Old and new email are the same"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1727,9 +1729,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authorized to change this email"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1739,9 +1743,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authorized to change this email"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1751,9 +1757,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Old email does not exist"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1763,9 +1771,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "The requested email is already used by other user."
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1784,9 +1794,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Too many email change request."
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1796,9 +1808,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Could not update Keycloak"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1974,9 +1988,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authenticated"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -1986,9 +2002,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authorized to set the ORCID data"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2007,9 +2025,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Could not update Keycloak"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2043,9 +2063,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authenticated"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2055,9 +2077,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authorized to set the AUTHOR_ID data"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2076,9 +2100,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Could not update Keycloak"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2114,9 +2140,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Invalid request data"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2126,9 +2154,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authenticated"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2138,9 +2168,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Not authorized to set the ORCID data"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };
@@ -2159,9 +2191,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    /** @example {
+                    /**
+                     * @example {
                      *       "detail": "Could not update Keycloak"
-                     *     } */
+                     *     }
+                     */
                     "application/json": unknown;
                 };
             };

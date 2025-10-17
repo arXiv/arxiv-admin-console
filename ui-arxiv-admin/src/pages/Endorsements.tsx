@@ -582,7 +582,7 @@ export const EndorsementEdit = () => {
                     <EndorsementNavigation currentId={currentId}
                                            filters={navigationFilters}/>
                 </Box>
-                <Box flex={1}>
+                <Box flex={1} >
                     <Edit
                         title={<EndorsementTitle/>}
                         actions={<EndorsementEditToolbar
@@ -600,7 +600,7 @@ export const EndorsementEdit = () => {
                                 gridTemplateRows: 'repeat(2, 1fr)',
                                 height: '100%',
                                 minWidth: '60%',
-                                gap: '0px 8px',
+                                gap: '12px 8px',
                             }}>
                                 <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
                                     <Typography minWidth={leftWidth}>{"ID: "}</Typography>
@@ -688,22 +688,29 @@ export const EndorsementEdit = () => {
                                     <Typography minWidth={leftWidth}>{"Tracking Cookie: "}</Typography>
                                     <TextField source="tracking_cookie"/>
                                 </Box>
-                            </div>
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <Typography minWidth={leftWidth}>{"Point Value: "}</Typography>
-                                <NumberField source={"point_value"}/>
-                            </Box>
 
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Valid: "}</Typography>
+                                    <BooleanField source="flag_valid"/>
+                                </Box>
+
+                                <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
+                                    <Typography minWidth={leftWidth}>{"Positive: "}</Typography>
+                                    <BooleanField source="positive_endorsement"/>
+                                    <Typography minWidth={leftWidth}>{"Point Value: "}</Typography>
+                                    <NumberField source={"point_value"}/>
+                                </Box>
+
+
+
+                            </div>
+                            <Box display="flex" justifyContent="left" alignItems="center" gap={1} m={1}>
                                 <Typography minWidth={leftWidth}>{"Comment: "}</Typography>
                                 <TextField source={"comment"}/>
                             </Box>
 
-                            <Box display="flex" justifyContent="left" alignItems="center" gap={1}>
-                                <BooleanInput source="flag_valid" label={"Valid"} size={"small"} helperText={false}/>
-                                <BooleanInput source="positive_endorsement" label={"Positive"} size={"small"}
-                                              helperText={false}/>
-                            </Box>
+
+
 
                         </SimpleForm>
                     </Edit>

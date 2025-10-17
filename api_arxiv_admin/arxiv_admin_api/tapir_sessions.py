@@ -5,7 +5,7 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from typing import Optional, List
 from arxiv.base import logging
-from arxiv.db.models import TapirSession
+from arxiv.db.models import TapirSession, TapirSessionsAudit
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, Query as SAQuery
 from sqlalchemy import case
@@ -19,10 +19,12 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/tapir_session
 class TapirSessionModel(BaseModel):
     id: Optional[int] = None
     user_id: int
-    last_reissue: Optional[datetime.datetime]
-    start_time: Optional[datetime.datetime]
-    end_time: Optional[datetime.datetime]
+    last_reissue: Optional[datetime.datetime] = None
+    start_time: Optional[datetime.datetime] = None
+    end_time: Optional[datetime.datetime] = None
     close_session: bool
+    remote_ip: Optional[str] = None
+    remote_host: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -48,7 +50,9 @@ class TapirSessionModel(BaseModel):
                 (TapirSession.end_time == 0, False),
                 else_=True
             ).label("close_session"),
-        )
+            TapirSessionsAudit.ip_addr.label("remote_ip"),
+            TapirSessionsAudit.remote_host,
+        ).outerjoin(TapirSessionsAudit, TapirSessionsAudit.session_id == TapirSession.session_id)
 
 
 @router.get('/')
@@ -64,6 +68,7 @@ async def list_tapir_sessions(
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime.date] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime.date] = Query(None, description="End date for filtering"),
+        remote_ip: Optional[str] = Query(None, description="Remode IP address"),
         session: Session = Depends(get_db)
     ) -> List[TapirSessionModel]:
     query = TapirSessionModel.base_query(session)
@@ -100,10 +105,18 @@ async def list_tapir_sessions(
             else:
                 query = query.filter(TapirSession.end_time != 0)
 
+        if remote_ip is not None:
+            query = query.filter(TapirSessionsAudit.ip_addr.startswith(remote_ip))
+
     order_columns = []
     if _sort:
         keys = _sort.split(",")
         for key in keys:
+            if key == "remote_ip":
+                order_column = getattr(TapirSessionsAudit, key)
+                order_columns.append(order_column)
+                continue
+
             if key == "id":
                 key = "session_id"
             try:

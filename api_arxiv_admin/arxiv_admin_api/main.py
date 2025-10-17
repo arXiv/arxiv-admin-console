@@ -6,6 +6,7 @@ from datetime import timezone, datetime
 import httpx
 from typing import Callable, Optional, Tuple, Any
 
+from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES
 from fastapi import FastAPI, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -50,6 +51,7 @@ from arxiv_admin_api.show_email_requests import router as show_email_requests_ro
 from arxiv_admin_api.licenses import router as licenses_router
 from arxiv_admin_api.email_patterns import router as email_patterns_router
 from arxiv_admin_api.endorsement_domains import router as endorsement_domains_router
+from arxiv_admin_api.system_status import router as system_status_router
 
 from arxiv_admin_api.frontend import router as frontend_router
 from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
@@ -199,6 +201,19 @@ def create_app(*args, **kwargs) -> FastAPI:
     pwc_secret = get_application_config().get('PWC_SECRET', "not-very-secret")
     pwc_arxiv_user_secret = get_application_config().get('PWC_ARXIV_USER_SECRET', "not-very-secret")
 
+    # Things I don't need but good to know
+    ARXIVNG_COOKIE_NAME = os.environ.get(COOKIE_ENV_NAMES.ng_cookie_env, "ARXIVNG_SESSION_ID")
+    KEYCLOAK_ACCESS_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_access_token_env, "keycloak_access_token")
+    KEYCLOAK_REFRESH_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_refresh_token_env, "keycloak_refresh_token")
+
+    cookie_names = {
+        COOKIE_ENV_NAMES.classic_cookie_env: CLASSIC_COOKIE_NAME,
+        COOKIE_ENV_NAMES.ng_cookie_env: ARXIVNG_COOKIE_NAME,
+        COOKIE_ENV_NAMES.auth_session_cookie_env: AUTH_SESSION_COOKIE_NAME,
+        COOKIE_ENV_NAMES.keycloak_access_token_env: KEYCLOAK_ACCESS_TOKEN_NAME,
+        COOKIE_ENV_NAMES.keycloak_refresh_token_env: KEYCLOAK_REFRESH_TOKEN_NAME,
+    }
+
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
         arxiv_db_engine=database.engine,
@@ -206,8 +221,6 @@ def create_app(*args, **kwargs) -> FastAPI:
         JWT_SECRET=jwt_secret,
         LOGIN_REDIRECT_URL=AAA_LOGIN_REDIRECT_URL,
         LOGOUT_REDIRECT_URL=LOGOUT_REDIRECT_URL,
-        AUTH_SESSION_COOKIE_NAME=AUTH_SESSION_COOKIE_NAME,
-        CLASSIC_COOKIE_NAME=CLASSIC_COOKIE_NAME,
         AAA_TOKEN_REFRESH_URL=AAA_TOKEN_REFRESH_URL,
         TRACKING_COOKIE_NAME=TRACKING_COOKIE_NAME,
         DATABASE=database,
@@ -221,6 +234,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         MODAPI_MODKEY=MODAPI_MODKEY,
         GCP_SERVICE_REQUEST_SA=os.environ.get('GCP_SERVICE_REQUEST_SA'),
         GCP_SERVICE_REQUEST_ENDPOINT=os.environ.get('GCP_SERVICE_REQUEST_ENDPOINT', "localhost:8080"),
+        **cookie_names
     )
 
     if ADMIN_APP_URL not in origins:
@@ -251,6 +265,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     # app.add_middleware(SessionCookieMiddleware)
 
     # app.include_router(auth_router)
+    app.include_router(system_status_router)
+    app.include_router(frontend_router)
     app.include_router(admin_log_router, prefix="/v1")
     app.include_router(categories_router, prefix="/v1")
     app.include_router(archive_group_router, prefix="/v1")
@@ -274,7 +290,6 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(submission_meta_router, prefix="/v1")
     app.include_router(member_institution_router, prefix="/v1")
     app.include_router(institution_ip_router, prefix="/v1")
-    app.include_router(frontend_router)
     app.include_router(tapir_session_router, prefix="/v1")
     app.include_router(submission_categories_router, prefix="/v1")
     app.include_router(countries_router, prefix="/v1")

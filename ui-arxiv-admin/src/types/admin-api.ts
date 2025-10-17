@@ -4,6 +4,100 @@
  */
 
 export interface paths {
+    "/system/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report Ping
+         * @description Report system status.
+         */
+        get: operations["report_ping_system__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/database_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report Dtabase Status
+         * @description Report connection status.
+         */
+        get: operations["report_dtabase_status_system_database_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/cookie_names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report Cookie Names
+         * @description Report system status.
+         */
+        get: operations["report_cookie_names_system_cookie_names_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/frontend/{full_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve React App */
+        get: operations["serve_react_app_frontend__full_path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/static/{full_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve React App */
+        get: operations["serve_react_app_static__full_path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin_logs/": {
         parameters: {
             query?: never;
@@ -1786,40 +1880,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/frontend/{full_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve React App */
-        get: operations["serve_react_app_frontend__full_path__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/static/{full_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve React App */
-        get: operations["serve_react_app_static__full_path__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/tapir_sessions/": {
         parameters: {
             query?: never;
@@ -2354,7 +2414,7 @@ export interface components {
          *     administrative operation that affects users, papers, or system state.
          * @enum {string}
          */
-        AdminAuditActionEnum: "add-comment" | "add-paper-owner" | "add-paper-owner-2" | "arXiv-change-paper-pw" | "arXiv-change-status" | "arXiv-make-author" | "arXiv-make-nonauthor" | "arXiv-revoke-paper-owner" | "arXiv-unrevoke-paper-owner" | "become-user" | "change-email" | "change-paper-pw" | "change-password" | "endorsed-by-suspect" | "flip-flag" | "got-negative-endorsement" | "make-moderator" | "revoke-paper-owner" | "suspend-user" | "unmake-moderator" | "unsuspend-user";
+        AdminAuditActionEnum: "add-comment" | "add-paper-owner" | "add-paper-owner-2" | "arXiv-change-paper-pw" | "arXiv-change-status" | "arXiv-make-author" | "arXiv-make-nonauthor" | "arXiv-revoke-paper-owner" | "arXiv-unrevoke-paper-owner" | "become-user" | "change-email" | "change-demographic" | "change-paper-pw" | "change-password" | "endorsed-by-suspect" | "flip-flag" | "got-negative-endorsement" | "make-moderator" | "revoke-paper-owner" | "suspend-user" | "unmake-moderator" | "unsuspend-user";
         /** AdminLogModel */
         AdminLogModel: {
             /** Id */
@@ -2878,6 +2938,15 @@ export interface components {
          * @enum {string}
          */
         EndorsementType: "user" | "admin" | "auto";
+        /** EndorsementUpdateModel */
+        EndorsementUpdateModel: {
+            /** Positive Endorsement */
+            positive_endorsement?: boolean | null;
+            /** Flag Valid */
+            flag_valid?: boolean | null;
+            /** Comment */
+            comment?: string | null;
+        };
         /**
          * EndorserCapabilityType
          * @enum {string}
@@ -3564,13 +3633,17 @@ export interface components {
             /** User Id */
             user_id: number;
             /** Last Reissue */
-            last_reissue: string | null;
+            last_reissue?: string | null;
             /** Start Time */
-            start_time: string | null;
+            start_time?: string | null;
             /** End Time */
-            end_time: string | null;
+            end_time?: string | null;
             /** Close Session */
             close_session: boolean;
+            /** Remote Ip */
+            remote_ip?: string | null;
+            /** Remote Host */
+            remote_host?: string | null;
         };
         /** TapirSessionUpdateModel */
         TapirSessionUpdateModel: {
@@ -3710,7 +3783,7 @@ export interface components {
              */
             share_last_name: boolean;
             /** Username */
-            username?: string | null;
+            username: string;
             /**
              * Share Email
              * @default 8
@@ -3883,6 +3956,128 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    report_ping_system__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    report_dtabase_status_system_database_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    report_cookie_names_system_cookie_names_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_react_app_frontend__full_path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                full_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    serve_react_app_static__full_path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                full_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_admin_logs_v1_admin_logs__get: {
         parameters: {
             query?: {
@@ -5209,7 +5404,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndorsementUpdateModel"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5819,6 +6018,8 @@ export interface operations {
                 _end?: number | null;
                 /** @description Category to filter by */
                 category?: string[] | null;
+                /** @description Minimum document count */
+                minimum_count?: number | null;
             };
             header?: never;
             path?: never;
@@ -7568,7 +7769,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SubmissionModel"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -7941,68 +8142,6 @@ export interface operations {
             };
         };
     };
-    serve_react_app_frontend__full_path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                full_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    serve_react_app_static__full_path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                full_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_tapir_sessions_v1_tapir_sessions__get: {
         parameters: {
             query?: {
@@ -8023,6 +8162,8 @@ export interface operations {
                 start_date?: string | null;
                 /** @description End date for filtering */
                 end_date?: string | null;
+                /** @description Remode IP address */
+                remote_ip?: string | null;
             };
             header?: never;
             path?: never;

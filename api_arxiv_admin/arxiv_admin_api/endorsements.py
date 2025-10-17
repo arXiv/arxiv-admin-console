@@ -4,8 +4,9 @@ from typing import Optional, List, Tuple, Literal
 import re
 
 from arxiv.auth.user_claims import ArxivUserClaims
-from arxiv_bizlogic.audit_event import AdminAudit_GotNegativeEndorsement, admin_audit
-from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
+from arxiv_bizlogic.audit_event import AdminAudit_GotNegativeEndorsement, admin_audit, AdminAudit_SetEndorsementValid, \
+    AdminAudit_SetPointValue
+from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, get_tapir_tracking_cookie
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import and_
@@ -190,38 +191,71 @@ async def get_endorsement(id: int,
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement '{id}' not found")
 
 
+class EndorsementUpdateModel(BaseModel):
+    positive_endorsement: Optional[bool] = None
+    flag_valid: Optional[bool] = None
+    admin_comment: Optional[str] = None
+
+
 @router.put('/{id:int}')
 async def update_endorsement(
         request: Request,
         id: int,
-        current_user: Optional[ArxivUserClaims] = Depends(get_authn),
+        body: EndorsementUpdateModel,
+        current_user: Optional[ArxivUserClaims] = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> EndorsementModel:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to update endorsements.")
-    body = await request.json()
 
     changed = False
     endorsement: Endorsement | None = session.query(Endorsement).filter(Endorsement.endorsement_id == id).one_or_none()
     if endorsement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement '{id}' not found")
 
-    if "positive_endorsement" in body:
-        before = endorsement.point_value > 0
-        after = body["positive_endorsement"]
+    if body.positive_endorsement is not None:
+        before = bool(endorsement.point_value > 0)
+        after = bool(body.positive_endorsement)
         if before != after:
-            if body["positive_endorsement"]:
+            if after:
                 endorsement.point_value = 10
             else:
                 endorsement.point_value = 0
             changed = True
+            admin_audit(session,
+                        AdminAudit_SetPointValue(
+                            str(current_user.user_id),
+                            str(endorsement.endorsee_id),
+                            current_user.tapir_session_id,
+                            endorsement.point_value,
+                            remote_ip=remote_ip,
+                            remote_hostname=remote_hostname,
+                            tracking_cookie=tracking_cookie,
+                            comment=body.admin_comment
+                        ))
 
-    if "flag_valid" in body:
-        flag_valid = 1 if body["flag_valid"] else 0
-        if endorsement.flag_valid != flag_valid:
-            endorsement.flag_valid = flag_valid
+    if body.flag_valid is not None:
+        if bool(endorsement.flag_valid) != body.flag_valid:
+            endorsement.flag_valid = 1 if body.flag_valid else 0
             changed = True
+            admin_audit(session,
+                        AdminAudit_SetEndorsementValid(
+                            str(current_user.user_id),
+                            str(endorsement.endorsee_id),
+                            current_user.tapir_session_id,
+                            body.flag_valid,
+                            remote_ip=remote_ip,
+                            remote_hostname=remote_hostname,
+                            tracking_cookie=tracking_cookie,
+                            comment=body.admin_comment
+                        ))
 
     if changed:
+        if body.comment is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Comment is required")
+
         session.commit()
 
     data = EndorsementModel.base_select(session).filter(Endorsement.endorsement_id == id).one_or_none()
@@ -410,36 +444,37 @@ async def delete_endorsement(
         id: str,
         current_user: TapirSessionData = Depends(get_authn),
         session: Session = Depends(get_db)) -> Response:
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-
-    u_a_s = id.split('+')
-    if len(u_a_s) != 3:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid endorsement id")
-
-    endorsee_id = u_a_s[0]
-    archive = u_a_s[1]
-    subject_class = u_a_s[2]
-
-    if endorsee_id != current_user.user_id and (not current_user.is_admin):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You are not authorized to delete endorsements.")
-
-    # Instead of deleting, update flag_valid and point_value to 0
-    result = session.query(Endorsement).filter(
-        Endorsement.endorsee_id == endorsee_id,
-        Endorsement.archive == archive,
-        Endorsement.subject_class == subject_class
-    ).update(
-        {"flag_valid": 0},
-        synchronize_session=False
-    )
-
-    if result == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endorsement not found")
-
-    session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not implemented yet")
+    # if not current_user:
+    #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    #
+    # u_a_s = id.split('+')
+    # if len(u_a_s) != 3:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid endorsement id")
+    #
+    # endorsee_id = u_a_s[0]
+    # archive = u_a_s[1]
+    # subject_class = u_a_s[2]
+    #
+    # if endorsee_id != current_user.user_id and (not current_user.is_admin):
+    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+    #                         detail="You are not authorized to delete endorsements.")
+    #
+    # # Instead of deleting, update flag_valid and point_value to 0
+    # result = session.query(Endorsement).filter(
+    #     Endorsement.endorsee_id == endorsee_id,
+    #     Endorsement.archive == archive,
+    #     Endorsement.subject_class == subject_class
+    # ).update(
+    #     {"flag_valid": 0},
+    #     synchronize_session=False
+    # )
+    #
+    # if result == 0:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endorsement not found")
+    #
+    # session.commit()
+    # return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get('/ids/')
