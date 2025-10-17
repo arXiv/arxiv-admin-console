@@ -36,6 +36,7 @@ export enum AdminAuditActionEnum {
     SUSPEND_USER = "suspend-user",
     UNMAKE_MODERATOR = "unmake-moderator",
     UNSUSPEND_USER = "unsuspend-user",
+    CHANGE_DEMOGRAPHIC = "change-demographic",
 }
 
 
@@ -407,6 +408,26 @@ export class AdminAudit_RevokePaperOwner extends AdminAudit_PaperEvent {
                 </ReferenceField>
                 {" "}
                 <TextField source="comment" />
+            </Box>
+        );
+    }
+}
+
+
+export class AdminAudit_ChangeDemographic extends AdminAuditEvent {
+    static readonly _action = AdminAuditActionEnum.CHANGE_DEMOGRAPHIC;
+
+    describe(): React.ReactElement {
+        return (
+            <Box component="span">
+                <ReferenceField reference="users" source="admin_user">
+                    <UserNameField />
+                </ReferenceField>
+                {" changed "}
+                <ReferenceField reference="users" source="affected_user">
+                    <UserNameField />
+                </ReferenceField>
+                <TextField source="data" />
             </Box>
         );
     }
@@ -1756,6 +1777,7 @@ const eventClasses: Record<string, EventClass | EventFactory> = {
     [AdminAuditActionEnum.ARXIV_CHANGE_STATUS]: AdminAudit_ChangeStatus,
     [AdminAuditActionEnum.ARXIV_CHANGE_PAPER_PW]: AdminAudit_AdminChangePaperPassword,
     [AdminAuditActionEnum.REVOKE_PAPER_OWNER]: AdminAudit_RevokePaperOwner,
+    [AdminAuditActionEnum.CHANGE_DEMOGRAPHIC] : AdminAudit_ChangeDemographic,
     [AdminAuditActionEnum.FLIP_FLAG]: adminAuditFlipFlagInstantiator,
 };
 
