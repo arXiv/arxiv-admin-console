@@ -383,7 +383,7 @@ const AdminCommentWithValidation = () => {
     const helperText = requiresComment && !hasAdminComment
         ? "Admin comment is required when changing Valid or Positive Endorsement"
         : requiresComment && hasAdminComment
-        ? "Comment provided for boolean field changes"
+        ? "Yay!"
         : "";
 
     return (
