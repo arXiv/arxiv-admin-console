@@ -120,6 +120,11 @@ async def list_tapir_sessions(
         if remote_ip is not None:
             all_rows = False
             audit_joined = True
+            # Convert integer IP address to IPv4 dotted notation
+            if "." not in remote_ip and remote_ip.isdigit():
+                ip_int = int(remote_ip)
+                # Convert 32-bit integer to 4 octets: a.b.c.d
+                remote_ip = f"{(ip_int >> 24) & 0xFF}.{(ip_int >> 16) & 0xFF}.{(ip_int >> 8) & 0xFF}.{ip_int & 0xFF}"
             query = query.join(TapirSessionsAudit, TapirSessionsAudit.session_id == TapirSession.session_id).filter(TapirSessionsAudit.ip_addr.startswith(remote_ip))
 
     order_columns = []
