@@ -108,6 +108,7 @@ async def list_endorsement_requests(
         endorsee_email: Optional[str] = Query(None, description="Endorsement request endorsee email"),
         endorsee_username: Optional[str] = Query(None, description="Endorsee username"),
         category: Optional[str] = Query(None, description="Endorsement category"),
+        secret: Optional[str] = Query(None, description="Endorsement request secret"),
         current_id: Optional[int] = Query(None, description="Current ID - index position - for navigation"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db),
@@ -175,6 +176,10 @@ async def list_endorsement_requests(
 
         if endorsee_username is not None:
             query = query.filter(TapirNickname.nickname.contains(endorsee_username))
+
+        if secret is not None:
+            secrets = [item.strip() for item in secret.split(",")]
+            query = query.filter(EndorsementRequest.secret.in_(secrets))
 
         if category is not None:
             if "." in category:

@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useLogout } from 'react-admin';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -18,6 +19,7 @@ export const ArxivUserMenu = () => {
     const { currentUser, currentUserLoading } = useContext(RuntimeContext);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const logout = useLogout();
+    const navigate = useNavigate();
     const open = Boolean(anchorEl);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -42,9 +44,23 @@ export const ArxivUserMenu = () => {
     return (
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {!currentUserLoading && currentUser && (
-                <Typography sx={{ fontSize: "0.875rem", ml: 1, mr: 0 }}>
+                <Box
+                    component="a"
+                    href={`/admin-console/#/users/${currentUser.id}`}
+                    sx={{
+                        fontSize: "0.875rem",
+                        ml: 1,
+                        mr: 0,
+                        cursor: 'pointer',
+                        color: 'inherit',
+                        textDecoration: 'none',
+                        '&:hover': {
+                            textDecoration: 'underline'
+                        }
+                    }}
+                >
                     {currentUser.first_name} {currentUser.last_name}
-                </Typography>
+                </Box>
             )}
             <IconButton
                 onClick={handleClick}

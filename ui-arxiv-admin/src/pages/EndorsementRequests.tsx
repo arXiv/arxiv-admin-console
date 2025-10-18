@@ -243,6 +243,7 @@ const EndorsementRequestFilter = (props: any) => {
             <DateInput label="End Date" source="end_date" />
             <BooleanInput label="Valid" source="flag_valid" defaultValue="true"/>
             <BooleanInput label="Suspect" source="suspected" defaultValue="false"/>
+            <TextInput label="Secret" source="secret" />
 
         </Filter>
     );
