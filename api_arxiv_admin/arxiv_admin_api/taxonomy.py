@@ -1,16 +1,35 @@
 """arXiv moderator routes."""
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import APIRouter, HTTPException, status, Query, Response
 
 # from pydantic import BaseModel
 from arxiv.base import logging
 from arxiv.taxonomy import definitions
+from arxiv.taxonomy.category import Group
 
 logger = logging.getLogger(__name__)
 
-
 router = APIRouter(prefix="/taxonomy", tags=["Taxonomy"])
+
+
+
+shadow_groups : Dict[str, Group] = {
+    "grp_q-stat": Group(
+        id="grp_q-stat",
+        full_name="Quantitative Statistics",
+        is_active=True,
+        start_year=1992,
+        default_archive="stat",
+    ),
+    "grp_q-econ": Group(
+        id="grp_q-econ",
+        full_name="Quantitative Economics",
+        is_active=True,
+        start_year=1992,
+        default_archive="econ",
+    ),
+}
 
 
 @router.get('/groups')
@@ -49,7 +68,9 @@ async def get_group(group_id: str ) -> definitions.Group:
 
     group = definitions.GROUPS.get(group_id, None)
     if group is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"{group_id} does not exist")
+        group = shadow_groups.get(group_id, None)
+        if group is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"{group_id} does not exist")
     return group
 
 

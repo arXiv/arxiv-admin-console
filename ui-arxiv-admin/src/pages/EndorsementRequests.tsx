@@ -271,6 +271,9 @@ export const EndorsementRequestList = () => {
 
                 <TextField source={"secret"} />
 
+                <ReferenceField source="id" reference="endorsement_requests_audit" label={"Remote IP"}>
+                    <TextField source={"remote_addr"} label={"Remote IP"}/>
+                </ReferenceField>
                 <ReferenceField source="id" reference="endorsement_requests_audit" label={"Remote host"}>
                     <TextField source={"remote_host"} label={"Remote host"}/>
                 </ReferenceField>
