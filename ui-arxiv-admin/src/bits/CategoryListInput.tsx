@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AutocompleteInput, useDataProvider, useNotify, InputProps } from "react-admin";
-import { SxProps } from "@mui/material";
+import { SxProps, Typography, Box } from "@mui/material";
 
 interface CategoryListInputProps extends InputProps {
     label?: string;
@@ -59,7 +59,8 @@ const CategoryListInput: React.FC<CategoryListInputProps> = ({
                         const catId = cat.subject_class ? `${cat.archive}.${cat.subject_class}` : `${cat.archive}.`;
                         categoryOptions.push({
                             id: catId,
-                            name: `${catId} - ${cat.category_name ?? "Unknown Category"}`,
+                            name: catId,
+                            description: `${cat.category_name ?? "Unknown Category"}`,
                             group: groupLabel
                         });
                     });
@@ -75,12 +76,21 @@ const CategoryListInput: React.FC<CategoryListInputProps> = ({
         getCategories();
     }, [dataProvider, notify]);
 
+    const optionRenderer = (choice: any) => (
+        <Box>
+            <Typography variant="body1">{choice.name}</Typography>
+            <Typography variant="body2" color="text.secondary">{choice.description}</Typography>
+        </Box>
+    );
+
     return (
         <AutocompleteInput
             source={source}
             label={label}
             choices={categories}
             groupBy={(option) => option.group}
+            optionText={optionRenderer}
+            inputText={(choice) => `${choice.name} - ${choice.description}` }
             {...rest}
         />
     );

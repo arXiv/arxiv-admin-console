@@ -73,9 +73,9 @@ const OwnershipList = lazy(() => import('./pages/Ownerships').then(module => ({d
 const EmailPatternCreate = lazy(() => import('./pages/EmailPatterns').then(module => ({default: module.EmailPatternCreate})));
 const EmailPatternList = lazy(() => import('./pages/EmailPatterns').then(module => ({default: module.EmailPatternList})));
 
-const EndorsementDomainAdd = lazy(() => import('./pages/EndorsementDomains').then(module => ({default: module.EndorsementDomainAdd})));
-const EndorsementDomainEdit = lazy(() => import('./pages/EndorsementDomains').then(module => ({default: module.EndorsementDomainEdit})));
-const EndorsementDomainList = lazy(() => import('./pages/EndorsementDomains').then(module => ({default: module.EndorsementDomainList})));
+const EndorsementDomainAdd = lazy(() => import('./pages/CategoryLevelEndorsementSettings').then(module => ({default: module.EndorsementCategoryAdd})));
+const EndorsementDomainEdit = lazy(() => import('./pages/CategoryLevelEndorsementSettings').then(module => ({default: module.EndorsementCategoryEdit})));
+const EndorsementDomainList = lazy(() => import('./pages/CategoryLevelEndorsementSettings').then(module => ({default: module.EndorsementCategoryList})));
 
 const MetadataEdit = lazy(() => import('./pages/Metadata').then(module => ({default: module.MetadataEdit})));
 
@@ -294,6 +294,7 @@ const AdminConsole: React.FC = () => {
                     />
 
                     <Resource
+                        options={{label: 'Category Level Endorsement Settings'}}
                         name="endorsement_domains"
                         icon={EndorsementDomainIcon}
                         list={EndorsementDomainList}
