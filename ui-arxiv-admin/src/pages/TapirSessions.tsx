@@ -225,18 +225,18 @@ export const TapirSessionList = () => {
 
 const TapirSessionTitle = () => {
     const record = useRecordContext();
-    return <span>TapirSession {record ? `${record.id}` : ''}</span>;
+    return <span>Tapir Session {record ? `${record.id}` : ''}</span>;
 };
 
 const CloseSessionToggle: React.FC = () => {
-    const formGroupState = useFormGroup("tapirSessions");
     const {watch} = useFormContext();
     const formValues = watch();
+    const isSessionClosed = formValues?.end_time !== null && formValues?.end_time !== undefined;
 
-    console.log("formGroupState record: " + JSON.stringify(formValues));
-    console.log("formGroupState: " + JSON.stringify(formGroupState));
+    console.log("formValues: " + JSON.stringify(formValues));
+    console.log("isSessionClosed: " + isSessionClosed);
 
-    return <BooleanInput source="close_session" label="Close session" disabled={formValues?.close_session}/>;
+    return <BooleanInput source="close_session" label="Close session" disabled={isSessionClosed}/>;
 };
 
 
@@ -256,7 +256,6 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
                 <ConsoleTitle><TapirSessionTitle /></ConsoleTitle>
                 <Paper sx={{mt: "3em"}}>
                 <SimpleForm toolbar={<SaveOnlyToolbar/>}>
-                    <FormGroupContextProvider name="tapirSession">
                         <Table size={"small"}>
                             <TableRow>
                                 <TableCell>Session ID</TableCell>
@@ -265,7 +264,6 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
                             <TableRow>
                                 <TableCell>User</TableCell>
                                 <TableCell>
-
                                     <ReferenceField source="user_id" reference="users"
                                                     link={(record, reference) => `/${reference}/${record.id}`}>
                                         <UserNameField withEmail withUsername/>
@@ -285,13 +283,24 @@ export const TapirSessionEdit: React.FC<EditProps> = (props) => {
                                 </TableCell>
                             </TableRow>
                             <TableRow>
+                                <TableCell>Remote IP Address</TableCell>
+                                <TableCell>
+                                    <TextField source="remote_ip" />
+                                </TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell>Remote Host</TableCell>
+                                <TableCell>
+                                    <TextField source="remote_host" />
+                                </TableCell>
+                            </TableRow>
+                            <TableRow>
                                 <TableCell>
                                     <CloseSessionToggle/>
                                 </TableCell>
                                 <TableCell></TableCell>
                             </TableRow>
                         </Table>
-                    </FormGroupContextProvider>
                 </SimpleForm>
                 </Paper>
             </Edit>
