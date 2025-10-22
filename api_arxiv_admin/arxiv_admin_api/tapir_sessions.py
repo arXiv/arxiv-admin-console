@@ -78,6 +78,26 @@ async def list_tapir_sessions(
         remote_ip: Optional[str] = Query(None, description="Remode IP address"),
         session: Session = Depends(get_db)
     ) -> List[TapirSessionModel]:
+    """List tapir sessions."""
+    return await _list_tapir_sessions(session, response, _sort, _order, _start, _end, user_id, is_open, id, preset, start_date, end_date, remote_ip)
+
+
+async def _list_tapir_sessions(
+            session: Session,
+            response: Response,
+            _sort: Optional[str] = None,
+            _order: Optional[str] = None,
+            _start: Optional[int] = None,
+            _end: Optional[int] = None,
+            user_id: Optional[int] = None,
+            is_open: Optional[bool] = None,
+            id: Optional[List[int]] = None,
+            preset: Optional[str] = None,
+            start_date: Optional[datetime.date] = None,
+            end_date: Optional[datetime.date] = None,
+            remote_ip: Optional[str] = None,
+    ) -> List[TapirSessionModel]:
+
     audit_joined = False
     all_rows = True
     query = TapirSessionModel.base_query(session)
@@ -173,7 +193,7 @@ async def get_tapir_session(
     tapir_session = TapirSessionModel.base_query(session).filter(TapirSession.session_id == id).one_or_none()
     if not tapir_session:
         raise HTTPException(status_code=404, detail=f"TapirSession not found for {id}")
-    return tapir_session
+    return TapirSessionModel.to_model(session, tapir_session)
 
 
 @router.get("/user/{user_id:int}")
@@ -186,16 +206,16 @@ async def get_tapir_session_for_user(
         _end: Optional[int] = Query(100, alias="_end"),
         session: Session = Depends(get_db)) -> List[TapirSessionModel]:
     """List tapir sessions for a user"""
-    return list_tapir_sessions(response, _sort, _order, _start, _end, user_id=user_id, session=session)
+    return await _list_tapir_sessions(session, response, _sort, _order, _start, _end, user_id=user_id)
 
 
 class TapirSessionUpdateModel(BaseModel):
     close_session: bool
 
 @router.put("/{id:int}")
-async def close_tapir_session(
+async def update_tapir_session(
         id:int,
-        body: TapirSessionUpdateModel,
+        body: TapirSessionModel | TapirSessionUpdateModel,
         session: Session = Depends(get_db)) -> TapirSessionModel:
     # This is part of logic, I have no clue.
     # I think last_reissue can be null (or 0) so not sure how correct this is.
@@ -219,6 +239,5 @@ async def close_tapir_session(
         if tapir_session.end_time != 0:
             raise HTTPException(status_code=400, detail=f"TapirSession already closed for {id}")
         tapir_session.end_time = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
-        session.commit()
-        session.refresh(tapir_session)
-    return TapirSessionModel.model_validate(TapirSessionModel.base_query(session).filter(TapirSession.session_id == id).one_or_none())
+    session.commit()
+    return TapirSessionModel.to_model(session, TapirSessionModel.base_query(session).filter(TapirSession.session_id == id).one_or_none())
