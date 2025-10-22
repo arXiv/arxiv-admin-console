@@ -123,7 +123,7 @@ venv:
 
 
 venv/bin/poetry: /usr/bin/python3.12 /usr/lib/python3.12/ensurepip/__init__.py venv
-	. venv/bin/activate && pip install --upgrade pip && pip install poetry 
+	. venv/bin/activate && pip install --upgrade pip && pip install poetry && poetry lock
 
 venv/lib/python3.12/site-packages/fastapi: venv/bin/poetry
 	. venv/bin/activate && poetry install
@@ -141,5 +141,12 @@ modapi:
 	# openapi-python-client generate --url https://services.dev.arxiv.org/openapi.json --config arxiv_admin_api/apis/modapi_config.yaml --meta none --output-path ./arxiv_admin_api/apis/modapi --overwrite
 	rm -fr ./arxiv_admin_api/apis/modapi/*
 	cd  ./arxiv_admin_api/apis && bash modapi-gen.sh
+
+#-#
+#-# Command: lock
+#-#   run poetry lock
+lock: venv/bin/poetry
+	. venv/bin/activate && poetry lock
+	. venv/bin/activate && poetry install
 
 #-#
