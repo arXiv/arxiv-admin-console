@@ -78,8 +78,8 @@ sphinx = ["sphinx", "sphinx-autodoc-typehints", "sphinxcontrib-websupport"]
 [package.source]
 type = "git"
 url = "https://github.com/arXiv/arxiv-base.git"
-reference = "990358ec36cc6cc81a7a0255376f7d2b730eed1a"
-resolved_reference = "990358ec36cc6cc81a7a0255376f7d2b730eed1a"
+reference = "343ec7afd3e86df7665ebf3d693fa522b0b521e3"
+resolved_reference = "343ec7afd3e86df7665ebf3d693fa522b0b521e3"
 
 [[package]]
 name = "arxiv-bizlogic"
@@ -806,7 +806,7 @@ google-auth = ">=2.14.1,<3.0.0"
 googleapis-common-protos = ">=1.56.2,<2.0.0"
 grpcio = [
     {version = ">=1.75.1,<2.0.0", optional = true, markers = "python_version >= \"3.14\" and extra == \"grpc\""},
-    {version = ">=1.49.1,<2.0.0", optional = true, markers = "python_version >= \"3.11\" and extra == \"grpc\" and python_version < \"3.14\""},
+    {version = ">=1.49.1,<2.0.0", optional = true, markers = "python_version >= \"3.11\" and extra == \"grpc\""},
 ]
 grpcio-status = [
     {version = ">=1.75.1,<2.0.0", optional = true, markers = "python_version >= \"3.14\" and extra == \"grpc\""},
@@ -955,7 +955,7 @@ google-api-core = {version = ">=1.34.1,<2.0.dev0 || >=2.11.dev0,<3.0.0", extras 
 google-auth = ">=2.14.1,<2.24.0 || >2.24.0,<2.25.0 || >2.25.0,<3.0.0"
 grpcio = [
     {version = ">=1.75.1,<2.0.0", markers = "python_version >= \"3.14\""},
-    {version = ">=1.33.2,<2.0.0"},
+    {version = ">=1.33.2,<2.0.0", markers = "python_version < \"3.14\""},
 ]
 proto-plus = [
     {version = ">=1.25.0,<2.0.0", markers = "python_version >= \"3.13\""},
@@ -2703,4 +2703,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "1d8e02d3a8bf43ba58b9221ca08fe2dd0a3ca2a0aebea757ad01908829b29375"
+content-hash = "7b3211dcbcf4c5efa20dcdabffb69a550767af21542dadda018bf02ee658509d"
