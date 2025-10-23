@@ -167,7 +167,8 @@ async def update_category(
     item = session.query(Category).filter(
         and_(
             Category.archive == archive,
-            Category.subject_class == subject_class).one_or_none())
+            Category.subject_class == subject_class)).one_or_none()
+
     if item is None:
         raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
 
