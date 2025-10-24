@@ -277,7 +277,7 @@ async def create_membership_institution_data(
 
 
 @router.delete('/{id:int}')
-async def create_membership_institution_data(
+async def delete_membership_institution_data(
         id: int,
         db: Session = Depends(get_db)) -> MemberInstitutionModel:
 

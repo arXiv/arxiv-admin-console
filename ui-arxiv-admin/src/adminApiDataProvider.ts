@@ -296,7 +296,23 @@ class adminApiDataProvider implements DataProvider {
 
     async update<T extends RaRecord>(resource: string, params: UpdateParams):  Promise<UpdateResult<T>>
     {
-        if (resource === 'aaa_user_email') {
+        if (resource === 'submissions') {
+            console.log("Update submission via PATCH");
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/submissions/${params.id}`;
+
+            try {
+                const response = await retryHttpClient(url, {
+                    method: 'PATCH',
+                    body: JSON.stringify(params.data),
+                });
+
+                return {data: response.json as T};
+            }
+            catch (error) {
+                handleHttpError(error, 'Failed to update submission');
+            }
+        }
+        else if (resource === 'aaa_user_email') {
             console.log("Update user email via AAA API");
             const user_id = params.id;
 
