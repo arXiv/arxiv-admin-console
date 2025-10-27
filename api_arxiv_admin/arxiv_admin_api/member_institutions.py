@@ -243,7 +243,7 @@ async def create_membership_institution_data(
         primary_key_field="id", primary_key_value=id)
 
     if body.email or body.contact_name or body.phone:
-        item2_1 = MemberInstitutionContact(email="", contact_name="", phone=body.phone)
+        item2_1 = MemberInstitutionContact(sid=item.id, email="", contact_name="", phone=body.phone)
         db.add(item2_1)
         db.flush()
         db.refresh(item2_1)
@@ -254,7 +254,10 @@ async def create_membership_institution_data(
 
     if body.ip_ranges is not None:
         # Add new IP ranges
-        for start, end, exclude in body.ip_ranges:
+        for ip_range in body.ip_ranges:
+            start = ip_range.start
+            end = ip_range.end
+            exclude = ip_range.exclude or 0
             new_ip_range = MemberInstitutionIP(
                 sid=id,
                 start=start,
