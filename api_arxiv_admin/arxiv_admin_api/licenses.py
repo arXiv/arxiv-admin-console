@@ -1,3 +1,5 @@
+from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.fastapi_helpers import get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session
@@ -83,3 +85,32 @@ async def list_licenses(
     response.headers['X-Total-Count'] = str(count)
     result = [LicenseModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
     return result
+
+
+@router.put('/{id:str}')
+async def update_license(
+        response: Response,
+        id: str,
+        body: LicenseModel,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)
+    ) -> LicenseModel:
+
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    lic = session.query(License).filter(License.name == id).one_or_none()
+    if lic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="License not found")
+
+    body_dict = body.model_dump(exclude_unset=True)
+    changed = False
+    for key, value in body_dict.items():
+        if getattr(lic, key) != value:
+          setattr(lic, key, value)
+          changed = True
+
+    if changed:
+        session.commit()
+
+    return LicenseModel.model_validate(LicenseModel.base_select(session).filter(License.name == id).one())
