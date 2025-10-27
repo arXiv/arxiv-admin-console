@@ -287,9 +287,12 @@ async def delete_membership_institution_data(
     item = db.query(MemberInstitution).filter(MemberInstitution.id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"MembershipInstitution {id} not found")
+    name = item.name
+    db.query(MemberInstitutionContact).filter(MemberInstitutionContact.sid == id).delete()
+    db.query(MemberInstitutionIP).filter(MemberInstitutionIP.sid == id).delete()
     db.delete(item)
     db.commit()
-    return MemberInstitutionModel.model_validate(item)
+    return MemberInstitutionModel.model_validate({"id": id, "name": name})
 
 
 @institution_ip_router.get('/')
