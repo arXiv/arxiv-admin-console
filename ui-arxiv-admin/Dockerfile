@@ -5,7 +5,7 @@ COPY index.html .
 COPY ./src ./src
 COPY package*.json react-app.conf tsconfig.json vite.config.ts .
 RUN npm install
-RUN npm run build
+RUN npm run build:prod
 FROM nginx:alpine AS production
 COPY --from=build /app/dist/ /usr/share/nginx/html/admin-console/
 COPY ./src /usr/share/nginx/html/src
