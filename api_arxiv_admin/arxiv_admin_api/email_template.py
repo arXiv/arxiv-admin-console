@@ -53,10 +53,10 @@ class EmailTemplateModel(BaseModel):
     def base_select(db: Session) -> Query:
         return db.query(
             TapirEmailTemplate.template_id.label("id"),
-            cast(TapirEmailTemplate.short_name, LargeBinary).label("short_name"),
+            TapirEmailTemplate.short_name,
             TapirEmailTemplate.lang,
-            cast(TapirEmailTemplate.long_name, LargeBinary).label("long_name"),
-            cast(TapirEmailTemplate.data, LargeBinary).label("data"),
+            TapirEmailTemplate.long_name,
+            TapirEmailTemplate.data,
             TapirEmailTemplate.sql_statement,
             TapirEmailTemplate.update_date,
             TapirEmailTemplate.created_by,
@@ -78,27 +78,27 @@ class EmailTemplateModel(BaseModel):
         if not isinstance(value, bool):
             return bool(value)
         return value
-
-    @field_validator("short_name", mode="before")
-    @classmethod
-    def convert_short_name(cls, value) -> str:
-        if isinstance(value, bytes):
-            return value.decode("utf-8")
-        return value
-
-    @field_validator("long_name", mode="before")
-    @classmethod
-    def convert_long_name(cls, value) -> str:
-        if isinstance(value, bytes):
-            return value.decode("utf-8")
-        return value
-
-    @field_validator("data", mode="before")
-    @classmethod
-    def convert_data(cls, value) -> str:
-        if isinstance(value, bytes):
-            return value.decode("utf-8")
-        return value
+    #
+    # @field_validator("short_name", mode="before")
+    # @classmethod
+    # def convert_short_name(cls, value) -> str:
+    #     if isinstance(value, bytes):
+    #         return value.decode("utf-8")
+    #     return value
+    #
+    # @field_validator("long_name", mode="before")
+    # @classmethod
+    # def convert_long_name(cls, value) -> str:
+    #     if isinstance(value, bytes):
+    #         return value.decode("utf-8")
+    #     return value
+    #
+    # @field_validator("data", mode="before")
+    # @classmethod
+    # def convert_data(cls, value) -> str:
+    #     if isinstance(value, bytes):
+    #         return value.decode("utf-8")
+    #     return value
 
     pass
 
@@ -109,6 +109,7 @@ async def list_templates(
         _order: Optional[str] = Query("ASC", description="sort order"),
         _start: Optional[int] = Query(0, alias="_start"),
         _end: Optional[int] = Query(100, alias="_end"),
+        id: Optional[int|List[int]] = Query(None, description="Filter by template id"),
         short_name: Optional[str] = Query(None),
         long_name: Optional[str] = Query(None),
         start_date: Optional[datetime.datetime] = Query(None, description="Start date for filtering"),
@@ -134,17 +135,25 @@ async def list_templates(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid start or end index")
 
-    if short_name:
-        query = query.filter(TapirEmailTemplate.short_name.contains(short_name))
+    if id is not None:
+        if isinstance(id, int):
+            query = query.filter(TapirEmailTemplate.template_id == id)
+        elif isinstance(id, list):
+            query = query.filter(TapirEmailTemplate.template_id.in_(id))
+    else:
+        if short_name:
+            query = query.filter(TapirEmailTemplate.short_name.contains(short_name))
 
-    if long_name:
-        query = query.filter(TapirEmailTemplate.long_name.contains(long_name))
+        if long_name:
+            query = query.filter(TapirEmailTemplate.long_name.contains(long_name))
 
-    if start_date:
-        query = query.filter(TapirEmailTemplate.update_date >= start_date)
+        if start_date:
+            query = query.filter(TapirEmailTemplate.update_date >= start_date)
 
-    if end_date:
-        query = query.filter(TapirEmailTemplate.update_date <= end_date)
+        if end_date:
+            query = query.filter(TapirEmailTemplate.update_date <= end_date)
+            pass
+        pass
 
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
@@ -172,10 +181,21 @@ async def update_template(request: Request,
 
     body["updated_date"] = datetime.datetime.now(tz=datetime.timezone.utc)
     body["updated_by"] = int(current_user.user_id)
-    update_model_fields(session, record, body,
-                        updating_fields={"short_name", "long_name", "data", "update_date", "updated_by"},
-                        primary_key_value=id)
-    session.commit()
+    updating_fields={"short_name", "long_name", "data", "update_date", "updated_by"}
+
+    changed = False
+    for field in updating_fields:
+        if field in body:
+            if getattr(record, field) != body[field]:
+                setattr(record, field, body[field])
+                changed = True
+
+    # update_model_fields(session, record, body,
+    #                     updating_fields={"short_name", "long_name", "data", "update_date", "updated_by"},
+    #                     primary_key_value=id)
+
+    if changed:
+        session.commit()
 
     mint = EmailTemplateModel.base_select(session).filter(TapirEmailTemplate.template_id == id).one_or_none()
     return EmailTemplateModel.model_validate(mint)

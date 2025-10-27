@@ -17,7 +17,7 @@ import {
     Identifier,
     Toolbar,
     SaveButton,
-    useNotify,
+    useNotify, NumberField, NumberInput,
 } from 'react-admin';
 import ISODateField from "../bits/ISODateFiled";
 import Typography from "@mui/material/Typography";
@@ -39,7 +39,9 @@ import EmailIcon from "@mui/icons-material/Email";
 import {RuntimeContext} from "../RuntimeContext";
 
 const templateFilters = [
-    <TextInput source="id" label="Search" alwaysOn />,
+    <NumberInput source="id" label="ID" />,
+    <TextInput source="short_name" label="Short name" alwaysOn />,
+    <TextInput source="long_name" label="Long name"  />,
 ];
 
 export const EmailTemplateList = () => (
@@ -47,9 +49,9 @@ export const EmailTemplateList = () => (
         <ConsoleTitle>Email Templates</ConsoleTitle>
     <List filters={templateFilters}>
         <Datagrid rowClick={false}>
-            <TextField source="id" />
+            <NumberField source="id" label="ID" />
             <TextField source="short_name" />
-            <TextField source="long_name" />
+            <TextField source="long_name" label={"Long Name"} />
             <TextField source="data" />
             <ISODateField source="update_date" />
             <ReferenceField reference={"users"} source={"updated_by"} >

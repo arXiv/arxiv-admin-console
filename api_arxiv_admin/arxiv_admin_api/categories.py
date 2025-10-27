@@ -178,8 +178,9 @@ async def update_category(
             setattr(item, key, value)
 
     session.commit()
-    session.refresh(item)  # Refresh the instance with the updated data
-    return CategoryModel.model_validate(item)
+    return CategoryModel.model_validate(CategoryModel.base_query(session).filter(and_(
+                Category.archive == archive,
+                Category.subject_class == subject_class)).one_or_none())
 
 
 @router.post('/')

@@ -22,5 +22,18 @@
 <body>
 <div id="root"></div>
 <script type="module" src="/src/main.tsx"></script>
+
+<!-- jQuery required for JIRA issue collector -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+<!-- JIRA Issue Collector -->
+<script type="text/javascript">
+jQuery.ajax({
+    url: "https://arxiv-org.atlassian.net/s/d41d8cd98f00b204e9800998ecf8427e-T/a1kzh2/b/0/b0105d975e9e59f24a3230a22972a71a/_/download/batch/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector-embededjs/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector-embededjs.js?locale=en-US&collectorId=a8345c59",
+    type: "get",
+    cache: true,
+    dataType: "script"
+});
+</script>
 </body>
 </html>
