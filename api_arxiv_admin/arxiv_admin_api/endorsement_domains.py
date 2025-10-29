@@ -1,10 +1,12 @@
 """Provides integration for the external user interface."""
-
-from arxiv_bizlogic.fastapi_helpers import get_authn_user
+import json
+from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_EndorsementDomains, AuditAction, AuditChangeData
+from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_client_host_name, get_tapir_tracking_cookie
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, field_validator, field_serializer
 
 from arxiv.base import logging
@@ -107,25 +109,59 @@ async def get_endorsement_domain_data(
     return EndorsementDomainModel.model_validate(item._asdict())
 
 
+class EndorsementDomainDAO(EndorsementDomainModel):
+    comment: str
+
 @router.put('/{id:str}')
 async def update_endorsement_domain(
         request: Request,
         id: str,
-        body: EndorsementDomainModel,
+        dao: EndorsementDomainDAO,
         current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> EndorsementDomainModel:
 
     item: EndorsementDomain | None = session.query(EndorsementDomain).filter(EndorsementDomain.endorsement_domain == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement Domain '{id}' not found'")
 
-    # Update the record fields with manual boolean to y/n conversion
-    item.endorse_all = 'y' if body.endorse_all else 'n'
-    item.mods_endorse_all = 'y' if body.mods_endorse_all else 'n'
-    item.endorse_email = 'y' if body.endorse_email else 'n'
-    item.papers_to_endorse = body.papers_to_endorse
-    
+    # Define field mappings for boolean->string conversion
+    field_conversions = {
+        'endorse_all': 'y' if dao.endorse_all else 'n',
+        'mods_endorse_all': 'y' if dao.mods_endorse_all else 'n',
+        'endorse_email': 'y' if dao.endorse_email else 'n',
+        'papers_to_endorse': dao.papers_to_endorse
+    }
+
+    audit_data: List[AuditChangeData] = []
+    for field_name, new_value in field_conversions.items():
+        old_value = getattr(item, field_name)
+        if old_value != new_value:
+            setattr(item, field_name, new_value)
+            audit_data.append(AuditChangeData(
+                name=field_name,
+                before=old_value,
+                after=new_value
+            ))
+
     session.commit()
+
+    comment = dao.comment
+    admin_audit(session, AdminAudit_EndorsementDomains(
+        current_user.user_id,
+        current_user.tapir_session_id,
+        data=AuditAction(
+            id=id,
+            action="update",
+            audit_data=audit_data
+        ),
+        remote_ip=remote_ip,
+        remote_hostname=remote_hostname,
+        tracking_cookie=tracking_cookie,
+        comment=comment
+    ))
 
     mint = EndorsementDomainModel.base_select(session).filter(EndorsementDomain.endorsement_domain == id).one_or_none()
     return EndorsementDomainModel.model_validate(mint._asdict())
@@ -133,36 +169,92 @@ async def update_endorsement_domain(
 
 @router.post('/')
 async def create_endorsement_domain(
-        body: EndorsementDomainModel,
-        user: ArxivUserClaims = Depends(get_authn_user),
+        dao: EndorsementDomainDAO,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> EndorsementDomainModel:
+
 
     # Create the new EndorsementDomain record with manual boolean to y/n conversion
     item = EndorsementDomain(
-        endorsement_domain=body.id,
-        endorse_all='y' if body.endorse_all else 'n',
-        mods_endorse_all='y' if body.mods_endorse_all else 'n',
-        endorse_email='y' if body.endorse_email else 'n',
-        papers_to_endorse=body.papers_to_endorse,
+        endorsement_domain=dao.id,
+        endorse_all='y' if dao.endorse_all else 'n',
+        mods_endorse_all='y' if dao.mods_endorse_all else 'n',
+        endorse_email='y' if dao.endorse_email else 'n',
+        papers_to_endorse=dao.papers_to_endorse,
     )
     
-    session.add(item)
-    session.commit()
-    session.refresh(item)
-    
-    # Return the created record
+    try:
+        session.add(item)
+        session.flush()
+        session.refresh(item)
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Endorsement Domain '{dao.id}' already exists")
+
     mint = EndorsementDomainModel.base_select(session).filter(EndorsementDomain.endorsement_domain == item.endorsement_domain).one_or_none()
-    return EndorsementDomainModel.model_validate(mint._asdict())
+    mint_model = EndorsementDomainModel.model_validate(mint._asdict())
+
+    audit_data = [
+        AuditChangeData(name=key, before="", after=value) for key, value in mint_model.model_dump(mode="json", exclude_unset=True, exclude_none=True).items()
+    ]
+
+    admin_audit(session, AdminAudit_EndorsementDomains(
+        current_user.user_id,
+        current_user.tapir_session_id,
+        data=AuditAction(
+            id=item.endorsement_domain,
+            action="create",
+            audit_data=audit_data,
+        ),
+        remote_ip=remote_ip,
+        remote_hostname=remote_hostname,
+        tracking_cookie=tracking_cookie,
+        comment=dao.comment
+    ))
+
+    try:
+        session.commit()
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Endorsement Domain '{dao.id}' already exists")
+    return dao
 
 
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_endorsement_domain(
         id: str,
-        user: ArxivUserClaims = Depends(get_authn_user),
-        db: Session = Depends(get_db)) -> None:
-    item = db.query(EndorsementDomain).filter(EndorsementDomain.endorsement_domain == id).one_or_none()
+        comment: str = Query("", description="Optional audit comment"),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        session: Session = Depends(get_db)) -> None:
+    item = session.query(EndorsementDomain).filter(EndorsementDomain.endorsement_domain == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail=f"Item {id} not found")
-    db.delete(item)
-    db.commit()
+
+    before = {"endorse_all": item.endorse_all,
+              "mods_endorse_all": item.mods_endorse_all,
+              "endorse_email": item.endorse_email,
+              "papers_to_endorse": item.papers_to_endorse}
+
+    session.delete(item)
+    session.commit()
+
+    audit_data = [AuditChangeData(name=key, before=value, after="") for key, value in before.items()]
+
+    admin_audit(session, AdminAudit_EndorsementDomains(
+        current_user.user_id,
+        current_user.tapir_session_id,
+        data=AuditAction(
+            id=id,
+            action="delete",
+            audit_data=audit_data
+        ),
+        remote_ip=remote_ip,
+        remote_hostname=remote_hostname,
+        tracking_cookie=tracking_cookie,
+        comment=comment
+    ))
     return

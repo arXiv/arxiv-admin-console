@@ -1589,6 +1589,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/documents/{id}/actions/regenerate/{target}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate Document Artifacts
+         * @description Regenerate document artifacts.
+         */
+        post: operations["regenerate_document_artifacts_v1_documents__id__actions_regenerate__target__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/metadata/": {
         parameters: {
             query?: never;
@@ -1809,6 +1829,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/submissions/id:str}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Submission Files */
+        get: operations["list_submission_files_v1_submissions_id_str__files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/submissions/id:str}/files/{file_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Submission File
+         * @description Download the abstract file of a submission
+         */
+        get: operations["get_submission_file_v1_submissions_id_str__files__file_type__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/submissions/metadata/status-list": {
         parameters: {
             query?: never;
@@ -1856,8 +1913,8 @@ export interface paths {
         /** Update Membership Institution Data */
         put: operations["update_membership_institution_data_v1_membership_institutions__id__put"];
         post?: never;
-        /** Create Membership Institution Data */
-        delete: operations["create_membership_institution_data_v1_membership_institutions__id__delete"];
+        /** Delete Membership Institution Data */
+        delete: operations["delete_membership_institution_data_v1_membership_institutions__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1887,7 +1944,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Tapir Sessions */
+        /**
+         * List Tapir Sessions
+         * @description List tapir sessions.
+         */
         get: operations["list_tapir_sessions_v1_tapir_sessions__get"];
         put?: never;
         post?: never;
@@ -1909,8 +1969,8 @@ export interface paths {
          * @description Display a paper.
          */
         get: operations["get_tapir_session_v1_tapir_sessions__id__get"];
-        /** Close Tapir Session */
-        put: operations["close_tapir_session_v1_tapir_sessions__id__put"];
+        /** Update Tapir Session */
+        put: operations["update_tapir_session_v1_tapir_sessions__id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2261,6 +2321,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/licenses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update License */
+        put: operations["update_license_v1_licenses__id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/email_patterns/": {
         parameters: {
             query?: never;
@@ -2414,7 +2491,7 @@ export interface components {
          *     administrative operation that affects users, papers, or system state.
          * @enum {string}
          */
-        AdminAuditActionEnum: "add-comment" | "add-paper-owner" | "add-paper-owner-2" | "arXiv-change-paper-pw" | "arXiv-change-status" | "arXiv-make-author" | "arXiv-make-nonauthor" | "arXiv-revoke-paper-owner" | "arXiv-unrevoke-paper-owner" | "become-user" | "change-email" | "change-demographic" | "change-paper-pw" | "change-password" | "endorsed-by-suspect" | "flip-flag" | "got-negative-endorsement" | "make-moderator" | "revoke-paper-owner" | "suspend-user" | "unmake-moderator" | "unsuspend-user";
+        AdminAuditActionEnum: "add-comment" | "add-paper-owner" | "add-paper-owner-2" | "arxiv-category" | "arXiv-change-paper-pw" | "arXiv-change-status" | "arxiv-email-patterns" | "arxiv-endorsement-domains" | "arXiv-make-author" | "arXiv-make-nonauthor" | "arXiv-revoke-paper-owner" | "arXiv-unrevoke-paper-owner" | "become-user" | "change-email" | "change-demographic" | "change-paper-pw" | "change-password" | "endorsed-by-suspect" | "flip-flag" | "got-negative-endorsement" | "make-moderator" | "revoke-paper-owner" | "suspend-user" | "unmake-moderator" | "unsuspend-user";
         /** AdminLogModel */
         AdminLogModel: {
             /** Id */
@@ -2811,6 +2888,21 @@ export interface components {
             /** Comment */
             comment?: string | null;
         };
+        /** EndorsementDomainDAO */
+        EndorsementDomainDAO: {
+            /** Id */
+            id: string;
+            /** Endorse All */
+            endorse_all: boolean;
+            /** Mods Endorse All */
+            mods_endorse_all: boolean;
+            /** Endorse Email */
+            endorse_email: boolean;
+            /** Papers To Endorse */
+            papers_to_endorse: number;
+            /** Comment */
+            comment: string;
+        };
         /** EndorsementDomainModel */
         EndorsementDomainModel: {
             /** Id */
@@ -2944,8 +3036,8 @@ export interface components {
             positive_endorsement?: boolean | null;
             /** Flag Valid */
             flag_valid?: boolean | null;
-            /** Comment */
-            comment?: string | null;
+            /** Admin Comment */
+            admin_comment?: string | null;
         };
         /**
          * EndorserCapabilityType
@@ -5047,6 +5139,8 @@ export interface operations {
                 _order?: string | null;
                 _start?: number | null;
                 _end?: number | null;
+                /** @description Filter by template id */
+                id?: number | number[] | null;
                 short_name?: string | null;
                 long_name?: string | null;
                 /** @description Start date for filtering */
@@ -5612,6 +5706,8 @@ export interface operations {
                 endorsee_username?: string | null;
                 /** @description Endorsement category */
                 category?: string | null;
+                /** @description Endorsement request secret */
+                secret?: string | null;
                 /** @description Current ID - index position - for navigation */
                 current_id?: number | null;
             };
@@ -7420,6 +7516,38 @@ export interface operations {
             };
         };
     };
+    regenerate_document_artifacts_v1_documents__id__actions_regenerate__target__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                target: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_metadatas_v1_metadata__get: {
         parameters: {
             query?: {
@@ -7913,6 +8041,70 @@ export interface operations {
             };
         };
     };
+    list_submission_files_v1_submissions_id_str__files_get: {
+        parameters: {
+            query: {
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_submission_file_v1_submissions_id_str__files__file_type__get: {
+        parameters: {
+            query: {
+                id: string;
+            };
+            header?: never;
+            path: {
+                file_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_submission_status_v1_submissions_metadata_status_list_get: {
         parameters: {
             query?: never;
@@ -8071,7 +8263,7 @@ export interface operations {
             };
         };
     };
-    create_membership_institution_data_v1_membership_institutions__id__delete: {
+    delete_membership_institution_data_v1_membership_institutions__id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -8222,7 +8414,7 @@ export interface operations {
             };
         };
     };
-    close_tapir_session_v1_tapir_sessions__id__put: {
+    update_tapir_session_v1_tapir_sessions__id__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -8233,7 +8425,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TapirSessionUpdateModel"];
+                "application/json": components["schemas"]["TapirSessionModel"] | components["schemas"]["TapirSessionUpdateModel"];
             };
         };
         responses: {
@@ -8959,6 +9151,41 @@ export interface operations {
             };
         };
     };
+    update_license_v1_licenses__id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LicenseModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_email_patterns_v1_email_patterns__get: {
         parameters: {
             query?: {
@@ -9176,7 +9403,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EndorsementDomainModel"];
+                "application/json": components["schemas"]["EndorsementDomainDAO"];
             };
         };
         responses: {
@@ -9242,7 +9469,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EndorsementDomainModel"];
+                "application/json": components["schemas"]["EndorsementDomainDAO"];
             };
         };
         responses: {
@@ -9268,7 +9495,10 @@ export interface operations {
     };
     delete_endorsement_domain_v1_endorsement_domains__id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Optional audit comment */
+                comment?: string;
+            };
             header?: never;
             path: {
                 id: string;

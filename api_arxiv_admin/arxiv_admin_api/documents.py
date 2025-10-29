@@ -5,7 +5,7 @@ from enum import Enum
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic, TapirUser
@@ -24,6 +24,8 @@ from starlette.responses import RedirectResponse
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .metadata import MetadataModel
+from .pubsub.event_schemas import BasePaperMessage
+from .pubsub.post_pubsub import post_pubsub_event
 
 logger = logging.getLogger(__name__)
 
@@ -460,3 +462,41 @@ def redirect_to_user_document_action(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Action {action} is invalid. Must be one of {list(DocumentUserAction)}")
     url = f"/user/{id}/{action.value}"
     return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+
+
+@router.post("/{id:str}/actions/regenerate/{target:str}")
+def regenerate_document_artifacts(
+        id:int,
+        target: str,
+        request: Request,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)):
+    """Regenerate document artifacts."""
+    doc: Optional[Document] = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+
+    if doc.submitter_id != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
+
+    if target not in ["pdf", "html", "all"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid target: {target}")
+
+    metadata: Optional[Metadata] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
+    if not metadata:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Metadata does not exist")
+
+
+    if target in ["html", "all"]:
+        message = BasePaperMessage(paper_id=doc.paper_id, version=metadata.version)
+        post_pubsub_event(message,
+                          project_id=request.app.extras['GCP_PROJECT_ID'],
+                          topic_name=request.app.extras.get('GCP_HTML_DIRECT_CONVERT', 'html-direct-convert'),
+                          logger=logger,
+                          creds_name=request.app.extras['GCP_PROJECT_CREDS']
+                          )
+
+    if target in ["pdf", "all"]:
+        message = BasePaperMessage(paper_id=doc.paper_id, version=metadata.version)
+
+

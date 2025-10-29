@@ -1,19 +1,13 @@
-import {Box, Card, Divider, Table, TableCell} from '@mui/material';
+import {Box, Card, Table, TableCell} from '@mui/material';
 import {
     List,
     Datagrid,
     TextField,
-    ReferenceField,
-    EditButton,
     Edit,
     Create,
     SimpleForm,
-    ReferenceInput,
     TextInput,
     useRecordContext,
-    EmailField,
-    ArrayInput,
-    SimpleFormIterator,
     NumberInput,
     BooleanInput,
     CreateButton,
@@ -22,14 +16,14 @@ import {
     NumberField,
     required,
     minValue,
+    Toolbar,
+    SaveButton,
+    DeleteButton,
 } from 'react-admin';
-import IPv4AddressInput from '../components/IPv4AddressInput';
+import { useWatch } from 'react-hook-form';
 import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
 import CardHeader from "@mui/material/CardHeader";
-import DashIcon from "@mui/icons-material/ArrowRightAlt";
-import CategoryInput from "../bits/CategoryInput";
 import CategoryListInput from "../bits/CategoryListInput";
 
 const endorsementCategoryFilters = [
@@ -46,7 +40,7 @@ export const EndorsementCategoryList = () => (
     <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
         <ConsoleTitle>Category Level Endorsement Settings</ConsoleTitle>
     <List filters={endorsementCategoryFilters} actions={<EndorsementCategoryListActions />}>
-        <Datagrid rowClick={"edit"}>
+        <Datagrid rowClick={"edit"} bulkActionButtons={false}>
             <TextField source="id"/>
             <BooleanField source="endorse_all"/>
             <BooleanField source="mods_endorse_all"/>
@@ -112,6 +106,20 @@ const EndorsementCategoryFormFields: React.FC<{isCreate: boolean}> = ({isCreate}
                         </TableCell>
                     </TableRow>
 
+                    <TableRow>
+                        <TableCell sx={{ width: labelCellWidth, textAlign: "right" }}>Admin Comment</TableCell>
+                        <TableCell>
+                            <TextInput
+                                source="comment"
+                                validate={[required()]}
+                                multiline={true}
+                                minRows={2}
+                                maxRows={6}
+                            />
+                        </TableCell>
+                    </TableRow>
+
+
                 </Table>
             </Card>
         </>
@@ -120,8 +128,8 @@ const EndorsementCategoryFormFields: React.FC<{isCreate: boolean}> = ({isCreate}
 
 export const EndorsementCategoryAdd = () => (
     <Box width="80%" ml="10%">
-    <Create>
         <ConsoleTitle>Add Endorsement Category</ConsoleTitle>
+        <Create>
         <SimpleForm>
             <EndorsementCategoryFormFields isCreate={true} />
         </SimpleForm>
@@ -129,13 +137,32 @@ export const EndorsementCategoryAdd = () => (
     </Box>
 );
 
+const EndorsementCategoryEditToolbar = () => {
+// Watch the comment field value
+const comment = useWatch({ name: 'comment' });
+const isCommentEmpty = !comment || comment.trim() === '';
+
+return (
+    <Toolbar>
+        <SaveButton disabled={isCommentEmpty} />
+        <Box flexGrow={1} />
+        <DeleteButton
+            disabled={isCommentEmpty}
+            mutationOptions={{
+                meta: { comment: comment?.trim() }
+            }}
+        />
+    </Toolbar>
+);
+};
+
 export const EndorsementCategoryEdit = () => (
-    <Box width="80%" ml="10%">
-    <Edit title={false} component={"div"}>
-        <ConsoleTitle><EndorsementCategoryTitle/></ConsoleTitle>
-        <SimpleForm>
-            <EndorsementCategoryFormFields isCreate={false} />
-        </SimpleForm>
-    </Edit>
-    </Box>
+<Box width="80%" ml="10%">
+<Edit title={false} component={"div"}>
+    <ConsoleTitle><EndorsementCategoryTitle/></ConsoleTitle>
+    <SimpleForm toolbar={<EndorsementCategoryEditToolbar />}>
+        <EndorsementCategoryFormFields isCreate={false} />
+    </SimpleForm>
+</Edit>
+</Box>
 );

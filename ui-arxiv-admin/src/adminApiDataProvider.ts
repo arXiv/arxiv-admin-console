@@ -22,17 +22,22 @@ const addTrailingSlash = (url: string) => {
 
 const handleHttpError = (error: any, defaultMessage: string = 'An error occurred') => {
     if (error && typeof error === 'object') {
-        // Check if it has a status property (like HttpError)
-        if ('status' in error && error.status) {
-            throw error;
-        }
-
         // Create a new HttpError with type-safe property access
         const errorObj = error as Record<string, any>;
-        const errorMessage =
-            'message' in errorObj && typeof errorObj.message === 'string'
-                ? errorObj.message
-                : defaultMessage;
+
+        // Extract error message with priority: body.detail > message > defaultMessage
+        let errorMessage = defaultMessage;
+
+        // Check for FastAPI-style detail in error body first
+        if ('body' in errorObj && errorObj.body && typeof errorObj.body === 'object' && 'detail' in errorObj.body) {
+            errorMessage = typeof errorObj.body.detail === 'string'
+                ? errorObj.body.detail
+                : JSON.stringify(errorObj.body.detail);
+        }
+        // Fall back to error.message (but not if it's just the HTTP status text)
+        else if ('message' in errorObj && typeof errorObj.message === 'string' && errorObj.message !== defaultMessage) {
+            errorMessage = errorObj.message;
+        }
 
         throw new HttpError(
             errorMessage,
@@ -91,7 +96,17 @@ const retryHttpClient = (url: string, options: fetchUtils.Options = {}) => {
                 return fetchUtils.fetchJson(url, optionsWithToken);
             } else {
                 retryCount = 0;
-                throw error;
+
+                // Extract detail from error body if available (FastAPI format)
+                let errorMessage = error.message;
+                if (error.body && typeof error.body === 'object' && 'detail' in error.body) {
+                    errorMessage = typeof error.body.detail === 'string'
+                        ? error.body.detail
+                        : JSON.stringify(error.body.detail);
+                }
+
+                // Re-throw with the detailed message
+                throw new HttpError(errorMessage, error.status, error.body);
             }
         });
 };
@@ -428,6 +443,25 @@ hook.js:608 The response to 'create' must be like { data: { id: 123, ... } }, bu
 
     async delete<T extends RaRecord>(resource: string, params: DeleteParams): Promise<DeleteResult<T>> {
         console.log(`🗑️ DELETE ${resource}:`, params);
+
+        // Handle endorsement_domains with comment query parameter
+        if (resource === 'endorsement_domains' && params.meta?.comment) {
+            const { comment } = params.meta;
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/endorsement_domains/${params.id}?comment=${encodeURIComponent(comment)}`;
+
+            try {
+                await retryHttpClient(url, {
+                    method: 'DELETE',
+                });
+
+                console.log(`✅ DELETE ${resource} with comment succeeded`);
+                return { data: params.previousData as T };
+            } catch (error) {
+                console.error(`❌ DELETE ${resource} with comment failed:`, error);
+                handleHttpError(error, `Failed to delete ${resource}`);
+            }
+        }
+
         const result = await this.dataProvider.delete(resource, params);
         console.log(`✅ DELETE ${resource} succeeded:`, result);
         return result;

@@ -2,6 +2,10 @@
 from enum import Enum
 from typing import Optional, List
 
+from arxiv.auth.user_claims import ArxivUserClaims
+from arxiv_bizlogic.audit_event import AdminAudit_Category, admin_audit
+from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_client_host_name, \
+    get_tapir_tracking_cookie
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 
 from sqlalchemy import func, and_
@@ -161,6 +165,10 @@ async def get_category(id: str, db: Session = Depends(get_db)) -> CategoryModel:
 async def update_category(
         request: Request,
         id: str,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> CategoryModel:
     body = await request.json()
     [archive, subject_class] = id.split(".")
@@ -173,11 +181,28 @@ async def update_category(
         raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
 
     # Verify?
+    changes = {}
     for key, value in body.items():
         if key in item.__dict__:
-            setattr(item, key, value)
+            old_value = getattr(item, key)
+            if old_value != value:
+                changes[key] = [old_value, value]
+                setattr(item, key, value)
 
-    session.commit()
+    if changes:
+        admin_audit(
+            session,
+            AdminAudit_Category(
+                current_user.user_id,
+                None,
+                current_user.tapir_session_id,
+                data={"update": changes},
+                remote_ip=remote_ip,
+                remote_hostname=remote_hostname,
+                tracking_cookie=tracking_cookie,
+            )
+        )
+        session.commit()
     return CategoryModel.model_validate(CategoryModel.base_query(session).filter(and_(
                 Category.archive == archive,
                 Category.subject_class == subject_class)).one_or_none())
