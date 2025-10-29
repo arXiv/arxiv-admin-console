@@ -18,14 +18,18 @@ export enum AdminAuditActionEnum {
     ADD_COMMENT = "add-comment",
     ADD_PAPER_OWNER = "add-paper-owner",
     ADD_PAPER_OWNER_2 = "add-paper-owner-2",
+    ARXIV_CATEGORY = "arxiv-category",
     ARXIV_CHANGE_PAPER_PW = "arXiv-change-paper-pw",
     ARXIV_CHANGE_STATUS = "arXiv-change-status",
+    ARXIV_EMAIL_PATTERNS = "arxiv-email-patterns",
+    ARXIV_ENDORSEMENT_DOMAINS = "arxiv-endorsement-domains",
     ARXIV_MAKE_AUTHOR = "arXiv-make-author",
     ARXIV_MAKE_NONAUTHOR = "arXiv-make-nonauthor",
     ARXIV_REVOKE_PAPER_OWNER = "arXiv-revoke-paper-owner",
     ARXIV_UNREVOKE_PAPER_OWNER = "arXiv-unrevoke-paper-owner",
     BECOME_USER = "become-user",
     CHANGE_EMAIL = "change-email",
+    CHANGE_DEMOGRAPHIC = "change-demographic",
     CHANGE_PAPER_PW = "change-paper-pw",
     CHANGE_PASSWORD = "change-password",
     ENDORSED_BY_SUSPECT = "endorsed-by-suspect",
@@ -36,7 +40,6 @@ export enum AdminAuditActionEnum {
     SUSPEND_USER = "suspend-user",
     UNMAKE_MODERATOR = "unmake-moderator",
     UNSUSPEND_USER = "unsuspend-user",
-    CHANGE_DEMOGRAPHIC = "change-demographic",
 }
 
 
@@ -50,6 +53,23 @@ const normalizeBoolean = (value: string | number | boolean): boolean => {
     }
 };
 
+/**
+ * Represents a single change in an audit action.
+ */
+export interface AuditChangeData {
+    name: string;
+    before: any;
+    after: any;
+}
+
+/**
+ * Represents an audit action with multiple changes.
+ */
+export interface AuditAction {
+    id: string;
+    action: string;
+    audit_data: AuditChangeData[];
+}
 
 
 export abstract class AdminAuditEvent {
@@ -414,22 +434,277 @@ export class AdminAudit_RevokePaperOwner extends AdminAudit_PaperEvent {
 }
 
 
-export class AdminAudit_ChangeDemographic extends AdminAuditEvent {
+export abstract class AdminAudit_GenericPayload extends AdminAuditEvent {
+    /**
+     * Base class for audit events with generic payloads.
+     * Handles JSON serialization of complex data structures.
+     */
+
+    constructor(
+        admin_id: string,
+        affected_user: string,
+        session_id: string,
+        options: {
+            data: string | Record<string, any> | AuditAction;
+            remote_ip?: string | null;
+            remote_hostname?: string | null;
+            tracking_cookie?: string | null;
+            comment?: string | null;
+            timestamp?: number | null;
+        }
+    ) {
+        const { data, ...restOptions } = options;
+        let dataObj: string;
+
+        if (!data) {
+            dataObj = '{}';
+        } else if (typeof data === 'string') {
+            dataObj = data;
+        } else if (typeof data === 'object' && 'action' in data && 'id' in data) {
+            // It's an AuditAction
+            dataObj = JSON.stringify(data);
+        } else {
+            // It's a generic object
+            dataObj = JSON.stringify(data);
+        }
+        console.log("AdminAudit_GenericPayload: " + options);
+
+        super(admin_id, affected_user, session_id, {
+            ...restOptions,
+            data: dataObj,
+        });
+    }
+
+    static getInitParams(audit_record: TapirAdminAudit): Record<string, any> {
+        return {
+            admin_user: audit_record.admin_user?.toString() || '',
+            affected_user: audit_record.affected_user.toString(),
+            session_id: audit_record.session_id?.toString() || '',
+            data: audit_record.data,
+            comment: audit_record.comment,
+            remote_ip: audit_record.ip_addr,
+            remote_hostname: audit_record.remote_host,
+            tracking_cookie: audit_record.tracking_cookie,
+            timestamp: new Date(audit_record.log_date).getTime() / 1000,
+        };
+    }
+}
+
+export class AdminAudit_ChangeDemographic extends AdminAudit_GenericPayload {
+    /**
+     * Audit event for changing a user's demographic information.
+     */
     static readonly _action = AdminAuditActionEnum.CHANGE_DEMOGRAPHIC;
 
     describe(): React.ReactElement {
+        let dataDisplay = this.data;
+
+        // Try to parse as JSON and format nicely
+        if (dataDisplay && dataDisplay[0] === '{') {
+            try {
+                const kvs = JSON.parse(dataDisplay);
+                dataDisplay = Object.entries(kvs)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(', ');
+            } catch {
+                // Keep original data if parsing fails
+            }
+        }
+
         return (
             <Box component="span">
                 <ReferenceField reference="users" source="admin_user">
                     <UserNameField />
                 </ReferenceField>
-                {" changed "}
+                {" changed demographic of "}
                 <ReferenceField reference="users" source="affected_user">
                     <UserNameField />
                 </ReferenceField>
-                <TextField source="data" />
+                {" to "}
+                <Typography component="span" fontWeight="bold">
+                    {dataDisplay}
+                </Typography>
             </Box>
         );
+    }
+}
+
+export abstract class AdminAudit_ArxivAdmin extends AdminAudit_GenericPayload {
+    /**
+     * Base class for arXiv admin audit events.
+     * These events have affected_user set to 1 (system user).
+     */
+
+    constructor(
+        admin_id: string,
+        affected_user_id: string, // same ad admin_id
+        session_id: string,
+        options: {
+            data: string | Record<string, any> | AuditAction;
+            remote_ip?: string | null;
+            remote_hostname?: string | null;
+            tracking_cookie?: string | null;
+            comment?: string | null;
+            timestamp?: number | null;
+        }
+    ) {
+        // ArXiv admin events use user ID 1 as the affected user
+        console.log("AdminAudit_ArxivAdmin: " + options.data);
+        super(admin_id, affected_user_id, session_id, options);
+    }
+
+    describe(): React.ReactElement {
+        const data = this.data;
+        const constructor = this.constructor as typeof AdminAudit_ArxivAdmin;
+
+        try {
+            const action: AuditAction = JSON.parse(data);
+            const changes = action.audit_data
+                .map(audit => `${audit.name} from ${audit.before} to ${audit.after}`)
+                .join(', ');
+
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {` did ${action.action} `}
+                    <Typography component="span" fontWeight="bold">
+                        {constructor._action}
+                    </Typography>
+                    {` on ${action.id}: ${changes}`}
+                </Box>
+            );
+        } catch {
+            // Fallback for non-JSON data
+            let dataDisplay = data;
+            if (data && data[0] === '{') {
+                try {
+                    const kvs = JSON.parse(data);
+                    dataDisplay = Object.entries(kvs)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(', ');
+                } catch {
+                    dataDisplay = data;
+                }
+            }
+
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {" changed "}
+                    <Typography component="span" fontWeight="bold">
+                        {constructor._action}
+                    </Typography>
+                    {` ${dataDisplay}`}
+                </Box>
+            );
+        }
+    }
+}
+
+export class AdminAudit_Category extends AdminAudit_ArxivAdmin {
+    /**
+     * Audit event for arXiv category changes.
+     */
+    static readonly _action = AdminAuditActionEnum.ARXIV_CATEGORY;
+
+    describe(): React.ReactElement {
+        const data = this.data;
+
+        try {
+            const action: AuditAction = JSON.parse(data);
+            const changes = action.audit_data
+                .map(audit => `${audit.name} from ${audit.before} to ${audit.after}`)
+                .join(', ');
+
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {` changed category `}
+                    <Typography component="span" fontWeight="bold">
+                        {action.id}
+                    </Typography>
+                    {`: ${changes}`}
+                </Box>
+            );
+        } catch {
+            // Fallback
+            return super.describe();
+        }
+    }
+}
+
+export class AdminAudit_EndorsementDomains extends AdminAudit_ArxivAdmin {
+    /**
+     * Audit event for arXiv endorsement domain changes.
+     */
+    static readonly _action = AdminAuditActionEnum.ARXIV_ENDORSEMENT_DOMAINS;
+
+    describe(): React.ReactElement {
+        const data = this.data;
+        console.log("AdminAudit_EndorsementDomains: " + JSON.stringify(data));
+
+        try {
+            const action: AuditAction = JSON.parse(data);
+            const changes = action.audit_data
+                .map(audit => `${audit.name} from ${audit.before} to ${audit.after}`)
+                .join(', ');
+
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {` ${action.action} endorsement domain `}
+                    <Typography component="span" fontWeight="bold">
+                        {action.id}
+                    </Typography>
+                    {`: ${changes}`}
+                </Box>
+            );
+        } catch {
+            // Fallback
+            return super.describe();
+        }
+    }
+}
+
+export class AdminAudit_EmailPatterns extends AdminAudit_ArxivAdmin {
+    /**
+     * Audit event for arXiv email pattern changes.
+     */
+    static readonly _action = AdminAuditActionEnum.ARXIV_EMAIL_PATTERNS;
+
+    describe(): React.ReactElement {
+        const data = this.data;
+
+        try {
+            const action: AuditAction = JSON.parse(data);
+            const changes = action.audit_data
+                .map(audit => `${audit.name} from ${audit.before} to ${audit.after}`)
+                .join(', ');
+
+            return (
+                <Box component="span">
+                    <ReferenceField reference="users" source="admin_user">
+                        <UserNameField />
+                    </ReferenceField>
+                    {` ${action.action} email patterns `}
+                    <Typography component="span" fontWeight="bold">
+                        {action.id}
+                    </Typography>
+                    {` ${changes}`}
+                </Box>
+            );
+        } catch {
+            // Fallback
+            return super.describe();
+        }
     }
 }
 
@@ -1760,11 +2035,14 @@ const eventClasses: Record<string, EventClass | EventFactory> = {
     [AdminAuditActionEnum.ADD_COMMENT]: AdminAudit_AddComment,
     [AdminAuditActionEnum.ADD_PAPER_OWNER]: AdminAudit_AddPaperOwner,
     [AdminAuditActionEnum.ADD_PAPER_OWNER_2]: AdminAudit_AddPaperOwner2,
+    [AdminAuditActionEnum.ARXIV_CATEGORY]: AdminAudit_Category as any,
     [AdminAuditActionEnum.CHANGE_PAPER_PW]: AdminAudit_ChangePaperPassword,
     [AdminAuditActionEnum.ARXIV_MAKE_AUTHOR]: AdminAudit_AdminMakeAuthor,
     [AdminAuditActionEnum.ARXIV_MAKE_NONAUTHOR]: AdminAudit_AdminMakeNonauthor,
     [AdminAuditActionEnum.ARXIV_REVOKE_PAPER_OWNER]: AdminAudit_AdminRevokePaperOwner,
     [AdminAuditActionEnum.ARXIV_UNREVOKE_PAPER_OWNER]: AdminAudit_AdminUnrevokePaperOwner,
+    [AdminAuditActionEnum.ARXIV_EMAIL_PATTERNS]: AdminAudit_EmailPatterns as any,
+    [AdminAuditActionEnum.ARXIV_ENDORSEMENT_DOMAINS]: AdminAudit_EndorsementDomains as any,
     [AdminAuditActionEnum.BECOME_USER]: AdminAudit_BecomeUser,
     [AdminAuditActionEnum.CHANGE_EMAIL]: AdminAudit_ChangeEmail,
     [AdminAuditActionEnum.CHANGE_PASSWORD]: AdminAudit_ChangePassword,
@@ -1777,7 +2055,7 @@ const eventClasses: Record<string, EventClass | EventFactory> = {
     [AdminAuditActionEnum.ARXIV_CHANGE_STATUS]: AdminAudit_ChangeStatus,
     [AdminAuditActionEnum.ARXIV_CHANGE_PAPER_PW]: AdminAudit_AdminChangePaperPassword,
     [AdminAuditActionEnum.REVOKE_PAPER_OWNER]: AdminAudit_RevokePaperOwner,
-    [AdminAuditActionEnum.CHANGE_DEMOGRAPHIC] : AdminAudit_ChangeDemographic,
+    [AdminAuditActionEnum.CHANGE_DEMOGRAPHIC]: AdminAudit_ChangeDemographic as any,
     [AdminAuditActionEnum.FLIP_FLAG]: adminAuditFlipFlagInstantiator,
 };
 
@@ -1796,5 +2074,6 @@ export function createAdminAuditEvent(auditRecord: RaRecord<Identifier>): AdminA
     const EventClass = eventClassOrFactory as typeof AdminAuditEvent;
     const params = EventClass.getInitParams(auditRecord as TapirAdminAudit);
     const { admin_user, affected_user, session_id, ...options } = params;
+
     return new (EventClass as any)(admin_user, affected_user, session_id, options);
 }
