@@ -18,6 +18,16 @@
           rel="stylesheet"
           href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
   />
+  <style>
+    /* Ensure JIRA issue collector appears above all other UI elements including right side drawer */
+    #atlwdg-trigger,
+    .atlwdg-trigger,
+    #atlwdg-blanket,
+    .atlwdg-popup,
+    .atlwdg-container {
+      z-index: 10000 !important;
+    }
+  </style>
 </head>
 <body>
 <div id="root"></div>
