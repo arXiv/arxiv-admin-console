@@ -227,6 +227,10 @@ class adminApiDataProvider implements DataProvider {
                 handleHttpError(error, 'Failed to load email history');
             }
         }
+        else if (resource === 'document-files') {
+            const { document_id } = params.filter;
+            return this.dataProvider.getList<T>(`documents/${document_id}/files`, params);
+        }
         else if (resource === 'document-metadata-latest') {
             return this.dataProvider.getList<T>("documents/metadata/latest", params);
         }

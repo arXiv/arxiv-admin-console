@@ -16,12 +16,15 @@ from datetime import datetime, date, timedelta
 # from .models import CrossControlModel
 import re
 import time
+from arxiv.identifier import Identifier as arXivID
 
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 from starlette.responses import RedirectResponse
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
+from .accessors import LocalAbsAccessor, LocalTarballAccessor, LocalPDFAccessor, GCPAbsAccessor, GCPTarballAccessor, \
+    GCPPDFAccessor, GCPStorage, BaseAccessor
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .metadata import MetadataModel
 from .pubsub.event_schemas import BasePaperMessage
@@ -490,13 +493,57 @@ def regenerate_document_artifacts(
     if target in ["html", "all"]:
         message = BasePaperMessage(paper_id=doc.paper_id, version=metadata.version)
         post_pubsub_event(message,
-                          project_id=request.app.extras['GCP_PROJECT_ID'],
-                          topic_name=request.app.extras.get('GCP_HTML_DIRECT_CONVERT', 'html-direct-convert'),
+                          project_id=request.app.extra['GCP_PROJECT_ID'],
+                          topic_name=request.app.extra.get('GCP_HTML_DIRECT_CONVERT', 'html-direct-convert'),
                           logger=logger,
-                          creds_name=request.app.extras['GCP_PROJECT_CREDS']
+                          creds_name=request.app.extra['GCP_PROJECT_CREDS']
                           )
 
     if target in ["pdf", "all"]:
         message = BasePaperMessage(paper_id=doc.paper_id, version=metadata.version)
 
+class DocumentFile(BaseModel):
+    id: str # canonical name
+    file_name: str
+    file_size: int
+    content_type: Optional[str] = None
 
+
+@router.get("/{id:str}/files")
+async def list_document_files(
+        id:int,
+        request: Request,
+        response: Response,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)) -> List[DocumentFile]:
+    """Regenerate document artifacts."""
+    doc: Optional[Document] = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+
+    if doc.submitter_id != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
+
+    md = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
+    version = md.version if md else 1
+
+    xid = arXivID(doc.paper_id + f"v{version}")
+
+    doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
+
+    candidate_files: List[BaseAccessor] = [
+        LocalAbsAccessor(xid, latest=True),
+        LocalTarballAccessor(xid, latest=True),
+        LocalPDFAccessor(xid, latest=True)
+    ]
+
+    if doc_storage:
+        candidate_files += [
+            GCPAbsAccessor(xid, storage=doc_storage, latest=True),
+            GCPTarballAccessor(xid, storage=doc_storage, latest=True),
+            GCPPDFAccessor(xid, storage=doc_storage, latest=True),
+        ]
+
+    files = [ DocumentFile(id=entry.canonical_name, file_name=entry.basename, file_size=entry.bytesize, content_type=entry.content_type) for entry in candidate_files if entry.exists() ]
+    response.headers['X-Total-Count'] = str(len(files))
+    return files

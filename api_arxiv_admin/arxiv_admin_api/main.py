@@ -23,6 +23,7 @@ from arxiv.base.globals import get_application_config
 from arxiv.auth.user_claims import ArxivUserClaims
 
 from arxiv_admin_api import AccessTokenExpired, LoginRequired, BadCookie, get_session_cookie
+from arxiv_admin_api.accessors import GCPStorage
 # from arxiv_admin_api.authentication import router as auth_router
 from arxiv_admin_api.admin_logs import router as admin_log_router
 from arxiv_admin_api.categories import router as categories_router, archive_group_router
@@ -62,11 +63,12 @@ from arxiv_admin_api.public_users import router as public_users_router
 from arxiv.base.logging import getLogger
 
 from arxiv.config import Settings
+from google.cloud import storage as gcs
 
 from app_logging import setup_logger
 
 # API root path (excluding the host)
-ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api')
+ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if os.environ.get('TESTING') is None else ''
 
 # Admin app URL
 #
@@ -95,6 +97,13 @@ SQLALCHMEY_MAPPING = {
     'pool_timeout': 30,
     'pool_recycle': 900
 }
+
+#
+#
+#
+
+GCP_PROJECT = os.environ.get("GCP_PROJECT", "arxiv-development")
+ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "arxiv-dev-data")
 
 # Auth is now handled by auth service
 # No need for keycloak URL, etc.
@@ -214,6 +223,11 @@ def create_app(*args, **kwargs) -> FastAPI:
         COOKIE_ENV_NAMES.keycloak_refresh_token_env: KEYCLOAK_REFRESH_TOKEN_NAME,
     }
 
+    # GOOGLE_APPLICATION_CREDENTIALS is needed
+    gcp_client: gcs.Client = gcs.Client(project=GCP_PROJECT)
+    document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
+    document_storage = GCPStorage(gcp_client, document_bucket_name)
+
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
         arxiv_db_engine=database.engine,
@@ -236,6 +250,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         GCP_PROJECT_CREDS=os.environ.get('GCP_PROJECT_CREDS'),
         GCP_SERVICE_REQUEST_SA=os.environ.get('GCP_SERVICE_REQUEST_SA'),
         GCP_SERVICE_REQUEST_ENDPOINT=os.environ.get('GCP_SERVICE_REQUEST_ENDPOINT', "localhost:8080"),
+        DOCUMENT_STORAGE=document_storage,
         **cookie_names
     )
 

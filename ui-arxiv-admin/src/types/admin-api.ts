@@ -554,7 +554,46 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Send Template Message */
+        /**
+         * Send Template Message
+         * @description Handles sending email based on a specified template. The endpoint retrieves the email
+         *     template by its ID, optionally injects dynamic content into the template, and sends the
+         *     email. This can operate in two modes: test mode (sends email
+         *     only to the current authenticated user) or production mode (sends to a specified
+         *     recipient email address). Relies on a centralized notification system for sending
+         *     emails. Returns metadata about the dispatched email.
+         *
+         *     @param request: The FastAPI request object.
+         *     @type request: Request
+         *
+         *     @param id: The unique integer identifier for the email template to be used.
+         *     @type id: int
+         *
+         *     @param body: Optional dictionary containing template parameters to dynamically render
+         *     the email body. Defaults to None.
+         *     @type body: Optional[dict]
+         *
+         *     @param subject: Subject of the email. Defaults to "Test email template".
+         *     @type subject: str
+         *
+         *     @param test_mode: A boolean indicating whether the email is being sent in test mode.
+         *     Defaults to True.
+         *     @type test_mode: bool
+         *
+         *     @param recipient: recipient email. Defaults to None.
+         *     @type test_mode: Optional[str]
+         *
+         *     @param authn: The API token or current authenticated user claims, automatically provided via
+         *     dependency injection.
+         *     @type authn: ArxivUserClaims | APIToken
+         *
+         *     @param session: Database session for querying the email template.
+         *     @type session: Session
+         *
+         *     @return: A JSON response containing metadata of the email sent, including message ID,
+         *     subject, recipient, template ID, and rendered body (only in test mode).
+         *     @rtype: JSONResponse
+         */
         post: operations["send_template_message_v1_email_templates__id__messages_post"];
         delete?: never;
         options?: never;
@@ -1603,6 +1642,26 @@ export interface paths {
          * @description Regenerate document artifacts.
          */
         post: operations["regenerate_document_artifacts_v1_documents__id__actions_regenerate__target__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Document Files
+         * @description Regenerate document artifacts.
+         */
+        get: operations["list_document_files_v1_documents__id__files_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5291,7 +5350,9 @@ export interface operations {
                 /** @description Subject of the email */
                 subject?: string;
                 /** @description Send in test mode to current user */
-                test_mode?: boolean;
+                test_mode?: boolean | null;
+                /** @description Destination email address. */
+                recipient?: string | null;
             };
             header?: never;
             path: {
@@ -7535,6 +7596,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_document_files_v1_documents__id__files_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
             /** @description Validation Error */

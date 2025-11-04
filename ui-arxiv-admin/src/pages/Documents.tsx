@@ -46,7 +46,9 @@ import {useNavigate} from "react-router-dom";
 import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";
 import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
+import DocumentFileList from "../bits/DocumentFileList";
 import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
+import DocumentFileUploadDialog from "../bits/DocumentFileUploadDialog";
 import ISODateField from '../bits/ISODateFiled';
 import {StandardAccordion} from "../components/StandardAccordion";
 import {LazyAccordion} from "../components/LazyAccordion";
@@ -157,6 +159,7 @@ const DocumentContent = () => {
     const record = useRecordContext();
     const [openAddOwnerDialog, setOpenAddOwnerDialog] = React.useState(false);
     const [openRenewPaperPasswordDialog, setOpenRenewPaperPasswordDialog] = React.useState(false);
+    const [openFileUploadDialog, setOpenFileUploadDialog] = React.useState(false);
     const refresh = useRefresh();
     const navigate = useNavigate();
     const [metadata, setMetadata] = useState<MetadataT | null>(null);
@@ -342,9 +345,29 @@ const DocumentContent = () => {
                 </Paper>
             </StandardAccordion>
 
+            {/* Paper Information */}
+            <Divider />
+            <StandardAccordion title="Document Files">
+                <Paper sx={{mb: 2, maxWidth: "md"}}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setOpenFileUploadDialog(true)}
+                        >
+                            Upload File
+                        </Button>
+                    </Box>
+                    <DocumentFileList document_id={record?.id}/>
+
+                </Paper>
+            </StandardAccordion>
+
+
             <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog}
                                       setOpen={setOpenAddOwnerDialog}/>
             <RenewPaperPasswordDialog open={openRenewPaperPasswordDialog} setOpen={setOpenRenewPaperPasswordDialog} renew={renewPaperPassword} />
+            <DocumentFileUploadDialog documentId={record?.id} open={openFileUploadDialog} setOpen={setOpenFileUploadDialog} />
         </Box>
     );
 };
