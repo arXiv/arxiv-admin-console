@@ -14,7 +14,7 @@ from logging import getLogger
 # from typing_extensions import TypedDict
 from arxiv.identifier import Identifier as arXivID
 from google.cloud import storage as cloud_storage
-from google.cloud.storage.fileio import BlobReader
+from google.cloud.storage.fileio import BlobReader, BlobWriter
 
 from .path_mapper import (
     arxiv_id_to_local_orig,
@@ -62,6 +62,10 @@ class AccessorFlavor(ArxivIdentified):
         """Turn webnode path to GCP blob name."""
         return local_path_to_blob_key(self.local_path)
 
+    @property
+    def flavor(self) -> str:
+        return ""
+
     pass
 
 
@@ -69,23 +73,28 @@ class BaseAccessor(AccessorFlavor):
     """Abstract class for accessing files from GCP and local file system."""
 
     @abstractmethod
-    def exists(self) -> bool:
+    async def exists(self) -> bool:
         """Return True if the file exists in the storage."""
         raise NotImplementedError("Not implemented")
 
     @abstractmethod
-    def download_to_filename(self, filename: str = "unnamed.bin") -> None:
+    async def download_to_filename(self, filename: str = "unnamed.bin") -> None:
         """Download the file to the local file system."""
         raise NotImplementedError("Not implemented")
 
     @abstractmethod
-    def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
+    async def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
         """Upload the file to the storage."""
         raise NotImplementedError("Not implemented")
 
     @abstractmethod
-    def download_as_bytes(self, **kwargs: typing.Any) -> bytes:
+    async def download_as_bytes(self, **kwargs: typing.Any) -> bytes:
         """Download the file as bytes."""
+        raise NotImplementedError("Not implemented")
+
+    @abstractmethod
+    async def upload_from_stream(self, fd: Any) -> None:
+        """Upload the file to the storage."""
         raise NotImplementedError("Not implemented")
 
     @property
@@ -100,12 +109,12 @@ class BaseAccessor(AccessorFlavor):
         return None
 
     @abstractmethod
-    def open(self, **kwargs: typing.Any) -> BlobReader | BinaryIO:
+    def open(self, **kwargs: typing.Any) -> BlobReader | BinaryIO | TextIO | BlobWriter:
         """Open the srorage (file or GCP blob) and return the file-ish object."""
         raise NotImplementedError("Not implemented")
 
     @property
-    def bytesize(self) -> int | None:
+    async def bytesize(self) -> int | None:
         """Object byte size, if applicable."""
         return None
 
@@ -150,22 +159,27 @@ class GCPBlobAccessor(BaseAccessor):
             raise ValueError("blob_name is None")
         self.blob = self.bucket.blob(self.blob_name)
 
-    def download_to_filename(self, filename: str = "unnamed.bin") -> None:
+    async def download_to_filename(self, filename: str = "unnamed.bin") -> None:
         self.blob.download_to_filename(filename)
 
-    def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
+    async def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
         logger.debug(f"upload_from_filename: {filename} to {self.blob_name} with timeout {self.timeout}")
         self.blob.upload_from_filename(filename, content_type=self.content_type, timeout=self.timeout)
 
-    def download_as_bytes(self, **kwargs: typing.Any) -> bytes:
+    async def download_as_bytes(self, **kwargs: typing.Any) -> bytes:
         return self.blob.download_as_bytes(**kwargs)  # type: ignore
+
+    async def upload_from_stream(self, fd: Any) -> None:
+        """Upload the file to the storage."""
+        return self.blob.upload_from_file(fd)
+
 
     @property
     def bucket(self) -> cloud_storage.Bucket:
         """GCP bucket."""
         return self.gcp_storage.bucket
 
-    def exists(self) -> bool:
+    async def exists(self) -> bool:
         return self.blob.exists(client=self.gcp_storage.client)  # type: ignore
 
     @property
@@ -178,12 +192,12 @@ class GCPBlobAccessor(BaseAccessor):
     def canonical_name(self) -> str:
         return f"gs://{self.gcp_storage.bucket_name}/{self.blob_name}"
 
-    def open(self, **kwargs: Any) -> BlobReader | BinaryIO | TextIO:
+    def open(self, **kwargs: Any) -> BlobReader | BinaryIO | TextIO | BlobWriter:
         mode = kwargs.pop("mode", "rb")  # the default mode is read binary
         return self.blob.open(mode=mode)
 
     @property
-    def bytesize(self) -> int | None:
+    async def bytesize(self) -> int | None:
         if self.blob.exists(client=self.gcp_storage.client):
             self.blob.reload()
             return self.blob.size  # type: ignore
@@ -199,21 +213,27 @@ class LocalFileAccessor(BaseAccessor):
         super().__init__(identifier, **kwargs)
         pass
 
-    def download_to_filename(self, filename: str = "unnamed.bin") -> None:
+    async def download_to_filename(self, filename: str = "unnamed.bin") -> None:
         local_path = self.local_path
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         shutil.copyfile(self.local_path, filename)
 
-    def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
+    async def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
         local_path = self.local_path
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         shutil.copyfile(filename, local_path)
 
-    def download_as_bytes(self, **kwargs: Any) -> bytes:
+    async def download_as_bytes(self, **kwargs: Any) -> bytes:
         with open(self.local_path, "rb") as fd:
             return bytes(fd.read())
 
-    def exists(self) -> bool:
+    async def upload_from_stream(self, fd_from: Any, chunk_size: int = 65536) -> None:
+        """Upload the file to the storage with chunked streaming."""
+        with open(self.local_path, "wb") as fd_to:
+            while chunk := fd_from.read(chunk_size):
+                fd_to.write(chunk)
+
+    async def exists(self) -> bool:
         return Path(self.local_path).exists()
 
     @property
@@ -224,12 +244,12 @@ class LocalFileAccessor(BaseAccessor):
     def canonical_name(self) -> str:
         return f"file://{self.local_path}"
 
-    def open(self, **kwargs: typing.Any) -> BlobReader | BinaryIO | TextIO:
+    def open(self, **kwargs: typing.Any) -> BlobReader | BinaryIO | TextIO | BlobWriter:
         mode: str = kwargs.pop("mode", "rb")
         return open(self.local_path, mode=mode)
 
     @property
-    def bytesize(self) -> int | None:
+    async def bytesize(self) -> int | None:
         po = Path(self.local_path)
         if po.exists():
             return po.stat().st_size
@@ -264,6 +284,10 @@ class VersionedFlavor(AccessorFlavor):
         super().__init__(arxiv_id, **kwargs)
         pass
 
+    @property
+    def flavor(self) -> str:
+        return ""
+
 
 class TarballFlavor(VersionedFlavor):
     """Tarball flavor."""
@@ -272,6 +296,10 @@ class TarballFlavor(VersionedFlavor):
     def local_path(self) -> str:
         """Tarball filename from arXiv ID."""
         return merge_path(self.root_dir, self.path_mapper(self.identifier, extent=".tar.gz"))
+
+    @property
+    def flavor(self) -> str:
+        return "tarball"
 
     pass
 
@@ -283,6 +311,10 @@ class AbsFlavor(VersionedFlavor):
     def local_path(self) -> str:
         return merge_path(self.root_dir, self.path_mapper(self.identifier, extent=".abs"))
 
+    @property
+    def flavor(self) -> str:
+        return "abs"
+
     pass
 
 
@@ -292,6 +324,10 @@ class PDFFlavor(AccessorFlavor):
     @property
     def local_path(self) -> str:
         return merge_path(self.root_dir, arxiv_id_to_local_pdf_path(self.identifier))
+
+    @property
+    def flavor(self) -> str:
+        return "pdf"
 
     pass
 
@@ -306,6 +342,10 @@ class OutcomeFlavor(AccessorFlavor):
     def local_path(self) -> str:
         # If outcome is at webnode, this is where it would be - next to the PDF.
         return merge_path(self.root_dir, arxiv_id_to_local_pdf_path(self.identifier, extent=".outcome.tar.gz"))
+
+    @property
+    def flavor(self) -> str:
+        return "outcome"
 
     pass
 

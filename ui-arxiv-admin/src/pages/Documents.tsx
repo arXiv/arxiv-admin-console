@@ -46,9 +46,9 @@ import {useNavigate} from "react-router-dom";
 import {paths as adminApi} from '../types/admin-api';
 import FieldNameCell from "../bits/FieldNameCell";
 import ShowEmailsRequestsList from "../bits/ShowEmailRequestsList";
-import DocumentFileList from "../bits/DocumentFileList";
+import DocumentFileList from "../components/DocumentFileList";
 import RenewPaperPasswordDialog from "../bits/RenewPaperPasswordDialog";
-import DocumentFileUploadDialog from "../bits/DocumentFileUploadDialog";
+import DocumentFileUploadDialog from "../components/DocumentFileUploadDialog";
 import ISODateField from '../bits/ISODateFiled';
 import {StandardAccordion} from "../components/StandardAccordion";
 import {LazyAccordion} from "../components/LazyAccordion";
@@ -324,10 +324,13 @@ const DocumentContent = () => {
             <Divider />
             <StandardAccordion title="Admin Log">
                 <Paper sx={{mb: 2, maxWidth: "md"}}>
-                    <AdminLogList paper_id={record?.paper_id}/>
+                    {
+                        record?.paper_id ? (
+                        <AdminLogList paper_id={record.paper_id}/>)
+                            : null
+                    }
                 </Paper>
             </StandardAccordion>
-
 
             {/* Submission History */}
             <Divider />
@@ -347,7 +350,7 @@ const DocumentContent = () => {
 
             {/* Paper Information */}
             <Divider />
-            <StandardAccordion title="Document Files">
+            <LazyAccordion title="Document Files">
                 <Paper sx={{mb: 2, maxWidth: "md"}}>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
                         <Button
@@ -361,8 +364,7 @@ const DocumentContent = () => {
                     <DocumentFileList document_id={record?.id}/>
 
                 </Paper>
-            </StandardAccordion>
-
+            </LazyAccordion>
 
             <PaperAdminAddOwnerDialog documentId={record?.id} open={openAddOwnerDialog}
                                       setOpen={setOpenAddOwnerDialog}/>

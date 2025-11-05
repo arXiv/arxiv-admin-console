@@ -10,6 +10,7 @@ from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES
 from fastapi import FastAPI, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from asgi_logger import AccessLoggerMiddleware
 
 import sqlalchemy
@@ -157,12 +158,23 @@ class LogMiddleware(BaseHTTPMiddleware):
         
         # Replace the body iterator with our async generator
         response.body_iterator = generate_body()
-        
+
         # Log response details
-        response_body_str = b''.join(response_body).decode('utf-8')
         print(f"Response: {response.status_code}")
-        #print(f"Response Headers: {response.headers}")
-        #print(f"Response Body: {response_body_str}")
+
+        # Only decode text-based content types
+        content_type = response.headers.get('content-type', '')
+        is_text = any(ct in content_type.lower() for ct in ['text/', 'application/json', 'application/xml', 'application/javascript'])
+
+        if is_text:
+            try:
+                response_body_str = b''.join(response_body).decode('utf-8')
+                #print(f"Response Headers: {response.headers}")
+                #print(f"Response Body: {response_body_str}")
+            except UnicodeDecodeError:
+                print(f"Response: Binary content (could not decode as UTF-8), size: {len(b''.join(response_body))} bytes")
+        else:
+            print(f"Response: Binary content type '{content_type}', size: {len(b''.join(response_body))} bytes")
 
         return response
 
@@ -466,5 +478,37 @@ def create_app(*args, **kwargs) -> FastAPI:
         login_url = f"{AAA_LOGIN_REDIRECT_URL}?next_page={original_url}"
         logger.info('Bad cookie %s -> %s ', original_url, login_url)
         return RedirectResponse(url=login_url, status_code=status.HTTP_302_FOUND)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        """Custom handler for request validation errors (422) to provide clearer error messages."""
+        logger = logging.getLogger(__name__)
+
+        # Extract human-readable error information
+        errors = []
+        for error in exc.errors():
+            field = ".".join(str(loc) for loc in error["loc"])
+            msg = error["msg"]
+            error_type = error["type"]
+
+            # Create a more user-friendly error message
+            if error_type == "missing":
+                errors.append(f"Missing required field: '{field}'")
+            elif error_type == "type_error":
+                errors.append(f"Invalid type for field '{field}': {msg}")
+            else:
+                errors.append(f"Validation error in '{field}': {msg}")
+
+        error_summary = "; ".join(errors)
+        logger.warning(f"Validation error for {request.method} {request.url.path}: {error_summary}")
+
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "error": "Validation Error",
+                "message": error_summary,
+                "details": exc.errors()
+            }
+        )
 
     return app

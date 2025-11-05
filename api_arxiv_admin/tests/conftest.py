@@ -213,10 +213,11 @@ def dotenv_values(
 @pytest.fixture(scope="module")
 def api_client(test_env):
     """Start Admin API App. Since it needs the database running, it needs the arxiv db up"""
+    os.environ['TESTING'] = '1'
     os.environ.update(test_env)
     app = create_app()
     # Admin API_app_port = test_env['ARXIV_OAUTH2_APP_PORT']
-    api_url = test_env['ADMIN_API_URL']
+    api_url = test_env['ADMIN_API_URL'].replace('/admin-api', '')
     client = TestClient(app, base_url=api_url)
 
     for _ in range(100):
@@ -302,7 +303,7 @@ def api_headers(test_env):
 
 
 
-DOCKER_COMPOSE_ARGS = ["docker", "compose", "-f", "./tests/docker-compose-for-test.yaml", "--env-file=./tests/test-env"]
+DOCKER_COMPOSE_ARGS = ["docker", "compose", "-f", os.path.join(os.path.dirname(__file__), 'docker-compose-db-only.yaml'), "--env-file", os.path.join(os.path.dirname(__file__), 'test-env')]
 
 
 admin_api_root = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))

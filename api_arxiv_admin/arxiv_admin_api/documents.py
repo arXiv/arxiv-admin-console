@@ -1,12 +1,13 @@
 """arXiv paper display routes."""
 from __future__ import annotations
 
+import os
 from enum import Enum
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
-from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request, UploadFile, File, Form
+from typing import Optional, List, BinaryIO, TextIO
 from arxiv.base import logging
 from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic, TapirUser
 from sqlalchemy import func, and_, desc, cast, LargeBinary, Row, text
@@ -20,17 +21,36 @@ from arxiv.identifier import Identifier as arXivID
 
 from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, FileResponse, StreamingResponse
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .accessors import LocalAbsAccessor, LocalTarballAccessor, LocalPDFAccessor, GCPAbsAccessor, GCPTarballAccessor, \
-    GCPPDFAccessor, GCPStorage, BaseAccessor
+    GCPPDFAccessor, GCPStorage, BaseAccessor, LocalOutcomeAccessor, GCPOutcomeAccessor, GCPBlobAccessor, \
+    LocalFileAccessor
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .metadata import MetadataModel
 from .pubsub.event_schemas import BasePaperMessage
 from .pubsub.post_pubsub import post_pubsub_event
+from google.cloud.storage.fileio import BlobReader
+
+from io import BufferedIOBase
+from fastapi import BackgroundTasks
 
 logger = logging.getLogger(__name__)
+
+def close_stream(it: BufferedIOBase | BinaryIO | TextIO, blob_name: str, extra: dict) -> None:
+    """Close the stream."""
+    it.close()
+    logger.debug(f"closed stream for %s", blob_name, extra=extra)
+    pass
+
+
+def closer(it: BufferedIOBase | BinaryIO | TextIO, blob_name: str, extra: dict) -> BackgroundTasks:
+    """Create a background task to close the stream."""
+    tasks = BackgroundTasks()
+    tasks.add_task(close_stream, it, blob_name, extra)
+    return tasks
+
 
 router = APIRouter(prefix="/documents")
 
@@ -348,13 +368,14 @@ def get_document_metadata(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Invalid start or end index")
 
+    query = MetadataModel.base_select(session).filter(Metadata.document_id == id)
+
     for column in order_columns:
         if _order == "DESC":
             query = query.order_by(column.desc())
         else:
             query = query.order_by(column.asc())
 
-    query = MetadataModel.base_select(session).filter(Metadata.document_id == id)
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
     if _start is None:
@@ -502,11 +523,50 @@ def regenerate_document_artifacts(
     if target in ["pdf", "all"]:
         message = BasePaperMessage(paper_id=doc.paper_id, version=metadata.version)
 
+
 class DocumentFile(BaseModel):
     id: str # canonical name
+    blob_id: str
+    storage_id: str
+    document_id: int
+    exists: bool
     file_name: str
-    file_size: int
+    file_size: Optional[int] = None
     content_type: Optional[str] = None
+
+    @property
+    def is_file(self) -> bool:
+        return self.id.startswith("file://")
+
+    @property
+    def is_bucket_object(self) -> bool:
+        return self.id.startswith("gs://")
+
+
+async def blob_to_doc_file(entry: BaseAccessor, document_id: int) -> DocumentFile:
+    storage_id = "gcp" if isinstance(entry, GCPBlobAccessor) else "local"
+    return DocumentFile(id=entry.canonical_name, blob_id=entry.flavor, storage_id=storage_id,
+                        file_name=entry.basename, file_size=await entry.bytesize,
+                            content_type=entry.content_type, exists=await entry.exists(), document_id=document_id)
+
+
+def list_related_files(xid: arXivID, doc_storage: GCPStorage) -> List[BaseAccessor]:
+    candidate_files: List[BaseAccessor] = [
+        LocalAbsAccessor(xid, latest=True),
+        LocalTarballAccessor(xid, latest=True),
+        LocalPDFAccessor(xid, latest=True),
+    ]
+
+    if doc_storage:
+        candidate_files += [
+            GCPAbsAccessor(xid, storage=doc_storage, latest=True),
+            GCPTarballAccessor(xid, storage=doc_storage, latest=True),
+            GCPPDFAccessor(xid, storage=doc_storage, latest=True),
+            GCPOutcomeAccessor(xid, storage=doc_storage, latest=True),
+        ]
+
+    return candidate_files
+
 
 
 @router.get("/{id:str}/files")
@@ -524,26 +584,142 @@ async def list_document_files(
     if doc.submitter_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
 
-    md = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
-    version = md.version if md else 1
+    xid = arXivID(doc.paper_id)
+    doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
 
-    xid = arXivID(doc.paper_id + f"v{version}")
+    files = list_related_files(xid, doc_storage)
+    response.headers['X-Total-Count'] = str(len(files))
+    return [ await blob_to_doc_file(blob, id) for blob in files]
+
+
+def to_content_type(flavor: str ) -> str:
+    return {
+       "pdf": "application/pdf",
+       "abs": "text/plain",
+       "tarball": "application/gzip",
+       "html": "text/html",
+       "outcome": "application/gzip",
+    }.get(flavor, "application/octet-stream")
+
+@router.get("/{id:str}/files/{blob_id:str}")
+async def download_document_file(
+        id:int,
+        blob_id: str,
+        request: Request,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)) -> StreamingResponse:
+    """Regenerate document artifacts."""
+    doc: Optional[Document] = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+
+    if doc.submitter_id != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
+
+    doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
+    blobs = list_related_files(arXivID(doc.paper_id), doc_storage)
+
+    blob: BaseAccessor
+    for blob in blobs:
+        if not (await blob.exists()):
+            continue
+
+        if blob.flavor == blob_id:
+
+            filename = os.path.basename(blob.local_path)
+            media_type = to_content_type(blob.flavor)
+            headers = {
+                "Content-Type": media_type,
+                "Content-Disposition": f"attachment; filename={filename}",
+            }
+            content = blob.open()
+            log_extra = {"blob_id": blob_id, "file_base_name": filename}
+            return StreamingResponse(
+                content,
+                headers=headers,
+                media_type=media_type,
+                background=closer(content, filename, log_extra),
+                status_code=status.HTTP_200_OK,
+            )
+        pass
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File {doc.paper_id} {blob_id} not found")
+
+
+@router.post("/{id:str}/files")
+async def upload_document_file(
+        id: int,
+        uploading: UploadFile,
+        file_type: str = Form(...),
+        storage_id: str = Form(...),
+        request: Request = None,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
+        session: Session = Depends(get_db)):
+    """Upload a document file."""
+    doc: Optional[Document] = session.query(Document).filter(Document.document_id == id).one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
+
+    if doc.submitter_id != current_user.user_id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to upload document files")
+
+    # Validate file_type
+    valid_types = ["pdf", "abs", "tarball", "html", "outcome"]
+    if file_type not in valid_types:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                          detail=f"Invalid file_type: {file_type}. Must be one of {valid_types}")
+
+    xid = arXivID(doc.paper_id)
+    # Determine which accessor to use based on file_type and available storage
+    accessor: Optional[BaseAccessor]
 
     doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
 
-    candidate_files: List[BaseAccessor] = [
-        LocalAbsAccessor(xid, latest=True),
-        LocalTarballAccessor(xid, latest=True),
-        LocalPDFAccessor(xid, latest=True)
-    ]
+    if storage_id == "gcp":
+        if not doc_storage:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No document storage configured")
 
-    if doc_storage:
-        candidate_files += [
-            GCPAbsAccessor(xid, storage=doc_storage, latest=True),
-            GCPTarballAccessor(xid, storage=doc_storage, latest=True),
-            GCPPDFAccessor(xid, storage=doc_storage, latest=True),
-        ]
+        if file_type == "abs":
+            accessor = GCPAbsAccessor(xid, storage=doc_storage, latest=True) if doc_storage else LocalAbsAccessor(xid, latest=True)
+        elif file_type == "tarball":
+            accessor = GCPTarballAccessor(xid, storage=doc_storage, latest=True) if doc_storage else LocalTarballAccessor(xid, latest=True)
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unsupported file_type: {file_type}")
 
-    files = [ DocumentFile(id=entry.canonical_name, file_name=entry.basename, file_size=entry.bytesize, content_type=entry.content_type) for entry in candidate_files if entry.exists() ]
-    response.headers['X-Total-Count'] = str(len(files))
-    return files
+    if storage_id == "local":
+        if not doc_storage:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No document storage configured")
+
+        if file_type == "abs":
+            accessor = LocalAbsAccessor(xid, storage=doc_storage, latest=True) if doc_storage else LocalAbsAccessor(xid, latest=True)
+        elif file_type == "tarball":
+            accessor = LocalTarballAccessor(xid, storage=doc_storage, latest=True) if doc_storage else LocalTarballAccessor(xid, latest=True)
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unsupported file_type: {file_type}")
+
+    if not accessor:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create file accessor")
+
+    # Ensure parent directory exists for local files
+    if isinstance(accessor, LocalFileAccessor):
+        try:
+            os.makedirs(os.path.dirname(accessor.local_path), exist_ok=True)
+        except Exception as e:
+            logger.warning(f"Failed to create parent directory for local file {accessor.local_path}: {e}")
+            pass
+
+    # Stream the file directly to storage
+    try:
+        with accessor.open(mode='wb') as fd:
+            while chunk := await uploading.read(65536):  # 8KB chunks
+                fd.write(chunk)
+
+        logger.info(f"Uploaded {file_type} file for document {id} ({doc.paper_id})",
+                   extra={"document_id": id, "paper_id": doc.paper_id, "file_type": file_type})
+
+    except Exception as e:
+        logger.error(f"Failed to upload {file_type} file for document {id}: {e}",
+                    extra={"document_id": id, "paper_id": doc.paper_id, "file_type": file_type, "error": str(e)})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                          detail=f"Failed to upload file: {str(e)}")
+
+    return

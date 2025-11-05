@@ -1661,6 +1661,30 @@ export interface paths {
          */
         get: operations["list_document_files_v1_documents__id__files_get"];
         put?: never;
+        /**
+         * Upload Document File
+         * @description Upload a document file.
+         */
+        post: operations["upload_document_file_v1_documents__id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/documents/{id}/files/{blob_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Document File
+         * @description Regenerate document artifacts.
+         */
+        get: operations["download_document_file_v1_documents__id__files__blob_id__get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2639,6 +2663,18 @@ export interface components {
              */
             file_format: string;
         };
+        /** Body_upload_document_file_v1_documents__id__files_post */
+        Body_upload_document_file_v1_documents__id__files_post: {
+            /**
+             * Uploading
+             * Format: binary
+             */
+            uploading: string;
+            /** File Type */
+            file_type: string;
+            /** Storage Id */
+            storage_id: string;
+        };
         /** Body_upload_email_patterns_v1_email_patterns_import_post */
         Body_upload_email_patterns_v1_email_patterns_import_post: {
             /**
@@ -2795,6 +2831,25 @@ export interface components {
             orcid?: string | null;
             /** Author Id */
             author_id?: string | null;
+        };
+        /** DocumentFile */
+        DocumentFile: {
+            /** Id */
+            id: string;
+            /** Blob Id */
+            blob_id: string;
+            /** Storage Id */
+            storage_id: string;
+            /** Document Id */
+            document_id: number;
+            /** Exists */
+            exists: boolean;
+            /** File Name */
+            file_name: string;
+            /** File Size */
+            file_size?: number | null;
+            /** Content Type */
+            content_type?: string | null;
         };
         /** DocumentModel */
         DocumentModel: {
@@ -5351,6 +5406,8 @@ export interface operations {
                 subject?: string;
                 /** @description Send in test mode to current user */
                 test_mode?: boolean | null;
+                /** @description Sender email address. */
+                sender?: string | null;
                 /** @description Destination email address. */
                 recipient?: string | null;
             };
@@ -7626,7 +7683,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string[];
+                    "application/json": components["schemas"]["DocumentFile"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_file_v1_documents__id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_file_v1_documents__id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_document_file_v1_documents__id__files__blob_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                blob_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -9,7 +9,7 @@ services:
       - /bin/bash
       - -c
       - |
-        cd /var/lib && rm -fr ./mysql/*
+        cd /var/lib && rm -fr ./mysql/*;
         cd /var/lib && tar xzf /initdb.d/mysql_test_data.tgz
     
 
