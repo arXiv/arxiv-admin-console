@@ -99,6 +99,15 @@ SQLALCHMEY_MAPPING = {
     'pool_recycle': 900
 }
 
+USER_ACTION_SITE = os.environ.get("USER_ACTION_SITE", "https://dev.arxiv.org")
+USER_ACTION_URLS = {
+    "replace": os.environ.get("USER_ACTION_URL_REPLACE", "{site}/user/{doc_id}/replace"),
+    "withdraw": os.environ.get("USER_ACTION_URL_WITHDRAW", "{site}/user/{doc_id}/withdraw"),
+    "cross": os.environ.get("USER_ACTION_URL_CROSS", "{site}/user/{doc_id}/cross"),
+    "jref": os.environ.get("USER_ACTION_URL_JREF", "{site}/user/{doc_id}/jref"),
+    "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
+}
+
 #
 #
 #
@@ -263,6 +272,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         GCP_SERVICE_REQUEST_SA=os.environ.get('GCP_SERVICE_REQUEST_SA'),
         GCP_SERVICE_REQUEST_ENDPOINT=os.environ.get('GCP_SERVICE_REQUEST_ENDPOINT', "localhost:8080"),
         DOCUMENT_STORAGE=document_storage,
+        USER_ACTION_SITE=USER_ACTION_SITE,
+        USER_ACTION_URLS=USER_ACTION_URLS,
         **cookie_names
     )
 

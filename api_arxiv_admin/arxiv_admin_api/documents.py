@@ -475,16 +475,21 @@ class DocumentUserAction(str, Enum):
 
 @router.get("/user-action/{id}/{action}")
 def redirect_to_user_document_action(
+        request: Request,
         id:str,
         action: DocumentUserAction,
-        _current_user: ArxivUserClaims = Depends(get_authn_user),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> RedirectResponse:
     doc = session.query(Document).filter(Document.document_id == id).one_or_none()
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
     if action not in list(DocumentUserAction):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Action {action} is invalid. Must be one of {list(DocumentUserAction)}")
-    url = f"/user/{id}/{action.value}"
+    user_id = current_user.user_id
+    site = request.app.extra['USER_ACTION_SITE']
+    urls = request.app.extra['USER_ACTION_URLS']
+    url_template = urls.get(action.value, "https://dev.arxiv.org/user/{doc_id}/{action}")
+    url = url_template.format(site=site, doc_id=id, action=action.value, user_id=user_id)
     return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
 
 
