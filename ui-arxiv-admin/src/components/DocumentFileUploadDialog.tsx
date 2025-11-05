@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -20,19 +20,39 @@ interface DocumentFileUploadDialogProps {
     documentId?: Identifier;
     open: boolean;
     setOpen: (open: boolean) => void;
+    defaultFileType?: FileType;
+    defaultStorage?: StorageType;
 }
 
 const DocumentFileUploadDialog: React.FC<DocumentFileUploadDialogProps> = ({
     documentId,
     open,
-    setOpen
+    setOpen,
+    defaultFileType = 'tarball',
+    defaultStorage = 'gcp',
 }) => {
     const notify = useNotify();
     const refresh = useRefresh();
-    const [fileType, setFileType] = useState<FileType>('tarball');
-    const [storage, setStorage] = useState<StorageType>('gcp');
+    const [fileType, setFileType] = useState<FileType>(defaultFileType);
+    const [storage, setStorage] = useState<StorageType>(defaultStorage);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Initialize with default values when dialog opens
+    useEffect(() => {
+        if (open) {
+            setFileType(defaultFileType);
+            setStorage(defaultStorage);
+            setSelectedFile(null);
+
+            // Automatically trigger file picker after a short delay
+            // The delay ensures the dialog is fully rendered
+            setTimeout(() => {
+                fileInputRef.current?.click();
+            }, 300);
+        }
+    }, [open, defaultFileType, defaultStorage]);
 
     // Clear selected file when file type changes
     useEffect(() => {
@@ -121,8 +141,8 @@ const DocumentFileUploadDialog: React.FC<DocumentFileUploadDialogProps> = ({
     const handleClose = () => {
         if (!isUploading) {
             setOpen(false);
-            setFileType('tarball');
-            setStorage('gcp');
+            setFileType(defaultFileType);
+            setStorage(defaultStorage);
             setSelectedFile(null);
         }
     };
@@ -169,6 +189,7 @@ const DocumentFileUploadDialog: React.FC<DocumentFileUploadDialogProps> = ({
 
                     <Box>
                         <input
+                            ref={fileInputRef}
                             accept={fileType === 'abs' ? '.abs' : '.tar.gz'}
                             style={{ display: 'none' }}
                             id="raised-button-file"

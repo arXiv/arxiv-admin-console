@@ -12,6 +12,7 @@ import React from 'react';
 import StorageURLField from "../bits/StorageURLField";
 import DocumentFileTypeField from "../bits/DocumentFileTypeField";
 import DocumentFileDownloadField from "../bits/DocumentFileDownloadField";
+import DocumentFileUploadField from "../bits/DocumentFileUploadField";
 
 
 const DocumentFileList: React.FC<{document_id?: Identifier}> = ({document_id}) => {
@@ -36,10 +37,10 @@ const DocumentFileList: React.FC<{document_id?: Identifier}> = ({document_id}) =
             >
                 <BooleanField source={"exists"} label="Exists" sortable={false} />
                 <DocumentFileTypeField source={"id"} label="Type" sortable={false} />
-                <StorageURLField source={"id"} showSchema={true} label={"Location"} sortable={false} />
-                <StorageURLField source={"id"} showBucket={true} label={"Bucket"} sortable={false} />
+                <StorageURLField source={"id"} showBucket={true} label={"Storage"} sortable={false} />
                 <StorageURLField source={"id"} showPath={true} label={"Path"} sortable={false} />
                 <NumberField source={"file_size"} label="Size" sortable={false} />
+                <DocumentFileUploadField label="Upload" sortable={false} />
                 <DocumentFileDownloadField source={"id"} label="Download" sortable={false} />
             </Datagrid>
         </ListContextProvider>

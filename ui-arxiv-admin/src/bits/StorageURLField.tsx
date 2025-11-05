@@ -31,6 +31,7 @@ const parseStorageURI = (uri: string): ParsedURI | null => {
                 schemaLabel: 'CIT',
                 path: path,
                 fullURI: uri,
+                bucket: "file"
             };
         }
 
