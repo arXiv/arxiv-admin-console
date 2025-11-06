@@ -91,6 +91,7 @@ const TapirSessionBulkActionButtons = () => {
         setProgress(0);
 
         const successes: string[] = [];
+        const alreadyClosed: string[] = [];
         const errors: string[] = [];
         const total = selectedIds.length;
 
@@ -103,8 +104,16 @@ const TapirSessionBulkActionButtons = () => {
                     previousData: {close_session: false},
                 });
                 successes.push(id);
-            } catch (error) {
-                errors.push(id);
+            } catch (error: any) {
+                console.log('Update error:', JSON.stringify(error));
+                // Check if this is a 208 (already closed) vs actual error
+                if (error?.status === 400 || error?.body?.status === 400) {
+                    console.log(`Session ${id} already closed`);
+                    alreadyClosed.push(id);
+                } else {
+                    console.error(`Failed to close session ${id}:`, error);
+                    errors.push(id);
+                }
             }
 
             // Update progress
@@ -114,11 +123,22 @@ const TapirSessionBulkActionButtons = () => {
         }
 
         // Show final results
-        if (successes.length > 0) {
-            notify(`Closed ${successes.length} Tapir sessions`, {type: 'info'});
+        if (successes.length > 0 || alreadyClosed.length > 0) {
+            // Build a humane message combining successes and already-closed sessions
+            let message = '';
+
+            if (successes.length > 0 && alreadyClosed.length > 0) {
+                message = `Closed ${successes.length} Tapir session${successes.length > 1 ? 's' : ''}, ${alreadyClosed.length} ${alreadyClosed.length > 1 ? 'were' : 'was'} already closed`;
+            } else if (successes.length > 0) {
+                message = `Successfully closed ${successes.length} Tapir session${successes.length > 1 ? 's' : ''}`;
+            } else {
+                message = `${alreadyClosed.length} Tapir session${alreadyClosed.length > 1 ? 's were' : ' was'} already closed`;
+            }
+
+            notify(message, {type: 'success'});
         }
         if (errors.length > 0) {
-            notify(`Failed to close ${errors.length} Tapir sessions`, {type: 'warning'});
+            notify(`Failed to close ${errors.length} Tapir session${errors.length > 1 ? 's' : ''}`, {type: 'warning'});
         }
 
         // Clean up

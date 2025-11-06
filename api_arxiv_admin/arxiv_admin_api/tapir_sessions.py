@@ -8,7 +8,7 @@ from arxiv.base import logging
 from arxiv.db.models import TapirSession, TapirSessionsAudit
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, Query as SAQuery
-from sqlalchemy import case
+from sqlalchemy import case, text
 
 from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
 
@@ -177,7 +177,7 @@ async def _list_tapir_sessions(
             query = query.order_by(column.asc())
 
     if all_rows:
-        count = session.query(TapirSession).count()
+        count = session.query(TapirSession.session_id).count()
     else:
         count = query.count()
     response.headers['X-Total-Count'] = str(count)
@@ -215,6 +215,7 @@ class TapirSessionUpdateModel(BaseModel):
 @router.put("/{id:int}")
 async def update_tapir_session(
         id:int,
+        response: Response,
         body: TapirSessionModel | TapirSessionUpdateModel,
         session: Session = Depends(get_db)) -> TapirSessionModel:
     # This is part of logic, I have no clue.
@@ -236,8 +237,10 @@ async def update_tapir_session(
     if not tapir_session:
         raise HTTPException(status_code=404, detail=f"TapirSession not found for {id}")
     if body.close_session:
-        if tapir_session.end_time != 0:
-            raise HTTPException(status_code=400, detail=f"TapirSession already closed for {id}")
-        tapir_session.end_time = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
-    session.commit()
+        if tapir_session.end_time == 0:
+            tapir_session.end_time = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
+            session.commit()
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"TapirSession already closed for {id}")
+
     return TapirSessionModel.to_model(session, TapirSessionModel.base_query(session).filter(TapirSession.session_id == id).one_or_none())
