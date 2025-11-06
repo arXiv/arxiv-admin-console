@@ -2,12 +2,13 @@ import React, { createContext, useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import {Box} from '@mui/material';
 import {paths} from "./types/aaa-api";
-import {paths as adminPaths} from "./types/admin-api";
+import {paths as adminPaths, components as adminComponents} from "./types/admin-api";
 import { Fetcher } from 'openapi-typescript-fetch';
 import {defaultArxivNavLinks, ArxivNavLink } from "./arxivNavLinks";
 
 type UserType = paths['/account/current']['get']['responses']['200']['content']['application/json'];
 
+type SharedNavSection = adminComponents['schemas']['SharedNavSection'];
 
 export interface ArxiURLs
 {
@@ -65,6 +66,61 @@ export const RuntimeContext = createContext<RuntimeProps>(defaultRuntimeProps);
 
 interface RuntimeContextProviderProps {
     children: React.ReactNode;
+}
+
+function toNavLinks(navs: SharedNavSection[]): ArxivNavLink[] {
+    return navs.map((nav, navIndex) => {
+        const sectionId = `section-${navIndex}`;
+
+        const items: ArxivNavLink[] = nav.items
+            .map((item, itemIndex): ArxivNavLink | null => {
+                // Check if it's a subsection
+                if (item.anyof_schema_1_validator) {
+                    const subsection = item.anyof_schema_1_validator;
+                    return {
+                        id: `${sectionId}-subsection-${itemIndex}`,
+                        title: subsection.title,
+                        url: '#', // Subsections don't have URLs
+                        app: '',
+                        active: false,
+                        icon: null,
+                        items: subsection.links.map((link, linkIndex): ArxivNavLink => ({
+                            id: `${sectionId}-subsection-${itemIndex}-link-${linkIndex}`,
+                            title: link.title,
+                            url: link.url,
+                            app: link.app,
+                            active: false,
+                            icon: null,
+                        }))
+                    } as ArxivNavLink;
+                }
+                // Otherwise it's a link
+                else if (item.anyof_schema_2_validator) {
+                    const link = item.anyof_schema_2_validator;
+                    return {
+                        id: `${sectionId}-link-${itemIndex}`,
+                        title: link.title,
+                        url: link.url,
+                        app: link.app,
+                        active: false,
+                        icon: null,
+                    } as ArxivNavLink;
+                }
+                // Fallback if neither validator is set
+                return null;
+            })
+            .filter((item): item is ArxivNavLink => item !== null);
+
+        return {
+            id: sectionId,
+            title: nav.title,
+            url: '#',
+            app: '',
+            active: false,
+            icon: null,
+            items: items,
+        } as ArxivNavLink;
+    });
 }
 
 export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProps) => {
@@ -188,7 +244,27 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         console.log("current user " + JSON.stringify(runtimeEnv.currentUser));
     }, [runtimeEnv.currentUser]);
 
+    useEffect(() => {
+        const fetchNavigation = async () => {
+            if (!runtimeEnv.adminFetcher)
+                return;
 
+            const navUrlFetcher = runtimeEnv.adminFetcher.path('/system/navigation_urls').method('get').create();
+            const navResponse = await navUrlFetcher({});
+            if (navResponse.ok) {
+                // const navUrl = navResponse.data;
+
+                // const response = await fetch(navUrl);
+                // const navData = await response.json();
+                const navData = navResponse.data;
+                updateRuntimeEnv({arxivNavLinks: toNavLinks(navData)});
+            } else {
+                console.error('Error fetching navigation urls:', navResponse);
+            }
+        }
+
+        fetchNavigation();
+    }, [runtimeEnv.adminFetcher])
 
 
     if (loading) {

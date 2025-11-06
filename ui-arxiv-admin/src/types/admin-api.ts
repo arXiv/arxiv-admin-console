@@ -64,6 +64,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/navigation_urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Navigation Urls
+         * @description prod:      modapi.arxiv.org/admin/shared_nav_header
+         *     dev: services.dev.arxiv.org/admin/shared_nav_header
+         */
+        get: operations["get_navigation_urls_system_navigation_urls_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/navigations_url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Navigations Url
+         * @description prod:      modapi.arxiv.org/admin/shared_nav_header
+         *     dev: services.dev.arxiv.org/admin/shared_nav_header
+         */
+        get: operations["get_navigations_url_system_navigations_url_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/frontend/{full_path}": {
         parameters: {
             query?: never;
@@ -3583,6 +3625,56 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * SharedNavLink
+         * @description SharedNavLink
+         */
+        SharedNavLink: {
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+            /** App */
+            app: string;
+        };
+        /**
+         * SharedNavSection
+         * @description SharedNavSection
+         */
+        SharedNavSection: {
+            /** Title */
+            title: string;
+            /** Items */
+            items: components["schemas"]["SharedNavSectionItemsInner"][];
+        };
+        /**
+         * SharedNavSectionItemsInner
+         * @description SharedNavSectionItemsInner
+         */
+        SharedNavSectionItemsInner: {
+            anyof_schema_1_validator?: components["schemas"]["SharedNavSubsection"] | null;
+            anyof_schema_2_validator?: components["schemas"]["SharedNavLink"] | null;
+            /** Actual Instance */
+            actual_instance?: unknown;
+            /**
+             * Any Of Schemas
+             * @default [
+             *       "SharedNavLink",
+             *       "SharedNavSubsection"
+             *     ]
+             */
+            any_of_schemas: string[];
+        };
+        /**
+         * SharedNavSubsection
+         * @description SharedNavSubsection
+         */
+        SharedNavSubsection: {
+            /** Title */
+            title: string;
+            /** Links */
+            links: components["schemas"]["SharedNavLink"][];
+        };
         /** ShowEmailRequestsModel */
         ShowEmailRequestsModel: {
             /** Id */
@@ -4218,6 +4310,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_navigation_urls_system_navigation_urls_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedNavSection"][];
+                };
+            };
+        };
+    };
+    get_navigations_url_system_navigations_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
         };
