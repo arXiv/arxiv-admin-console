@@ -63,6 +63,12 @@ export const createAuthProvider = (runtimeProps: RuntimeProps): AuthProvider => 
         logoutInProgress = true;
         console.log("auth: /logout started");
 
+        // Clear tokens from localStorage
+        localStorage.removeItem('keycloak_access_token');
+        localStorage.removeItem('keycloak_refresh_token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_type');
+
         return retryFetch(`${runtimeProps.AAA_URL}/logout?next_page=/`, {
             method: 'GET',
             credentials: 'include',
