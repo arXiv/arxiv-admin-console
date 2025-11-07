@@ -2,13 +2,14 @@ import React, { createContext, useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import {Box} from '@mui/material';
 import {paths} from "./types/aaa-api";
-import {paths as adminPaths, components as adminComponents} from "./types/admin-api";
+import {paths as adminPaths,} from "./types/admin-api";
+import {paths as modapiPaths, components as modapiComponents} from "./types/mod-api";
 import { Fetcher } from 'openapi-typescript-fetch';
 import {defaultArxivNavLinks, ArxivNavLink } from "./arxivNavLinks";
 
 type UserType = paths['/account/current']['get']['responses']['200']['content']['application/json'];
 
-type SharedNavSection = adminComponents['schemas']['SharedNavSection'];
+type SharedNavSection = modapiComponents['schemas']['SharedNavSection'];
 
 export interface ArxiURLs
 {
@@ -27,7 +28,6 @@ const arXivURLs: ArxiURLs = {
 
 export interface RuntimeProps
 {
-    arxivNavLinks: ArxivNavLink[];
     AAA_URL: string;
     ADMIN_API_BACKEND_URL: string;
     ADMIN_APP_ROOT: string;
@@ -37,15 +37,17 @@ export interface RuntimeProps
     KEYCLOAK_REFRESH_TOKEN_NAME: string;
     ARXIV_CHECK: string;
     URLS: ArxiURLs;
+    MODAPI_URL: string;
     currentUser: UserType | null;
     currentUserLoading: boolean;
     updateEnv: (key: string, value: string) => void;
     aaaFetcher: ReturnType<typeof Fetcher.for<paths>>;
-    adminFetcher: ReturnType<typeof Fetcher.for<adminPaths>>;
+    adminFetcher?: ReturnType<typeof Fetcher.for<adminPaths>>;
+    modapiFetcher?: ReturnType<typeof Fetcher.for<modapiPaths>>;
+    arxivNavLinks: ArxivNavLink[];
 }
 
 const defaultRuntimeProps : RuntimeProps = {
-    arxivNavLinks: defaultArxivNavLinks,
     AAA_URL: '',
     ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5100/admin-api',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
@@ -55,11 +57,12 @@ const defaultRuntimeProps : RuntimeProps = {
     KEYCLOAK_REFRESH_TOKEN_NAME: "",
     ARXIV_CHECK: "https://check.dev.arxiv.org",
     URLS: arXivURLs,
+    MODAPI_URL: '',
     currentUser: null,
     currentUserLoading: true,
-    updateEnv: (key, value) => { },
+    updateEnv: (_key, _value) => { },
     aaaFetcher: Fetcher.for<paths>(),
-    adminFetcher: Fetcher.for<adminPaths>(),
+    arxivNavLinks: defaultArxivNavLinks,
 };
 
 export const RuntimeContext = createContext<RuntimeProps>(defaultRuntimeProps);
@@ -74,9 +77,9 @@ function toNavLinks(navs: SharedNavSection[]): ArxivNavLink[] {
 
         const items: ArxivNavLink[] = nav.items
             .map((item, itemIndex): ArxivNavLink | null => {
-                // Check if it's a subsection
-                if (item.anyof_schema_1_validator) {
-                    const subsection = item.anyof_schema_1_validator;
+                // Check if it's a subsection (has 'links' property)
+                if ('links' in item) {
+                    const subsection = item as modapiComponents['schemas']['SharedNavSubsection'];
                     return {
                         id: `${sectionId}-subsection-${itemIndex}`,
                         title: subsection.title,
@@ -94,9 +97,9 @@ function toNavLinks(navs: SharedNavSection[]): ArxivNavLink[] {
                         }))
                     } as ArxivNavLink;
                 }
-                // Otherwise it's a link
-                else if (item.anyof_schema_2_validator) {
-                    const link = item.anyof_schema_2_validator;
+                // Otherwise it's a link (has 'url' property)
+                else if ('url' in item) {
+                    const link = item as modapiComponents['schemas']['SharedNavLink'];
                     return {
                         id: `${sectionId}-link-${itemIndex}`,
                         title: link.title,
@@ -106,7 +109,7 @@ function toNavLinks(navs: SharedNavSection[]): ArxivNavLink[] {
                         icon: null,
                     } as ArxivNavLink;
                 }
-                // Fallback if neither validator is set
+                // Fallback if neither type matches
                 return null;
             })
             .filter((item): item is ArxivNavLink => item !== null);
@@ -129,6 +132,8 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
     const updateRuntimeEnv = (props: Partial<RuntimeProps>) => {
         const newEnv = Object.assign({}, runtimeEnv, props);
+        console.debug("updateRuntimeEnv " + JSON.stringify(props));
+        console.debug("aaa url -> " + runtimeEnv.AAA_URL + " ->" + newEnv.AAA_URL );
         setRuntimeEnv(newEnv);
     }
 
@@ -193,8 +198,10 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
     useEffect(() => {
         const fetchUserData = async () => {
-            if (!runtimeEnv.AAA_URL)
+            if (!runtimeEnv.AAA_URL) {
+                console.log("aaaFetcher: IS GONE");
                 return;
+            }
 
             const it = Fetcher.for<paths>();
             it.configure({baseUrl: runtimeEnv.AAA_URL});
@@ -240,32 +247,77 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         updateRuntimeEnv({adminFetcher: it});
     }, [runtimeEnv.ADMIN_API_BACKEND_URL]);
 
+/*
     useEffect(() => {
         console.log("current user " + JSON.stringify(runtimeEnv.currentUser));
     }, [runtimeEnv.currentUser]);
+*/
+
+    useEffect(() => {
+        const fetchServiceInfo = async () => {
+            if (runtimeEnv.adminFetcher === undefined)
+                return;
+
+            if (runtimeEnv.MODAPI_URL)
+                return;
+
+            const servicesInfoFetcher = runtimeEnv.adminFetcher.path('/system/service-info').method('get').create();
+            try {
+                const sinfoResponse = await servicesInfoFetcher({});
+                if (sinfoResponse.ok) {
+                    const serviceInfo = sinfoResponse.data;
+                    const modapiFetcher = Fetcher.for<paths>();
+                    modapiFetcher.configure({baseUrl: serviceInfo.modapi});
+                    console.log("serviceInfo:", serviceInfo);
+                    updateRuntimeEnv({MODAPI_URL: serviceInfo.modapi, modapiFetcher: modapiFetcher});
+                } else {
+                    console.error('Error fetching service info :', sinfoResponse);
+                }
+            }
+            catch (error) {
+                console.error('Error in fetchServiceInfo:', error);
+            }
+        }
+
+        fetchServiceInfo();
+    }, [runtimeEnv.adminFetcher, runtimeEnv.MODAPI_URL])
 
     useEffect(() => {
         const fetchNavigation = async () => {
-            if (!runtimeEnv.adminFetcher)
+            if (!runtimeEnv.MODAPI_URL)
                 return;
+            if (!runtimeEnv.ARXIV_COOKIE_NAME) {
+                return;
+            }
 
-            const navUrlFetcher = runtimeEnv.adminFetcher.path('/system/navigation_urls').method('get').create();
-            const navResponse = await navUrlFetcher({});
-            if (navResponse.ok) {
-                // const navUrl = navResponse.data;
+            console.log("modapi");
 
-                // const response = await fetch(navUrl);
-                // const navData = await response.json();
-                const navData = navResponse.data;
-                updateRuntimeEnv({arxivNavLinks: toNavLinks(navData)});
-            } else {
-                console.error('Error fetching navigation urls:', navResponse);
+            // const sharedNavFetcher = runtimeEnv.modapiFetcher.path('/admin/shared_nav_header').method('get').create();
+            try {
+                const arxivToken = localStorage.getItem('access_token');
+
+                const sharedNavResponse = await fetch(runtimeEnv.MODAPI_URL + '/admin/shared_nav_header',
+                    {
+                        headers:
+                            {
+                                authorization: `Bearer ${arxivToken}`,
+                            },
+                    });
+                if (sharedNavResponse.ok) {
+                    const navData = await sharedNavResponse.json();
+                    console.log("shared_nav_data", navData);
+                    updateRuntimeEnv({arxivNavLinks: toNavLinks(navData)});
+                } else {
+                    console.error('Error fetching navigation urls:', sharedNavResponse);
+                }
+            }
+            catch (error) {
+
             }
         }
 
         fetchNavigation();
-    }, [runtimeEnv.adminFetcher])
-
+    }, [runtimeEnv.MODAPI_URL, runtimeEnv.ARXIV_COOKIE_NAME]);
 
     if (loading) {
         return (<Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>);

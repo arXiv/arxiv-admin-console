@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/service-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Service Info */
+        get: operations["get_service_info_system_service_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/frontend/{full_path}": {
         parameters: {
             query?: never;
@@ -3230,6 +3247,39 @@ export interface components {
          * @enum {integer}
          */
         IsAuthorEnum: 0 | 1 | 2;
+        /** KnownServices */
+        KnownServices: {
+            /** Base Server */
+            base_server: string;
+            /** Login Redirect Url */
+            login_redirect_url: string;
+            /** Logout Redirect Url */
+            logout_redirect_url: string;
+            /** Token Refresh Url */
+            token_refresh_url: string;
+            /** Navigations Url */
+            navigations_url: string;
+            /** Modapi */
+            modapi: string;
+            /** Gcp Project Id */
+            gcp_project_id: string;
+            /** User Action Site */
+            user_action_site: string;
+            /** Arxiv Urls */
+            arxiv_urls: [
+                string,
+                string,
+                string
+            ][];
+            /** Search Server */
+            search_server: string;
+            /** Submit Server */
+            submit_server: string;
+            /** Canonical Server */
+            canonical_server: string;
+            /** Help Server */
+            help_server: string;
+        };
         /** LicenseModel */
         LicenseModel: {
             /** Id */
@@ -3659,8 +3709,8 @@ export interface components {
             /**
              * Any Of Schemas
              * @default [
-             *       "SharedNavLink",
-             *       "SharedNavSubsection"
+             *       "SharedNavSubsection",
+             *       "SharedNavLink"
              *     ]
              */
             any_of_schemas: string[];
@@ -4350,6 +4400,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    get_service_info_system_service_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnownServices"];
                 };
             };
         };

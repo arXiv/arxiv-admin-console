@@ -49,12 +49,14 @@ const NavCard: React.FC<NavCardProps> = ({ navSection }) => {
         : defaultColorScheme;
 
     // Debug logging
+/*
     console.log('NavCard:', {
         title: navSection.title,
         purpose: navSection.purpose,
         colorScheme: colorScheme,
         hasMatchingScheme: !!(navSection.purpose && purposeColorSchemes[navSection.purpose as keyof typeof purposeColorSchemes])
     });
+*/
 
     const handleLinkClick = (url: string) => {
         if (url) {

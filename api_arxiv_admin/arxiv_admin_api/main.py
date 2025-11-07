@@ -267,7 +267,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         ENDORSER_POOL_OBJECT_URL = os.environ.get('ENDORSER_POOL_OBJECT_URL'),
         MODAPI_URL=MODAPI_URL,
         MODAPI_MODKEY=MODAPI_MODKEY,
-        GCP_PROJECT_ID=os.environ.get('GCP_PROJECT_ID'),
+        GCP_PROJECT_ID=os.environ.get('GCP_PROJECT_ID', "arxiv-development"),
         GCP_PROJECT_CREDS=os.environ.get('GCP_PROJECT_CREDS'),
         GCP_SERVICE_REQUEST_SA=os.environ.get('GCP_SERVICE_REQUEST_SA'),
         GCP_SERVICE_REQUEST_ENDPOINT=os.environ.get('GCP_SERVICE_REQUEST_ENDPOINT', "localhost:8080"),

@@ -1,12 +1,14 @@
 """admin-api system status"""
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import httpx
+from arxiv.config import Settings
 from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES, get_db
 from fastapi import APIRouter, status, Request, HTTPException, Depends
 
 from arxiv.base import logging
 from arxiv.db.models import Category
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
@@ -91,7 +93,7 @@ async def get_navigation_urls(
         cookie_header = '; '.join([f"{k}={v}" for k, v in cookies.items()])
         headers = {'Cookie': cookie_header }
 
-        bearer_token = request.headers.get("Authorization")
+        bearer_token = request.headers.get("authorization")
         if bearer_token is None:
             ng_token = cookies.get(request.app.extra[COOKIE_ENV_NAMES.ng_cookie_env])
             if ng_token:
@@ -123,4 +125,46 @@ async def get_navigations_url(
     prod:      modapi.arxiv.org/admin/shared_nav_header
     dev: services.dev.arxiv.org/admin/shared_nav_header
     """
-    return request.app.extra["MODAPI_URL"] + "/admin/shared_nav_header"
+    modapi_url: str = request.app.extra["MODAPI_URL"]
+    return modapi_url + "/admin/shared_nav_header"
+
+
+class KnownServices(BaseModel):
+    base_server: str
+    login_redirect_url: str
+    logout_redirect_url: str
+    token_refresh_url: str
+    navigations_url: str
+    modapi: str
+    gcp_project_id: str
+    user_action_site: str
+    arxiv_urls: List[Tuple[str, str, str]]
+    search_server: str
+    submit_server: str
+    canonical_server: str
+    help_server: str
+
+
+@router.get('/service-info')
+async def get_service_info(
+        request: Request,
+    ) -> KnownServices:
+    """
+    """
+    modapi_url: str = request.app.extra["MODAPI_URL"]
+    arxiv_settings:Settings = request.app.extra["arxiv_settings"]
+    return KnownServices(
+        base_server=arxiv_settings.BASE_SERVER,
+        login_redirect_url=request.app.extra["LOGIN_REDIRECT_URL"],
+        logout_redirect_url=request.app.extra["LOGOUT_REDIRECT_URL"],
+        token_refresh_url=request.app.extra["AAA_TOKEN_REFRESH_URL"],
+        navigations_url=modapi_url + "/admin/shared_nav_header",
+        modapi=modapi_url,
+        gcp_project_id=request.app.extra["GCP_PROJECT_ID"],
+        user_action_site=request.app.extra["USER_ACTION_SITE"],
+        arxiv_urls=arxiv_settings.URLS,
+        search_server=arxiv_settings.SEARCH_SERVER,
+        submit_server=arxiv_settings.SUBMIT_SERVER,
+        canonical_server=arxiv_settings.CANONICAL_SERVER,
+        help_server=arxiv_settings.HELP_SERVER,
+    )
