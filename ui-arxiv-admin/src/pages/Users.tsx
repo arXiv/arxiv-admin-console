@@ -310,10 +310,10 @@ function UserDemographic() {
 */
     const record = useRecordContext();
     const dataProvider = useDataProvider();
+    const refresh = useRefresh();
     const [tapirSessions, setTapirSessions] = useState<any[]>([]);
     const [totalTapirSessions, setTotalTapirSessions] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-
 
     useEffect(() => {
         const fetchTapirSessions = async () => {
@@ -602,7 +602,7 @@ const UserEditContent = () => {
     const [canEndorseForOpen, setCanEndorseForOpen] = useState(false);
     const [canSubmitToOpen, setCanSubmitToOpen] = useState(false);
     const [changeEmailOpen, setChangeEmailOpen] = useState(false);
-    const [changeUserNameOpen, setChangeUserNameOpen] = useState(false);
+    const [changeUserNameOpen, setChangeUserNameOpen] = useState<'closed' | 'name' | 'username'>('closed');
     const [addCommentOpen, setAddCommentOpen] = useState(false);
     const [vetoStatusOpen, setVetoStatusOpen] = useState(false);
     const [bulkPaperOwnerOpen, setBulkPaperOwnerOpen] = useState(false);
@@ -838,20 +838,23 @@ const UserEditContent = () => {
                             gap: 2
                         }}>
                             <Box sx={{flex: 1}}>
+                                <UserNameDialog
+                                    open={changeUserNameOpen !== 'closed'}
+                                    setOpen={setChangeUserNameOpen}
+                                    onUpdated={handleUserNameChanged}
+                                    withUsername={changeUserNameOpen === 'username'}
+
+                                />
+
                                 <Box display="flex" flexDirection="row" gap={1} justifyItems={"baseline"}>
                                     <Typography width={labelWidth} variant={"h6"}>Name</Typography>
 
                                     <Typography component={"span"} variant={"body1"} alignContent={"center"}>
                                         <UserNameField/>
-                                        <IconButton onClick={() => setChangeUserNameOpen(true)}>
+                                        <IconButton onClick={() => setChangeUserNameOpen('name')}>
                                             <ConsoleEditIcon/>
                                         </IconButton>
                                     </Typography>
-                                    <UserNameDialog
-                                        open={changeUserNameOpen}
-                                        setOpen={setChangeUserNameOpen}
-                                        onUpdated={handleUserNameChanged}
-                                    />
                                 </Box>
 
                                 <Box display="flex" flexDirection="column" mt={"2rem"}>
@@ -873,6 +876,16 @@ const UserEditContent = () => {
                                         <BooleanInput source="email_bouncing" label={"Email bouncing"}
                                                       helperText={false}
                                                       options={{size: "small"}}/>
+                                    </Box>
+                                </Box>
+
+                                <Box display="flex" flexDirection="column" mt={"2rem"}>
+                                    <Box display="flex" flexDirection="row" gap={1} alignItems="center">
+                                        <Typography width={labelWidth} variant={"h6"}>Username</Typography>
+                                        <TextField source="username" fontSize={"large"}/>
+                                        <IconButton onClick={() => setChangeUserNameOpen('username')} size="small">
+                                            <ConsoleEditIcon/>
+                                        </IconButton>
                                     </Box>
                                 </Box>
 

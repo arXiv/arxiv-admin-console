@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -11,109 +11,91 @@ import {
     CircularProgress,
     Alert
 } from "@mui/material";
-import { Identifier, useDataProvider, useNotify, useRecordContext } from "react-admin";
+import { useChangeDialog } from "../hooks/useChangeDialog";
 
 interface UserNameDialogProps {
     open: boolean;
-    setOpen: (open: boolean) => void;
+    setOpen: (open : 'closed' | 'name' | 'username') => void;
     onUpdated?: () => void;
     title?: string;
     withUsername?: boolean;
 }
 
-const UserNameDialog: React.FC<UserNameDialogProps> = (
-    {
-        open,
-        setOpen,
-        onUpdated,
-        title = "Update User Name",
-        withUsername = false,
+interface UserNameFormValues {
+    firstName?: string;
+    lastName?: string;
+    suffixName?: string;
+    username?: string;
+    comment: string;
+}
+
+const UserNameDialog: React.FC<UserNameDialogProps> = ({
+    open,
+    setOpen,
+    onUpdated,
+    title = "Update User",
+    withUsername = false,
 }) => {
-    const [firstName, setFirstName] = useState<string>("");
-    const [lastName, setLastName] = useState<string>("");
-    const [suffixName, setSuffixName] = useState<string>("");
-    const [username, setUsername] = useState<string>("");
-    const [comment, setComment] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const dataProvider = useDataProvider();
-    const notify = useNotify();
-    const record = useRecordContext();
-
-    React.useEffect(() => {
-        if (open && record) {
-            setFirstName(record.first_name || "");
-            setLastName(record.last_name || "");
-            setSuffixName(record.suffix_name || "");
-            setUsername(record.username || "");
-            setComment("");
-            setError(null);
-        }
-    }, [open, record]);
+    const {
+        values,
+        setValue,
+        isLoading,
+        error,
+        setError,
+        record,
+        userId,
+        handleSubmit,
+    } = useChangeDialog<UserNameFormValues>({
+        open,
+        getInitialValues: (record) => ({
+            firstName: record.first_name || "",
+            lastName: record.last_name || "",
+            suffixName: record.suffix_name || "",
+            username: record.username || "",
+            comment: "",
+        }),
+        validate: (values) => {
+            if (!values.firstName?.trim() && !values.lastName?.trim() && !values.username?.trim()) {
+                return "Please provide at least a first name, last name, or username";
+            }
+            if (!values.comment.trim()) {
+                return "Please provide a comment explaining this action";
+            }
+            return null;
+        },
+        resource: 'aaa_user_name',
+        transformPayload: (values) => ({
+            first_name: !withUsername ? values.firstName?.trim() : undefined,
+            last_name: !withUsername ? values.lastName?.trim() : undefined,
+            suffix_name: !withUsername ? values.suffixName?.trim() : undefined,
+            username: withUsername ? values.username?.trim() : undefined,
+            comment: values.comment.trim(),
+        }),
+        successMessage: (values, record) => {
+            const currentName = `${record.first_name || ''} ${record.last_name || ''}`.trim() || record.username || `User ${record.id}`;
+            const newName = `${values.firstName?.trim()} ${values.lastName?.trim()}`.trim();
+            return `User name changed from '${currentName}' to '${newName}'`;
+        },
+        onSuccess: () => {
+            if (onUpdated) {
+                onUpdated();
+            }
+            setOpen('closed');
+        },
+    });
 
     if (!record) return null;
-    const userId = record.id as Identifier;
+
     const currentName = `${record.first_name || ''} ${record.last_name || ''}`.trim() || record.username || `User ${userId}`;
 
     const handleClose = () => {
         if (!isLoading) {
-            setOpen(false);
+            setOpen('closed');
         }
     };
 
-    const validateForm = () => {
-        if (!firstName.trim() && !lastName.trim() && !username.trim()) {
-            setError("Please provide at least a first name, last name, or username");
-            return false;
-        }
-        if (!comment.trim()) {
-            setError("Please provide a comment explaining this action");
-            return false;
-        }
-        return true;
-    };
-
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const payload = {
-                first_name: firstName.trim(),
-                last_name: lastName.trim(),
-                suffix_name: suffixName.trim(),
-                username: username.trim(),
-                comment: comment.trim()
-            };
-
-            await dataProvider.update('aaa_user_name', {
-                id: userId,
-                data: payload,
-                previousData: record
-            });
-
-            const newName = `${firstName.trim()} ${lastName.trim()}`.trim();
-            const message = `User name changed from '${currentName}' to '${newName}'`;
-            notify(message, { type: 'success' });
-
-            if (onUpdated) {
-                onUpdated();
-            }
-
-            setOpen(false);
-        } catch (error: any) {
-            console.error("Error updating user name:", error);
-            setError(error.message || "An error occurred while updating the user name");
-        } finally {
-            setIsLoading(false);
-        }
+    const onSubmit = async (event: React.FormEvent) => {
+        await handleSubmit(event);
     };
 
     return (
@@ -124,7 +106,7 @@ const UserNameDialog: React.FC<UserNameDialogProps> = (
             maxWidth="sm"
             aria-labelledby="user-name-dialog-title"
         >
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={onSubmit}>
                 <DialogTitle id="user-name-dialog-title">
                     {title}
                 </DialogTitle>
@@ -140,57 +122,61 @@ const UserNameDialog: React.FC<UserNameDialogProps> = (
                             </Alert>
                         )}
 
-                        <TextField
-                            label="First Name"
-                            fullWidth
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            margin="normal"
-                            disabled={isLoading}
-                            placeholder="Enter first name"
-                        />
+                        {!withUsername && (
+                            <TextField
+                                label="First Name"
+                                fullWidth
+                                value={values.firstName || ''}
+                                onChange={(e) => setValue('firstName', e.target.value)}
+                                margin="normal"
+                                disabled={isLoading}
+                                placeholder="Enter first name"
+                            />
+                        )}
 
-                        <TextField
-                            label="Last Name"
-                            fullWidth
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            margin="normal"
-                            disabled={isLoading}
-                            placeholder="Enter last name"
-                        />
+                        {!withUsername && (
+                            <TextField
+                                label="Last Name"
+                                fullWidth
+                                value={values.lastName || ''}
+                                onChange={(e) => setValue('lastName', e.target.value)}
+                                margin="normal"
+                                disabled={isLoading}
+                                placeholder="Enter last name"
+                            />
+                        )}
 
-                        <TextField
-                            label="Suffix Name"
-                            fullWidth
-                            value={suffixName}
-                            onChange={(e) => setSuffixName(e.target.value)}
-                            margin="normal"
-                            disabled={isLoading}
-                            placeholder="Enter suffix (Jr., Sr., III, etc.)"
-                        />
+                        {!withUsername && (
+                            <TextField
+                                label="Suffix Name"
+                                fullWidth
+                                value={values.suffixName || ''}
+                                onChange={(e) => setValue('suffixName', e.target.value)}
+                                margin="normal"
+                                disabled={isLoading}
+                                placeholder="Enter suffix (Jr., Sr., III, etc.)"
+                            />
+                        )}
 
-                        {
-                            withUsername ? (
-                                <TextField
-                                    label="Username (Login Name)"
-                                    fullWidth
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    margin="normal"
-                                    disabled={isLoading}
-                                    placeholder="Enter username"
-                                />
-                            ) : null
-                        }
+                        {withUsername && (
+                            <TextField
+                                label="Username (Login Name)"
+                                fullWidth
+                                value={values.username || ''}
+                                onChange={(e) => setValue('username', e.target.value)}
+                                margin="normal"
+                                disabled={isLoading}
+                                placeholder="Enter username"
+                            />
+                        )}
 
                         <TextField
                             label="Comment"
                             multiline
                             rows={4}
                             fullWidth
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
+                            value={values.comment || ''}
+                            onChange={(e) => setValue('comment', e.target.value)}
                             margin="normal"
                             required
                             disabled={isLoading}
@@ -210,7 +196,7 @@ const UserNameDialog: React.FC<UserNameDialogProps> = (
                         type="submit"
                         variant="contained"
                         color="primary"
-                        disabled={isLoading || !comment.trim() || (!firstName.trim() && !lastName.trim() && !username.trim())}
+                        disabled={isLoading || !values.comment?.trim() || (!(values.firstName?.trim()) && !(values.lastName?.trim()) && !(values.username?.trim()))}
                         startIcon={isLoading ? <CircularProgress size={20} /> : null}
                     >
                         {isLoading ? "Updating..." : "Update Name"}

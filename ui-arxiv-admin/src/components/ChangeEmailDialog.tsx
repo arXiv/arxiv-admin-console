@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -11,9 +11,7 @@ import {
     CircularProgress,
     Alert
 } from "@mui/material";
-import {Identifier, useDataProvider, useNotify, useRecordContext} from "react-admin";
-import { useContext } from "react";
-import { RuntimeContext } from "../RuntimeContext";
+import { useChangeDialog } from "../hooks/useChangeDialog";
 
 interface ChangeEmailDialogProps {
     open: boolean;
@@ -21,36 +19,66 @@ interface ChangeEmailDialogProps {
     onEmailChanged?: (newEmail: string) => void;
 }
 
-const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
-    {
+interface EmailFormValues {
+    newEmail: string;
+    confirmEmail: string;
+    reason: string;
+}
+
+const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = ({
+    open,
+    setOpen,
+    onEmailChanged
+}) => {
+    const {
+        values,
+        setValue,
+        isLoading,
+        error,
+        setError,
+        record,
+        userId,
+        handleSubmit,
+    } = useChangeDialog<EmailFormValues>({
         open,
-        setOpen,
-        onEmailChanged
-    }) => {
-    const [newEmail, setNewEmail] = useState<string>("");
-    const [confirmEmail, setConfirmEmail] = useState<string>("");
-    const [reason, setReason] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const dataProvider = useDataProvider();
-    const notify = useNotify();
-    const record = useRecordContext();
-
-    const runtimeProps = useContext(RuntimeContext);
-
-    // Reset form when dialog opens
-    React.useEffect(() => {
-        if (open) {
-            setNewEmail("");
-            setConfirmEmail("");
-            setReason("");
-            setError(null);
-        }
-    }, [open]);
+        getInitialValues: () => ({
+            newEmail: "",
+            confirmEmail: "",
+            reason: "",
+        }),
+        validate: (values) => {
+            if (!values.newEmail || !values.confirmEmail) {
+                return "Both email fields are required";
+            }
+            if (values.newEmail !== values.confirmEmail) {
+                return "Emails do not match";
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(values.newEmail)) {
+                return "Please enter a valid email address";
+            }
+            if (!values.reason.trim()) {
+                return "Please provide a reason for changing the email";
+            }
+            return null;
+        },
+        resource: 'aaa_user_email',
+        transformPayload: (values, record) => ({
+            email: record.email,
+            new_email: values.newEmail,
+            comment: values.reason,
+        }),
+        successMessage: 'Email successfully changed',
+        onSuccess: (values) => {
+            if (onEmailChanged) {
+                onEmailChanged(values.newEmail);
+            }
+            setOpen(false);
+        },
+    });
 
     if (!record) return null;
-    const userId = record.id as Identifier;
+
     const currentEmail = record.email;
 
     const handleClose = () => {
@@ -59,73 +87,8 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
         }
     };
 
-    const validateEmails = () => {
-        if (!newEmail || !confirmEmail) {
-            setError("Both email fields are required");
-            return false;
-        }
-
-        if (newEmail !== confirmEmail) {
-            setError("Emails do not match");
-            return false;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(newEmail)) {
-            setError("Please enter a valid email address");
-            return false;
-        }
-
-        if (!reason.trim()) {
-            setError("Please provide a reason for changing the email");
-            return false;
-        }
-
-        return true;
-    };
-
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-
-        if (!validateEmails()) {
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            // Call the API to change the email
-            await dataProvider.update('aaa_user_email', {
-                id: userId,
-                data: {
-                    email: currentEmail,
-                    new_email: newEmail,
-                    comment: reason
-                },
-                previousData: {
-                    email: currentEmail
-                }
-            });
-
-            notify('Email successfully changed', { type: 'success' });
-
-            // Call callback if provided
-            if (onEmailChanged) {
-                onEmailChanged(newEmail);
-            }
-
-            setOpen(false);
-        } catch (error: any) {
-            let message = error.message || "An error occurred while changing the email";
-            if (error?.body?.detail) {
-                message = message + ": " + error.body.detail;
-            }
-            console.error("Error changing email:", JSON.stringify(error));
-            setError(message || "An error occurred while changing the email");
-        } finally {
-            setIsLoading(false);
-        }
+    const onSubmit = async (event: React.FormEvent) => {
+        await handleSubmit(event);
     };
 
     return (
@@ -136,7 +99,7 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
             maxWidth="sm"
             aria-labelledby="change-email-dialog-title"
         >
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={onSubmit}>
                 <DialogTitle id="change-email-dialog-title">
                     Change User Email Address
                 </DialogTitle>
@@ -156,8 +119,8 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
                             label="New Email Address"
                             type="email"
                             fullWidth
-                            value={newEmail}
-                            onChange={(e) => setNewEmail(e.target.value)}
+                            value={values.newEmail || ''}
+                            onChange={(e) => setValue('newEmail', e.target.value)}
                             margin="normal"
                             required
                             disabled={isLoading}
@@ -168,13 +131,13 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
                             label="Confirm New Email Address"
                             type="email"
                             fullWidth
-                            value={confirmEmail}
-                            onChange={(e) => setConfirmEmail(e.target.value)}
+                            value={values.confirmEmail || ''}
+                            onChange={(e) => setValue('confirmEmail', e.target.value)}
                             margin="normal"
                             required
                             disabled={isLoading}
-                            error={confirmEmail !== "" && newEmail !== confirmEmail}
-                            helperText={confirmEmail !== "" && newEmail !== confirmEmail ? "Emails don't match" : ""}
+                            error={values.confirmEmail !== "" && values.newEmail !== values.confirmEmail}
+                            helperText={values.confirmEmail !== "" && values.newEmail !== values.confirmEmail ? "Emails don't match" : ""}
                         />
 
                         <TextField
@@ -182,8 +145,8 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
                             multiline
                             rows={3}
                             fullWidth
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
+                            value={values.reason || ''}
+                            onChange={(e) => setValue('reason', e.target.value)}
                             margin="normal"
                             required
                             disabled={isLoading}
@@ -202,7 +165,7 @@ const ChangeEmailDialog: React.FC<ChangeEmailDialogProps> = (
                         type="submit"
                         variant="contained"
                         color="primary"
-                        disabled={isLoading || !newEmail || !confirmEmail || newEmail !== confirmEmail || !reason.trim()}
+                        disabled={isLoading || !values.newEmail || !values.confirmEmail || values.newEmail !== values.confirmEmail || !values.reason?.trim()}
                         startIcon={isLoading ? <CircularProgress size={20} /> : null}
                     >
                         {isLoading ? "Changing..." : "Change Email"}

@@ -349,8 +349,28 @@ class adminApiDataProvider implements DataProvider {
 
                 return {data: response.data as unknown as T};
             }
-            catch (error) {
-                handleHttpError(error, 'Failed to update email');
+            catch (error: any) {
+                // Extract error details from openapi-typescript-fetch error
+                let errorBody = error?.data || error?.body || {};
+
+                // If we have the raw error response, try to get the detail
+                if (!errorBody?.detail && error?.response) {
+                    try {
+                        const responseClone = error.response.clone();
+                        const responseBody = await responseClone.json();
+                        errorBody = responseBody;
+                    } catch (e) {
+                        // Response body might not be JSON
+                    }
+                }
+
+                const enrichedError = {
+                    ...error,
+                    body: errorBody,
+                    status: error?.status || error?.response?.status || 500
+                };
+
+                handleHttpError(enrichedError, 'Failed to update email');
             }
         }
         else if (resource === 'aaa_user_name') {
@@ -374,8 +394,32 @@ class adminApiDataProvider implements DataProvider {
 
                 return {data: response.data as unknown as T};
             }
-            catch (error) {
-                handleHttpError(error, 'Failed to update user name');
+            catch (error: any) {
+                // The error from openapi-typescript-fetch may have the response in error.data
+                // Try to extract the detail from various possible locations
+                let errorBody = error?.data || error?.body || {};
+                let errorDetail = errorBody?.detail;
+
+                // If we have the raw error response, try to get the detail
+                if (!errorDetail && error?.response) {
+                    try {
+                        const responseClone = error.response.clone();
+                        const responseBody = await responseClone.json();
+                        errorDetail = responseBody?.detail;
+                        errorBody = responseBody;
+                    } catch (e) {
+                        // Response body might not be JSON
+                    }
+                }
+
+                // Create a properly structured error with the body
+                const enrichedError = {
+                    ...error,
+                    body: errorBody,
+                    status: error?.status || error?.response?.status || 500
+                };
+
+                handleHttpError(enrichedError, 'Failed to update user name');
             }
         }
         else if (resource === 'user-authorization') {
