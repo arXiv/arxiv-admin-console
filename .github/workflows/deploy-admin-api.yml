@@ -3,9 +3,6 @@ name: Deploy admin-api
 run-name: "Deploy admin-api ${{ inputs.env }} ${{ inputs.image_tag }}"
 
 on:
-  push:
-    branches:
-      - ARXIVCE-4145
   workflow_call:
     inputs:
       env:
