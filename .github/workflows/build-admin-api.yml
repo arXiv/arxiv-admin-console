@@ -83,7 +83,7 @@ jobs:
         run: |
           pwd
           ls
-          ls ${DOCKERFILE}
+          ls ${{ env.DOCKERFILE }}
 
           # Pull latest image for caching (ignore errors if it doesn't exist yet)
           docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:latest || true
