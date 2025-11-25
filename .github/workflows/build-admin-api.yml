@@ -86,7 +86,7 @@ jobs:
           ls ${DOCKERFILE}
 
           # Pull latest image for caching (ignore errors if it doesn't exist yet)
-          docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:latest || true
+          #docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:latest || true
 
           BRANCH_TAG="$(printf "%.128s" "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" | sed 's/\//-/g')"
 
