@@ -27,5 +27,5 @@ RUN $VIRTUAL_ENV/bin/poetry install --no-ansi && $VIRTUAL_ENV/bin/pip install hy
 COPY arxiv_admin_api /opt/arxiv/arxiv_admin_api
 ENV WORKERS 4
 ENV SQLALCHEMY_TRACK_MODIFICATIONS False
-EXPOSE 8080
-CMD  $VIRTUAL_ENV/bin/hypercorn --config hypercorn-config.toml --bind 0.0.0.0:8080 --workers $WORKERS "arxiv_admin_api.main:create_app()"
+EXPOSE $PORT
+CMD  $VIRTUAL_ENV/bin/hypercorn --config hypercorn-config.toml --bind 0.0.0.0:$PORT --workers $WORKERS "arxiv_admin_api.main:create_app()"
