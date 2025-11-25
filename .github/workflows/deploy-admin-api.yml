@@ -34,7 +34,7 @@ permissions:
   id-token: write
 
 env:
-  IMAGE_NAME: "arxiv-admin-consoleadmin-api"
+  IMAGE_NAME: "arxiv-admin-console/admin-api"
 
 jobs:
   format-check:
@@ -77,7 +77,7 @@ jobs:
       - name: Check version
         run: terraform --version
 
-      - name: Set environment variables (dependencies on db output variables)
+      - name: Set environment variables
         run: |
           TERRAFORM_ARGS="-var-file=\"envs/${{ vars.ENV_VAR }}.tfvars\" \
             -var=\"image_path=gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}\""
@@ -85,7 +85,7 @@ jobs:
           echo "TERRAFORM_ARGS=$TERRAFORM_ARGS" >> $GITHUB_ENV
         working-directory: terraform/admin-api
 
-      - name: Initialize keycloak-svc remote backend
+      - name: Initialize admin-api remote backend
         run: terraform init -backend-config="bucket=${{ vars.TERRAFORM_BUCKET }}"
         working-directory: terraform/admin-api
 
