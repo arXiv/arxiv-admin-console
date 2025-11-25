@@ -33,6 +33,7 @@ env:
   GCP_PROJECT_ID: "arxiv-development"
   ARTIFACT_REGISTRY_REPO: "arxiv-admin-console"
   IMAGE_NAME: "admin-console-ui"
+  PORT: "3000"
 
 jobs:
   format-check:
@@ -90,7 +91,7 @@ jobs:
           BRANCH_TAG="$(printf "%.128s" "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" | sed 's/\//-/g')"
 
           # Build the setup job image
-          docker build -f ${DOCKERFILE} --build-arg GIT_COMMIT=${{ inputs.custom_sha || github.sha }} \
+          docker build --build-arg PORT=${PORT} --build-arg GIT_COMMIT=${{ inputs.custom_sha || github.sha }} -f ${DOCKERFILE} \
           --cache-from gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:latest \
           -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${{ inputs.custom_sha || github.sha }} \
           -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${BRANCH_TAG} \
