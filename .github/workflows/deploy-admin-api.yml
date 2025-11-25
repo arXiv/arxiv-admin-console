@@ -79,15 +79,8 @@ jobs:
 
       - name: Set environment variables (dependencies on db output variables)
         run: |
-          terraform init -backend-config="bucket=${{ vars.TERRAFORM_BUCKET }}"
-
           TERRAFORM_ARGS="-var-file=\"envs/${{ vars.ENV_VAR }}.tfvars\" \
-            -var=\"admin_api_image=gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}\" \
-            -var=\"auth_db_private_ip=$(terraform output -raw private_ip_address)\" \
-            -var=\"use_cloud_sql_proxy=false\" \
-            -var=\"auth_db_name=$(terraform output -raw database_name)\" \
-            -var=\"db_user=$(terraform output -raw keycloak_user_name)\" \
-            -var=\"keycloak_db_password_secret_name=$(terraform output -raw keycloak_password_secret_name)\""
+            -var=\"image_path=gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}\""
 
           echo "TERRAFORM_ARGS=$TERRAFORM_ARGS" >> $GITHUB_ENV
         working-directory: terraform/admin-api
