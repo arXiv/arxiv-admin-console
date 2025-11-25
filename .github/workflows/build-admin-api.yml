@@ -1,4 +1,4 @@
-name: Build and push admin-api
+name: Build admin-api
 
 run-name: "Build admin-api ${{ github.ref_name }} ${{ inputs.custom_sha || github.sha }}"
 
