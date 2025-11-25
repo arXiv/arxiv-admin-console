@@ -6,7 +6,8 @@ on:
   push:
     branches:
       - master
-      - 'ntai/**'
+    tags:
+      - "RELEASE-*"
     paths:
       - "api_arxiv_admin/**"
   pull_request:
@@ -24,13 +25,15 @@ on:
 permissions:
   id-token: write
   actions: write
+  contents: read
+  pull-requests: write
 
 env:
+  DEPLOY_WORKFLOW: "./.github/workflows/deploy-admin-api.yml"
   IMAGE_NAME: "admin-api"
-  DOCKERFILE: "api_arxiv_admin/Dockerfile"
+  DOCKERFILE: "Dockerfile"
   GCP_PROJECT_ID: "arxiv-development"
   ARTIFACT_REGISTRY_REPO: "arxiv-admin-console"
-  REGION: "us-central1"
 
 jobs:
   format-check:
@@ -76,6 +79,7 @@ jobs:
         run: gcloud auth configure-docker
 
       - name: Build image, caching from latest
+        working-directory: api_arxiv_admin
         run: |
           pwd
           ls
@@ -86,22 +90,28 @@ jobs:
 
           BRANCH_TAG="$(printf "%.128s" "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" | sed 's/\//-/g')"
 
-          # Docker build
-          docker build -f ${DOCKERFILE} \
+          # Build the setup job image
+          docker build -f ${DOCKERFILE} --build-arg GIT_COMMIT=${{ inputs.custom_sha || github.sha }} \
           --cache-from gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:latest \
           -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${{ inputs.custom_sha || github.sha }} \
           -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${BRANCH_TAG} \
-          ${{ github.ref_name == 'master' && format('-t gcr.io/{0}/{1}/{2}:latest', env.GCP_PROJECT_ID, env.ARTIFACT_REGISTRY_REPO, env.IMAGE_NAME) || '' }} api_arxiv_admin
+          ${{ github.ref_name == 'master' && format('-t gcr.io/{0}/{1}/{2}:latest', env.GCP_PROJECT_ID, env.ARTIFACT_REGISTRY_REPO, env.IMAGE_NAME) || '' }} .
 
       - name: Push image
         run: docker push --all-tags gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}
 
-      # CI Deployment Routing ... manual builds of a commit are not CD candidates
-      - name: Deployment Routing
-        if: ${{ !inputs.custom_sha }}
-        uses: arXiv/iac-public/.github/actions/service-deployment-routing@main
-        with:
-          image_tag: ${{ github.sha }}
-          deploy_workflow: ${{ env.DEPLOY_WORKFLOW }}
-          workload_identity_provider: ${{ vars.ARXIV_DEVELOPMENT_PROVIDER_NAME }}
-          service_account: ${{ vars.ARXIV_DEVELOPMENT_SERVICE_ACCOUNT }}
+  development:
+    needs: build-push
+    uses: ${env.DEPLOY_WORKFLOW}
+    if: ${{ github.event_name != 'workflow_dispatch' && (github.base_ref == 'master' || github.ref_name == 'master') }}
+    with:
+      env: development
+      image_tag: ${{ github.sha }}
+
+  staging:
+    needs: build-push
+    uses: ${env.DEPLOY_WORKFLOW}
+    if: ${{ startsWith(github.ref, 'refs/tags/RELEASE-') }}
+    with:
+      env: staging
+      image_tag: ${{ github.sha }}  
