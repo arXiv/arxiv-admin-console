@@ -1,5 +1,0 @@
-gcp_project_id      = "arxiv-production"
-gcp_region          = "us-central1"
-env                 = "PROD"
-read_db_instance    = ""
-read_db_secret_name = ""

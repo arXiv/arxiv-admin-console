@@ -1,5 +1,0 @@
-gcp_project_id      = "arxiv-development"
-gcp_region          = "us-central1"
-env                 = "DEV"
-read_db_instance    = "arxiv-development:us-central1:latexml-db"
-read_db_secret_name = "latexml_db_uri"
