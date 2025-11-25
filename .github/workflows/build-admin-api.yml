@@ -94,6 +94,7 @@ jobs:
           docker build --build-arg PORT=${{ env.PORT }} --build-arg GIT_COMMIT=${{ inputs.custom_sha || github.sha }} -f ${{ env.DOCKERFILE }} \
           --cache-from gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:latest \
           -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${{ inputs.custom_sha || github.sha }} \
+          -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${BRANCH_TAG} \
           ${{ github.ref_name == 'master' && format('-t gcr.io/{0}/{1}/{2}:latest', env.GCP_PROJECT_ID, env.ARTIFACT_REGISTRY_REPO, env.IMAGE_NAME) || '' }} .
 
       - name: Push image
