@@ -33,7 +33,7 @@ env:
   DOCKERFILE: "Dockerfile"
   GCP_PROJECT_ID: "arxiv-development"
   ARTIFACT_REGISTRY_REPO: "arxiv-admin-console"
-  PORT: "8080"
+  PORT: "21511"
   TARGET: "runtime"
 jobs:
   format-check:
