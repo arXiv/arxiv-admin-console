@@ -1,11 +1,13 @@
-name: Build Admin Console UI
+name: Build admin-ui
 
-run-name: "Build Admin Console UI ${{ github.ref_name }} ${{ inputs.custom_sha || github.sha }}"
+run-name: "Build admin-ui ${{ github.ref_name }} ${{ inputs.custom_sha || github.sha }}"
 
 on:
   push:
     branches:
       - master
+    tags:
+      - "RELEASE-*"
     paths:
       - "ui-arxiv-admin/**"
   pull_request:
@@ -23,6 +25,8 @@ on:
 permissions:
   id-token: write
   actions: write
+  contents: read
+  pull-requests: write
 
 env:
   DOCKERFILE: "Dockerfile"
@@ -95,3 +99,18 @@ jobs:
       - name: Push image
         run: docker push --all-tags gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}
 
+  development:
+    needs: build-push
+    uses: ./.github/workflows/deploy-admin-ui.yml
+    if: ${{ github.event_name != 'workflow_dispatch' && (github.base_ref == 'master' || github.ref_name == 'master') }}
+    with:
+      env: development
+      image_tag: ${{ github.sha }}
+
+  staging:
+    needs: build-push
+    uses: ./.github/workflows/deploy-admin-ui.yml
+    if: ${{ startsWith(github.ref, 'refs/tags/RELEASE-') }}
+    with:
+      env: staging
+      image_tag: ${{ github.sha }}  

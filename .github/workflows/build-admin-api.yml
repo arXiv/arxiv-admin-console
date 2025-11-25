@@ -29,7 +29,6 @@ permissions:
   pull-requests: write
 
 env:
-  DEPLOY_WORKFLOW: "./.github/workflows/deploy-admin-api.yml"
   IMAGE_NAME: "admin-api"
   DOCKERFILE: "Dockerfile"
   GCP_PROJECT_ID: "arxiv-development"
