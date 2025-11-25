@@ -1,6 +1,6 @@
 name: Build account-ui
 
-run-name: "Build account-ui ${{ github.ref_name }} ${{ inputs.custom_sha || github.sha }}"
+run-name: "Build Admin Console UI ${{ github.ref_name }} ${{ inputs.custom_sha || github.sha }}"
 
 on:
   push:
