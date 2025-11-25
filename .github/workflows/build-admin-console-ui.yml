@@ -1,4 +1,4 @@
-name: Build account-ui
+name: Build Admin Console UI
 
 run-name: "Build Admin Console UI ${{ github.ref_name }} ${{ inputs.custom_sha || github.sha }}"
 
