@@ -65,6 +65,11 @@ resource "google_cloud_run_v2_service" "admin_api" {
     service_account = google_service_account.account.email
     containers {
       image = var.image_path
+      resources {
+        limits = {
+          memory = "1024Mi"
+        }
+      }
       env {
         name  = "ENV"
         value = var.env
