@@ -6,7 +6,7 @@ from datetime import timezone, datetime
 import httpx
 from typing import Callable, Optional, Tuple, Any
 
-from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES
+from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES, TapirCookieToUserClaimsMiddleware
 from fastapi import FastAPI, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -303,6 +303,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.add_middleware(LogMiddleware)
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
     # app.add_middleware(SessionCookieMiddleware)
+
+    app.add_middleware(TapirCookieToUserClaimsMiddleware)
 
     # app.include_router(auth_router)
     app.include_router(system_status_router)
