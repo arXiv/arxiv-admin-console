@@ -504,7 +504,13 @@ export class AdminAudit_ChangeDemographic extends AdminAudit_GenericPayload {
             try {
                 const kvs = JSON.parse(dataDisplay);
                 dataDisplay = Object.entries(kvs)
-                    .map(([k, v]) => `${k}: ${v}`)
+                    .map(([k, v]) => {
+                        // Handle nested objects by stringifying them
+                        const valueStr = typeof v === 'object' && v !== null
+                            ? JSON.stringify(v)
+                            : String(v);
+                        return `${k}: ${valueStr}`;
+                    })
                     .join(', ');
             } catch {
                 // Keep original data if parsing fails
