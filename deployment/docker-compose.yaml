@@ -1,0 +1,73 @@
+services:
+  # Cookie maker
+  prod-oauth2-authenticator:
+    image: ${ARXIV_OAUTH2_CLIENT_TAG}
+    container_name: prod-oauth2-authenticator
+    environment:
+      # Cookie domain.
+      DOMAIN: ${AUTH_COOKIE_DOMAIN}
+
+      SECURE: "true"
+      PORT: ${ARXIV_OAUTH2_APP_PORT}
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL}
+      OAUTH2_CALLBACK_URL: ${AAA_CALLBACK_URL}
+      ARXIV_USER_SECRET: ${KEYCLOAK_ARXIV_CLIENT_SECRET}
+
+      CLASSIC_DB_URI: ${CLASSIC_DB_URI}
+      CLASSIC_COOKIE_NAME: tapir_session
+      CLASSIC_SESSION_HASH: ${CLASSIC_SESSION_HASH}
+      SESSION_DURATION: ${CLASSIC_SESSION_DURATION}
+      JWT_SECRET: ${JWT_SECRET}
+
+      OIDC_SERVER_SSL_VERIFY: "true"
+      #
+      # This is the almighty admin client (admin-cli) secret
+      #
+      KEYCLOAK_ADMIN_SECRET: ${KC_ADMIN_PASSWORD}
+      #
+    ports:
+      - ${ARXIV_OAUTH2_APP_PORT}:${ARXIV_OAUTH2_APP_PORT}
+
+  # KC -> Tapir tables
+  prod-keycloak-tapir-bridge:
+    image: ${KC_TAPIR_BRIDGE_DOCKER_TAG}
+    container_name: prod-keycloak-tapir-bridge
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /pubsub-subscriber-key.json
+      SUBSCRIPTION: ${KC_TAPIR_BRIDGE_SUBSCRIPTION}
+    volumes:
+      - ${GCP_PUBSUB_SUBRCRIBER_CREDENTIALS}:/pubsub-subscriber-key.json:ro
+    network_mode: host
+    command: python main.py --project "${PUBSUB_PROJECT}" --subscription "${KC_TAPIR_BRIDGE_SUBSCRIPTION}" --debug
+
+  # User account portal
+  prod-account-portal:
+    image: ${ACCOUNT_PORTAL_APP_TAG}
+    container_name: prod-account-portal
+    environment:
+      PORT: ${ACCOUNT_PORTAL_APP_PORT}
+      AAA_URL: ${AAA_ROOT_URL}
+      ADMIN_API_BACKEND_URL: ${ADMIN_API_URL}
+      ACCOUNT_UI_APP_ROOT:
+
+  # Admin console backend
+  prod-admin-api:
+    image: ${ADMIN_API_TAG}
+    container_name: prod-admin-api
+    environment:
+      CLASSIC_COOKIE_NAME: tapir_session
+      CLASSIC_DB_URI: ${CLASSIC_DB_URI}
+      CLASSIC_SESSION_HASH: ${CLASSIC_SESSION_HASH}
+      SESSION_DURATION: ${CLASSIC_SESSION_DURATION}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: ${ADMIN_API_PORT}
+    ports:
+      - ${ADMIN_API_PORT}:${ADMIN_API_PORT}
+
+  # Admin console UI
+  prod-admin-console:
+    image: ${ADMIN_CONSOLE_TAG}
+    container_name: prod-admin-console
+    environment:
+      PORT: ${ADMIN_CONSOLE_PORT}
+      JWT_SECRET: ${JWT_SECRET}
