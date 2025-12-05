@@ -170,7 +170,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 const aaaFetcher = Fetcher.for<paths>();
                 aaaFetcher.configure({baseUrl: aaaUrl});
 
-                const adminFetcher = Fetcher.for<paths>();
+                const adminFetcher = Fetcher.for<adminPaths>();
                 adminFetcher.configure({baseUrl: adminUrl});
 
                 const runtime2: Partial<RuntimeProps> = {
@@ -241,12 +241,13 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         fetchUserData();
     }, [runtimeEnv.AAA_URL]);
 
-
+/*
     useEffect(() => {
         const it = Fetcher.for<adminPaths>();
         it.configure({baseUrl: runtimeEnv.ADMIN_API_BACKEND_URL});
         updateRuntimeEnv({adminFetcher: it});
     }, [runtimeEnv.ADMIN_API_BACKEND_URL]);
+ */
 
 /*
     useEffect(() => {
@@ -282,6 +283,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
         fetchServiceInfo();
     }, [runtimeEnv.adminFetcher, runtimeEnv.MODAPI_URL])
+
 
     useEffect(() => {
         const fetchNavigation = async () => {
