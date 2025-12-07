@@ -244,52 +244,57 @@ class adminApiDataProvider implements DataProvider {
     {
         // console.log(`getOne ${resource}:`, params);
         if (resource === 'document-metadata-latest') {
-            const { id } = params;
+            if (this.runtimeProps.adminFetcher) {
+                const { id } = params;
 
-            try {
-                const getDocumentMetadata = this.runtimeProps.adminFetcher.path('/v1/documents/{id}/metadata/latest').method('get').create();
-                const response = await getDocumentMetadata({
-                    id: Number(id)
-                });
+                try {
+                    const getDocumentMetadata = this.runtimeProps.adminFetcher.path('/v1/documents/{id}/metadata/latest').method('get').create();
+                    const response = await getDocumentMetadata({
+                        id: Number(id)
+                    });
 
-                return {
-                    data: response.data as unknown as T
-                };
-            } catch (error) {
-                handleHttpError(error, 'Failed to load document metadata');
+                    return {
+                        data: response.data as unknown as T
+                    };
+                } catch (error) {
+                    handleHttpError(error, 'Failed to load document metadata');
+                }
             }
         }
         else if (resource === 'user-submission-summary') {
-            const { id } = params; // user id
+            if (this.runtimeProps.adminFetcher) {
+                const {id} = params; // user id
 
-            try {
-                // type SubmissionSummaryT = adminApi['/v1/submissions/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
-                const getUserSubmissionSummary = this.runtimeProps.adminFetcher.path('/v1/submissions/user/{user_id}/summary').method('get').create();
-                const response = await getUserSubmissionSummary({
-                    user_id: String(id)
-                });
+                try {
+                    // type SubmissionSummaryT = adminApi['/v1/submissions/user/{user_id}/summary']['get']['responses']['200']['content']['application/json'];
+                    const getUserSubmissionSummary = this.runtimeProps.adminFetcher.path('/v1/submissions/user/{user_id}/summary').method('get').create();
+                    const response = await getUserSubmissionSummary({
+                        user_id: String(id)
+                    });
 
-                return {
-                    data: {...response.data, id: id} as unknown as T
-                };
-            } catch (error) {
-                handleHttpError(error, 'Failed to load document metadata');
+                    return {
+                        data: {...response.data, id: id} as unknown as T
+                    };
+                } catch (error) {
+                    handleHttpError(error, 'Failed to load document metadata');
+                }
             }
         }
         else if (resource === 'user-paper-ownership-summary') {
-            const { id } = params; // user id
+            if (this.runtimeProps.adminFetcher) {
+                const { id } = params; // user id
+                try {
+                    const getUserPaperOwnershipSummary = this.runtimeProps.adminFetcher.path('/v1/paper_owners/user/{user_id}/summary').method('get').create();
+                    const response = await getUserPaperOwnershipSummary({
+                        user_id: String(id)
+                    });
 
-            try {
-                const getUserPaperOwnershipSummary = this.runtimeProps.adminFetcher.path('/v1/paper_owners/user/{user_id}/summary').method('get').create();
-                const response = await getUserPaperOwnershipSummary({
-                    user_id: String(id)
-                });
-
-                return {
-                    data: {...response.data, id: id} as unknown as T
-                };
-            } catch (error) {
-                handleHttpError(error, 'Failed to load document metadata');
+                    return {
+                        data: {...response.data, id: id} as unknown as T
+                    };
+                } catch (error) {
+                    handleHttpError(error, 'Failed to load document metadata');
+                }
             }
         }
 
@@ -471,20 +476,21 @@ class adminApiDataProvider implements DataProvider {
 
         }
         else if (resource === "moderators") {
-            const {data, } = params;
-            /*
-hook.js:608 The response to 'create' must be like { data: { id: 123, ... } }, but the received data does not have an 'id' key. The dataProvider is probably wrong for 'create'
-             */
-            const createModerator = this.runtimeProps.adminFetcher.path('/v1/moderators/').method('post').create();
+            if (this.runtimeProps.adminFetcher) {
+                const {data, } = params;
+                /*
+    hook.js:608 The response to 'create' must be like { data: { id: 123, ... } }, but the received data does not have an 'id' key. The dataProvider is probably wrong for 'create'
+                 */
+                const createModerator = this.runtimeProps.adminFetcher.path('/v1/moderators/').method('post').create();
 
-            try {
-                const response = await createModerator(data as any);
-                return {data: response.data[0] as unknown as T};
+                try {
+                    const response = await createModerator(data as any);
+                    return {data: response.data[0] as unknown as T};
+                }
+                catch (error) {
+                    handleHttpError(error, 'Failed to create moderator record');
+                }
             }
-            catch (error) {
-                handleHttpError(error, 'Failed to create moderator record');
-            }
-
         }
         return this.dataProvider.create(addTrailingSlash(resource), params);
     }

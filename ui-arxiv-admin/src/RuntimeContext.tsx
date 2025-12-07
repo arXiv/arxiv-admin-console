@@ -42,7 +42,7 @@ export interface RuntimeProps
     currentUserLoading: boolean;
     updateEnv: (key: string, value: string) => void;
     aaaFetcher: ReturnType<typeof Fetcher.for<paths>>;
-    adminFetcher: ReturnType<typeof Fetcher.for<adminPaths>>;
+    adminFetcher?: ReturnType<typeof Fetcher.for<adminPaths>>;
     modapiFetcher?: ReturnType<typeof Fetcher.for<modapiPaths>>;
     arxivNavLinks: ArxivNavLink[];
 }
@@ -62,7 +62,6 @@ const defaultRuntimeProps : RuntimeProps = {
     currentUserLoading: true,
     updateEnv: (_key, _value) => { },
     aaaFetcher: Fetcher.for<paths>(),
-    adminFetcher: Fetcher.for<paths>(),
     arxivNavLinks: defaultArxivNavLinks,
 };
 
