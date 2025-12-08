@@ -139,7 +139,7 @@ const PingBackend: React.FC<PingBackendProps> = ({children}) => {
 
         // Cleanup interval on component unmount
         return () => clearInterval(intervalId);
-    }, []);
+    }, [runtimeProps.ADMIN_API_BACKEND_URL]);
 
     return (
         <>
