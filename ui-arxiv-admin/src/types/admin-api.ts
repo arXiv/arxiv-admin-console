@@ -1971,43 +1971,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/submissions/id:str}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Submission Files */
-        get: operations["list_submission_files_v1_submissions_id_str__files_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/submissions/id:str}/files/{file_type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Submission File
-         * @description Download the abstract file of a submission
-         */
-        get: operations["get_submission_file_v1_submissions_id_str__files__file_type__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/submissions/metadata/status-list": {
         parameters: {
             query?: never;
@@ -3910,6 +3873,12 @@ export interface components {
             submitted: number;
             /** Rejected */
             rejected: number;
+            /** Unknown */
+            unknown: number;
+            /** Max Active Submissions */
+            max_active_submissions: number;
+            /** Submission Permitted */
+            submission_permitted: boolean;
         };
         /**
          * SubmissionType
@@ -8446,70 +8415,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmissionSummaryModel"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_submission_files_v1_submissions_id_str__files_get: {
-        parameters: {
-            query: {
-                id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_submission_file_v1_submissions_id_str__files__file_type__get: {
-        parameters: {
-            query: {
-                id: string;
-            };
-            header?: never;
-            path: {
-                file_type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
