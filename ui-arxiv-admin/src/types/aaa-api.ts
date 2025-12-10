@@ -158,6 +158,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exchange-tapir-session-to-user-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exchange Tapir Session */
+        get: operations["exchange_tapir_session_exchange_tapir_session_to_user_claims_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/token-names": {
         parameters: {
             query?: never;
@@ -218,7 +235,7 @@ export interface paths {
         };
         /**
          * Get Current User Info
-         * @description Hit the db and get user info
+         * @description Get the current user
          */
         get: operations["get_current_user_info_account_current_get"];
         put?: never;
@@ -523,6 +540,26 @@ export interface paths {
          */
         put: operations["update_user_authorization_account__user_id__authorization_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/password/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Password Hash
+         * @description check the password hash
+         */
+        post: operations["validate_password_hash_account_password_validate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -880,6 +917,13 @@ export interface components {
             /** Authenticated */
             authenticated: boolean;
         };
+        /** PasswordInput */
+        PasswordInput: {
+            /** Password Sha1 */
+            password_sha1: string;
+            /** Length */
+            length: number;
+        };
         /** PasswordResetRequest */
         PasswordResetRequest: {
             /** Username Or Email */
@@ -891,6 +935,13 @@ export interface components {
             old_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** PasswordValidationResult */
+        PasswordValidationResult: {
+            /** Valid */
+            valid: boolean;
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * RefreshedTokens
@@ -1329,6 +1380,26 @@ export interface operations {
             };
         };
     };
+    exchange_tapir_session_exchange_tapir_session_to_user_claims_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     get_token_names_token_names_get: {
         parameters: {
             query?: never;
@@ -1391,7 +1462,10 @@ export interface operations {
     };
     get_current_user_info_account_current_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Authorization scope - root, admin, mod */
+                scope?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1405,6 +1479,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountInfoModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2265,6 +2348,39 @@ export interface operations {
                      *     }
                      */
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    validate_password_hash_account_password_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordValidationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
