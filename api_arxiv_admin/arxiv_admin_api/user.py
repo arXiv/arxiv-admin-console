@@ -298,11 +298,14 @@ async def list_users(
     if sort_nickname_alias is not None:
         query = query.join(sort_nickname_alias, TapirUser.user_id == sort_nickname_alias.user_id)
 
+    all_users = True
     if id is not None:
+        all_users = False
         if current_user.is_admin:
             query = query.filter(TapirUser.user_id.in_(id))
     else:
         if q:
+            all_users = False
             if "@" in q:
                 query = query.filter(TapirUser.email == q)
             elif q[0] in "0123456789":
@@ -311,20 +314,25 @@ async def list_users(
                 query = query.filter(TapirUser.last_name == q)
 
         if suspect:
+            all_users = False
             dgfx = aliased(Demographic)
             query = query.join(dgfx, dgfx.user_id == TapirUser.user_id)
             query = query.filter(dgfx.flag_suspect == suspect)
 
         if user_class in ["owner", "admin"]:
+            all_users = False
             query = query.filter(TapirUser.policy_class == False)
 
         if user_class in ["owner"]:
+            all_users = False
             query = query.filter(TapirUser.flag_edit_system == True)
 
         if flag_edit_users is not None:
+            all_users = False
             query = query.filter(TapirUser.flag_edit_users == flag_edit_users)
 
         if flag_is_mod is not None:
+            all_users = False
             # We're not using the moderator-driven query, so need to filter
             subquery = select(distinct(t_arXiv_moderators.c.user_id))
 
@@ -335,11 +343,13 @@ async def list_users(
                 query = query.filter(TapirUser.user_id.not_in(subquery))
 
         if username:
+            all_users = False
             nick1 = aliased(TapirNickname)
             query = query.join(nick1, nick1.user_id == TapirUser.user_id)
             query = query.filter(nick1.nickname.like(username + "%"))
 
         if name and first_name is None and last_name is None:
+            all_users = False
             if "," in name:
                 names = name.split(",")
                 if len(names) > 1:
@@ -364,6 +374,7 @@ async def list_users(
 
 
         if first_name:
+            all_users = False
             if is_ascii_only(first_name):
                 # Fast indexed search for ASCII/Latin-only names
                 query = query.filter(TapirUser.first_name.startswith(first_name))
@@ -373,6 +384,7 @@ async def list_users(
                     encode_for_latin1_column(first_name + '%')))
 
         if last_name:
+            all_users = False
             if is_ascii_only(last_name):
                 # Fast indexed search for ASCII/Latin-only names
                 query = query.filter(TapirUser.last_name.startswith(last_name))
@@ -382,12 +394,15 @@ async def list_users(
                     encode_for_latin1_column(last_name + '%')))
 
         if email:
+            all_users = False
             query = query.filter(TapirUser.email.startswith(email))
 
         if flag_email_verified is not None:
+            all_users = False
             query = query.filter(TapirUser.flag_email_verified == flag_email_verified)
 
         if flag_veto is not None:
+            all_users = False
             dgfx2 = aliased(Demographic)
             query = query.join(dgfx2, dgfx2.user_id == TapirUser.user_id)
             query = query.filter(dgfx2.flag_suspect == suspect)
@@ -397,15 +412,18 @@ async def list_users(
                 query = query.filter(dgfx2.veto_status == "ok")
 
         if flag_proxy is not None:
+            all_users = False
             dgfx3 = aliased(Demographic)
             query = query.join(dgfx3, dgfx3.user_id == TapirUser.user_id)
             query = query.filter(dgfx3.flag_proxy == flag_proxy)
 
         if email_bouncing is not None:
+            all_users = False
             query = query.filter(TapirUser.email_bouncing == email_bouncing)
 
         # This is how Tapir limits the search
         if is_non_academic and start_joined_date is None:
+            all_users = False
             start_joined_date = date.today() - timedelta(days=90)
 
         if start_joined_date or end_joined_date:
@@ -415,9 +433,11 @@ async def list_users(
 
         if is_non_academic:
             # Inner join with arxiv_black_email on pattern match with email
+            all_users = False
             query = query.join(t_arXiv_black_email, TapirUser.email.like(t_arXiv_black_email.c.pattern))
 
         if clue is not None:
+            all_users = False
             if len(clue) > 0 and clue[0] in "0123456789":
                 query = query.filter(TapirUser.user_id.like(clue + "%"))
             elif "@" in clue:
@@ -432,6 +452,7 @@ async def list_users(
                     query = query.filter(TapirUser.suffix_name.like(names[2] + "%"))
 
         if endorsing_categories is not None:
+            all_users = False
             engine = endorsing_db.endorsing_db_get_cached_db(request)
             candidates: List[EndorsementCandidate] = endorsing_db.endorsing_db_query_users_in_categories(engine, endorsing_categories)
             user_ids = [candidate.id for candidate in candidates]
@@ -443,7 +464,10 @@ async def list_users(
         else:
             query = query.order_by(column.asc())
 
-    count = query.count()
+    if all_users:
+        count = db.query(TapirUser.user_id).count()
+    else:
+        count = query.count()
     response.headers['X-Total-Count'] = str(count)
     result = [UserModel.to_model(user, session=db) for user in query.offset(_start).limit(_end - _start).all()]
     return result

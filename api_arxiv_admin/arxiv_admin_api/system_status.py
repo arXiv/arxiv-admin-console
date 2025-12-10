@@ -48,6 +48,7 @@ async def report_dtabase_status(
         )
 
     except Exception as e:
+        logger.error("database connection error", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="database connection error: " + str(e)

@@ -51,10 +51,10 @@ const defaultRuntimeProps : RuntimeProps = {
     AAA_URL: '',
     ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5100/admin-api',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
-    ARXIV_COOKIE_NAME: "",
+    ARXIV_COOKIE_NAME: "ARXIVNG_SESSION_ID",
     TAPIR_COOKIE_NAME: "tapir_session",
-    KEYCLOAK_ACCESS_TOKEN_NAME: "",
-    KEYCLOAK_REFRESH_TOKEN_NAME: "",
+    KEYCLOAK_ACCESS_TOKEN_NAME: "keycloak_access_token",
+    KEYCLOAK_REFRESH_TOKEN_NAME: "keycloak_refresh_token",
     ARXIV_CHECK: "https://check.dev.arxiv.org",
     URLS: arXivURLs,
     MODAPI_URL: '',
@@ -163,30 +163,42 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 };
                 console.log("runtime-1: " + JSON.stringify(runtime1));
                 updateRuntimeEnv(runtime1);
-                const cookie_name_response = await fetch(`${runtime1.AAA_URL}/token-names`);
-                const cookie_names = await cookie_name_response.json();
-                console.log("cookie_names: " + JSON.stringify(cookie_names));
 
                 const aaaFetcher = Fetcher.for<paths>();
                 aaaFetcher.configure({baseUrl: aaaUrl});
 
-                const adminFetcher = Fetcher.for<paths>();
+                const adminFetcher = Fetcher.for<adminPaths>();
                 adminFetcher.configure({baseUrl: adminUrl});
 
                 const runtime2: Partial<RuntimeProps> = {
                     AAA_URL: aaaUrl,
                     ADMIN_API_BACKEND_URL: adminUrl,
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
-                    ARXIV_COOKIE_NAME: cookie_names.session,
-                    TAPIR_COOKIE_NAME: cookie_names.classic,
-                    KEYCLOAK_ACCESS_TOKEN_NAME: cookie_names.keycloak_access,
-                    KEYCLOAK_REFRESH_TOKEN_NAME: cookie_names.keycloak_refresh,
                     aaaFetcher: aaaFetcher,
                     adminFetcher: adminFetcher,
                 };
 
                 console.log("runtime-2: " + JSON.stringify(runtime2));
                 updateRuntimeEnv(runtime2);
+
+                try {
+                    const cookie_name_response = await fetch(`${runtime1.AAA_URL}/token-names`);
+                    const cookie_names = await cookie_name_response.json();
+                    console.log("cookie_names: " + JSON.stringify(cookie_names));
+
+                    const runtime3: Partial<RuntimeProps> = {
+                        ARXIV_COOKIE_NAME: cookie_names.session,
+                        TAPIR_COOKIE_NAME: cookie_names.classic,
+                        KEYCLOAK_ACCESS_TOKEN_NAME: cookie_names.keycloak_access,
+                        KEYCLOAK_REFRESH_TOKEN_NAME: cookie_names.keycloak_refresh,
+                    };
+                    console.log("runtime-3: " + JSON.stringify(runtime3));
+                    updateRuntimeEnv(runtime3);
+                }
+                catch (error) {
+                    console.error('Error fetching runtime3 - cookie names:', error);
+                }
+
             } catch (error) {
                 console.error('Error fetching runtime urls:', error);
             } finally {
@@ -256,12 +268,13 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         fetchUserData();
     }, [runtimeEnv.AAA_URL]);
 
-
+/*
     useEffect(() => {
         const it = Fetcher.for<adminPaths>();
         it.configure({baseUrl: runtimeEnv.ADMIN_API_BACKEND_URL});
         updateRuntimeEnv({adminFetcher: it});
     }, [runtimeEnv.ADMIN_API_BACKEND_URL]);
+ */
 
 /*
     useEffect(() => {
@@ -297,6 +310,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
         fetchServiceInfo();
     }, [runtimeEnv.adminFetcher, runtimeEnv.MODAPI_URL])
+
 
     useEffect(() => {
         const fetchNavigation = async () => {
