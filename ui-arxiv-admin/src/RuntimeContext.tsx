@@ -236,9 +236,9 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 } else {
                     console.log("1. fetching current user - not ok");
 
-                    // Redirect to logout on 403 Forbidden
-                    if (userResponse.status === 403) {
-                        console.log("1. fetching current user - 403 forbidden, redirecting to logout");
+                    // Redirect to logout on 401 Unauthorized or 403 Forbidden
+                    if (userResponse.status === 401 || userResponse.status === 403) {
+                        console.log(`1. fetching current user - ${userResponse.status} error, redirecting to logout`);
                         window.location.href = runtimeEnv.AAA_URL + "/logout";
                         return;
                     }
@@ -251,17 +251,18 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
             } catch (userError) {
                 console.error('Error fetching current user:', userError);
 
-                // Redirect to logout on 403 Forbidden
-                if (userError && typeof userError === 'object' && 'status' in userError && userError.status === 403) {
-                    console.log("1. fetching current user - 403 forbidden in catch, redirecting to logout");
-                    window.location.href = runtimeEnv.AAA_URL + "/logout";
-                    return;
-                }
-
                 updateRuntimeEnv({
                     currentUser: null,
                     currentUserLoading: false
                 });
+
+                // Redirect to logout on 401 Unauthorized or 403 Forbidden
+                if (userError && typeof userError === 'object' && 'status' in userError &&
+                    (userError.status === 401 || userError.status === 403)) {
+                    console.log(`1. fetching current user - ${userError.status} error in catch, redirecting to logout`);
+                    window.location.href = runtimeEnv.AAA_URL + "/logout";
+                    return;
+                }
             }
         };
 
