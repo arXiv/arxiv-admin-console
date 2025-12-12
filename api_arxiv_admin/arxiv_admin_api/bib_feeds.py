@@ -24,6 +24,7 @@ from . import get_db, is_admin_user
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bib_feeds", dependencies=[Depends(is_admin_user)])
+bib_feed_updates_router = APIRouter(prefix="/bib_feed_updates", dependencies=[Depends(is_admin_user)])
 
 # Pydantic Models
 
@@ -308,8 +309,8 @@ async def delete_feed(
     logger.info(f"Deleted feed: {feed.name} (id={feed_id})")
 
 
-@router.get("/updates/all", response_model=List[BibUpdateModel])
-async def list_all_updates(
+@bib_feed_updates_router.get("/", response_model=List[BibUpdateModel])
+async def bib_feed_updates_list_all_updates(
     db: Session = Depends(get_db),
     current_user: ArxivUserClaims = Depends(get_authn_user),
     limit: int = 100,
@@ -341,19 +342,19 @@ async def list_all_updates(
         .offset(offset)
     )
 
-    results = []
-    for update, paper_id, feed_name, feed_priority in query.all():
+    def create_update_model(update: BibUpdate, paper_id: str, feed_name: str, feed_priority: int) -> BibUpdateModel:
         result = BibUpdateModel.model_validate(update)
         result.paper_id = paper_id
         result.feed_name = feed_name
         result.feed_priority = feed_priority
-        results.append(result)
+        return result
 
-    return results
+    return [create_update_model(update, paper_id, feed_name, feed_priority)
+            for update, paper_id, feed_name, feed_priority in query.all()]
 
 
-@router.get("/updates/{paper_id}", response_model=List[BibUpdateModel])
-async def get_update_history(
+@bib_feed_updates_router.get("/{paper_id}", response_model=List[BibUpdateModel])
+async def bib_feed_updates_get_update_history(
     paper_id: str,
     db: Session = Depends(get_db),
     current_user: ArxivUserClaims = Depends(get_authn_user),
@@ -387,19 +388,19 @@ async def get_update_history(
         .order_by(BibUpdate.updated.desc(), BibFeed.priority)
     )
 
-    results = []
-    for update, feed_name, feed_priority in query.all():
+    def create_update_model(update: BibUpdate, feed_name: str, feed_priority: int) -> BibUpdateModel:
         result = BibUpdateModel.model_validate(update)
         result.paper_id = paper_id
         result.feed_name = feed_name
         result.feed_priority = feed_priority
-        results.append(result)
+        return result
 
-    return results
+    return [create_update_model(update, feed_name, feed_priority)
+            for update, feed_name, feed_priority in query.all()]
 
 
-@router.delete("/updates/{paper_id}", status_code=http_status.HTTP_204_NO_CONTENT)
-async def delete_update_history(
+@bib_feed_updates_router.delete("/{paper_id}", status_code=http_status.HTTP_204_NO_CONTENT)
+async def bib_feed_updates_delete_update_history(
     paper_id: str,
     feed_names: Optional[List[str]] = Body(None, description="Optional list of feed names to delete from"),
     db: Session = Depends(get_db),
@@ -448,8 +449,8 @@ async def delete_update_history(
     db.commit()
 
 
-@router.post("/updates/{paper_id}/manual-override", response_model=BibUpdateModel, status_code=http_status.HTTP_201_CREATED)
-async def set_manual_override(
+@bib_feed_updates_router.post("/{paper_id}/manual-override", response_model=BibUpdateModel, status_code=http_status.HTTP_201_CREATED)
+async def bib_feed_updates_set_manual_override(
     paper_id: str,
     db: Session = Depends(get_db),
     current_user: ArxivUserClaims = Depends(get_authn_user),
@@ -518,8 +519,8 @@ async def set_manual_override(
     return result
 
 
-@router.post("/updates/bulk", response_model=List[BibUpdateModel], status_code=http_status.HTTP_201_CREATED)
-async def create_bulk_updates(
+@bib_feed_updates_router.post("/bulk", response_model=List[BibUpdateModel], status_code=http_status.HTTP_201_CREATED)
+async def bib_feed_updates_create_bulk_updates(
     updates: List[BibUpdateCreateModel],
     session: Session = Depends(get_db),
     current_user: ArxivUserClaims = Depends(get_authn_user),
@@ -562,8 +563,8 @@ async def create_bulk_updates(
     session.commit()
 
     # Refresh and convert to response models
-    results = []
-    for update in created_updates:
+
+    def create_result_model(update: BibUpdate) -> BibUpdateModel:
         session.refresh(update)
         feed = session.query(BibFeed).filter(BibFeed.bib_id == update.bib_id).first()
         document = session.query(Document).filter(Document.document_id == update.document_id).first()
@@ -572,7 +573,8 @@ async def create_bulk_updates(
         result.paper_id = document.paper_id if document else None
         result.feed_name = feed.name if feed else None
         result.feed_priority = feed.priority if feed else None
-        results.append(result)
+        return result
 
+    results = [create_result_model(update) for update in created_updates]
     logger.info(f"Created {len(results)} bulk updates")
     return results
