@@ -16,6 +16,7 @@ import MembershipInstitutionIcon from '@mui/icons-material/School';
 import EmailPatternIcon from '@mui/icons-material/FilterList';
 import EndorsementDomainIcon from '@mui/icons-material/Domain';
 import QualifiedEndorsersIcon from '@mui/icons-material/PersonPin';
+import BibFeedsIcon from '@mui/icons-material/RssFeed';
 
 // import Box from '@mui/material/Box';
 // import Button from '@mui/material/Button';
@@ -80,6 +81,10 @@ const EndorsementDomainList = lazy(() => import('./pages/CategoryLevelEndorsemen
 const MetadataEdit = lazy(() => import('./pages/Metadata').then(module => ({default: module.MetadataEdit})));
 
 const QualifiedEndorserList = lazy(() => import('./pages/QualifiedEndorsers').then(module => ({default: module.QualifiedEndorserList})));
+
+const BibFeedList = lazy(() => import('./pages/BibFeeds').then(module => ({default: module.BibFeedList})));
+const BibFeedEdit = lazy(() => import('./pages/BibFeeds').then(module => ({default: module.BibFeedEdit})));
+const BibFeedCreate = lazy(() => import('./pages/BibFeeds').then(module => ({default: module.BibFeedCreate})));
 
 // Keep these as regular imports since they're needed immediately
 import {RuntimeContext, RuntimeContextProvider} from "./RuntimeContext";
@@ -300,6 +305,14 @@ const AdminConsole: React.FC = () => {
                         list={EndorsementDomainList}
                         edit={EndorsementDomainEdit}
                         create={EndorsementDomainAdd}
+                    />
+
+                    <Resource
+                        name="bib_feeds"
+                        icon={BibFeedsIcon}
+                        list={BibFeedList}
+                        edit={BibFeedEdit}
+                        create={BibFeedCreate}
                     />
 
                     <Resource name="endorsement_requests_audit"/>
