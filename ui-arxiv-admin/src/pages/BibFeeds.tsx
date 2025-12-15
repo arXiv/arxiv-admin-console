@@ -19,7 +19,8 @@ import {
     BooleanInput,
     useListContext, SelectInput, EditButton,
     Toolbar,
-    SaveButton
+    SaveButton,
+    DeleteButton
 } from 'react-admin';
 import { useWatch } from 'react-hook-form';
 
@@ -189,7 +190,12 @@ const BibFeedTitle = () => {
     return <span>Feed {record ? `[${record.id}] "${record.name}" - ${record.identifier}` : ''}</span>;
 };
 
-const BibFeedToolbar = (props: any) => {
+interface BibFeedToolbarProps {
+    showDelete?: boolean;
+}
+
+const BibFeedToolbar = (props: BibFeedToolbarProps) => {
+    const { showDelete = false, ...rest } = props;
     const enabled = useWatch({ name: 'enabled' });
     const name = useWatch({ name: 'name' });
     const uri = useWatch({ name: 'uri' });
@@ -210,8 +216,9 @@ const BibFeedToolbar = (props: any) => {
     const hasErrors = hasNameError || hasUriError;
 
     return (
-        <Toolbar {...props}>
+        <Toolbar {...rest}>
             <SaveButton disabled={hasErrors} />
+            {showDelete && <DeleteButton />}
         </Toolbar>
     );
 };
@@ -279,7 +286,7 @@ export const BibFeedEdit = () => (
         <Edit component={"div"}>
             <ConsoleTitle><BibFeedTitle /></ConsoleTitle>
             <Paper>
-                <SimpleForm toolbar={<BibFeedToolbar />}>
+                <SimpleForm toolbar={<BibFeedToolbar showDelete={true} />}>
                     <BibFeedFormInputs />
                 </SimpleForm>
             </Paper>
@@ -292,7 +299,7 @@ export const BibFeedCreate = () => (
         <Create component={"div"}>
             <ConsoleTitle>Create New Bib Feed</ConsoleTitle>
             <Paper>
-                <SimpleForm toolbar={<BibFeedToolbar />}>
+                <SimpleForm toolbar={<BibFeedToolbar showDelete={false} />}>
                     <BibFeedFormInputs />
                 </SimpleForm>
             </Paper>
