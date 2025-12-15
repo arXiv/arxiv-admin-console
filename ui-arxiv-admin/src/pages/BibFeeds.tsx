@@ -218,6 +218,7 @@ const BibFeedToolbar = (props: BibFeedToolbarProps) => {
     return (
         <Toolbar {...rest}>
             <SaveButton disabled={hasErrors} />
+            <Box sx={{ flexGrow: 1 }} />
             {showDelete && <DeleteButton />}
         </Toolbar>
     );
