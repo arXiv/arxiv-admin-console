@@ -368,6 +368,8 @@ const SubmissionEditContent = () => {
     const record = useRecordContext();
     const runtimeProps = useContext(RuntimeContext);
 
+    if (!runtimeProps.ARXIV_CHECK) return null;
+
     const arxivCheckUrl = record?.id ? UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
         arxivCheck: runtimeProps.ARXIV_CHECK,
         submissionId: record.id,
@@ -454,6 +456,11 @@ const SubmissionShowActions = () => {
             navigate(`/submissions/${nextId}/show`);
         }
     };
+
+    if (!runtimeProps.ARXIV_CHECK) {
+        console.warn('arXiv Check URL not configured, cannot show arXiv Check links.\n' + JSON.stringify(runtimeProps, null, 2));
+        return null;
+    }
 
     const arxivCheckUrl = record?.id ? UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
         arxivCheck: runtimeProps.ARXIV_CHECK,

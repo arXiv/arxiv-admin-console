@@ -10,6 +10,8 @@ const ArxivCheckSubmissionLink: React.FC<FieldProps> = (props) => {
     const runtimeProps = useContext(RuntimeContext);
 
     if (!record) return null;
+    if (!runtimeProps.ARXIV_CHECK) return null;
+
     const {source} = props;
 
     const url = UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
