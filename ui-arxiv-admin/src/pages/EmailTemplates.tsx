@@ -84,20 +84,23 @@ const SendTestEmailDialogImpl = ({ open, onClose, templateId, templateName, reco
     const notify = useNotify();
 
     const handleSend = async () => {
+
         // TODO: Implement actual email sending logic
         console.log('Sending test email with data:', {
             templateId,
             subject: formData.subject,
             variables: formData.variables
         });
-        const sender = runtimeProps.adminFetcher.path('/v1/email_templates/{id}/send').method('post').create();
 
-        try {
-            const respones = await sender({id: Number(templateId), ...formData});
-        }
-        catch (e: any) {
-            notify(`Error sending test email: ${e.message}${e.detail}`, {type: 'error'});
-            return;
+        if (runtimeProps.adminFetcher) {
+            const sender = runtimeProps.adminFetcher.path('/v1/email_templates/{id}/send').method('post').create();
+
+            try {
+                const respones = await sender({id: Number(templateId), ...formData});
+            } catch (e: any) {
+                notify(`Error sending test email: ${e.message}${e.detail}`, {type: 'error'});
+                return;
+            }
         }
 
         onClose();

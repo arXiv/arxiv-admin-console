@@ -425,22 +425,24 @@ const SubmissionShowActions = () => {
     const id = record?.id;
 
     useEffect(() => {
-        const getNavigation = runtimeProps.adminFetcher.path('/v1/submissions/navigate').method('get').create();
-        async function fetchNavigation() {
-            if (id) {
-                try {
-                    const response = await getNavigation({id: Number(id)});
-                    if (response.ok) {
-                        setNavigation(response.data);
+        if (runtimeProps.adminFetcher) {
+            const getNavigation = runtimeProps.adminFetcher.path('/v1/submissions/navigate').method('get').create();
+
+            async function fetchNavigation() {
+                if (id) {
+                    try {
+                        const response = await getNavigation({id: Number(id)});
+                        if (response.ok) {
+                            setNavigation(response.data);
+                        }
+                    } catch (error: any) {
+                        console.error('Error fetching navigation:', error);
                     }
                 }
-                catch (error: any) {
-                    console.error('Error fetching navigation:', error);
-                }
             }
-        }
 
-        fetchNavigation();
+            fetchNavigation();
+        }
     }, [id, runtimeProps.adminFetcher]);
 
     const handlePrevious = () => {

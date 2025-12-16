@@ -153,28 +153,30 @@ const useEndorsementIds = (filters: any) => {
             setLoading(true);
             setError(null);
 
-            try {
-                const getIds = runtimeProps.adminFetcher.path('/v1/endorsements/ids/').method('get').create();
-                const response = await getIds(filters);
+            if (runtimeProps.adminFetcher) {
+                try {
+                    const getIds = runtimeProps.adminFetcher.path('/v1/endorsements/ids/').method('get').create();
+                    const response = await getIds(filters);
 
-                if (response.ok) {
-                    setEndorsementIds(response.data);
-                    // Extract total count from headers if available
-                    const totalCountHeader = response.headers?.get('x-total-count') || response.headers?.get('X-Total-Count');
-                    if (totalCountHeader) {
-                        setTotalCount(parseInt(totalCountHeader, 10));
+                    if (response.ok) {
+                        setEndorsementIds(response.data);
+                        // Extract total count from headers if available
+                        const totalCountHeader = response.headers?.get('x-total-count') || response.headers?.get('X-Total-Count');
+                        if (totalCountHeader) {
+                            setTotalCount(parseInt(totalCountHeader, 10));
+                        } else {
+                            // Fallback to length of returned IDs
+                            setTotalCount(response.data.length);
+                        }
                     } else {
-                        // Fallback to length of returned IDs
-                        setTotalCount(response.data.length);
+                        setError('Failed to fetch endorsement IDs');
                     }
-                } else {
-                    setError('Failed to fetch endorsement IDs');
+                } catch (err) {
+                    setError('Error fetching endorsement IDs');
+                    console.error('Error fetching endorsement IDs:', err);
+                } finally {
+                    setLoading(false);
                 }
-            } catch (err) {
-                setError('Error fetching endorsement IDs');
-                console.error('Error fetching endorsement IDs:', err);
-            } finally {
-                setLoading(false);
             }
         };
 
