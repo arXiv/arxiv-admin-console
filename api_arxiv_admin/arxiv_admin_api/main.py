@@ -109,6 +109,8 @@ USER_ACTION_URLS = {
     "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
 }
 
+ARXIV_CHECK_URL = os.environ.get("ARXIV_CHECK_URL", "https://check.dev.arxiv.org")
+
 #
 #
 #
@@ -275,6 +277,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         DOCUMENT_STORAGE=document_storage,
         USER_ACTION_SITE=USER_ACTION_SITE,
         USER_ACTION_URLS=USER_ACTION_URLS,
+        ARXIV_CHECK_URL=ARXIV_CHECK_URL,
         **cookie_names
     )
 
