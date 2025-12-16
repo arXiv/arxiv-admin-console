@@ -26,7 +26,7 @@ from starlette.responses import RedirectResponse, FileResponse, StreamingRespons
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .accessors import LocalAbsAccessor, LocalTarballAccessor, LocalPDFAccessor, GCPAbsAccessor, GCPTarballAccessor, \
     GCPPDFAccessor, GCPStorage, BaseAccessor, LocalOutcomeAccessor, GCPOutcomeAccessor, GCPBlobAccessor, \
-    LocalFileAccessor
+    LocalFileAccessor, VersionedFlavor
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .metadata import MetadataModel
 from .pubsub.event_schemas import BasePaperMessage
@@ -555,20 +555,28 @@ async def blob_to_doc_file(entry: BaseAccessor, document_id: int) -> DocumentFil
                             content_type=entry.content_type, exists=await entry.exists(), document_id=document_id)
 
 
-def list_related_files(xid: arXivID, doc_storage: GCPStorage) -> List[BaseAccessor]:
+
+def list_related_files(xid: arXivID, version: int, doc_storage: GCPStorage) -> List[BaseAccessor]:
     candidate_files: List[BaseAccessor] = [
         LocalAbsAccessor(xid, latest=True),
         LocalTarballAccessor(xid, latest=True),
-        LocalPDFAccessor(xid, latest=True),
     ]
+    for vers in range(version, 0, -1):
+        v_xid = arXivID("%sv%d" % (xid.ids, vers))
+        candidate_files.append(LocalPDFAccessor(v_xid, latest=False))
+        pass
 
     if doc_storage:
         candidate_files += [
             GCPAbsAccessor(xid, storage=doc_storage, latest=True),
             GCPTarballAccessor(xid, storage=doc_storage, latest=True),
-            GCPPDFAccessor(xid, storage=doc_storage, latest=True),
-            GCPOutcomeAccessor(xid, storage=doc_storage, latest=True),
         ]
+        for vers in range(version, 0, -1):
+            v_xid = arXivID("%sv%d" % (xid.ids, vers))
+            candidate_files.append(GCPPDFAccessor(v_xid, storage=doc_storage, latest=False))
+            candidate_files.append(GCPOutcomeAccessor(v_xid, storage=doc_storage, latest=False))
+            pass
+        pass
 
     return candidate_files
 
@@ -579,6 +587,10 @@ async def list_document_files(
         id:int,
         request: Request,
         response: Response,
+        _sort: Optional[str] = Query("version", description="sort by"),
+        _order: Optional[str] = Query("DESC", description="sort order"),
+        _start: Optional[int] = Query(0, alias="_start"),
+        _end: Optional[int] = Query(100, alias="_end"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> List[DocumentFile]:
     """Regenerate document artifacts."""
@@ -589,12 +601,16 @@ async def list_document_files(
     if doc.submitter_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
 
+    metadata: Optional[Metadata] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
+    if not metadata:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document metadata {id} not found")
+
     xid = arXivID(doc.paper_id)
     doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
 
-    files = list_related_files(xid, doc_storage)
+    files = list_related_files(xid, metadata.version, doc_storage)
     response.headers['X-Total-Count'] = str(len(files))
-    return [ await blob_to_doc_file(blob, id) for blob in files]
+    return [ await blob_to_doc_file(blob, id) for blob in files[_start:_end]]
 
 
 def to_content_type(flavor: str ) -> str:
@@ -621,8 +637,12 @@ async def download_document_file(
     if doc.submitter_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
 
+    metadata: Optional[Metadata] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
+    if not metadata:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document metadata {id} not found")
+
     doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
-    blobs = list_related_files(arXivID(doc.paper_id), doc_storage)
+    blobs = list_related_files(arXivID(doc.paper_id), metadata.version, doc_storage)
 
     blob: BaseAccessor
     for blob in blobs:
