@@ -42,7 +42,7 @@ export interface RuntimeProps
     currentUserLoading: boolean;
     updateEnv: (key: string, value: string) => void;
     aaaFetcher: ReturnType<typeof Fetcher.for<paths>>;
-    adminFetcher: ReturnType<typeof Fetcher.for<adminPaths>>;
+    adminFetcher?: ReturnType<typeof Fetcher.for<adminPaths>>;
     modapiFetcher?: ReturnType<typeof Fetcher.for<modapiPaths>>;
     arxivNavLinks: ArxivNavLink[];
 }
@@ -55,14 +55,13 @@ const defaultRuntimeProps : RuntimeProps = {
     TAPIR_COOKIE_NAME: "tapir_session",
     KEYCLOAK_ACCESS_TOKEN_NAME: "keycloak_access_token",
     KEYCLOAK_REFRESH_TOKEN_NAME: "keycloak_refresh_token",
-    ARXIV_CHECK: "https://check.dev.arxiv.org",
+    ARXIV_CHECK: "",
     URLS: arXivURLs,
     MODAPI_URL: '',
     currentUser: null,
     currentUserLoading: true,
     updateEnv: (_key, _value) => { },
     aaaFetcher: Fetcher.for<paths>(),
-    adminFetcher: Fetcher.for<adminPaths>(),
     arxivNavLinks: defaultArxivNavLinks,
 };
 
@@ -132,10 +131,12 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
     const [loading, setLoading] = useState<boolean>(true);
 
     const updateRuntimeEnv = (props: Partial<RuntimeProps>) => {
-        const newEnv = Object.assign({}, runtimeEnv, props);
-        console.debug("updateRuntimeEnv " + JSON.stringify(props));
-        console.debug("aaa url -> " + runtimeEnv.AAA_URL + " ->" + newEnv.AAA_URL );
-        setRuntimeEnv(newEnv);
+        setRuntimeEnv(prevEnv => {
+            const newEnv = Object.assign({}, prevEnv, props);
+            console.debug("updateRuntimeEnv " + JSON.stringify(props));
+            console.debug("aaa url -> " + prevEnv.AAA_URL + " ->" + newEnv.AAA_URL );
+            return newEnv;
+        });
     }
 
     const updateRuntimeProps = (key: string, value: string) => {
