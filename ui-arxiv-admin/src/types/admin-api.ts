@@ -2549,6 +2549,222 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/bib_feeds/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Feeds
+         * @description Get all bibliographic feeds in the database.
+         *
+         *     Returns a list of all configured feeds with their priorities and settings.
+         */
+        get: operations["list_feeds_v1_bib_feeds__get"];
+        put?: never;
+        /**
+         * Create Feed
+         * @description Create a new bibliographic feed.
+         *
+         *     Args:
+         *         feed_data: Feed configuration including name and priority
+         *
+         *     Returns:
+         *         The created feed
+         */
+        post: operations["create_feed_v1_bib_feeds__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/bib_feeds/{feed_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Feed
+         * @description Get a specific bibliographic feed by ID.
+         *
+         *     Args:
+         *         feed_id: The feed ID
+         *
+         *     Returns:
+         *         The requested feed
+         */
+        get: operations["get_feed_v1_bib_feeds__feed_id__get"];
+        /**
+         * Update Feed
+         * @description Update a bibliographic feed.
+         *
+         *     Commonly used to change the priority of a feed.
+         *     Supports both PUT and PATCH methods.
+         *
+         *     Args:
+         *         feed_id: The feed ID to update
+         *         feed_update: Fields to update
+         *
+         *     Returns:
+         *         The updated feed
+         */
+        put: operations["update_feed_v1_bib_feeds__feed_id__put"];
+        post?: never;
+        /**
+         * Delete Feed
+         * @description Delete a bibliographic feed.
+         *
+         *     Args:
+         *         feed_id: The feed ID to delete
+         */
+        delete: operations["delete_feed_v1_bib_feeds__feed_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Feed
+         * @description Update a bibliographic feed.
+         *
+         *     Commonly used to change the priority of a feed.
+         *     Supports both PUT and PATCH methods.
+         *
+         *     Args:
+         *         feed_id: The feed ID to update
+         *         feed_update: Fields to update
+         *
+         *     Returns:
+         *         The updated feed
+         */
+        patch: operations["update_feed_v1_bib_feeds__feed_id__patch"];
+        trace?: never;
+    };
+    "/v1/bib_feed_updates/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bib Feed Updates List All Updates
+         * @description Get update history for all documents.
+         *
+         *     Returns updates ordered by update time and feed priority.
+         *
+         *     Args:
+         *         limit: Maximum number of results to return
+         *         offset: Number of results to skip
+         *
+         *     Returns:
+         *         List of bibliographic updates
+         */
+        get: operations["bib_feed_updates_list_all_updates_v1_bib_feed_updates__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/bib_feed_updates/{paper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bib Feed Updates Get Update History
+         * @description Get update history for a specific paper.
+         *
+         *     Args:
+         *         paper_id: The paper ID (e.g., "2401.00001" or "cs/0001001")
+         *
+         *     Returns:
+         *         List of updates for this paper, ordered by update time and feed priority
+         */
+        get: operations["bib_feed_updates_get_update_history_v1_bib_feed_updates__paper_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Bib Feed Updates Delete Update History
+         * @description Delete update history for a specific paper.
+         *
+         *     If feed_names are provided, only deletes history from those specific feeds.
+         *     Otherwise, deletes all history for the paper.
+         *
+         *     Args:
+         *         paper_id: The paper ID (e.g., "2401.00001")
+         *         feed_names: Optional list of feed names to delete from (if None, delete all)
+         */
+        delete: operations["bib_feed_updates_delete_update_history_v1_bib_feed_updates__paper_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/bib_feed_updates/{paper_id}/manual-override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bib Feed Updates Set Manual Override
+         * @description Set manual override with current metadata values for a paper.
+         *
+         *     Creates a BibUpdate entry with feed name 'ManualOverride' using the current
+         *     DOI and journal reference from the document metadata.
+         *
+         *     Args:
+         *         paper_id: The paper ID (e.g., "2401.00001")
+         *
+         *     Returns:
+         *         The created manual override update entry
+         */
+        post: operations["bib_feed_updates_set_manual_override_v1_bib_feed_updates__paper_id__manual_override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/bib_feed_updates/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bib Feed Updates Create Bulk Updates
+         * @description Create multiple bibliographic update entries in bulk.
+         *
+         *     This endpoint is useful for batch processing feed data.
+         *
+         *     Args:
+         *         updates: List of update entries to create
+         *
+         *     Returns:
+         *         List of created update entries
+         */
+        post: operations["bib_feed_updates_create_bulk_updates_v1_bib_feed_updates_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ping": {
         parameters: {
             query?: never;
@@ -2672,6 +2888,291 @@ export interface components {
             author_id: string | null;
             /** Updated */
             updated: string | null;
+        };
+        /**
+         * BibFeedCreateModel
+         * @description Model for creating a new bibliographic feed
+         */
+        BibFeedCreateModel: {
+            /**
+             * Name
+             * @description Feed name
+             */
+            name: string;
+            /**
+             * Priority
+             * @description Feed priority (lower = higher priority)
+             */
+            priority: number;
+            /**
+             * Uri
+             * @description Feed URI
+             */
+            uri?: string | null;
+            /**
+             * Identifier
+             * @description Feed identifier
+             */
+            identifier?: string | null;
+            /**
+             * Version
+             * @description Feed version
+             */
+            version?: string | null;
+            /**
+             * Strip Journal Ref
+             * @description Strip journal reference flag
+             * @default false
+             */
+            strip_journal_ref: boolean;
+            /**
+             * Concatenate Dupes
+             * @description Concatenate duplicates (numeric value)
+             */
+            concatenate_dupes?: number | null;
+            /**
+             * Max Updates
+             * @description Maximum updates
+             */
+            max_updates?: number | null;
+            /**
+             * Email Errors
+             * @description Email for errors
+             */
+            email_errors?: string | null;
+            /**
+             * Prune Ids
+             * @description IDs to prune
+             */
+            prune_ids?: string | null;
+            /**
+             * Prune Regex
+             * @description Regex pattern for pruning
+             */
+            prune_regex?: string | null;
+            /**
+             * Enabled
+             * @description Feed enabled flag
+             * @default true
+             */
+            enabled: boolean | null;
+        };
+        /**
+         * BibFeedModel
+         * @description Bibliographic feed model
+         */
+        BibFeedModel: {
+            /**
+             * Id
+             * @description Feed ID
+             */
+            id: number;
+            /**
+             * Name
+             * @description Feed name
+             */
+            name: string;
+            /**
+             * Priority
+             * @description Feed priority (lower = higher priority)
+             */
+            priority: number;
+            /**
+             * Uri
+             * @description Feed URI
+             */
+            uri?: string | null;
+            /**
+             * Identifier
+             * @description Feed identifier
+             */
+            identifier?: string | null;
+            /**
+             * Version
+             * @description Feed version
+             */
+            version?: string | null;
+            /**
+             * Strip Journal Ref
+             * @description Strip journal reference flag
+             * @default false
+             */
+            strip_journal_ref: boolean;
+            /**
+             * Concatenate Dupes
+             * @description Concatenate duplicates (numeric value)
+             */
+            concatenate_dupes?: number | null;
+            /**
+             * Max Updates
+             * @description Maximum updates
+             */
+            max_updates?: number | null;
+            /**
+             * Email Errors
+             * @description Email for errors
+             */
+            email_errors?: string | null;
+            /**
+             * Prune Ids
+             * @description IDs to prune
+             */
+            prune_ids?: string | null;
+            /**
+             * Prune Regex
+             * @description Regex pattern for pruning
+             */
+            prune_regex?: string | null;
+            /**
+             * Enabled
+             * @description Feed enabled flag
+             * @default true
+             */
+            enabled: boolean | null;
+        };
+        /**
+         * BibFeedUpdateModel
+         * @description Model for updating a bibliographic feed
+         */
+        BibFeedUpdateModel: {
+            /**
+             * Name
+             * @description Feed name
+             */
+            name?: string | null;
+            /**
+             * Priority
+             * @description Feed priority (lower = higher priority)
+             */
+            priority?: number | null;
+            /**
+             * Uri
+             * @description Feed URI
+             */
+            uri?: string | null;
+            /**
+             * Identifier
+             * @description Feed identifier
+             */
+            identifier?: string | null;
+            /**
+             * Version
+             * @description Feed version
+             */
+            version?: string | null;
+            /**
+             * Strip Journal Ref
+             * @description Strip journal reference flag
+             */
+            strip_journal_ref?: boolean | null;
+            /**
+             * Concatenate Dupes
+             * @description Concatenate duplicates (numeric value)
+             */
+            concatenate_dupes?: number | null;
+            /**
+             * Max Updates
+             * @description Maximum updates
+             */
+            max_updates?: number | null;
+            /**
+             * Email Errors
+             * @description Email for errors
+             */
+            email_errors?: string | null;
+            /**
+             * Prune Ids
+             * @description IDs to prune
+             */
+            prune_ids?: string | null;
+            /**
+             * Prune Regex
+             * @description Regex pattern for pruning
+             */
+            prune_regex?: string | null;
+            /**
+             * Enabled
+             * @description Feed enabled flag
+             */
+            enabled?: boolean | null;
+        };
+        /**
+         * BibUpdateCreateModel
+         * @description Model for creating a bibliographic update entry
+         */
+        BibUpdateCreateModel: {
+            /**
+             * Document Id
+             * @description Document ID
+             */
+            document_id: number;
+            /**
+             * Bib Id
+             * @description Feed ID
+             */
+            bib_id: number;
+            /**
+             * Journal Ref
+             * @description Journal reference
+             */
+            journal_ref?: string | null;
+            /**
+             * Doi
+             * @description DOI
+             */
+            doi?: string | null;
+        };
+        /**
+         * BibUpdateModel
+         * @description Bibliographic update model
+         */
+        BibUpdateModel: {
+            /**
+             * Id
+             * @description Update ID
+             */
+            id: number;
+            /**
+             * Document Id
+             * @description Document ID
+             */
+            document_id: number;
+            /**
+             * Paper Id
+             * @description Paper ID (e.g., 2401.00001)
+             */
+            paper_id?: string | null;
+            /**
+             * Bib Id
+             * @description Feed ID
+             */
+            bib_id: number;
+            /**
+             * Feed Name
+             * @description Feed name
+             */
+            feed_name?: string | null;
+            /**
+             * Feed Priority
+             * @description Feed priority
+             */
+            feed_priority?: number | null;
+            /**
+             * Updated
+             * Format: date-time
+             * @description Update timestamp
+             */
+            updated: string;
+            /**
+             * Journal Ref
+             * @description Journal reference
+             */
+            journal_ref?: string | null;
+            /**
+             * Doi
+             * @description DOI
+             */
+            doi?: string | null;
         };
         /** Body_bulk_upload_ownership_request_v1_paper_owners_user__user_id__post */
         Body_bulk_upload_ownership_request_v1_paper_owners_user__user_id__post: {
@@ -3873,12 +4374,6 @@ export interface components {
             submitted: number;
             /** Rejected */
             rejected: number;
-            /** Unknown */
-            unknown: number;
-            /** Max Active Submissions */
-            max_active_submissions: number;
-            /** Submission Permitted */
-            submission_permitted: boolean;
         };
         /**
          * SubmissionType
@@ -9836,6 +10331,375 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_feeds_v1_bib_feeds__get: {
+        parameters: {
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+                /** @description Filter by feed name */
+                name?: string | null;
+                /** @description Filter by feed identifier */
+                identifier?: string | null;
+                /** @description Filter by URI */
+                uri?: string | null;
+                /** @description Filter by enabled flag */
+                enabled?: boolean | null;
+                /** @description Filter by feed id */
+                id?: number[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibFeedModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_feed_v1_bib_feeds__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BibFeedCreateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibFeedModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_feed_v1_bib_feeds__feed_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feed_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibFeedModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_feed_v1_bib_feeds__feed_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feed_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BibFeedUpdateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibFeedModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_feed_v1_bib_feeds__feed_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feed_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_feed_v1_bib_feeds__feed_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feed_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BibFeedUpdateModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibFeedModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bib_feed_updates_list_all_updates_v1_bib_feed_updates__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibUpdateModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bib_feed_updates_get_update_history_v1_bib_feed_updates__paper_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibUpdateModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bib_feed_updates_delete_update_history_v1_bib_feed_updates__paper_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": string[] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bib_feed_updates_set_manual_override_v1_bib_feed_updates__paper_id__manual_override_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibUpdateModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bib_feed_updates_create_bulk_updates_v1_bib_feed_updates_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BibUpdateCreateModel"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BibUpdateModel"][];
+                };
             };
             /** @description Validation Error */
             422: {

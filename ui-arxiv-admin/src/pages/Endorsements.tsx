@@ -275,6 +275,7 @@ export const EndorsementList = () => {
                 filterDefaultValues={{
                     type: "user",
                 }}
+                sort={{ field: 'issued_when', order: 'DESC' }}
             >
                 <Datagrid rowClick="edit" bulkActionButtons={false} expand={
                     <span>

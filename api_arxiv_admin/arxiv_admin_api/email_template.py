@@ -155,6 +155,12 @@ async def list_templates(
             pass
         pass
 
+    for column in order_columns:
+        if _order == "DESC":
+            query = query.order_by(column.desc())
+        else:
+            query = query.order_by(column.asc())
+
     count = query.count()
     response.headers['X-Total-Count'] = str(count)
     result = [EmailTemplateModel.model_validate(item) for item in query.offset(_start).limit(_end - _start).all()]
