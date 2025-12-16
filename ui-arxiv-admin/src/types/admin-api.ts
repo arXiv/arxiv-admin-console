@@ -3743,6 +3743,8 @@ export interface components {
             canonical_server: string;
             /** Help Server */
             help_server: string;
+            /** Arxiv Check Url */
+            arxiv_check_url: string;
         };
         /** LicenseModel */
         LicenseModel: {
@@ -8334,7 +8336,14 @@ export interface operations {
     };
     list_document_files_v1_documents__id__files_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description sort by */
+                _sort?: string | null;
+                /** @description sort order */
+                _order?: string | null;
+                _start?: number | null;
+                _end?: number | null;
+            };
             header?: never;
             path: {
                 id: number;

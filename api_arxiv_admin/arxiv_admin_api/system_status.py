@@ -144,6 +144,7 @@ class KnownServices(BaseModel):
     submit_server: str
     canonical_server: str
     help_server: str
+    arxiv_check_url: str
 
 
 @router.get('/service-info')
@@ -168,4 +169,5 @@ async def get_service_info(
         submit_server=arxiv_settings.SUBMIT_SERVER,
         canonical_server=arxiv_settings.CANONICAL_SERVER,
         help_server=arxiv_settings.HELP_SERVER,
+        arxiv_check_url=request.app.extra["ARXIV_CHECK_URL"],
     )

@@ -62,7 +62,7 @@ const defaultRuntimeProps : RuntimeProps = {
     currentUserLoading: true,
     updateEnv: (_key, _value) => { },
     aaaFetcher: Fetcher.for<paths>(),
-    adminFetcher: Fetcher.for<paths>(),
+    adminFetcher: Fetcher.for<adminPaths>(),
     arxivNavLinks: defaultArxivNavLinks,
 };
 
@@ -154,32 +154,22 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 const aaaUrl = baseUrl + "aaa";
                 const adminUrl = baseUrl + "admin-api";
 
-                const runtime1: Partial<RuntimeProps> = {
-                    AAA_URL: aaaUrl,
-                    ADMIN_API_BACKEND_URL: adminUrl,
-                    ADMIN_APP_ROOT: baseUrl + "admin-console/",
-                    ARXIV_COOKIE_NAME: defaultRuntimeProps.ARXIV_COOKIE_NAME,
-                    TAPIR_COOKIE_NAME: defaultRuntimeProps.TAPIR_COOKIE_NAME,
-                };
-                console.log("runtime-1: " + JSON.stringify(runtime1));
-                updateRuntimeEnv(runtime1);
-
                 const aaaFetcher = Fetcher.for<paths>();
                 aaaFetcher.configure({baseUrl: aaaUrl});
 
                 const adminFetcher = Fetcher.for<adminPaths>();
                 adminFetcher.configure({baseUrl: adminUrl});
 
-                const runtime2: Partial<RuntimeProps> = {
+                const runtime1: Partial<RuntimeProps> = {
                     AAA_URL: aaaUrl,
                     ADMIN_API_BACKEND_URL: adminUrl,
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
                     aaaFetcher: aaaFetcher,
                     adminFetcher: adminFetcher,
+                    ARXIV_COOKIE_NAME: defaultRuntimeProps.ARXIV_COOKIE_NAME,
+                    TAPIR_COOKIE_NAME: defaultRuntimeProps.TAPIR_COOKIE_NAME,
                 };
-
-                console.log("runtime-2: " + JSON.stringify(runtime2));
-                updateRuntimeEnv(runtime2);
+                updateRuntimeEnv(runtime1);
 
                 try {
                     const cookie_name_response = await fetch(`${runtime1.AAA_URL}/token-names`);
@@ -285,10 +275,9 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
     useEffect(() => {
         const fetchServiceInfo = async () => {
-            if (runtimeEnv.adminFetcher === undefined)
+            if (!runtimeEnv.AAA_URL)
                 return;
-
-            if (runtimeEnv.MODAPI_URL)
+            if (runtimeEnv.adminFetcher === undefined)
                 return;
 
             const servicesInfoFetcher = runtimeEnv.adminFetcher.path('/system/service-info').method('get').create();
@@ -299,7 +288,11 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                     const modapiFetcher = Fetcher.for<paths>();
                     modapiFetcher.configure({baseUrl: serviceInfo.modapi});
                     console.log("serviceInfo:", serviceInfo);
-                    updateRuntimeEnv({MODAPI_URL: serviceInfo.modapi, modapiFetcher: modapiFetcher});
+                    updateRuntimeEnv({
+                        ARXIV_CHECK: serviceInfo.arxiv_check_url,
+                        MODAPI_URL: serviceInfo.modapi,
+                        modapiFetcher: modapiFetcher,
+                    });
                 } else {
                     console.error('Error fetching service info :', sinfoResponse);
                 }
@@ -310,7 +303,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         }
 
         fetchServiceInfo();
-    }, [runtimeEnv.adminFetcher, runtimeEnv.MODAPI_URL])
+    }, [runtimeEnv.adminFetcher, runtimeEnv.AAA_URL])
 
 
     useEffect(() => {
