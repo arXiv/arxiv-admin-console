@@ -14,6 +14,7 @@ from sqlalchemy import case, and_  # select, update, func, Select, distinct, exi
 from sqlalchemy.orm import Session #, joinedload
 from google.cloud import storage
 from pathlib import Path
+from google.api_core.exceptions import Forbidden as GCPForbidden
 
 from pydantic import BaseModel
 from arxiv.base import logging
@@ -398,7 +399,7 @@ async def list_eligible_endorsers(
         start_time: Optional[datetime] = Query(None, description="Paper count start time"),
         end_time: Optional[datetime] = Query(None, description="Paper count end time"),
         session: Session = Depends(get_db)
-) -> List[EndorsementCandidates]:
+) -> List[EndorsementCandidate]:
     if isinstance(authn, ArxivUserClaims) and not authn.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
     data, _timestamp, _start_time, _end_time = await endorsing_db.endorsing_db_list_endorsement_candidates(session, start_date=start_time, end_date=end_time)
@@ -497,8 +498,10 @@ async def upload_cached_eligible_endorsers(
                 "categories_count": len(data),
                 "upload_timestamp": datetime.now(UTC).isoformat()
             }
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid storage scheme: {scheme}, location: {location}, path: {path}")
 
-    except storage.exceptions.Forbidden:
+    except GCPForbidden:
         logger.error(f"Access denied to GCS bucket {location}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
