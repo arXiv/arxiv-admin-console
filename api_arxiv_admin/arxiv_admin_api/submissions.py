@@ -20,11 +20,14 @@ from starlette.responses import JSONResponse
 from . import get_db, VERY_OLDE, is_any_user
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .submission_categories import SubmissionCategoryModel
+import os
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/submissions", dependencies=[Depends(is_any_user)])
 meta_router = APIRouter(prefix="/submissions/metadata")
+
+MAX_ACTIVE_SUBMISSIONS = int(os.environ.get("MAX_ACTIVE_SUBMISSIONS", "3"))
 
 class SubmissionStatusClassification(str, Enum):
     """Submission status classification"""
@@ -598,6 +601,9 @@ class SubmissionSummaryModel(BaseModel):
     active: int
     submitted: int
     rejected: int
+    unknown: int
+    max_active_submissions: int
+    submission_permitted: bool
 
 @router.get("/user/{user_id:str}/summary")
 async def get_submission_summary_of_user(
@@ -609,23 +615,26 @@ async def get_submission_summary_of_user(
     if not current_user.is_admin and str(current_user.user_id) != str(user_id):
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
-    submissions_status = session.query(Submission.status).filter(Submission.submitter_id == user_id).all()
+    submissions_by_user = session.query(Submission.status).filter(Submission.submitter_id == user_id).all()
 
     result = SubmissionSummaryModel(
-        total=len(submissions_status),
+        total=len(submissions_by_user),
         active=0,
         submitted=0,
         rejected=0,
+        unknown=0,
+        max_active_submissions=MAX_ACTIVE_SUBMISSIONS,
+        submission_permitted = True
     )
 
     status_list = {entry.id: entry for entry in _VALID_STATUS_LIST}
 
-    status: int
-    for row in submissions_status:
-        status = row[0]
-        if status not in status_list:
+    submission_status: int
+    for a_submission in submissions_by_user:
+        submission_status = a_submission[0]
+        if submission_status not in status_list:
             continue
-        submission_status = status_list[status]
+        submission_status = status_list[submission_status]
         match submission_status.classification:
             case SubmissionStatusClassification.active:
                 result.active += 1
@@ -634,6 +643,9 @@ async def get_submission_summary_of_user(
             case SubmissionStatusClassification.rejected:
                 result.rejected += 1
             case SubmissionStatusClassification.unknown:
+                result.unknown += 1
                 pass
         pass
+
+    result.submission_permitted = result.active < MAX_ACTIVE_SUBMISSIONS
     return result
