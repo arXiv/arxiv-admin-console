@@ -54,6 +54,7 @@ from arxiv_admin_api.licenses import router as licenses_router
 from arxiv_admin_api.email_patterns import router as email_patterns_router
 from arxiv_admin_api.endorsement_domains import router as endorsement_domains_router
 from arxiv_admin_api.system_status import router as system_status_router
+from arxiv_admin_api.bib_feeds import router as bib_feeds_router, bib_feed_updates_router
 
 from arxiv_admin_api.frontend import router as frontend_router
 from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
@@ -107,6 +108,8 @@ USER_ACTION_URLS = {
     "jref": os.environ.get("USER_ACTION_URL_JREF", "{site}/user/{doc_id}/jref"),
     "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
 }
+
+ARXIV_CHECK_URL = os.environ.get("ARXIV_CHECK_URL", "https://check.dev.arxiv.org")
 
 #
 #
@@ -274,6 +277,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         DOCUMENT_STORAGE=document_storage,
         USER_ACTION_SITE=USER_ACTION_SITE,
         USER_ACTION_URLS=USER_ACTION_URLS,
+        ARXIV_CHECK_URL=ARXIV_CHECK_URL,
         **cookie_names
     )
 
@@ -344,6 +348,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     app.include_router(licenses_router, prefix="/v1")
     app.include_router(email_patterns_router, prefix="/v1")
     app.include_router(endorsement_domains_router, prefix="/v1")
+    app.include_router(bib_feeds_router, prefix="/v1")
+    app.include_router(bib_feed_updates_router, prefix="/v1")
 
     @app.middleware("http")
     async def apply_response_headers(request: Request, call_next: Callable) -> Response:

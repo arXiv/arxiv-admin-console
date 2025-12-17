@@ -7,6 +7,7 @@ import {
     ListContextProvider,
     Datagrid,
     Identifier, NumberField, BooleanField,
+    Pagination
 } from 'react-admin';
 import React from 'react';
 import StorageURLField from "../bits/StorageURLField";
@@ -43,6 +44,7 @@ const DocumentFileList: React.FC<{document_id?: Identifier}> = ({document_id}) =
                 <DocumentFileUploadField label="Upload" sortable={false} />
                 <DocumentFileDownloadField source={"id"} label="Download" sortable={false} />
             </Datagrid>
+            <Pagination />
         </ListContextProvider>
     );
 };

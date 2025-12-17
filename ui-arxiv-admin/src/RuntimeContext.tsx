@@ -42,7 +42,7 @@ export interface RuntimeProps
     currentUserLoading: boolean;
     updateEnv: (key: string, value: string) => void;
     aaaFetcher: ReturnType<typeof Fetcher.for<paths>>;
-    adminFetcher: ReturnType<typeof Fetcher.for<adminPaths>>;
+    adminFetcher?: ReturnType<typeof Fetcher.for<adminPaths>>;
     modapiFetcher?: ReturnType<typeof Fetcher.for<modapiPaths>>;
     arxivNavLinks: ArxivNavLink[];
 }
@@ -51,18 +51,17 @@ const defaultRuntimeProps : RuntimeProps = {
     AAA_URL: '',
     ADMIN_API_BACKEND_URL: 'http://localhost.arxiv.org:5100/admin-api',
     ADMIN_APP_ROOT: 'http://localhost.arxiv.org:5000/admin-console/',
-    ARXIV_COOKIE_NAME: "",
+    ARXIV_COOKIE_NAME: "ARXIVNG_SESSION_ID",
     TAPIR_COOKIE_NAME: "tapir_session",
-    KEYCLOAK_ACCESS_TOKEN_NAME: "",
-    KEYCLOAK_REFRESH_TOKEN_NAME: "",
-    ARXIV_CHECK: "https://check.dev.arxiv.org",
+    KEYCLOAK_ACCESS_TOKEN_NAME: "keycloak_access_token",
+    KEYCLOAK_REFRESH_TOKEN_NAME: "keycloak_refresh_token",
+    ARXIV_CHECK: "",
     URLS: arXivURLs,
     MODAPI_URL: '',
     currentUser: null,
     currentUserLoading: true,
     updateEnv: (_key, _value) => { },
     aaaFetcher: Fetcher.for<paths>(),
-    adminFetcher: Fetcher.for<paths>(),
     arxivNavLinks: defaultArxivNavLinks,
 };
 
@@ -132,10 +131,12 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
     const [loading, setLoading] = useState<boolean>(true);
 
     const updateRuntimeEnv = (props: Partial<RuntimeProps>) => {
-        const newEnv = Object.assign({}, runtimeEnv, props);
-        console.debug("updateRuntimeEnv " + JSON.stringify(props));
-        console.debug("aaa url -> " + runtimeEnv.AAA_URL + " ->" + newEnv.AAA_URL );
-        setRuntimeEnv(newEnv);
+        setRuntimeEnv(prevEnv => {
+            const newEnv = Object.assign({}, prevEnv, props);
+            console.debug("updateRuntimeEnv " + JSON.stringify(props));
+            console.debug("aaa url -> " + prevEnv.AAA_URL + " ->" + newEnv.AAA_URL );
+            return newEnv;
+        });
     }
 
     const updateRuntimeProps = (key: string, value: string) => {
@@ -154,39 +155,41 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 const aaaUrl = baseUrl + "aaa";
                 const adminUrl = baseUrl + "admin-api";
 
+                const aaaFetcher = Fetcher.for<paths>();
+                aaaFetcher.configure({baseUrl: aaaUrl});
+
+                const adminFetcher = Fetcher.for<adminPaths>();
+                adminFetcher.configure({baseUrl: adminUrl});
+
                 const runtime1: Partial<RuntimeProps> = {
                     AAA_URL: aaaUrl,
                     ADMIN_API_BACKEND_URL: adminUrl,
                     ADMIN_APP_ROOT: baseUrl + "admin-console/",
+                    aaaFetcher: aaaFetcher,
+                    adminFetcher: adminFetcher,
                     ARXIV_COOKIE_NAME: defaultRuntimeProps.ARXIV_COOKIE_NAME,
                     TAPIR_COOKIE_NAME: defaultRuntimeProps.TAPIR_COOKIE_NAME,
                 };
-                console.log("runtime-1: " + JSON.stringify(runtime1));
                 updateRuntimeEnv(runtime1);
-                const cookie_name_response = await fetch(`${runtime1.AAA_URL}/token-names`);
-                const cookie_names = await cookie_name_response.json();
-                console.log("cookie_names: " + JSON.stringify(cookie_names));
 
-                const aaaFetcher = Fetcher.for<paths>();
-                aaaFetcher.configure({baseUrl: aaaUrl});
+                try {
+                    const cookie_name_response = await fetch(`${runtime1.AAA_URL}/token-names`);
+                    const cookie_names = await cookie_name_response.json();
+                    console.log("cookie_names: " + JSON.stringify(cookie_names));
 
-                const adminFetcher = Fetcher.for<paths>();
-                adminFetcher.configure({baseUrl: adminUrl});
+                    const runtime3: Partial<RuntimeProps> = {
+                        ARXIV_COOKIE_NAME: cookie_names.session,
+                        TAPIR_COOKIE_NAME: cookie_names.classic,
+                        KEYCLOAK_ACCESS_TOKEN_NAME: cookie_names.keycloak_access,
+                        KEYCLOAK_REFRESH_TOKEN_NAME: cookie_names.keycloak_refresh,
+                    };
+                    console.log("runtime-3: " + JSON.stringify(runtime3));
+                    updateRuntimeEnv(runtime3);
+                }
+                catch (error) {
+                    console.error('Error fetching runtime3 - cookie names:', error);
+                }
 
-                const runtime2: Partial<RuntimeProps> = {
-                    AAA_URL: aaaUrl,
-                    ADMIN_API_BACKEND_URL: adminUrl,
-                    ADMIN_APP_ROOT: baseUrl + "admin-console/",
-                    ARXIV_COOKIE_NAME: cookie_names.session,
-                    TAPIR_COOKIE_NAME: cookie_names.classic,
-                    KEYCLOAK_ACCESS_TOKEN_NAME: cookie_names.keycloak_access,
-                    KEYCLOAK_REFRESH_TOKEN_NAME: cookie_names.keycloak_refresh,
-                    aaaFetcher: aaaFetcher,
-                    adminFetcher: adminFetcher,
-                };
-
-                console.log("runtime-2: " + JSON.stringify(runtime2));
-                updateRuntimeEnv(runtime2);
             } catch (error) {
                 console.error('Error fetching runtime urls:', error);
             } finally {
@@ -212,7 +215,7 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
             try {
                 console.log("1. fetching current user");
                 const getCurrentUserFetch = it.path('/account/current').method('get').create();
-                const userResponse = await getCurrentUserFetch({});
+                const userResponse = await getCurrentUserFetch({scope: "admin"});
 
                 if (userResponse.ok) {
                     console.log("1. fetching current user - ok");
@@ -224,6 +227,13 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 } else {
                     console.log("1. fetching current user - not ok");
 
+                    // Redirect to logout on 401 Unauthorized or 403 Forbidden
+                    if (userResponse.status === 401 || userResponse.status === 403) {
+                        console.log(`1. fetching current user - ${userResponse.status} error, redirecting to logout`);
+                        window.location.href = runtimeEnv.AAA_URL + "/logout";
+                        return;
+                    }
+
                     updateRuntimeEnv({
                         currentUser: null,
                         currentUserLoading: false
@@ -231,22 +241,32 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                 }
             } catch (userError) {
                 console.error('Error fetching current user:', userError);
+
                 updateRuntimeEnv({
                     currentUser: null,
                     currentUserLoading: false
                 });
+
+                // Redirect to logout on 401 Unauthorized or 403 Forbidden
+                if (userError && typeof userError === 'object' && 'status' in userError &&
+                    (userError.status === 401 || userError.status === 403)) {
+                    console.log(`1. fetching current user - ${userError.status} error in catch, redirecting to logout`);
+                    window.location.href = runtimeEnv.AAA_URL + "/logout";
+                    return;
+                }
             }
         };
 
         fetchUserData();
     }, [runtimeEnv.AAA_URL]);
 
-
+/*
     useEffect(() => {
         const it = Fetcher.for<adminPaths>();
         it.configure({baseUrl: runtimeEnv.ADMIN_API_BACKEND_URL});
         updateRuntimeEnv({adminFetcher: it});
     }, [runtimeEnv.ADMIN_API_BACKEND_URL]);
+ */
 
 /*
     useEffect(() => {
@@ -256,10 +276,9 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
 
     useEffect(() => {
         const fetchServiceInfo = async () => {
-            if (runtimeEnv.adminFetcher === undefined)
+            if (!runtimeEnv.AAA_URL)
                 return;
-
-            if (runtimeEnv.MODAPI_URL)
+            if (runtimeEnv.adminFetcher === undefined)
                 return;
 
             const servicesInfoFetcher = runtimeEnv.adminFetcher.path('/system/service-info').method('get').create();
@@ -270,7 +289,11 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
                     const modapiFetcher = Fetcher.for<paths>();
                     modapiFetcher.configure({baseUrl: serviceInfo.modapi});
                     console.log("serviceInfo:", serviceInfo);
-                    updateRuntimeEnv({MODAPI_URL: serviceInfo.modapi, modapiFetcher: modapiFetcher});
+                    updateRuntimeEnv({
+                        ARXIV_CHECK: serviceInfo.arxiv_check_url,
+                        MODAPI_URL: serviceInfo.modapi,
+                        modapiFetcher: modapiFetcher,
+                    });
                 } else {
                     console.error('Error fetching service info :', sinfoResponse);
                 }
@@ -281,7 +304,8 @@ export const RuntimeContextProvider = ({ children } : RuntimeContextProviderProp
         }
 
         fetchServiceInfo();
-    }, [runtimeEnv.adminFetcher, runtimeEnv.MODAPI_URL])
+    }, [runtimeEnv.adminFetcher, runtimeEnv.AAA_URL])
+
 
     useEffect(() => {
         const fetchNavigation = async () => {

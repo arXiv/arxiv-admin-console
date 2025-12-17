@@ -368,6 +368,8 @@ const SubmissionEditContent = () => {
     const record = useRecordContext();
     const runtimeProps = useContext(RuntimeContext);
 
+    if (!runtimeProps.ARXIV_CHECK) return null;
+
     const arxivCheckUrl = record?.id ? UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
         arxivCheck: runtimeProps.ARXIV_CHECK,
         submissionId: record.id,
@@ -423,22 +425,24 @@ const SubmissionShowActions = () => {
     const id = record?.id;
 
     useEffect(() => {
-        const getNavigation = runtimeProps.adminFetcher.path('/v1/submissions/navigate').method('get').create();
-        async function fetchNavigation() {
-            if (id) {
-                try {
-                    const response = await getNavigation({id: Number(id)});
-                    if (response.ok) {
-                        setNavigation(response.data);
+        if (runtimeProps.adminFetcher) {
+            const getNavigation = runtimeProps.adminFetcher.path('/v1/submissions/navigate').method('get').create();
+
+            async function fetchNavigation() {
+                if (id) {
+                    try {
+                        const response = await getNavigation({id: Number(id)});
+                        if (response.ok) {
+                            setNavigation(response.data);
+                        }
+                    } catch (error: any) {
+                        console.error('Error fetching navigation:', error);
                     }
                 }
-                catch (error: any) {
-                    console.error('Error fetching navigation:', error);
-                }
             }
-        }
 
-        fetchNavigation();
+            fetchNavigation();
+        }
     }, [id, runtimeProps.adminFetcher]);
 
     const handlePrevious = () => {
@@ -454,6 +458,11 @@ const SubmissionShowActions = () => {
             navigate(`/submissions/${nextId}/show`);
         }
     };
+
+    if (!runtimeProps.ARXIV_CHECK) {
+        console.warn('arXiv Check URL not configured, cannot show arXiv Check links.\n' + JSON.stringify(runtimeProps, null, 2));
+        return null;
+    }
 
     const arxivCheckUrl = record?.id ? UriTemplate(runtimeProps.URLS.CheckSubmissionLink).fill({
         arxivCheck: runtimeProps.ARXIV_CHECK,

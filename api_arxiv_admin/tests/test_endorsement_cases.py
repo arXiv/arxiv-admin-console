@@ -502,7 +502,7 @@ class TestEndorsementJudgement(unittest.TestCase):
             tracking_cookie=self.tracking_cookie,
         )
         self.assertTrue(business.can_submit())
-        self.assertEqual("Endorser user-cs-mod is a moderator in cs.AI.", business.reason)
+        self.assertEqual("Endorser is a moderator in cs.AI.", business.reason)
 
     def test_bad_endorsement(self):
         """Tests a reject because of unrelated category"""
@@ -683,7 +683,7 @@ class TestEndorsementJudgement(unittest.TestCase):
             tracking_cookie=self.tracking_cookie,
         )
         self.assertTrue(business.can_submit())
-        self.assertEqual("Endorser moderator is a moderator in econ.", business.reason)
+        self.assertEqual("Endorser is a moderator in econ.", business.reason)
 
     # Good by moderator is the first test.
 
@@ -876,7 +876,7 @@ class TestEndorsementJudgement(unittest.TestCase):
         user = self.accessor.get_user(user_id)
         result, biz = can_user_endorse_for(self.accessor, user,"cs", "AI")
         self.assertTrue(result)
-        self.assertEqual('Endorser user-cs-mod is a moderator in cs.AI.', biz.reason)
+        self.assertEqual('Endorser is a moderator in cs.AI.', biz.reason)
 
         # This user is not a econ.EM moderator
         result, biz = can_user_endorse_for(self.accessor, user,"econ", "EM")
