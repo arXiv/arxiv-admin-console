@@ -7,9 +7,9 @@ import httpx
 from typing import Callable, Optional, Tuple, Any
 
 from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES, TapirCookieToUserClaimsMiddleware
-from fastapi import FastAPI, status, Depends
+from fastapi import FastAPI, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from asgi_logger import AccessLoggerMiddleware
 
