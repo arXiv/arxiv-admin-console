@@ -143,52 +143,6 @@ origins = [
     "https://web41.arxiv.org/",
 ]
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
-
-class LogMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Log request details
-        body = await request.body()
-        print(f"Request: {request.method} {request.url}")
-        # print(f"Request Headers: {request.headers}")
-        # print(f"Request Body: {body.decode('utf-8')}")
-
-        # Call the next middleware or endpoint
-        response = await call_next(request)
-
-        # Capture response body properly
-        response_body = []
-        async for chunk in response.body_iterator:
-            response_body.append(chunk)
-        
-        # Create a proper async iterator
-        async def generate_body():
-            for chunk in response_body:
-                yield chunk
-        
-        # Replace the body iterator with our async generator
-        response.body_iterator = generate_body()
-
-        # Log response details
-        print(f"Response: {response.status_code}")
-
-        # Only decode text-based content types
-        content_type = response.headers.get('content-type', '')
-        is_text = any(ct in content_type.lower() for ct in ['text/', 'application/json', 'application/xml', 'application/javascript'])
-
-        if is_text:
-            try:
-                response_body_str = b''.join(response_body).decode('utf-8')
-                #print(f"Response Headers: {response.headers}")
-                #print(f"Response Body: {response_body_str}")
-            except UnicodeDecodeError:
-                print(f"Response: Binary content (could not decode as UTF-8), size: {len(b''.join(response_body))} bytes")
-        else:
-            print(f"Response: Binary content type '{content_type}', size: {len(b''.join(response_body))} bytes")
-
-        return response
 
 
 
@@ -304,7 +258,6 @@ def create_app(*args, **kwargs) -> FastAPI:
 
     app.add_middleware(AccessLoggerMiddleware) # type: ignore
 
-    app.add_middleware(LogMiddleware)
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
     # app.add_middleware(SessionCookieMiddleware)
 
