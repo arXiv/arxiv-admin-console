@@ -12,6 +12,14 @@ def setup_logger():
     logger.handlers.clear()
     logger.addHandler(logHandler)
     logger.setLevel(logging.DEBUG)
+
+    # Suppress verbose loggers
     logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
     logging.getLogger("hypercorn.access").handlers.clear()
     logging.getLogger("hypercorn.access").propagate = False
+
+    # Suppress httpx client logs (Request/Response logs)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
+    # Suppress hypercorn error logs or ensure they use JSON
+    logging.getLogger("hypercorn.error").setLevel(logging.WARNING)
