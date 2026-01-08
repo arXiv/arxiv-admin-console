@@ -123,40 +123,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/frontend/{full_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve React App */
-        get: operations["serve_react_app_frontend__full_path__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/static/{full_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve React App */
-        get: operations["serve_react_app_static__full_path__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/admin_logs/": {
         parameters: {
             query?: never;
@@ -2765,7 +2731,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/ping": {
+    "/ping": {
         parameters: {
             query?: never;
             header?: never;
@@ -2773,7 +2739,7 @@ export interface paths {
             cookie?: never;
         };
         /** Ping */
-        get: operations["ping_v1_ping_get"];
+        get: operations["ping_ping_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2791,6 +2757,23 @@ export interface paths {
         };
         /** Root */
         get: operations["root__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ok": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Im Ok */
+        get: operations["im_ok_ok_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4376,6 +4359,12 @@ export interface components {
             submitted: number;
             /** Rejected */
             rejected: number;
+            /** Unknown */
+            unknown: number;
+            /** Max Active Submissions */
+            max_active_submissions: number;
+            /** Submission Permitted */
+            submission_permitted: boolean;
         };
         /**
          * SubmissionType
@@ -4886,68 +4875,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["KnownServices"];
-                };
-            };
-        };
-    };
-    serve_react_app_frontend__full_path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                full_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    serve_react_app_static__full_path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                full_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6703,7 +6630,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EndorsementCandidates"][];
+                    "application/json": components["schemas"]["EndorsementCandidate"][];
                 };
             };
             /** @description Validation Error */
@@ -10721,7 +10648,7 @@ export interface operations {
             };
         };
     };
-    ping_v1_ping_get: {
+    ping_ping_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -10742,6 +10669,26 @@ export interface operations {
         };
     };
     root__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    im_ok_ok_get: {
         parameters: {
             query?: never;
             header?: never;
