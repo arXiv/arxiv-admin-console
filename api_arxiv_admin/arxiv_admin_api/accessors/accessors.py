@@ -203,8 +203,6 @@ class GCPBlobAccessor(BaseAccessor):
             return self.blob.size  # type: ignore
         return None
 
-    pass
-
 
 class LocalFileAccessor(BaseAccessor):
     """Local file accessor for a given arXiv ID. This is an abstract class."""
@@ -376,11 +374,113 @@ class GCPPDFAccessor(GCPBlobAccessor, PDFFlavor):
 
 class GCPAbsAccessor(GCPBlobAccessor, AbsFlavor):
     """GCP abstract text accessor for a given arXiv ID."""
-
     pass
 
 
 class GCPOutcomeAccessor(GCPBlobAccessor, OutcomeFlavor):
     """GCP outcome accessor for a given arXiv ID."""
+    pass
+
+
+class LocalPathAccessor(BaseAccessor):
+    path: Path
+
+    def __init__(self, identifier: arXivID, **kwargs: typing.Any):
+        self.path = kwargs.pop("path")
+        if not isinstance(self.path, Path):
+            raise ValueError(f"path must be a Path object, not {type(self.path)}")
+        super().__init__(identifier, **kwargs)
+
+    async def exists(self) -> bool:
+        """Return True if the file exists in the storage."""
+        return self.path.exists()
+
+    async def download_to_filename(self, filename: str = "unnamed.bin") -> None:
+        """Download the file to the local file system."""
+        with self.path.open("rb") as fd_from:
+            with open(filename, "wb") as fd_to:
+                shutil.copyfileobj(fd_from, fd_to)
+
+    async def upload_from_filename(self, filename: str = "unnamed.bin") -> None:
+        """Upload the file to the storage."""
+        with open(filename, "rb") as fd_from:
+            with self.path.open("wb") as fd_to:
+                shutil.copyfileobj(fd_from, fd_to)
+
+    async def download_as_bytes(self, **kwargs: typing.Any) -> bytes:
+        """Download the file as bytes."""
+        with open(self.path, "rb") as fd_from:
+            return bytes(fd_from.read())
+
+    async def upload_from_stream(self, fd_from: Any) -> None:
+        """Upload the file to the storage."""
+        with open(self.path, "wb") as fd_to:
+            shutil.copyfileobj(fd_from, fd_to)
+
+    @property
+    def canonical_name(self) -> str:
+        """Canonical name - URI."""
+        return f"file://{self.path}"
+
+    @property
+    def content_type(self) -> str | None:
+        """MIME type of the file, mostly for uploading to GCP."""
+        return None
+
+    def open(self, **kwargs: typing.Any) -> BlobReader | BinaryIO | TextIO | BlobWriter:
+        """Open the srorage (file or GCP blob) and return the file-ish object."""
+        return self.path.open(**kwargs)
+
+    @property
+    async def bytesize(self) -> int | None:
+        """Object byte size, if applicable."""
+        return self.path.stat().st_size
+
+    @property
+    def basename(self) -> str:
+        """Base name of the file."""
+        return os.path.basename(self.path.name)
+
+    @property
+    def local_path(self) -> str:
+        """Tarball filename from arXiv ID."""
+        return self.path.as_posix()
+
+    @property
+    def flavor(self) -> str:
+        return "binary"
+
+
+class GCPPathAccessor(GCPBlobAccessor):
+    path: Path
+
+    def __init__(self, identifier: arXivID, **kwargs: typing.Any):
+        self.identifier = identifier
+        self.root_dir = kwargs.pop("root_dir", None)
+        self.gcp_storage = kwargs.pop("storage")
+        self.timeout = kwargs.pop("timeout", 300)
+        self.path = kwargs.pop("path")
+        if not isinstance(self.path, Path):
+            raise ValueError(f"path must be a Path object, not {type(self.path)}")
+
+        if self.blob_name is None:
+            raise ValueError("blob_name is None")
+        self.blob = self.bucket.blob(self.blob_name)
+
+
+    @property
+    def blob_name(self) -> str | None:
+        """Turn webnode path to GCP blob name."""
+        return local_path_to_blob_key(self.local_path)
+
+    @property
+    def local_path(self) -> str:
+        """Tarball filename from arXiv ID."""
+        return self.path.as_posix()
+
+    @property
+    def flavor(self) -> str:
+        return "binary"
 
     pass
+
