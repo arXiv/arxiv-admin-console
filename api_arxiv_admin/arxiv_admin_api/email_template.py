@@ -25,7 +25,7 @@ from arxiv_messaging.send_notification import send_notification
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/email_templates")
-notification_pubsub_router = APIRouter(prefix="/notification_pubsub_router")
+# notification_pubsub_router = APIRouter(prefix="/notification_pubsub_router")
 
 class WorkflowStatus(IntEnum):
     UNKNOWN = 0

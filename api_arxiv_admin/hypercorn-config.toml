@@ -1,3 +1,4 @@
 keep_alive_timeout=120
 log_level="warning"
-access_log_format = ""
+# Disable Hypercorn's access logging - we use AccessLoggerMiddleware for JSON-formatted access logs
+accesslog = "/dev/null"

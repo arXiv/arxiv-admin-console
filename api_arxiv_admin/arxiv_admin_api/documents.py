@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from enum import Enum
+from pathlib import Path
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
@@ -26,7 +27,7 @@ from starlette.responses import RedirectResponse, FileResponse, StreamingRespons
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
 from .accessors import LocalAbsAccessor, LocalTarballAccessor, LocalPDFAccessor, GCPAbsAccessor, GCPTarballAccessor, \
     GCPPDFAccessor, GCPStorage, BaseAccessor, LocalOutcomeAccessor, GCPOutcomeAccessor, GCPBlobAccessor, \
-    LocalFileAccessor, VersionedFlavor
+    LocalFileAccessor, VersionedFlavor, LocalPathAccessor
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .metadata import MetadataModel
 from .pubsub.event_schemas import BasePaperMessage
@@ -555,31 +556,74 @@ async def blob_to_doc_file(entry: BaseAccessor, document_id: int) -> DocumentFil
                             content_type=entry.content_type, exists=await entry.exists(), document_id=document_id)
 
 
+def get_local_source_accessor(xid: arXivID, metadata: Metadata, latest: bool = True) -> BaseAccessor:
+    match metadata.source_format:
+        case "tex":
+            return LocalTarballAccessor(xid, latest=latest)
 
-def list_related_files(xid: arXivID, version: int, doc_storage: GCPStorage) -> List[BaseAccessor]:
-    candidate_files: List[BaseAccessor] = [
-        LocalAbsAccessor(xid, latest=True),
-        LocalTarballAccessor(xid, latest=True),
-    ]
-    for vers in range(version, 0, -1):
-        v_xid = arXivID("%sv%d" % (xid.ids, vers))
+        case "ps":
+            return LocalTarballAccessor(xid, latest=latest)
+
+        case "html":
+            return LocalTarballAccessor(xid, latest=latest)
+
+        case "pdf":
+            return LocalTarballAccessor(xid, latest=latest)
+
+        case "withdrawn":
+            return LocalTarballAccessor(xid, latest=latest)
+
+        case "pdftex":
+            return LocalTarballAccessor(xid, latest=latest)
+
+        case "docx":
+            return LocalTarballAccessor(xid, latest=latest)
+
+        case _:
+            return LocalTarballAccessor(xid, latest=latest)
+
+
+    # SOURCE_FORMAT = Literal["tex", "ps", "html", "pdf", "withdrawn", "pdftex", "docx"]
+
+    raise ValueError(f"Unknown source format: {metadata.source_format}")
+
+
+def list_related_files(xid: arXivID, all_metadata: List[Metadata], doc_storage: GCPStorage) -> List[BaseAccessor]:
+    candidate_files: List[BaseAccessor] = []
+    max_version = max([metadata.version for metadata in all_metadata])
+
+    buddy_files = []
+    for idx, metadata in enumerate(all_metadata):
+        v_xid = arXivID("%sv%d" % (xid.ids, metadata.version))
+        if max_version == metadata.version:
+            abs_accessor = LocalAbsAccessor(xid, latest=True)
+            candidate_files.append(abs_accessor)
+            candidate_files.append(get_local_source_accessor(v_xid, metadata, latest=True))
+        else:
+            abs_accessor = LocalAbsAccessor(v_xid, latest=False)
+            candidate_files.append(abs_accessor)
+            candidate_files.append(get_local_source_accessor(v_xid, metadata, latest=False))
+
         candidate_files.append(LocalPDFAccessor(v_xid, latest=False))
         pass
 
+
     if doc_storage:
-        candidate_files += [
-            GCPAbsAccessor(xid, storage=doc_storage, latest=True),
-            GCPTarballAccessor(xid, storage=doc_storage, latest=True),
-        ]
-        for vers in range(version, 0, -1):
-            v_xid = arXivID("%sv%d" % (xid.ids, vers))
+        for idx, metadata in enumerate(all_metadata):
+            v_xid = arXivID("%sv%d" % (xid.ids, metadata.version))
+            if max_version == metadata.version:
+                candidate_files.append(GCPAbsAccessor(xid, storage=doc_storage, latest=True))
+                candidate_files.append(GCPTarballAccessor(xid, storage=doc_storage, latest=True))
+            else:
+                candidate_files.append(GCPAbsAccessor(v_xid, storage=doc_storage, latest=False))
+                candidate_files.append(GCPTarballAccessor(v_xid, storage=doc_storage, latest=False))
+
             candidate_files.append(GCPPDFAccessor(v_xid, storage=doc_storage, latest=False))
             candidate_files.append(GCPOutcomeAccessor(v_xid, storage=doc_storage, latest=False))
             pass
         pass
 
     return candidate_files
-
 
 
 @router.get("/{id:str}/files")
@@ -601,14 +645,14 @@ async def list_document_files(
     if doc.submitter_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
 
-    metadata: Optional[Metadata] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
-    if not metadata:
+    all_metadata: Optional[List[Metadata]] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).all()
+    if not all_metadata:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document metadata {id} not found")
 
     xid = arXivID(doc.paper_id)
     doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
 
-    files = list_related_files(xid, metadata.version, doc_storage)
+    files = list_related_files(xid, all_metadata, doc_storage)
     response.headers['X-Total-Count'] = str(len(files))
     return [ await blob_to_doc_file(blob, id) for blob in files[_start:_end]]
 

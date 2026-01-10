@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es2021",
+    "target": "ES2022",
     "lib": [
-      "es2021",
+      "ES2023",
       "dom",
-      "dom.iterable",
-      "esnext"
+      "dom.iterable"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -14,8 +13,8 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,

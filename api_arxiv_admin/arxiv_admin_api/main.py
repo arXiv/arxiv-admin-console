@@ -6,7 +6,8 @@ from datetime import timezone, datetime
 import httpx
 from typing import Callable, Optional, Tuple, Any
 
-from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES, TapirCookieToUserClaimsMiddleware
+from arxiv_bizlogic.fastapi_helpers import COOKIE_ENV_NAMES, TapirCookieToUserClaimsMiddleware, \
+    ENABLE_USER_ACCESS_KEY, gatekeep_users
 from fastapi import FastAPI, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, Response
@@ -28,7 +29,7 @@ from arxiv_admin_api.accessors import GCPStorage
 # from arxiv_admin_api.authentication import router as auth_router
 from arxiv_admin_api.admin_logs import router as admin_log_router
 from arxiv_admin_api.categories import router as categories_router, archive_group_router
-from arxiv_admin_api.email_template import router as email_template_router, notification_pubsub_router
+from arxiv_admin_api.email_template import router as email_template_router #, notification_pubsub_router
 from arxiv_admin_api.endorsement_requests import router as endorsement_request_router, endorsers_router
 from arxiv_admin_api.endorsement_requests_audit import router as endorsement_request_audit_router
 from arxiv_admin_api.endorsements import router as endorsement_router
@@ -206,6 +207,10 @@ def create_app(*args, **kwargs) -> FastAPI:
     document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
     document_storage = GCPStorage(gcp_client, document_bucket_name)
 
+    extra_options = {}
+    if os.environ.get(ENABLE_USER_ACCESS_KEY):
+        extra_options[ENABLE_USER_ACCESS_KEY] = os.environ.get(ENABLE_USER_ACCESS_KEY)
+
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
         arxiv_db_engine=database.engine,
@@ -219,9 +224,9 @@ def create_app(*args, **kwargs) -> FastAPI:
         user_session=UserSession(),
         PWC_SECRET=pwc_secret,
         PWC_ARXIV_USER_SECRET=pwc_arxiv_user_secret,
-        SMTP_URL = os.environ.get('SMTP_URL', "ssmtp://smtp.gmail.com:465?user=smtp-relay@arxiv.org&password=pwd"),
-        API_SHARED_SECRET = os.environ.get('API_SHARED_SECRET', "not-very-secret"),
-        ENDORSER_POOL_OBJECT_URL = os.environ.get('ENDORSER_POOL_OBJECT_URL'),
+        SMTP_URL = os.environ.get('ADMIN_API_SMTP_URL', "ssmtp://smtp.gmail.com:465?user=smtp-relay@arxiv.org&password=p"),
+        API_SHARED_SECRET = os.environ.get('ADMIN_API_SHARED_SECRET', "not-very-secret"),
+        ENDORSER_POOL_OBJECT_URL = os.environ.get('ADMIN_API_ENDORSER_POOL_OBJECT_URL'),
         MODAPI_URL=MODAPI_URL,
         MODAPI_MODKEY=MODAPI_MODKEY,
         GCP_PROJECT_ID=os.environ.get('GCP_PROJECT_ID', "arxiv-development"),
@@ -232,7 +237,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         USER_ACTION_SITE=USER_ACTION_SITE,
         USER_ACTION_URLS=USER_ACTION_URLS,
         ARXIV_CHECK_URL=ARXIV_CHECK_URL,
-        **cookie_names
+        **cookie_names,
+        **extra_options
     )
 
     if ADMIN_APP_URL not in origins:
@@ -256,7 +262,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         transformer=lambda a: a
         )
 
-    app.add_middleware(AccessLoggerMiddleware) # type: ignore
+    # app.add_middleware(AccessLoggerMiddleware) # type: ignore
 
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
     # app.add_middleware(SessionCookieMiddleware)
@@ -265,38 +271,38 @@ def create_app(*args, **kwargs) -> FastAPI:
 
     # app.include_router(auth_router)
     app.include_router(system_status_router)
-    app.include_router(frontend_router)
-    app.include_router(admin_log_router, prefix="/v1")
-    app.include_router(categories_router, prefix="/v1")
-    app.include_router(archive_group_router, prefix="/v1")
-    app.include_router(demographic_router, prefix="/v1")
-    app.include_router(user_router, prefix="/v1")
-    app.include_router(users_by_username_router, prefix="/v1")
+    # app.include_router(frontend_router)
+    app.include_router(admin_log_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(categories_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(archive_group_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(demographic_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(user_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(users_by_username_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
     app.include_router(email_template_router, prefix="/v1")
-    app.include_router(notification_pubsub_router, prefix="/v1")
-    app.include_router(endorsement_router, prefix="/v1")
-    app.include_router(endorsement_request_router, prefix="/v1")
-    app.include_router(endorsers_router, prefix="/v1")
+    # app.include_router(notification_pubsub_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(endorsement_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(endorsement_request_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(endorsers_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
     app.include_router(endorsement_request_audit_router, prefix="/v1")
-    app.include_router(paper_owner_router, prefix="/v1")
-    app.include_router(paper_pw_router, prefix="/v1")
-    app.include_router(ownership_request_router, prefix="/v1")
-    app.include_router(ownership_request_audit_router, prefix="/v1")
-    app.include_router(moderator_router, prefix="/v1")
-    app.include_router(document_router, prefix="/v1")
-    app.include_router(metadata_router, prefix="/v1")
-    app.include_router(submission_router, prefix="/v1")
-    app.include_router(submission_meta_router, prefix="/v1")
+    app.include_router(paper_owner_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(paper_pw_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(ownership_request_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(ownership_request_audit_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(moderator_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(document_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(metadata_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(submission_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(submission_meta_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
     app.include_router(member_institution_router, prefix="/v1")
     app.include_router(institution_ip_router, prefix="/v1")
     app.include_router(tapir_session_router, prefix="/v1")
-    app.include_router(submission_categories_router, prefix="/v1")
+    app.include_router(submission_categories_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
     app.include_router(countries_router, prefix="/v1")
-    app.include_router(public_users_router, prefix="/v1")
-    app.include_router(tapir_admin_audit_router, prefix="/v1")
+    app.include_router(public_users_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(tapir_admin_audit_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
     app.include_router(taxonomy_router, prefix="/v1")
-    app.include_router(orcid_router, prefix="/v1")
-    app.include_router(author_id_router, prefix="/v1")
+    app.include_router(orcid_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
+    app.include_router(author_id_router, prefix="/v1", dependencies=[Depends(gatekeep_users)])
     app.include_router(show_email_requests_router, prefix="/v1")
     app.include_router(licenses_router, prefix="/v1")
     app.include_router(email_patterns_router, prefix="/v1")
@@ -314,7 +320,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         response.headers['X-Frame-Options'] = 'DENY'
         return response
 
-    @app.get("/v1/ping")
+    @app.get("/ping")
     async def ping(request: Request,
                    response: Response,
                    token: Optional[str] = Depends(get_session_cookie)):
@@ -381,7 +387,11 @@ def create_app(*args, **kwargs) -> FastAPI:
 
     @app.get("/")
     async def root(_request: Request):
-        return RedirectResponse("/frontend")
+        return RedirectResponse("docs")
+
+    @app.get("/ok")
+    async def im_ok():
+        return Response({}, status_code=status.HTTP_200_OK)
 
     @app.exception_handler(AccessTokenExpired)
     async def user_not_authenticated_exception_handler(request: Request,
