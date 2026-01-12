@@ -127,7 +127,7 @@ const PingBackend: React.FC<PingBackendProps> = ({children}) => {
     useEffect(() => {
         const pingBackend = async () => {
             try {
-                const response = await fetch(`${runtimeProps.ADMIN_API_BACKEND_URL}/v1/ping`);
+                const response = await fetch(`${runtimeProps.ADMIN_API_BACKEND_URL}/ping`);
                 if (response.ok) {
                     setServerStatus('Online');
                 } else {
