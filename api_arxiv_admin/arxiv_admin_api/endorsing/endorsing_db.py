@@ -305,9 +305,11 @@ def endorsing_db_parse_storage_url(request: Request) -> tuple[str, str, str]:
     """
     url = request.app.extra.get('ENDORSER_POOL_OBJECT_URL')
     if not url:
+        msg = "ADMIN_API_ENDORSER_POOL_OBJECT_URL is not configured"
+        logger.error(msg)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ENDORSER_POOL_OBJECT_URL is not configured"
+            detail=msg
         )
 
     # Parse URL using urlparse
@@ -321,9 +323,11 @@ def endorsing_db_parse_storage_url(request: Request) -> tuple[str, str, str]:
         file_path = parsed_url.path
         return 'file', '', file_path
     else:
+        msg = "Invalid storage URL format. Expected gs://bucket-name/object-name or file:///path/to/file.json"
+        logger.error(msg)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Invalid storage URL format. Expected gs://bucket-name/object-name or file:///path/to/file.json"
+            detail=msg
         )
 
 
