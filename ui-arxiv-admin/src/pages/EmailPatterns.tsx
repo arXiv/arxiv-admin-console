@@ -178,6 +178,7 @@ export const EmailPatternList = () => (
             filters={<EmailPatternFilter/>}
             filterDefaultValues={{purpose: 'black'}}
             actions={<EmailPatternListActions/>}
+            queryOptions={{ placeholderData: undefined }}
         >
             <Datagrid rowClick={false} bulkActionButtons={<EmailPatternBulkDeleteButton/>}>
                 <TextField source="id" label="Pattern"/>
