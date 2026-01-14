@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -22,15 +22,23 @@ import { emailPatternPurposeOptions } from "../types/definitions";
 interface EmailPatternDownloadDialogProps {
     open: boolean;
     onClose: () => void;
+    defaultPurpose?: string;
 }
 
-export const EmailPatternDownloadDialog: React.FC<EmailPatternDownloadDialogProps> = ({ open, onClose }) => {
-    const [purpose, setPurpose] = useState<string>('black');
+export const EmailPatternDownloadDialog: React.FC<EmailPatternDownloadDialogProps> = ({ open, onClose, defaultPurpose = 'black' }) => {
+    const [purpose, setPurpose] = useState<string>(defaultPurpose);
     const [downloading, setDownloading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     const notify = useNotify();
     const runtimeProps = useContext(RuntimeContext);
+
+    // Sync purpose with defaultPurpose when dialog opens
+    useEffect(() => {
+        if (open) {
+            setPurpose(defaultPurpose);
+        }
+    }, [open, defaultPurpose]);
 
     const handleDownload = async () => {
         setDownloading(true);
@@ -69,7 +77,7 @@ export const EmailPatternDownloadDialog: React.FC<EmailPatternDownloadDialogProp
     };
 
     const handleClose = () => {
-        setPurpose('black');
+        setPurpose(defaultPurpose);
         setError(null);
         setDownloading(false);
         onClose();

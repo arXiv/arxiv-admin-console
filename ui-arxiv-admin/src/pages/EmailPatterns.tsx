@@ -102,6 +102,8 @@ const EmailPatternListActions = () => {
     const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const menuOpen = Boolean(anchorEl);
+    const { filterValues } = useListContext();
+    const currentPurpose = filterValues?.purpose || 'black';
 
     const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -157,10 +159,12 @@ const EmailPatternListActions = () => {
             <EmailPatternUploadDialog
                 open={uploadDialogOpen}
                 onClose={() => setUploadDialogOpen(false)}
+                defaultPurpose={currentPurpose}
             />
             <EmailPatternDownloadDialog
                 open={downloadDialogOpen}
                 onClose={() => setDownloadDialogOpen(false)}
+                defaultPurpose={currentPurpose}
             />
         </TopToolbar>
     );
