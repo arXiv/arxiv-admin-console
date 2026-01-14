@@ -28,6 +28,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {useState, useContext} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {EmailPatternUploadDialog} from '../components/EmailPatternUploadDialog';
 import {EmailPatternDownloadDialog} from '../components/EmailPatternDownloadDialog';
 import {RuntimeContext} from '../RuntimeContext';
@@ -125,7 +126,7 @@ const EmailPatternListActions = () => {
 
     return (
         <TopToolbar>
-            <CreateButton/>
+            <CreateButton to={`/email_patterns/create?purpose=${currentPurpose}`}/>
             <ExportButton/>
             <IconButton
                 onClick={handleMenuClick}
@@ -185,16 +186,21 @@ export const EmailPatternList = () => (
     </Box>
 );
 
-export const EmailPatternCreate = () => (
-    <Create>
-        <ConsoleTitle>Add Pattern</ConsoleTitle>
-        <SimpleForm>
-            <TextInput source="id" label="Pattern"/>
-            <SelectInput
-                source="purpose"
-                choices={emailPatternPurposeOptions}
-                label="Purpose"
-            />
-        </SimpleForm>
-    </Create>
-);
+export const EmailPatternCreate = () => {
+    const [searchParams] = useSearchParams();
+    const defaultPurpose = searchParams.get('purpose') || 'black';
+
+    return (
+        <Create>
+            <ConsoleTitle>Add Pattern</ConsoleTitle>
+            <SimpleForm defaultValues={{purpose: defaultPurpose}}>
+                <TextInput source="id" label="Pattern"/>
+                <SelectInput
+                    source="purpose"
+                    choices={emailPatternPurposeOptions}
+                    label="Purpose"
+                />
+            </SimpleForm>
+        </Create>
+    );
+};
