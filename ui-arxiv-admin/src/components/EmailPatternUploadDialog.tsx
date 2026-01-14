@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -26,6 +26,7 @@ import { emailPatternPurposeOptions } from "../types/definitions";
 interface EmailUploadUploadDialogProps {
     open: boolean;
     onClose: () => void;
+    defaultPurpose?: string;
 }
 
 
@@ -34,9 +35,9 @@ const operationOptions = [
     { id: 'replace', name: 'Replace' },
 ];
 
-export const EmailPatternUploadDialog: React.FC<EmailUploadUploadDialogProps> = ({ open, onClose }) => {
+export const EmailPatternUploadDialog: React.FC<EmailUploadUploadDialogProps> = ({ open, onClose, defaultPurpose = 'black' }) => {
     const [file, setFile] = useState<File | null>(null);
-    const [purpose, setPurpose] = useState<string>('black');
+    const [purpose, setPurpose] = useState<string>(defaultPurpose);
     const [operation, setOperation] = useState<string>('append');
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,13 @@ export const EmailPatternUploadDialog: React.FC<EmailUploadUploadDialogProps> = 
     const notify = useNotify();
     const refresh = useRefresh();
     const runtimeProps = useContext(RuntimeContext);
+
+    // Sync purpose with defaultPurpose when dialog opens
+    useEffect(() => {
+        if (open) {
+            setPurpose(defaultPurpose);
+        }
+    }, [open, defaultPurpose]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -102,7 +110,7 @@ export const EmailPatternUploadDialog: React.FC<EmailUploadUploadDialogProps> = 
 
     const handleClose = () => {
         setFile(null);
-        setPurpose('black');
+        setPurpose(defaultPurpose);
         setOperation('append');
         setError(null);
         setUploading(false);
