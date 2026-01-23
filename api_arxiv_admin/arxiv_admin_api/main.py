@@ -158,6 +158,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     database = Database(settings)
     database.set_to_global()
 
+    TESTING = kwargs.get('TESTING')
+
     # from arxiv.db import init as arxiv_db_init
     # arxiv_db_init(settings)
     # from arxiv.db import _classic_engine
@@ -208,6 +210,9 @@ def create_app(*args, **kwargs) -> FastAPI:
     document_storage = GCPStorage(gcp_client, document_bucket_name)
 
     extra_options = {}
+    if TESTING:
+        extra_options["TESTING"] = TESTING
+
     if os.environ.get(ENABLE_USER_ACCESS_KEY):
         extra_options[ENABLE_USER_ACCESS_KEY] = os.environ.get(ENABLE_USER_ACCESS_KEY)
 

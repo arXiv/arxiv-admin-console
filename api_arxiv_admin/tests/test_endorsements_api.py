@@ -10,7 +10,7 @@ from arxiv_admin_api.endorsement_requests import EndorsementRequestModel
 
 
 @pytest.fixture(scope="function")
-def db_session(setup_db_fixture):
+def db_session(reset_test_database):
     """Fixture to provide a database session."""
     with DatabaseSession() as session:
         yield session
@@ -26,7 +26,7 @@ def test_tapir_session_id():
     return 100
 
 
-@pytest.mark.usefixtures("setup_db_fixture")
+@pytest.mark.usefixtures("reset_test_database")
 class TestReadOnlys:
 
     def test_see_papers(self, db_session):

@@ -12,13 +12,10 @@ from dotenv import dotenv_values, load_dotenv
 from arxiv.config import Settings
 from arxiv_bizlogic.database import Database, DatabaseSession
 
-from arxiv_oauth2.biz.account_biz import AccountIdentifierModel
-
-AAA_TEST_DIR = Path(__file__).parent
-ARXIV_KEYCLOAK_DIR = AAA_TEST_DIR.parent.parent
+ADMIN_API_TEST_DIR = Path(__file__).parent
 
 dotenv_filename = 'test-env'
-load_dotenv(dotenv_path=AAA_TEST_DIR.joinpath(dotenv_filename), override=True)
+load_dotenv(dotenv_path=ADMIN_API_TEST_DIR.joinpath(dotenv_filename), override=True)
 
 import pytest
 import logging
@@ -26,15 +23,15 @@ import logging
 from time import sleep
 
 from fastapi.testclient import TestClient
-from arxiv_oauth2.main import create_app
+from arxiv_admin_api.main import create_app
 import os
 
 
-MYSQL_DATA_DIR = AAA_TEST_DIR / "mysql-data"
-MYSQL_SNAPSHOT_DIR = AAA_TEST_DIR / "mysql-data-snapshot"
+MYSQL_DATA_DIR = ADMIN_API_TEST_DIR / "mysql-data"
+MYSQL_SNAPSHOT_DIR = ADMIN_API_TEST_DIR / "mysql-data-snapshot"
 
-DC_YAML = AAA_TEST_DIR.joinpath('docker-compose.yaml')
-DC_DBO_YAML = AAA_TEST_DIR.joinpath('docker-compose-db-only.yaml')
+DC_YAML = ADMIN_API_TEST_DIR.joinpath('docker-compose.yaml')
+DC_DBO_YAML = ADMIN_API_TEST_DIR.joinpath('docker-compose-db-only.yaml')
 
 
 def ignore_socket_files(directory, files):
@@ -52,7 +49,7 @@ def ignore_socket_files(directory, files):
     return ignored
 
 
-def reset_database_from_snapshot(db_port: str, container_name: str = "aaa-db-arxiv-test-db") -> bool:
+def reset_database_from_snapshot(db_port: str, container_name: str = "admin-api-arxiv-test-db") -> bool:
     """
     Reset the database to its initial state by restoring from snapshot.
     If snapshot doesn't exist, creates one from current data.
@@ -144,9 +141,9 @@ def check_any_rows_in_table(schema: str, table_name: str, db_user: str, db_passw
 
 @pytest.fixture(scope="module")
 def test_env() -> Dict[str, Optional[str]]:
-    if not AAA_TEST_DIR.joinpath(dotenv_filename).exists():
+    if not ADMIN_API_TEST_DIR.joinpath(dotenv_filename).exists():
         raise FileNotFoundError(dotenv_filename)
-    return dotenv_values(AAA_TEST_DIR.joinpath(dotenv_filename).as_posix())
+    return dotenv_values(ADMIN_API_TEST_DIR.joinpath(dotenv_filename).as_posix())
 
 
 @pytest.fixture(scope="module")
@@ -155,7 +152,7 @@ def docker_compose(test_env):
     if not DC_YAML.exists():
         raise FileNotFoundError(DC_YAML.as_posix())
     env_arg = "--env-file=" + dotenv_filename
-    working_dir = AAA_TEST_DIR.as_posix()
+    working_dir = ADMIN_API_TEST_DIR.as_posix()
 
     # Set UID/GID for docker-compose to run containers as current user
     docker_env = os.environ.copy()
@@ -198,22 +195,21 @@ def test_mta(test_env, docker_compose):
 
 
 @pytest.fixture(scope="module")
-def aaa_client(test_env, docker_compose):
-    """Start AAA App. Since it needs the database running, it needs the arxiv db up"""
+def admin_api_client(test_env, docker_compose):
+    """Start Admin Console App. Since it needs the database running, it needs the arxiv db up"""
     os.environ.update(test_env)
     app = create_app(TESTING=True)
-    # aaa_app_port = test_env['ARXIV_OAUTH2_APP_PORT']
-    aaa_url = test_env['AAA_URL']
-    client = TestClient(app, base_url=aaa_url)
+    admin_api_url = test_env['ADMIN_API_URL']
+    client = TestClient(app, base_url=admin_api_url)
 
     for _ in range(100):
         response = client.get("/status/")
         if response.status_code == 200:
-            logging.info("AAA status - OK")
+            logging.info("Admin-API status - OK")
             sleep(2)
             break
         sleep(2)
-        logging.info("AAA status - WAITING")
+        logging.info("Admin-API status - WAITING")
         pass
     else:
         assert False, "The docker compose did not start?"
@@ -222,18 +218,18 @@ def aaa_client(test_env, docker_compose):
 
 
 @pytest.fixture(scope="module")
-def aaa_client_db_only(test_env: Dict, docker_compose_db_only):
-    """Start AAA App with database-only setup (faster for isolated tests)"""
+def admin_api_db_only_client(test_env: Dict, docker_compose_db_only):
+    """Start Admin API with database-only setup (faster for isolated tests)"""
     # Make sure there is no keycloak secret
     test_env["KEYCLOAK_ADMIN_SECRET"] = "<NOT-SET>"
 
     os.environ.update(test_env)
     app = create_app(TESTING=True)
-    aaa_url = test_env['AAA_URL']
-    client = TestClient(app, base_url=aaa_url)
+    admin_api_url = test_env['ADMIN_API_URL']
+    client = TestClient(app, base_url=admin_api_url)
 
     for _ in range(100):
-        response = client.get("/status/database")
+        response = client.get("/database_status")
         if response.status_code == 200:
             logging.info("AAA status - OK")
             sleep(2)
@@ -248,17 +244,17 @@ def aaa_client_db_only(test_env: Dict, docker_compose_db_only):
 
 
 @pytest.fixture(scope="module")
-def aaa_api_headers(test_env):
-    aaa_api_token = test_env['AAA_API_TOKEN']
+def admin_api_headers(test_env):
+    admin_api_token = test_env['ADMIN_API_TOKEN']
     headers = {
-        "Authorization": f"Bearer {aaa_api_token}",
+        "Authorization": f"Bearer {admin_api_token}",
         "Content-Type": "application/json"
     }
     return headers
 
 
 @pytest.fixture(scope="module")
-def aaa_admin_user(test_env):
+def admin_api_admin_user(test_env):
     user_info = ArxivUserClaimsModel(
         sub = "1129053",
         exp = 253402300799,
@@ -282,8 +278,8 @@ def aaa_admin_user(test_env):
 
 
 @pytest.fixture(scope="module")
-def aaa_user0001_headers(test_env, aaa_client, aaa_api_headers):
-    response1 = aaa_client.get("/account/identifier/?username=user0001", headers=aaa_api_headers)
+def user0001_headers(test_env, admin_api_client, admin_api_headers):
+    response1 = admin_api_client.get("/account/identifier/?username=user0001", headers=admin_api_headers)
     first_user: AccountIdentifierModel = AccountIdentifierModel.model_validate(response1.json())
 
     user_claims = ArxivUserClaims(
@@ -316,7 +312,7 @@ def docker_compose_db_only(test_env):
     if not DC_DBO_YAML.exists():
         raise FileNotFoundError(DC_DBO_YAML.as_posix())
     env_arg = "--env-file=" + dotenv_filename
-    working_dir = AAA_TEST_DIR.as_posix()
+    working_dir = ADMIN_API_TEST_DIR.as_posix()
 
     # kill off the other docker-compose instance
     try:
@@ -335,7 +331,7 @@ def docker_compose_db_only(test_env):
     docker_env["GID"] = str(os.getgid())
 
     try:
-        container_name = "aaa-db-arxiv-test-db"
+        container_name = "admin-api-arxiv-test-db"
         needs_data_load = False
 
         # Check if container exists and is running
@@ -382,7 +378,7 @@ def docker_compose_db_only(test_env):
             logging.info("Waiting for myloader to complete...")
             for _ in range(100):
                 result = subprocess.run(
-                    ["docker", "inspect", "-f", "{{.State.Status}}", "aaa-db-myloader"],
+                    ["docker", "inspect", "-f", "{{.State.Status}}", "admin-api-db-myloader"],
                     capture_output=True,
                     text=True,
                     check=False
@@ -390,7 +386,7 @@ def docker_compose_db_only(test_env):
                 if result.returncode == 0 and "exited" in result.stdout:
                     # Check if it exited successfully (exit code 0)
                     exit_code_result = subprocess.run(
-                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", "aaa-db-myloader"],
+                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", "admin-api-db-myloader"],
                         capture_output=True,
                         text=True,
                         check=False
@@ -491,7 +487,7 @@ def docker_compose_db_only(test_env):
         logging.info("Keeping docker-compose running for subsequent tests...")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def reset_test_database(test_env, docker_compose_db_only):
     """
     Reset the database to its initial snapshot state before each test.
@@ -502,6 +498,42 @@ def reset_test_database(test_env, docker_compose_db_only):
     if not success:
         pytest.fail("Failed to reset database from snapshot")
     yield None
+
+
+@pytest.fixture(scope="function")
+def reset_test_database_for_function(test_env, docker_compose_db_only):
+    """
+    Reset the database to its initial snapshot state before each test.
+    Use this fixture when you need a clean database state for each test.
+    """
+    logging.info("Resetting database from snapshot...")
+    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"])
+    if not success:
+        pytest.fail("Failed to reset database from snapshot")
+    yield None
+
+
+@pytest.fixture(scope="function")
+def database_instance(test_env, docker_compose_db_only):
+    """
+    Set up the database connection for tests that need direct database access.
+    This fixture configures the global Database instance and provides DatabaseSession.
+    """
+    db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}".format(
+        "arxiv",
+        "arxiv_password",
+        "127.0.0.1",
+        test_env["ARXIV_DB_PORT"],
+        "arXiv"
+    )
+
+    settings = Settings(
+        CLASSIC_DB_URI=db_uri,
+        LATEXML_DB_URI=None
+    )
+    database = Database(settings)
+    database.set_to_global()
+    yield DatabaseSession
 
 
 @pytest.fixture(scope="module")

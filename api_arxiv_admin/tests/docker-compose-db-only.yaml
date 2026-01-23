@@ -1,14 +1,14 @@
 services:
   cleanup-db:
     image: alpine:latest
-    container_name: aaa-db-cleanup
+    container_name: admin-api-db-cleanup
     volumes:
       - ./mysql-data:/mysql-data
     command: sh -c "rm -rf /mysql-data/* && echo 'Cleaned mysql-data directory'"
 
   arxiv-test-db:
     image: mysql:8.4.5
-    container_name: aaa-db-arxiv-test-db
+    container_name: admin-api-arxiv-test-db
     user: "${UID}:${GID}"
     ports:
       - "${ARXIV_DB_PORT}:${ARXIV_DB_PORT}"  # Host port:Container port
@@ -34,7 +34,7 @@ services:
 
   myloader:
     image: mydumper/mydumper:latest
-    container_name: aaa-db-myloader
+    container_name: admin-api-db-myloader
     volumes:
       - ../../tests/data/test-db-dump:/myloader-data
     network_mode: host
