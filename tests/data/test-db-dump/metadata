@@ -1,0 +1,607 @@
+# Started dump at: 2026-01-23 22:23:22
+[config]
+quote-character = BACKTICK
+
+[myloader_session_variables]
+SQL_MODE='NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' /*!40101
+
+[source]
+# Channel_Name = '' # It can be use to setup replication FOR CHANNEL
+# SOURCE_LOG_FILE = "binlog.000003"
+# SOURCE_LOG_POS = 112959
+
+[`arXiv`.`Subscription_UniversalInstitutionContact`]
+real_table_name=Subscription_UniversalInstitutionContact
+rows = 450
+
+[`arXiv`.`Subscription_UniversalInstitutionIP`]
+real_table_name=Subscription_UniversalInstitutionIP
+rows = 2143
+
+[`arXiv`.`Subscription_UniversalInstitution`]
+real_table_name=Subscription_UniversalInstitution
+rows = 467
+
+[`arXiv`.`arXiv_admin_log`]
+real_table_name=arXiv_admin_log
+rows = 2574
+
+[`arXiv`.`arXiv_admin_metadata`]
+real_table_name=arXiv_admin_metadata
+rows = 117
+
+[`arXiv`.`arXiv_admin_state`]
+real_table_name=arXiv_admin_state
+rows = 0
+
+[`arXiv`.`arXiv_archive_category`]
+real_table_name=arXiv_archive_category
+rows = 184
+
+[`arXiv`.`arXiv_archive_def`]
+real_table_name=arXiv_archive_def
+rows = 21
+
+[`arXiv`.`arXiv_archive_group`]
+real_table_name=arXiv_archive_group
+rows = 21
+
+[`arXiv`.`arXiv_archives`]
+real_table_name=arXiv_archives
+rows = 39
+
+[`arXiv`.`arXiv_author_ids`]
+real_table_name=arXiv_author_ids
+rows = 30
+
+[`arXiv`.`arXiv_aws_config`]
+real_table_name=arXiv_aws_config
+rows = 0
+
+[`arXiv`.`arXiv_aws_files`]
+real_table_name=arXiv_aws_files
+rows = 0
+
+[`arXiv`.`arXiv_bad_pw`]
+real_table_name=arXiv_bad_pw
+rows = 0
+
+[`arXiv`.`arXiv_bib_feeds`]
+real_table_name=arXiv_bib_feeds
+rows = 21
+
+[`arXiv`.`arXiv_bib_updates`]
+real_table_name=arXiv_bib_updates
+rows = 800
+
+[`arXiv`.`arXiv_black_email`]
+real_table_name=arXiv_black_email
+rows = 389
+
+[`arXiv`.`arXiv_block_email`]
+real_table_name=arXiv_block_email
+rows = 15
+
+[`arXiv`.`arXiv_bogus_countries`]
+real_table_name=arXiv_bogus_countries
+rows = 0
+
+[`arXiv`.`arXiv_bogus_subject_class`]
+real_table_name=arXiv_bogus_subject_class
+rows = 0
+
+[`arXiv`.`arXiv_categories`]
+real_table_name=arXiv_categories
+rows = 194
+
+[`arXiv`.`arXiv_category_def`]
+real_table_name=arXiv_category_def
+rows = 184
+
+[`arXiv`.`arXiv_check_responses`]
+real_table_name=arXiv_check_responses
+rows = 0
+
+[`arXiv`.`arXiv_check_result_views`]
+real_table_name=arXiv_check_result_views
+rows = 0
+
+[`arXiv`.`arXiv_check_results`]
+real_table_name=arXiv_check_results
+rows = 0
+
+[`arXiv`.`arXiv_check_roles`]
+real_table_name=arXiv_check_roles
+rows = 0
+
+[`arXiv`.`arXiv_check_targets`]
+real_table_name=arXiv_check_targets
+rows = 0
+
+[`arXiv`.`arXiv_checks`]
+real_table_name=arXiv_checks
+rows = 0
+
+[`arXiv`.`arXiv_control_holds`]
+real_table_name=arXiv_control_holds
+rows = 0
+
+[`arXiv`.`arXiv_cross_control`]
+real_table_name=arXiv_cross_control
+rows = 0
+
+[`arXiv`.`arXiv_datacite_dois`]
+real_table_name=arXiv_datacite_dois
+rows = 2468
+
+[`arXiv`.`arXiv_dblp_authors`]
+real_table_name=arXiv_dblp_authors
+rows = 0
+
+[`arXiv`.`arXiv_dblp_document_authors`]
+real_table_name=arXiv_dblp_document_authors
+rows = 0
+
+[`arXiv`.`arXiv_dblp`]
+real_table_name=arXiv_dblp
+rows = 319
+
+[`arXiv`.`arXiv_demographics`]
+real_table_name=arXiv_demographics
+rows = 1006
+
+[`arXiv`.`arXiv_document_category`]
+real_table_name=arXiv_document_category
+rows = 4083
+
+[`arXiv`.`arXiv_documents`]
+real_table_name=arXiv_documents
+rows = 2465
+
+[`arXiv`.`arXiv_duplicates`]
+real_table_name=arXiv_duplicates
+rows = 0
+
+[`arXiv`.`arXiv_endorsement_domains`]
+real_table_name=arXiv_endorsement_domains
+rows = 62
+
+[`arXiv`.`arXiv_endorsement_requests_audit`]
+real_table_name=arXiv_endorsement_requests_audit
+rows = 201
+
+[`arXiv`.`arXiv_endorsement_requests`]
+real_table_name=arXiv_endorsement_requests
+rows = 201
+
+[`arXiv`.`arXiv_endorsements_audit`]
+real_table_name=arXiv_endorsements_audit
+rows = 0
+
+[`arXiv`.`arXiv_endorsements`]
+real_table_name=arXiv_endorsements
+rows = 2
+
+[`arXiv`.`arXiv_freeze_log`]
+real_table_name=arXiv_freeze_log
+rows = 14
+
+[`arXiv`.`arXiv_group_def`]
+real_table_name=arXiv_group_def
+rows = 9
+
+[`arXiv`.`arXiv_groups`]
+real_table_name=arXiv_groups
+rows = 9
+
+[`arXiv`.`arXiv_in_category`]
+real_table_name=arXiv_in_category
+rows = 4215
+
+[`arXiv`.`arXiv_jref_control`]
+real_table_name=arXiv_jref_control
+rows = 0
+
+[`arXiv`.`arXiv_latexml_doc`]
+real_table_name=arXiv_latexml_doc
+rows = 301
+
+[`arXiv`.`arXiv_latexml_sub`]
+real_table_name=arXiv_latexml_sub
+rows = 393
+
+[`arXiv`.`arXiv_licenses`]
+real_table_name=arXiv_licenses
+rows = 11
+
+[`arXiv`.`arXiv_log_positions`]
+real_table_name=arXiv_log_positions
+rows = 1
+
+[`arXiv`.`arXiv_metadata`]
+real_table_name=arXiv_metadata
+rows = 3941
+
+[`arXiv`.`arXiv_mirror_list`]
+real_table_name=arXiv_mirror_list
+rows = 580
+
+[`arXiv`.`arXiv_moderator_api_key`]
+real_table_name=arXiv_moderator_api_key
+rows = 0
+
+[`arXiv`.`arXiv_moderators`]
+real_table_name=arXiv_moderators
+rows = 356
+
+[`arXiv`.`arXiv_monitor_klog`]
+real_table_name=arXiv_monitor_klog
+rows = 0
+
+[`arXiv`.`arXiv_monitor_mailq`]
+real_table_name=arXiv_monitor_mailq
+rows = 0
+
+[`arXiv`.`arXiv_monitor_mailsent`]
+real_table_name=arXiv_monitor_mailsent
+rows = 0
+
+[`arXiv`.`arXiv_next_mail`]
+real_table_name=arXiv_next_mail
+rows = 3782
+
+[`arXiv`.`arXiv_orcid_config`]
+real_table_name=arXiv_orcid_config
+rows = 9
+
+[`arXiv`.`arXiv_orcid_ids`]
+real_table_name=arXiv_orcid_ids
+rows = 198
+
+[`arXiv`.`arXiv_ownership_requests_audit`]
+real_table_name=arXiv_ownership_requests_audit
+rows = 69
+
+[`arXiv`.`arXiv_ownership_requests_papers`]
+real_table_name=arXiv_ownership_requests_papers
+rows = 171866
+
+[`arXiv`.`arXiv_ownership_requests`]
+real_table_name=arXiv_ownership_requests
+rows = 69
+
+[`arXiv`.`arXiv_paper_owners`]
+real_table_name=arXiv_paper_owners
+rows = 2446
+
+[`arXiv`.`arXiv_paper_pw`]
+real_table_name=arXiv_paper_pw
+rows = 2464
+
+[`arXiv`.`arXiv_paper_sessions`]
+real_table_name=arXiv_paper_sessions
+rows = 0
+
+[`arXiv`.`arXiv_pilot_datasets`]
+real_table_name=arXiv_pilot_datasets
+rows = 0
+
+[`arXiv`.`arXiv_pilot_files`]
+real_table_name=arXiv_pilot_files
+rows = 0
+
+[`arXiv`.`arXiv_publish_log`]
+real_table_name=arXiv_publish_log
+rows = 15
+
+[`arXiv`.`arXiv_questionable_categories`]
+real_table_name=arXiv_questionable_categories
+rows = 2
+
+[`arXiv`.`arXiv_queue_view`]
+real_table_name=arXiv_queue_view
+rows = 0
+
+[`arXiv`.`arXiv_refresh_list`]
+real_table_name=arXiv_refresh_list
+rows = 0
+
+[`arXiv`.`arXiv_reject_session_usernames`]
+real_table_name=arXiv_reject_session_usernames
+rows = 1
+
+[`arXiv`.`arXiv_sciencewise_pings`]
+real_table_name=arXiv_sciencewise_pings
+rows = 758
+
+[`arXiv`.`arXiv_show_email_requests`]
+real_table_name=arXiv_show_email_requests
+rows = 147
+
+[`arXiv`.`arXiv_state`]
+real_table_name=arXiv_state
+rows = 0
+
+[`arXiv`.`arXiv_stats_hourly`]
+real_table_name=arXiv_stats_hourly
+rows = 0
+
+[`arXiv`.`arXiv_stats_monthly_downloads`]
+real_table_name=arXiv_stats_monthly_downloads
+rows = 0
+
+[`arXiv`.`arXiv_stats_monthly_submissions`]
+real_table_name=arXiv_stats_monthly_submissions
+rows = 0
+
+[`arXiv`.`arXiv_submission_abs_classifier_data`]
+real_table_name=arXiv_submission_abs_classifier_data
+rows = 1314
+
+[`arXiv`.`arXiv_submission_agreements`]
+real_table_name=arXiv_submission_agreements
+rows = 3
+
+[`arXiv`.`arXiv_submission_category_proposal`]
+real_table_name=arXiv_submission_category_proposal
+rows = 0
+
+[`arXiv`.`arXiv_submission_category`]
+real_table_name=arXiv_submission_category
+rows = 7163
+
+[`arXiv`.`arXiv_submission_classifier_data`]
+real_table_name=arXiv_submission_classifier_data
+rows = 3156
+
+[`arXiv`.`arXiv_submission_control`]
+real_table_name=arXiv_submission_control
+rows = 0
+
+[`arXiv`.`arXiv_submission_flag`]
+real_table_name=arXiv_submission_flag
+rows = 0
+
+[`arXiv`.`arXiv_submission_hold_reason`]
+real_table_name=arXiv_submission_hold_reason
+rows = 0
+
+[`arXiv`.`arXiv_submission_locks`]
+real_table_name=arXiv_submission_locks
+rows = 0
+
+[`arXiv`.`arXiv_submission_near_duplicates`]
+real_table_name=arXiv_submission_near_duplicates
+rows = 0
+
+[`arXiv`.`arXiv_submission_qa_reports`]
+real_table_name=arXiv_submission_qa_reports
+rows = 0
+
+[`arXiv`.`arXiv_submission_view_flag`]
+real_table_name=arXiv_submission_view_flag
+rows = 0
+
+[`arXiv`.`arXiv_submissions`]
+real_table_name=arXiv_submissions
+rows = 4256
+
+[`arXiv`.`arXiv_submitter_flags`]
+real_table_name=arXiv_submitter_flags
+rows = 81
+
+[`arXiv`.`arXiv_suspect_emails`]
+real_table_name=arXiv_suspect_emails
+rows = 264
+
+[`arXiv`.`arXiv_suspicious_names`]
+real_table_name=arXiv_suspicious_names
+rows = 0
+
+[`arXiv`.`arXiv_sword_licenses`]
+real_table_name=arXiv_sword_licenses
+rows = 0
+
+[`arXiv`.`arXiv_titles`]
+real_table_name=arXiv_titles
+rows = 2105
+
+[`arXiv`.`arXiv_top_papers`]
+real_table_name=arXiv_top_papers
+rows = 0
+
+[`arXiv`.`arXiv_trackback_pings`]
+real_table_name=arXiv_trackback_pings
+rows = 149
+
+[`arXiv`.`arXiv_trackback_sites`]
+real_table_name=arXiv_trackback_sites
+rows = 1038
+
+[`arXiv`.`arXiv_tracking`]
+real_table_name=arXiv_tracking
+rows = 0
+
+[`arXiv`.`arXiv_updates_tmp`]
+real_table_name=arXiv_updates_tmp
+rows = 0
+
+[`arXiv`.`arXiv_updates`]
+real_table_name=arXiv_updates
+rows = 7231
+
+[`arXiv`.`arXiv_versions_checksum`]
+real_table_name=arXiv_versions_checksum
+rows = 361
+
+[`arXiv`.`arXiv_versions`]
+real_table_name=arXiv_versions
+rows = 361
+
+[`arXiv`.`arXiv_white_email`]
+real_table_name=arXiv_white_email
+rows = 500
+
+[`arXiv`.`arXiv_xml_notifications`]
+real_table_name=arXiv_xml_notifications
+rows = 0
+
+[`arXiv`.`dbix_class_schema_versions`]
+real_table_name=dbix_class_schema_versions
+rows = 1
+
+[`arXiv`.`demographics_backup`]
+real_table_name=demographics_backup
+rows = 0
+
+[`arXiv`.`feedback`]
+real_table_name=feedback
+rows = 0
+
+[`arXiv`.`membership_institutions`]
+real_table_name=membership_institutions
+rows = 0
+
+[`arXiv`.`membership_users`]
+real_table_name=membership_users
+rows = 0
+
+[`arXiv`.`sessions`]
+real_table_name=sessions
+rows = 0
+
+[`arXiv`.`tapir_address`]
+real_table_name=tapir_address
+rows = 0
+
+[`arXiv`.`tapir_admin_audit`]
+real_table_name=tapir_admin_audit
+rows = 40
+
+[`arXiv`.`tapir_countries`]
+real_table_name=tapir_countries
+rows = 257
+
+[`arXiv`.`tapir_demographics`]
+real_table_name=tapir_demographics
+rows = 0
+
+[`arXiv`.`tapir_email_change_tokens_used`]
+real_table_name=tapir_email_change_tokens_used
+rows = 0
+
+[`arXiv`.`tapir_email_change_tokens`]
+real_table_name=tapir_email_change_tokens
+rows = 247
+
+[`arXiv`.`tapir_email_headers`]
+real_table_name=tapir_email_headers
+rows = 0
+
+[`arXiv`.`tapir_email_log`]
+real_table_name=tapir_email_log
+rows = 0
+
+[`arXiv`.`tapir_email_mailings`]
+real_table_name=tapir_email_mailings
+rows = 0
+
+[`arXiv`.`tapir_email_templates`]
+real_table_name=tapir_email_templates
+rows = 15
+
+[`arXiv`.`tapir_email_tokens_used`]
+real_table_name=tapir_email_tokens_used
+rows = 0
+
+[`arXiv`.`tapir_email_tokens`]
+real_table_name=tapir_email_tokens
+rows = 1008
+
+[`arXiv`.`tapir_error_log`]
+real_table_name=tapir_error_log
+rows = 0
+
+[`arXiv`.`tapir_integer_variables`]
+real_table_name=tapir_integer_variables
+rows = 6
+
+[`arXiv`.`tapir_nicknames_audit`]
+real_table_name=tapir_nicknames_audit
+rows = 255
+
+[`arXiv`.`tapir_nicknames`]
+real_table_name=tapir_nicknames
+rows = 1006
+
+[`arXiv`.`tapir_no_cookies`]
+real_table_name=tapir_no_cookies
+rows = 0
+
+[`arXiv`.`tapir_periodic_tasks_log`]
+real_table_name=tapir_periodic_tasks_log
+rows = 0
+
+[`arXiv`.`tapir_permanent_tokens_used`]
+real_table_name=tapir_permanent_tokens_used
+rows = 0
+
+[`arXiv`.`tapir_permanent_tokens`]
+real_table_name=tapir_permanent_tokens
+rows = 2066
+
+[`arXiv`.`tapir_phone`]
+real_table_name=tapir_phone
+rows = 0
+
+[`arXiv`.`tapir_policy_classes`]
+real_table_name=tapir_policy_classes
+rows = 3
+
+[`arXiv`.`tapir_presessions`]
+real_table_name=tapir_presessions
+rows = 0
+
+[`arXiv`.`tapir_recovery_tokens_used`]
+real_table_name=tapir_recovery_tokens_used
+rows = 96
+
+[`arXiv`.`tapir_recovery_tokens`]
+real_table_name=tapir_recovery_tokens
+rows = 592
+
+[`arXiv`.`tapir_save_post_variables`]
+real_table_name=tapir_save_post_variables
+rows = 0
+
+[`arXiv`.`tapir_sessions_audit`]
+real_table_name=tapir_sessions_audit
+rows = 21611
+
+[`arXiv`.`tapir_sessions`]
+real_table_name=tapir_sessions
+rows = 22488
+
+[`arXiv`.`tapir_string_variables`]
+real_table_name=tapir_string_variables
+rows = 4
+
+[`arXiv`.`tapir_strings`]
+real_table_name=tapir_strings
+rows = 52
+
+[`arXiv`.`tapir_users_hot`]
+real_table_name=tapir_users_hot
+rows = 1000
+
+[`arXiv`.`tapir_users_password`]
+real_table_name=tapir_users_password
+rows = 1003
+
+[`arXiv`.`tapir_users`]
+real_table_name=tapir_users
+rows = 1006
+[config]
+max-statement-size = 616864
+num-sequences = 0
+# Finished dump at: 2026-01-23 22:23:22

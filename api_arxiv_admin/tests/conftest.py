@@ -229,10 +229,9 @@ def admin_api_db_only_client(test_env: Dict, docker_compose_db_only):
     client = TestClient(app, base_url=admin_api_url)
 
     for _ in range(100):
-        response = client.get("/database_status")
+        response = client.get("/system/database_status")
         if response.status_code == 200:
             logging.info("AAA status - OK")
-            sleep(2)
             break
         sleep(2)
         logging.info("AAA status - WAITING")
@@ -314,6 +313,8 @@ def docker_compose_db_only(test_env):
     env_arg = "--env-file=" + dotenv_filename
     working_dir = ADMIN_API_TEST_DIR.as_posix()
 
+    LOADER_CONTAINER_NAME = "admin-api-db-myloader"
+
     # kill off the other docker-compose instance
     try:
         result = subprocess.run(
@@ -378,7 +379,7 @@ def docker_compose_db_only(test_env):
             logging.info("Waiting for myloader to complete...")
             for _ in range(100):
                 result = subprocess.run(
-                    ["docker", "inspect", "-f", "{{.State.Status}}", "admin-api-db-myloader"],
+                    ["docker", "inspect", "-f", "{{.State.Status}}", LOADER_CONTAINER_NAME],
                     capture_output=True,
                     text=True,
                     check=False
@@ -386,7 +387,7 @@ def docker_compose_db_only(test_env):
                 if result.returncode == 0 and "exited" in result.stdout:
                     # Check if it exited successfully (exit code 0)
                     exit_code_result = subprocess.run(
-                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", "admin-api-db-myloader"],
+                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", LOADER_CONTAINER_NAME],
                         capture_output=True,
                         text=True,
                         check=False

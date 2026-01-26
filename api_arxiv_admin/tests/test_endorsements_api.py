@@ -114,23 +114,22 @@ class TestReadOnlys:
         assert count == 143
 
 
-@pytest.mark.usefixtures("setup_db_fixture")
-class TestCreateEndorsement:
+def test_create_endorsement(database_session, test_audit_timestamp, test_tapir_session_id):
+    client_host = "127.0.0.1"
+    client_host_name = "no-place-like@home.biz"
+    tracking_cookie = "I-ate-them-all"
 
-    def test_create_endorsement(self, db_session, test_audit_timestamp, test_tapir_session_id):
-        client_host = "127.0.0.1"
-        client_host_name = "no-place-like@home.biz"
-        tracking_cookie = "I-ate-them-all"
-
-        endorsement_code = "R8T3GZ"
-        er0 = EndorsementRequestModel.base_select(db_session).filter(
+    endorsement_code = "R8T3GZ"
+    with database_session() as session:
+        er0 = EndorsementRequestModel.base_select(session).filter(
             EndorsementRequest.secret == endorsement_code
         ).one_or_none()
         assert er0 is not None
         erm0 = EndorsementRequestModel.model_validate(er0)
         assert erm0.point_value == 0  # Ensure proper data reset
 
-        accessor = EndorsementDBAccessor(db_session)
+    with database_session() as session:
+        accessor = EndorsementDBAccessor(dsession)
         endorser = accessor.get_user("591211")
         endorsee = accessor.get_user("1019756")
 

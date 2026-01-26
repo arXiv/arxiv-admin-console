@@ -2,9 +2,12 @@ services:
   cleanup-db:
     image: alpine:latest
     container_name: admin-api-db-cleanup
+    environment:
+      HOST_UID: ${UID}
+      HOST_GID: ${GID}
     volumes:
       - ./mysql-data:/mysql-data
-    command: sh -c "rm -rf /mysql-data/* && echo 'Cleaned mysql-data directory'"
+    command: sh -c "rm -rf /mysql-data/* && chown $${HOST_UID}:$${HOST_GID} /mysql-data"
 
   arxiv-test-db:
     image: mysql:8.4.5
@@ -35,8 +38,9 @@ services:
   myloader:
     image: mydumper/mydumper:latest
     container_name: admin-api-db-myloader
+    user: "${UID}:${GID}"
     volumes:
-      - ../../tests/data/test-db-dump:/myloader-data
+      - ../../tests/data/test-db-dump:/myloader-data:ro
     network_mode: host
     depends_on:
       arxiv-test-db:
