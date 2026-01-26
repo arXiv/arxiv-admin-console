@@ -82,10 +82,11 @@ async def list_email_patterns(
     return result
 
 
-@router.post('/')
+@router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_email_pattern(
+        response: Response,
         body: EmailPatternModel,
-        session: Session = Depends(get_db)
+        session: Session = Depends(get_db),
 ) -> EmailPatternModel:
 
     table = pattern_tables.get(body.purpose)
@@ -112,7 +113,7 @@ async def create_email_pattern(
         session.commit()
         
         logger.info(f"Created email pattern '{body.id}' in {body.purpose} table")
-        
+        response.status_code = status.HTTP_201_CREATED
         return body
     
     except HTTPException:
@@ -131,11 +132,16 @@ class EmailPatternListModel(BaseModel):
     ids: List[str]
 
 
-@router.delete('/{purpose:str}')
+@router.delete('/{purpose:str}', status_code=status.HTTP_204_NO_CONTENT,
+              responses={
+                  400: {"description": "Invalid purpose"},
+                  404: {"description": "No patterns found"},
+                  500: {"description": "Failed to delete patterns"}
+              })
 async def delete_email_patterns(
         response: Response,
         purpose: str,
-        body: EmailPatternListModel,
+        ids: List[str] = Query(...),
         session: Session = Depends(get_db)
 ) -> Response:
 
@@ -144,12 +150,12 @@ async def delete_email_patterns(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Invalid purpose {purpose}. Allowed values: black, block, white")
 
-    if not body.ids:
+    if not ids:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="No pattern IDs provided")
 
     try:
-        delete_query = delete(table).where(table.c.pattern.in_(body.ids))
+        delete_query = delete(table).where(table.c.pattern.in_(ids))
         result = session.execute(delete_query)
         session.commit()
         

@@ -253,7 +253,7 @@ def admin_api_headers(test_env):
 
 
 @pytest.fixture(scope="module")
-def admin_api_admin_user(test_env):
+def admin_api_admin_user_headers(test_env):
     user_info = ArxivUserClaimsModel(
         sub = "1129053",
         exp = 253402300799,
