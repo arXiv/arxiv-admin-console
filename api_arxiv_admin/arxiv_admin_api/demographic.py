@@ -52,7 +52,7 @@ class DemographicModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> sqlalchemy.orm.Query:
         return db.query(
             Demographic.user_id.label("id"),
             cast(Demographic.country, LargeBinary).label("country"),
@@ -94,8 +94,8 @@ async def list_demographics(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         db: Session = Depends(get_db)

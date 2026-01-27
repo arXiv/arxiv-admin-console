@@ -37,8 +37,8 @@ async def list_endorsement_requests_audit(
         response: Response,
         _sort: Optional[str] = Query(None, description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         db: Session = Depends(get_db)
 ) -> List[EndorsementRequestsAuditModel]:

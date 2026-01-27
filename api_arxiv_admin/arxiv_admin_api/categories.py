@@ -53,7 +53,7 @@ class CategoryModel(BaseModel):
         from_attributes = True
 
     @classmethod
-    def base_query(cls, db: Session) -> Query:
+    def base_query(cls, db: Session) -> sqlalchemy.orm.Query:
         return db.query(
             func.concat(Category.archive, ".", Category.subject_class).label("id"),
             Category.archive,
@@ -71,8 +71,8 @@ class CategoryModel(BaseModel):
 async def list_categories(
         response: Response,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         archive: Optional[str] = Query(""),
         subject_class: Optional[str] = Query(""),
         active: Optional[bool] = Query(None, description="active"),
@@ -110,8 +110,8 @@ async def list_subject_classes(
         response: Response,
         archive: str,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         db: Session = Depends(get_db)
     ) -> List[CategoryModel]:
     if _start < 0 or _end < _start:
@@ -243,7 +243,7 @@ class ArchiveGroupModel(BaseModel):
     group: str
 
     @classmethod
-    def base_query(cls, db: Session) -> Query:
+    def base_query(cls, db: Session) -> sqlalchemy.orm.Query:
         return db.query(
             ArchiveGroup.archive_id.label("archive"),
             ArchiveGroup.group_id.label("group"),
@@ -253,8 +253,8 @@ class ArchiveGroupModel(BaseModel):
 async def list_archive_groups(
         response: Response,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         archive: Optional[str] = Query(""),
         group: Optional[str] = Query(""),
         active: Optional[bool] = Query(None, description="active"),

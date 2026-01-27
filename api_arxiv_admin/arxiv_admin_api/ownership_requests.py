@@ -55,7 +55,7 @@ class OwnershipRequestModel(BaseModel):
     date: Optional[datetime.datetime] = None
 
     @classmethod
-    def base_query_0(cls, session: Session) -> Query:
+    def base_query_0(cls, session: Session) -> sqlalchemy.orm.Query:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
@@ -63,7 +63,7 @@ class OwnershipRequestModel(BaseModel):
             OwnershipRequest.workflow_status)
 
     @classmethod
-    def base_query_with_audit(cls, session: Session) -> Query:
+    def base_query_with_audit(cls, session: Session) -> sqlalchemy.orm.Query:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
@@ -180,8 +180,8 @@ def list_ownership_requests(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime.date] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime.date] = Query(None, description="End date for filtering"),

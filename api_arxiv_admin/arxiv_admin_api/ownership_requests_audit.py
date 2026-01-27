@@ -2,8 +2,9 @@
 import re
 from datetime import datetime, date, timedelta
 from enum import Enum
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Any
 
+import sqlalchemy.orm
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
 from sqlalchemy.orm import Session, joinedload
@@ -14,7 +15,7 @@ from arxiv.base import logging
 from arxiv.db.models import OwnershipRequest, OwnershipRequestsAudit
 
 from . import is_admin_user, get_db, is_any_user, datetime_to_epoch, VERY_OLDE
-from .models import OwnershipRequestsAuditModel
+# from .models import OwnershipRequestsAuditModel
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class OwnershipRequestsAuditModel(BaseModel):
     date: datetime # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
 
     @classmethod
-    def base_query(cls, session: Session) -> Query:
+    def base_query(cls, session: Session) -> sqlalchemy.orm.Query[Any]:
         return session.query(
             OwnershipRequestsAudit.request_id.label("id"),
             OwnershipRequestsAudit.session_id,
@@ -47,8 +48,8 @@ def list_ownership_requests_audit(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
         end_date: Optional[date] = Query(None, description="End date for filtering"),

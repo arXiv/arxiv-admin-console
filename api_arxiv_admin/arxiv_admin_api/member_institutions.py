@@ -32,7 +32,7 @@ class MemberInstitutionIPModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_query(session: Session) -> Query:
+    def base_query(session: Session) -> sqlalchemy.orm.Query:
         """
         Returns a basic query for member institutions.
         """
@@ -65,7 +65,7 @@ class MemberInstitutionModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_query(session: Session) -> Query:
+    def base_query(session: Session) -> sqlalchemy.orm.Query:
         """
         Returns a basic query for member institutions.
         """
@@ -91,8 +91,8 @@ async def list_membership_institutions(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of member institution IDs to filter by"),
         name: Optional[str] = Query(None),
         db: Session = Depends(get_db)
@@ -300,8 +300,8 @@ async def list_membership_institutions_ip(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of primary keys"),
         sid: Optional[str] = Query(None, description="Member institution ID"),
         db: Session = Depends(get_db)

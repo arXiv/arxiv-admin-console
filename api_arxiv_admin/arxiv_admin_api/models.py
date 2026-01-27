@@ -1,5 +1,5 @@
 # from pydantic_sqlalchemy_2 import sqlalchemy_to_pydantic
-from typing import Type, Container, Optional, Dict, Any
+from typing import Type, Container, Optional, Dict
 
 from arxiv.db.models import TapirEmailTemplate, OwnershipRequestsAudit, CrossControl
 from pydantic import BaseModel, create_model, ConfigDict
@@ -16,7 +16,7 @@ def sqlalchemy_to_pydantic(
         db_model: Type, *, config: Type = OrmConfig, exclude: Container[str] = [], id_key: str = "id"
 ) -> Type[BaseModel]:
     """
-    Convert a SQLAlchemy model to a Pydantic model, compatible with Pydantic v2.
+    Convert SQLAlchemy model to a Pydantic model, compatible with Pydantic v2.
     """
     mapper = inspect(db_model)
     fields: Dict[str, tuple] = {}
@@ -49,7 +49,7 @@ def sqlalchemy_to_pydantic(
         db_model.__name__,
         __module__=db_model.__module__,
         **fields,
-    )
+    ) # type: ignore
 
     # Set the model_config directly on the class
     pydantic_model.model_config = config.model_config if hasattr(config, 'model_config') else ConfigDict(
@@ -74,7 +74,7 @@ TapirEmailTemplateModel = sqlalchemy_to_pydantic(TapirEmailTemplate)
 # EndorsementRequestModel = sqlalchemy_to_pydantic(EndorsementRequest)
 #EndorsementRequestsAuditModel = sqlalchemy_to_pydantic(EndorsementRequestsAudit)
 
-OwnershipRequestsAuditModel = sqlalchemy_to_pydantic(OwnershipRequestsAudit)
+# OwnershipRequestsAuditModel = sqlalchemy_to_pydantic(OwnershipRequestsAudit)
 #PaperOwnerModel = sqlalchemy_to_pydantic(PaperOwner, id_key="document_id")
 
 # TapirUserModel = sqlalchemy_to_pydantic(TapirUser)

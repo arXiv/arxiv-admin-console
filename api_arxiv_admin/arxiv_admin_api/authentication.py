@@ -66,7 +66,7 @@ def logout(request: Request, current_user: ArxivUserClaims = Depends(get_current
 def logout(request: Request) -> JSONResponse:
     session_cookie_key = request.app.extra['AUTH_SESSION_COOKIE_NAME']
     classic_cookie_key = request.app.extra['CLASSIC_COOKIE_NAME']
-    return {
+    return JSONResponse({
         "session": session_cookie_key,
         "classic": classic_cookie_key
-    }
+    })

@@ -1,0 +1,143 @@
+name: Test admin-api
+
+run-name: "Test admin-api ${{ github.ref_name }}"
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "api_arxiv_admin/**"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "api_arxiv_admin/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  test:
+    needs: type-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: api_arxiv_admin/.venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('api_arxiv_admin/poetry.lock') }}
+
+      - name: Install dependencies
+        working-directory: api_arxiv_admin
+        run: poetry install --no-interaction
+
+      - name: Prepare test environment
+        working-directory: api_arxiv_admin/tests
+        run: |
+          cp test-env temp-dbo-test-env
+          echo "UID=$(id -u)" >> temp-dbo-test-env
+          echo "GID=$(id -g)" >> temp-dbo-test-env
+          cp temp-dbo-test-env .env
+          mkdir -p mysql-data
+
+      - name: Start test database
+        working-directory: api_arxiv_admin/tests
+        run: |
+          docker compose -f docker-compose-db-only.yaml --env-file=temp-dbo-test-env up -d
+
+          # Wait for myloader to complete
+          echo "Waiting for myloader to complete..."
+          for i in {1..120}; do
+            status=$(docker inspect -f '{{.State.Status}}' admin-api-db-myloader 2>/dev/null || echo "not_found")
+            if [ "$status" = "exited" ]; then
+              exit_code=$(docker inspect -f '{{.State.ExitCode}}' admin-api-db-myloader)
+              if [ "$exit_code" = "0" ]; then
+                echo "Myloader completed successfully"
+                break
+              else
+                echo "Myloader failed with exit code: $exit_code"
+                docker logs admin-api-db-myloader
+                exit 1
+              fi
+            fi
+            sleep 1
+          done
+
+          # Wait for MySQL to be ready
+          echo "Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            if docker exec admin-api-arxiv-test-db mysqladmin ping -h 127.0.0.1 -P 22204 --silent 2>/dev/null; then
+              echo "MySQL is ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run tests
+        working-directory: api_arxiv_admin
+        run: |
+          poetry run pytest tests/ -v --tb=short
+        env:
+          PYTHONDONTWRITEBYTECODE: 1
+
+      - name: Stop test database
+        if: always()
+        working-directory: api_arxiv_admin/tests
+        run: |
+          docker compose -f docker-compose-db-only.yaml --env-file=temp-dbo-test-env down --remove-orphans || true
+
+  type-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: api_arxiv_admin/.venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('api_arxiv_admin/poetry.lock') }}
+
+      - name: Install dependencies
+        working-directory: api_arxiv_admin
+        run: poetry install --no-interaction
+
+      - name: Run mypy
+        working-directory: api_arxiv_admin
+        run: poetry run mypy -p arxiv_admin_api

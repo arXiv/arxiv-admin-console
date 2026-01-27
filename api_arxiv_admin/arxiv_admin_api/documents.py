@@ -174,8 +174,8 @@ async def list_documents(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
         submitter_id: Optional[str] = Query(None, description="Submitter ID"),
         submitter_name: Optional[str] = Query(None, description="Submitter Name"),
@@ -348,8 +348,8 @@ def get_document_metadata(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         session: Session = Depends(get_db)) -> List[MetadataModel]:
     """List of metadata for a document."""
     doc = session.query(Document).filter(Document.document_id == id).one_or_none()
@@ -406,8 +406,8 @@ async def list_document_metadata_latest(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
         db: Session = Depends(get_db)
 ) -> List[MetadataModel]:
@@ -633,8 +633,8 @@ async def list_document_files(
         response: Response,
         _sort: Optional[str] = Query("version", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> List[DocumentFile]:
     """Regenerate document artifacts."""

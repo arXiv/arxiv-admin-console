@@ -50,7 +50,7 @@ class EmailTemplateModel(BaseModel):
     flag_system: bool
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> sqlalchemy.orm.Query:
         return db.query(
             TapirEmailTemplate.template_id.label("id"),
             TapirEmailTemplate.short_name,
@@ -107,8 +107,8 @@ async def list_templates(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[int|List[int]] = Query(None, description="Filter by template id"),
         short_name: Optional[str] = Query(None),
         long_name: Optional[str] = Query(None),

@@ -93,8 +93,8 @@ async def list_endorsement_requests(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of endorsement request IDs to filter by"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
@@ -317,7 +317,7 @@ async def create_endorsement_request(
         body: EndorsementRequestRequestModel,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> EndorsementRequestModel:
-    endorsee_id = body.endorsee_id
+    endorsee_id: Optional[int] = body.endorsee_id
     if endorsee_id is None:
         endorsee_id = current_user.user_id
 
@@ -558,8 +558,8 @@ async def get_cached_eligible_endorsers_for_the_category(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidate]:
     """
@@ -604,8 +604,8 @@ async def get_cached_endorser_candidates(
         id: Optional[List[int] | int] = Query(None, description="List of user IDs to filter by"),
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidate]:
     """
@@ -659,8 +659,8 @@ async def get_cached_endorser_candidate_categories(
         id: Optional[List[int] | int] = Query(None, description="List of user IDs to filter by"),
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidateCategories]:
     """
@@ -701,8 +701,8 @@ async def get_cached_eligible_endorsers_for_the_category(
         response: Response,
         _sort: Optional[str] = Query("user_id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         category: Optional[List[str]] = Query(None, description="Category to filter by"),
         minimum_count: Optional[int] = Query(None, description="Minimum document count"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),

@@ -37,8 +37,8 @@ pattern_tables = {
 async def list_email_patterns(
         response: Response,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         pattern: Optional[str] = Query(None, description="Email pattern"),
         purpose: Optional[str] = Query("black", description="black, block or white"),
         session: Session = Depends(get_db)

@@ -2,13 +2,13 @@
 import re
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response #, Request
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import TapirSession, TapirSessionsAudit
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, Query as SAQuery
-from sqlalchemy import case, text
+from sqlalchemy import case #, text
 
 from . import is_admin_user, get_db, datetime_to_epoch, VERY_OLDE
 
@@ -67,8 +67,8 @@ async def list_tapir_sessions(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         user_id: Optional[int] = Query(None, description="User id"),
         is_open: Optional[bool] = Query(None, description="Open sessions"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
@@ -101,11 +101,13 @@ async def _list_tapir_sessions(
     audit_joined = False
     all_rows = True
     query = TapirSessionModel.base_query(session)
+    start: int = _start if _start is not None else 0
+    end: int = _end if _end is not None else 100
 
     if id is not None:
         query = query.filter(TapirSession.session_id.in_(id))
     else:
-        if _start < 0 or _end < _start:
+        if start < 0 or end < start:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Invalid start or end index")
         if preset is not None or start_date is not None or end_date is not None:
@@ -181,7 +183,7 @@ async def _list_tapir_sessions(
     else:
         count = query.count()
     response.headers['X-Total-Count'] = str(count)
-    result = [TapirSessionModel.to_model(session, item) for item in query.offset(_start).limit(_end - _start).all()]
+    result = [TapirSessionModel.to_model(session, item) for item in query.offset(start).limit(end - start).all()]
 
     return result
 
@@ -202,8 +204,8 @@ async def get_tapir_session_for_user(
         user_id:int,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         session: Session = Depends(get_db)) -> List[TapirSessionModel]:
     """List tapir sessions for a user"""
     return await _list_tapir_sessions(session, response, _sort, _order, _start, _end, user_id=user_id)

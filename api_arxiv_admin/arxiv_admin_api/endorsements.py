@@ -38,8 +38,8 @@ async def list_endorsements(
         response: Response,
         _sort: Optional[str] = Query("issued_when", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
@@ -480,8 +480,8 @@ async def delete_endorsement(
 @router.get('/ids/')
 async def list_endorsement_ids(
         response: Response,
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(1000, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(1000, alias="_end"),
         _order: Optional[str] = Query("DESC", description="sort order"),
         preset: Optional[str] = Query(None),
         current_id: Optional[int] = Query(None),

@@ -59,8 +59,8 @@ async def list_tapir_admin_audit(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of IDs to filter by"),
         admin_user: Optional[int] = Query(None, description="Admin User id"),
         affected_user: Optional[int] = Query(None, description="affected_user"),
@@ -73,7 +73,7 @@ async def list_tapir_admin_audit(
     query = TapirAdminAuditModel.base_select(session)
 
     if id:
-        query = query.filter(TapirAdminAudit.id.in_(id))
+        query = query.filter(TapirAdminAudit.entry_id.in_(id))
     else:
         if _start < 0 or _end < _start:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -117,7 +117,7 @@ async def get_tapir_admin_audit(
         current_user: ArxivUserClaims = Depends(get_authn_user),
 ) -> TapirAdminAuditModel:
     gate_admin_user(current_user)
-    query = TapirAdminAuditModel.base_query(session)
+    query = TapirAdminAuditModel.base_select(session)
     item = query.filter(TapirAdminAudit.entry_id == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=404, detail="Not found")

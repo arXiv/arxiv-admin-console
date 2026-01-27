@@ -39,7 +39,7 @@ class EndorsementDomainModel(BaseModel):
 
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> sqlalchemy.orm.Query:
         return db.query(
             EndorsementDomain.endorsement_domain.label("id"),
             EndorsementDomain.endorse_all,
@@ -55,8 +55,8 @@ async def list_endorsement_domains(
         response: Response,
         _sort: Optional[str] = Query("endorsement_domain", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         name: Optional[str] = Query(None),
         id: Optional[List[str]] = Query(None),
         db: Session = Depends(get_db)

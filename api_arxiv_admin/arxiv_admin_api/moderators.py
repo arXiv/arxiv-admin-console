@@ -113,8 +113,8 @@ async def list_moderators_0(
         response: Response,
         _sort: Optional[str] = Query("archive,subject_class", description="keys"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of Moderator IDs."),
         user_id: Optional[int] = Query(None),
         archive: Optional[str] = Query(None),
@@ -204,8 +204,8 @@ async def list_moderators_1(
         response: Response,
         archive: str,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         db: Session = Depends(get_db)
     ) -> List[ModeratorModel]:
     if _start < 0 or _end < _start:

@@ -30,7 +30,7 @@ class OrcidIDModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_query(session: Session) -> Query:
+    def base_query(session: Session) -> sqlalchemy.orm.Query:
         """
         Returns a basic query for ORCID IDs.
         """
@@ -46,8 +46,8 @@ async def list_membership_institutions(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="User ID"),
         db: Session = Depends(get_db)
     ) -> List[OrcidIDModel]:

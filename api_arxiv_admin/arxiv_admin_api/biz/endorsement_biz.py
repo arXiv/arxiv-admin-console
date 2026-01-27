@@ -41,7 +41,7 @@ class EndorsementWithEndorser(BaseModel):
     endorser_username: str | None
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> sqlalchemy.orm.Query:
         nick = aliased(TapirNickname)
         return db.query(
             Endorsement.endorsement_id,
