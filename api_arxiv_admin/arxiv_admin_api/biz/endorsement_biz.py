@@ -393,23 +393,28 @@ class EndorsementBusiness:
         self.submitted = existing_endorsement is not None
 
     def _find_endorsements(self):
-        assert self.endorseE != None
-        self.endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.archive, self.subject_class)
-        if self.archive != self.canon_archive and self.subject_class != self.canon_subject_class:
-            self.endorsements = self.endorsements + self.accessor.get_endorsements(str(self.endorseE.id), self.canon_archive, self.canon_subject_class)
-        self.valid_endorsements = [endorsement for endorsement in self.endorsements if endorsement.point_value and endorsement.flag_valid]
+        if self.endorseE is None:
+            self.valid_endorsements = []
+        else:
+            self.endorsements = self.accessor.get_endorsements(str(self.endorseE.id), self.archive, self.subject_class)
+            if self.archive != self.canon_archive and self.subject_class != self.canon_subject_class:
+                self.endorsements = self.endorsements + self.accessor.get_endorsements(str(self.endorseE.id), self.canon_archive, self.canon_subject_class)
+            self.valid_endorsements = [endorsement for endorsement in self.endorsements if endorsement.point_value and endorsement.flag_valid]
 
 
     def can_submit(self) -> bool:
         """
         This is about the endorser is ablet to submit an endorsement.
         """
-        assert self.endorseR is not None
-        assert self.endorseE is not None
-
+        if self.endorseR is None:
+            return self.reject("Endorser is not found.")
+        if self.endorseE is None:
+            return self.reject("Endorsee is not found.")
         self._find_existing_endorsement()
 
         if self.submitted:
+            if self.endorsement is None:
+                return self.reject("Endorser has submitted an endorsement, but it is not found.")
             vote = "positive" if self.endorsement.point_value else "negative"
             return self.reject("You have submitted a {} endorsement.".format(vote), public_reason=True,
                                endorser_capability=EndorserCapabilityType.credited)
@@ -521,6 +526,8 @@ class EndorsementBusiness:
 
 
     def is_endorsement_domain_endorse_all(self) -> bool:
+        if self.endorsement_domain is None:
+            return self.reject("Endorsement domain not found.")
         if self.endorsement_domain.endorse_all == "y":
             category = pretty_category(self.archive, self.subject_class)
             return self.accept(f"Everyone gets an auto-endorsement for category {category}.")
@@ -531,10 +538,15 @@ class EndorsementBusiness:
         # ARXIVDEV-3461 - if this endorsement domain has the mod_endorse_all field
         # enabled, then any moderator within that domain should be able to endorse
         # within that domain (not just their moderated category)
-        if self.endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(self.endorseR.id, self.archive, None):
+        if self.endorsement_domain is None:
+            return self.reject("Endorsement domain not found.")
+        endorser_id = self.endorseR.id
+        if endorser_id is None:
+            return self.reject("Endorser ID not found.")
+        if self.endorsement_domain.mods_endorse_all == "y" and self.accessor.is_moderator(endorser_id, self.archive, None):
             return self.accept(f"Endorser is a moderator in {self.archive}.")
 
-        if self.accessor.is_moderator(self.endorseR.id, self.archive, self.subject_class):
+        if self.accessor.is_moderator(endorser_id, self.archive, self.subject_class):
             category = pretty_category(self.archive, self.subject_class)
             return self.accept(f"Endorser is a moderator in {category}.")
 
@@ -545,13 +557,18 @@ class EndorsementBusiness:
         # Now we have done tests to see if there are reasons not to autoendorse this
         # user, do tests to find out whether we should...
         # (I don't think this has nothing to do with submitting endorsement.)
+        if self.endorseE is None:
+            return self.reject("Endorsee not found.")
+        if self.endorsement_domain is None:
+            return self.reject("Endorsement domain not found.")
         papers = self.accessor.get_papers_by_user(str(self.endorseE.id), self.endorsement_domain.endorsement_domain,
                                                   self.window, require_author=False)
 
         # I'm not quite sure of this section
         not_enough_papers = (len(papers) < self.endorsement_domain.papers_to_endorse)
+        endorsee_email = self.endorseE.email
         not_academic_email = self.endorsement_domain.endorse_email == "y" and (
-            not self.accessor.is_academic_email(self.endorseE.email)[0])
+            endorsee_email is None or not self.accessor.is_academic_email(endorsee_email)[0])
         does_not_accept_email = self.endorsement_domain.endorse_email != "y"
         if not_enough_papers and not_academic_email and does_not_accept_email:
             category = pretty_category(self.archive, self.subject_class)
@@ -569,6 +586,8 @@ class EndorsementBusiness:
     def can_endorser_endorse(self) -> bool:
         # ==============================================================================================================
         # Look at the endorser
+        if self.endorsement_domain is None:
+            return self.reject("Endorsement domain not found.")
         papers = self.accessor.get_papers_by_user(str(self.endorseR.id),
                                                   self.endorsement_domain.endorsement_domain,
                                                   self.window, require_author=False)
@@ -634,10 +653,12 @@ class EndorsementBusiness:
 
         #
         if endorsement_domain.endorse_all == "y":
-            category = pretty_category(self.archive, self.subject_class)
-            return self.accept(f"Everyone gets an auto-endorsement for category {category}.")
+            pretty_cat = pretty_category(self.archive, self.subject_class)
+            return self.accept(f"Everyone gets an auto-endorsement for category {pretty_cat}.")
 
         # can submit?
+        if self.endorseE is None:
+            return self.reject("Endorsee not found.")
         endorsee = self.accessor.get_user(str(self.endorseE.id))
         if endorsee is None:
             raise HTTPException(status_code=500, detail="Endorsee is not found")
@@ -684,7 +705,7 @@ def can_user_endorse_for(accessor:EndorsementAccessor, user: UserModel, archive:
 
 
 
-def can_user_submit_to(accessor: EndorsementAccessor, user: UserModel, archive: str, subject_class: str) -> bool:
+def can_user_submit_to(accessor: EndorsementAccessor, user: UserModel, archive: str, subject_class: str) -> tuple[bool, EndorsementBusiness]:
     """
     Check if a user can submit to a specific arXiv category.
 
@@ -698,8 +719,6 @@ def can_user_submit_to(accessor: EndorsementAccessor, user: UserModel, archive: 
         bool: True if the user can submit, False otherwise
     """
     # user = accessor.get_user(user_id)
-    if is_user_vetoed(user):
-        return False
     puser = PublicUserModel.model_validate(user.model_dump())
 
     biz = EndorsementBusiness(
@@ -710,6 +729,10 @@ def can_user_submit_to(accessor: EndorsementAccessor, user: UserModel, archive: 
         archive = archive,
         subject_class = subject_class,
     )
+
+    if is_user_vetoed(user):
+        return False, biz
+
     result = biz.acquire_endorsement_domain()
     if not result:
         return result, biz
