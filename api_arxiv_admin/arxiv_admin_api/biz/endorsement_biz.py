@@ -41,7 +41,7 @@ class EndorsementWithEndorser(BaseModel):
     endorser_username: str | None
 
     @staticmethod
-    def base_select(db: Session) -> sqlalchemy.orm.Query:
+    def base_select(db: Session) -> Query:
         nick = aliased(TapirNickname)
         return db.query(
             Endorsement.endorsement_id,
@@ -319,7 +319,7 @@ class EndorsementBusiness:
         return False  # Implement check for owned papers
 
     def N_papers_to_endorse(self, archive: str, subject_class: str) -> int:
-        pass  # Implement the required number of papers for endorsement
+        raise NotImplementedError  # Implement the required number of papers for endorsement
 
     @property
     def is_endorser_vetoed(self) -> bool:
@@ -341,7 +341,7 @@ class EndorsementBusiness:
 
     @property
     def point_value(self) -> int:
-        return 10 if self.endorsement_code.positive else 0
+        return 10 if self.endorsement_code and self.endorsement_code.positive else 0
 
     @property
     def endorser_acceptable(self) -> bool:

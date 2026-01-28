@@ -5,7 +5,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, field_validator, field_serializer
 
@@ -39,7 +39,7 @@ class EndorsementDomainModel(BaseModel):
 
 
     @staticmethod
-    def base_select(db: Session) -> sqlalchemy.orm.Query:
+    def base_select(db: Session) -> OrmQuery:
         return db.query(
             EndorsementDomain.endorsement_domain.label("id"),
             EndorsementDomain.endorse_all,
@@ -164,6 +164,8 @@ async def update_endorsement_domain(
     ))
 
     mint = EndorsementDomainModel.base_select(session).filter(EndorsementDomain.endorsement_domain == id).one_or_none()
+    if mint is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement Domain '{id}' not found'")
     return EndorsementDomainModel.model_validate(mint._asdict())
 
 
@@ -194,7 +196,9 @@ async def create_endorsement_domain(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Endorsement Domain '{dao.id}' already exists")
 
     mint = EndorsementDomainModel.base_select(session).filter(EndorsementDomain.endorsement_domain == item.endorsement_domain).one_or_none()
-    mint_model = EndorsementDomainModel.model_validate(mint._asdict())
+    if mint is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement Domain '{item.endorsement_domain}' not found")
+    mint_model = EndorsementDomainModel.model_validate(mint)
 
     audit_data = [
         AuditChangeData(name=key, before="", after=value) for key, value in mint_model.model_dump(mode="json", exclude_unset=True, exclude_none=True).items()

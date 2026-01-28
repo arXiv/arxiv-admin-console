@@ -9,7 +9,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 
 from sqlalchemy import func, and_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 
 from pydantic import BaseModel
 from arxiv.base import logging
@@ -53,7 +53,7 @@ class CategoryModel(BaseModel):
         from_attributes = True
 
     @classmethod
-    def base_query(cls, db: Session) -> sqlalchemy.orm.Query:
+    def base_query(cls, db: Session) -> OrmQuery:
         return db.query(
             func.concat(Category.archive, ".", Category.subject_class).label("id"),
             Category.archive,
@@ -131,7 +131,7 @@ async def list_subject_classes(
 
 
 @router.get('/{archive}/subject-class/{subject_class}')
-async def get_category(
+async def get_category_with_subject_class(
         archive: str,
         subject_class: str,
         db: Session = Depends(get_db)
@@ -243,7 +243,7 @@ class ArchiveGroupModel(BaseModel):
     group: str
 
     @classmethod
-    def base_query(cls, db: Session) -> sqlalchemy.orm.Query:
+    def base_query(cls, db: Session) -> OrmQuery:
         return db.query(
             ArchiveGroup.archive_id.label("archive"),
             ArchiveGroup.group_id.label("group"),

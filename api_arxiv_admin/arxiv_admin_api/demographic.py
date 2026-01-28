@@ -7,7 +7,7 @@ from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Demographic, OrcidIds, AuthorIds
 from sqlalchemy import LargeBinary, cast
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 from pydantic import BaseModel
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
@@ -52,7 +52,7 @@ class DemographicModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_select(db: Session) -> sqlalchemy.orm.Query:
+    def base_select(db: Session) -> OrmQuery:
         return db.query(
             Demographic.user_id.label("id"),
             cast(Demographic.country, LargeBinary).label("country"),

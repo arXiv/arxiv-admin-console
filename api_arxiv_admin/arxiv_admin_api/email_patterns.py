@@ -1,4 +1,5 @@
 """Provides integration for the external user interface."""
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
@@ -156,9 +157,9 @@ async def delete_email_patterns(
 
     try:
         delete_query = delete(table).where(table.c.pattern.in_(ids))
-        result = session.execute(delete_query)
+        result: sqlalchemy.engine.CursorResult = session.execute(delete_query) # type: ignore
         session.commit()
-        
+
         logger.info(f"Deleted {result.rowcount} email patterns from {purpose} table")
         
         return Response(status_code=status.HTTP_204_NO_CONTENT)

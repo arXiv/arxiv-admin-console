@@ -56,7 +56,7 @@ def list_ownership_requests_audit(
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         session: Session = Depends(get_db),
     ) -> List[OwnershipRequestsAuditModel]:
-
+    query: sqlalchemy.orm.Query[Any]
     if id is None:
         order_columns = []
         if _sort:
@@ -118,7 +118,7 @@ def get_ownership_requests_audit(
     ) -> List[OwnershipRequestsAuditModel]:
     req = OwnershipRequestsAuditModel.base_query(session).filter(OwnershipRequestsAudit.request_id == id).all()
     if req is None:
-        return Response(status_code=404)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such request")
     result = [OwnershipRequestsAuditModel.model_validate(item) for item in req]
     return result
 

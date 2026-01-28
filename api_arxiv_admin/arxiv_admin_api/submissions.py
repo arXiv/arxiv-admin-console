@@ -373,6 +373,9 @@ async def list_submissions(
             if not current_user.is_admin:
                 query = query.filter(Submission.submitter_id == current_user.user_id)
 
+        t_begin: datetime
+        t_end: datetime
+
         if preset is not None:
             matched = re.search(r"last_(\d+)_days", preset)
             if matched:
@@ -384,9 +387,8 @@ async def list_submissions(
                                     detail="Invalid preset format")
         else:
             if start_date or end_date:
-                t_begin = start_date if start_date else VERY_OLDE
-                # t_end = datetime_to_epoch(end_date, date.today(), hour=23, minute=59, second=59)
-                t_end = end_date if end_date else datetime.now()
+                t_begin = datetime.combine(start_date, datetime.min.time()) if start_date else VERY_OLDE
+                t_end = datetime.combine(end_date, datetime.max.time()) if end_date else datetime.now()
                 query = query.filter(Submission.submit_time.between(t_begin, t_end))
 
         if type is not None:
@@ -475,7 +477,7 @@ async def delete_submission(
     sub.is_withdrawn = True
     session.commit()
     
-    return {"id": str(id)}
+    return JSONResponse({"id": str(id)})
 
 
 class SubmissionUpdateModel(BaseModel):
@@ -573,7 +575,10 @@ async def navigate(
         status_list = submission_status
 
     quota = 10000
-    largest_id = session.query(Submission.submission_id).order_by(Submission.submission_id.desc()).first()[0]
+    qr = session.query(Submission.submission_id).order_by(Submission.submission_id.desc()).first()
+    if qr is None:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="No submission found")
+    largest_id = qr[0]
 
     def submission_walker(idx: int, step: int) -> int | None:
         nonlocal quota, largest_id, session, status_list
@@ -627,15 +632,15 @@ async def get_submission_summary_of_user(
         submission_permitted = True
     )
 
-    status_list = {entry.id: entry for entry in _VALID_STATUS_LIST}
+    status_list: dict[int, SubmissionStatusModel] = {entry.id: entry for entry in _VALID_STATUS_LIST}
 
     submission_status: int
     for a_submission in submissions_by_user:
         submission_status = a_submission[0]
         if submission_status not in status_list:
             continue
-        submission_status = status_list[submission_status]
-        match submission_status.classification:
+        ssm = status_list[submission_status]
+        match ssm.classification:
             case SubmissionStatusClassification.active:
                 result.active += 1
             case SubmissionStatusClassification.submitted:

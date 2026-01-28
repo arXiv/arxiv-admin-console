@@ -1,5 +1,5 @@
 """arXiv moderator routes."""
-from typing import Optional, List
+from typing import Optional, List, cast
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_MakeModerator, AdminAudit_UnmakeModerator
@@ -8,6 +8,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 
 from sqlalchemy import insert, func, and_, select # case, Select, distinct, exists, update,
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session, joinedload, Query as SAQuery
 
 from pydantic import BaseModel, Field
@@ -121,7 +122,7 @@ async def list_moderators_0(
         subject_class: Optional[str] = Query(None),
         first_name: Optional[str] = Query(None),
         last_name: Optional[str] = Query(None),
-        email: Optional[bool] = Query(None, description="Moderator email"),
+        email: Optional[str] = Query(None, description="Moderator email"),
         db: Session = Depends(get_db)
     ) -> List[ModeratorModel]:
     if id:
@@ -237,17 +238,17 @@ async def list_moderators_2(
             t_arXiv_moderators.c.subject_class == subject_class)
     )
     count = query.count()
-    response.headers['X-Total-Count'] = count
+    response.headers['X-Total-Count'] = str(count)
     return [ModeratorModel.model_validate(row) for row in query.all()]
 
 
 @router.get('/{id:str}')
 async def get_moderator(id: str, db: Session = Depends(get_db)) -> ModeratorModel:
     [user_id, archive, subject_class] = id.split("+")
-    id = int(user_id)
+    uid = int(user_id)
     mod = ModeratorModel.base_query(db).filter(
         and_(
-            t_arXiv_moderators.c.user_id == id,
+            t_arXiv_moderators.c.user_id == uid,
             t_arXiv_moderators.c.archive == archive,
             t_arXiv_moderators.c.subject_class == subject_class
         )).one_or_none()
@@ -261,9 +262,10 @@ async def update_moderator(request: Request, id: str,
                            session: Session = Depends(get_db)) -> ModeratorModel:
     body = await request.json()
     [user_id, archive, subject_class] = id.split("+")
+    uid = int(user_id)
     item = ModeratorModel.base_query(session).filter(
         and_(
-            t_arXiv_moderators.c.user_id == int(user_id),
+            t_arXiv_moderators.c.user_id == uid,
             t_arXiv_moderators.c.archive == archive,
             t_arXiv_moderators.c.subject_class == subject_class)).one_or_none()
     if item is None:
@@ -276,7 +278,7 @@ async def update_moderator(request: Request, id: str,
 
     session.commit()
     session.refresh(item)  # Refresh the instance with the updated data
-    await _modapi_clear_user_cache(user_id, request)
+    await _modapi_clear_user_cache(uid, request)
     return ModeratorModel.model_validate(item)
 
 
@@ -368,21 +370,22 @@ async def create_moderator(
     return mods
 
 
-def _delete_moderator(request: Request,
+async def _delete_moderator(request: Request,
                       session: Session,
                       current_user: ArxivUserClaims,
                       user_id: str, archive: str, subject_class: str,
                       remote_ip: str, remote_hostname: str, tracking_cookie: str
     ) -> Response:
-    result = session.execute(
+    uid = int(user_id)
+    result = cast(CursorResult, session.execute(
         t_arXiv_moderators.delete().where(
             and_(
-                t_arXiv_moderators.c.user_id == user_id,
+                t_arXiv_moderators.c.user_id == uid,
                 t_arXiv_moderators.c.archive == archive,
                 t_arXiv_moderators.c.subject_class == subject_class
             )
         )
-    )
+    ))
 
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Moderator not found")
@@ -401,7 +404,7 @@ def _delete_moderator(request: Request,
     )
 
     session.commit()
-    _modapi_clear_user_cache(user_id, request)
+    await _modapi_clear_user_cache(uid, request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -421,8 +424,11 @@ async def delete_moderator(
     delete_moderator:
     """
     [user_id, archive, subject_class] = id.split("+")
-    return _delete_moderator(request, session, current_user, user_id, archive, subject_class,
-                             remote_ip, remote_hostname, tracking_cookie)
+
+    return await _delete_moderator(request, session, current_user, user_id, archive, subject_class,
+                                   remote_ip or "",
+                                   remote_hostname or "",
+                                   tracking_cookie or "")
 
 
 @router.delete('/user/{user_id:str}/archive/{archive:str}/subject_class/{subject_class:str}',
@@ -439,6 +445,8 @@ async def delete_moderator_2(
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> Response:
-    return _delete_moderator(request, session, current_user, user_id, archive, subject_class,
-                             remote_ip, remote_hostname, tracking_cookie)
+    return await _delete_moderator(request, session, current_user, user_id, archive, subject_class,
+                                   remote_ip or "",
+                                   remote_hostname or "",
+                                   tracking_cookie or "")
 

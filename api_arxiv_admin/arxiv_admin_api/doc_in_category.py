@@ -56,7 +56,9 @@ async def list_documents_in_category(
         result = []
         for combind_id in id:
             fragments = combind_id.split("+")
-            document_id = fragments[0]
+            if len(fragments) != 3:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID")
+            document_id = int(fragments[0])
             archive = fragments[1] 
             subject_class = fragments[2]
             record = DocInCategoryWithId.base_query(db).filter(and_(

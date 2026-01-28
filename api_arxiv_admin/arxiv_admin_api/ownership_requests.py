@@ -13,7 +13,7 @@ from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_authn, get_
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from sqlalchemy.exc import IntegrityError
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 from sqlalchemy import insert, Row, and_
 from pydantic import BaseModel, Field
 
@@ -55,7 +55,7 @@ class OwnershipRequestModel(BaseModel):
     date: Optional[datetime.datetime] = None
 
     @classmethod
-    def base_query_0(cls, session: Session) -> sqlalchemy.orm.Query:
+    def base_query_0(cls, session: Session) -> OrmQuery:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
@@ -63,7 +63,7 @@ class OwnershipRequestModel(BaseModel):
             OwnershipRequest.workflow_status)
 
     @classmethod
-    def base_query_with_audit(cls, session: Session) -> sqlalchemy.orm.Query:
+    def base_query_with_audit(cls, session: Session) -> OrmQuery:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,

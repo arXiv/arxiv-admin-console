@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 from arxiv.base import logging
-from arxiv.db.models import AdminLog, Submission
+from arxiv.db.models import AdminLog, Submission, TapirAdminAudit
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, is_admin_user
 
@@ -157,16 +157,17 @@ async def create_admin_log_user_comment(
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
 
-    admin_audit(
+    new_audit: TapirAdminAudit = admin_audit(
         session,
         AdminAudit_AddComment(
-            current_user.user_id,
-            body.user_id,
-            current_user.tapir_session_id,
+            str(current_user.user_id),
+            str(body.user_id),
+            str(current_user.tapir_session_id) if current_user.tapir_session_id else None,
             comment=body.comment,
             remote_ip=remote_ip,
             remote_hostname=remote_hostname,
             tracking_cookie=tracking_cookie,
         )
     )
+    return AdminLogModel.model_validate(new_audit)
 

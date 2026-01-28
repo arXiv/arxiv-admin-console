@@ -19,7 +19,6 @@ from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv.auth.legacy.cookies import unpack as legacy_cookie_unpack
 
 from arxiv_admin_api.helpers.user_session import UserSession, TapirSessionData
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

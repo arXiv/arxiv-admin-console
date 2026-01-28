@@ -186,7 +186,7 @@ def create_app(*args, **kwargs) -> FastAPI:
                 "CLASSIC_SESSION_HASH": "classic-secret",
                 "SESSION_DURATION": "36000",
                 "CLASSIC_COOKIE_NAME": "tapir_session"
-            }.get(key)
+            }[key]
 
     pwc_secret = get_application_config().get('PWC_SECRET', "not-very-secret")
     pwc_arxiv_user_secret = get_application_config().get('PWC_ARXIV_USER_SECRET', "not-very-secret")
@@ -196,7 +196,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     KEYCLOAK_ACCESS_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_access_token_env, "keycloak_access_token")
     KEYCLOAK_REFRESH_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_refresh_token_env, "keycloak_refresh_token")
 
-    cookie_names = {
+    extra_options = {
         COOKIE_ENV_NAMES.classic_cookie_env: CLASSIC_COOKIE_NAME,
         COOKIE_ENV_NAMES.ng_cookie_env: ARXIVNG_COOKIE_NAME,
         COOKIE_ENV_NAMES.auth_session_cookie_env: AUTH_SESSION_COOKIE_NAME,
@@ -209,7 +209,6 @@ def create_app(*args, **kwargs) -> FastAPI:
     document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
     document_storage = GCPStorage(gcp_client, document_bucket_name)
 
-    extra_options = {}
     if TESTING:
         extra_options["TESTING"] = TESTING
 
@@ -242,9 +241,8 @@ def create_app(*args, **kwargs) -> FastAPI:
         USER_ACTION_SITE=USER_ACTION_SITE,
         USER_ACTION_URLS=USER_ACTION_URLS,
         ARXIV_CHECK_URL=ARXIV_CHECK_URL,
-        **cookie_names,
         **extra_options
-    )
+    ) # type: ignore
 
     if ADMIN_APP_URL not in origins:
         origins.append(ADMIN_APP_URL)
@@ -335,7 +333,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         try:
             secret = request.app.extra['JWT_SECRET']
             if secret and token:
-                kc_tokens = {}
+                kc_tokens: dict[str, Any] = {}
                 jwt_payload = token
                 claims = ArxivUserClaims.decode_jwt_payload(kc_tokens, jwt_payload, secret)
                 expires_at = claims.expires_at
@@ -411,7 +409,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         refresh_payload = {
             "session": cookies.get(cookie_name),
             "classic": cookies.get(classic_cookie_name),
-        },
+        }
         try:
             async with httpx.AsyncClient() as client:
                 refresh_response = await client.post(AAA_TOKEN_REFRESH_URL, json=refresh_payload, cookies=cookies)

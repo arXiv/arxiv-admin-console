@@ -3,11 +3,11 @@ Member institution
 """
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
-from typing import Optional, List
+from typing import Optional, List, Annotated
 
-from pydantic.types import conint
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+# from pydantic.types import conint
+from sqlalchemy.orm import Session, Query as OrmQuery
+from pydantic import BaseModel, Field
 
 from arxiv.base import logging
 from arxiv.db.models import MemberInstitution, MemberInstitutionContact, MemberInstitutionIP
@@ -20,19 +20,18 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/membership_in
 
 institution_ip_router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/membership_institutions_ip")
 
-
 class MemberInstitutionIPModel(BaseModel):
     id: Optional[int] = None  # Auto-incrementing primary key, might not be provided when creating
     sid: Optional[int] = None
     exclude: Optional[int] = None
-    start: conint(ge=0)
-    end: conint(ge=0)
+    start: Annotated[int, Field(strict=True, ge=0)]
+    end: Annotated[int, Field(strict=True, ge=0)]
 
     class Config:
         from_attributes = True
 
     @staticmethod
-    def base_query(session: Session) -> sqlalchemy.orm.Query:
+    def base_query(session: Session) -> OrmQuery:
         """
         Returns a basic query for member institutions.
         """
@@ -65,7 +64,7 @@ class MemberInstitutionModel(BaseModel):
         from_attributes = True
 
     @staticmethod
-    def base_query(session: Session) -> sqlalchemy.orm.Query:
+    def base_query(session: Session) -> OrmQuery:
         """
         Returns a basic query for member institutions.
         """
@@ -161,7 +160,7 @@ async def update_membership_institution_data(
         updating_fields={ "name", "label", "resolver_URL", "alt_text", "link_icon",  "note"},
         primary_key_field="id", primary_key_value=id))
 
-    item2: List[MemberInstitutionContact] = db.query(MemberInstitutionContact).filter(MemberInstitutionContact.sid == id).all()
+    item2 = db.query(MemberInstitutionContact).filter(MemberInstitutionContact.sid == id).all()
 
     if item2 and len(item2) > 0:
         item2_1 = item2[0]
