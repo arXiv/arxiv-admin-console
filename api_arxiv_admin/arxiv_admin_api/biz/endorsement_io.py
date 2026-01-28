@@ -40,7 +40,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
             query = query.filter(or_(
                 t_arXiv_moderators.c.subject_class == subject_class,
                 t_arXiv_moderators.c.subject_class == "",
-                t_arXiv_moderators.c.subject_class is None))
+                t_arXiv_moderators.c.subject_class.is_(None)))
             pass
         else:
             query = query.filter(t_arXiv_moderators.c.subject_class == "")
@@ -62,7 +62,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
         """Gets Endorsement domain from category"""
         return self.session.query(EndorsementDomain).filter(EndorsementDomain.endorsement_domain == category.endorsement_domain).one_or_none()
 
-    def get_endorsements(self, user_id: str, canon_archive: str, canon_subject_class: str) -> List[EndorsementWithEndorser]| None:
+    def get_endorsements(self, user_id: str, canon_archive: str, canon_subject_class: str) -> List[EndorsementWithEndorser]:
         """SELECT endorser_id, point_value, type FROM arXiv_endorsements
                            WHERE endorsee_id = :user_id AND archive = :archive AND subject_class = :subject_class"""
         es = EndorsementWithEndorser.base_select(self.session).filter(and_(
@@ -79,7 +79,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
             )
         ).all()
 
-    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime | None] | None, require_author: bool = True) -> List[PaperProps]:
+    def get_papers_by_user(self, user_id: str, domain: str, window: List[datetime] | None, require_author: bool = True) -> List[PaperProps]:
         query = (
             self.session.query(
                 PaperOwner.document_id,
@@ -148,15 +148,15 @@ class EndorsementDBAccessor(EndorsementAccessor):
         return None
 
     def tapir_audit_admin(self,
-                          endorsement: EndorsementBusiness,
-                          affected_user: int = 0,
-                          action: EndorsementNegativeAction = EndorsementNegativeAction.unknown,
+                          biz: EndorsementBusiness,
+                          affected_user: int,
+                          action: str,
                           data: str = "",  # This is constructed by the event
                           comment: str = "",
                           user_id: Optional[int] = None,
                           session_id: Optional[int] = None,
                           request_id: Optional[int] = None,
-                          category: str = ""):
+                          category: str = "") -> None:
         """
         Logs administrative actions in the `tapir_admin_audit` table.
 
@@ -209,43 +209,44 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 };
         """
         tapir_session_id = str(session_id if session_id else 0)
-        if action is EndorsementNegativeAction.endorsed_by_suspect:
+        endorser_id = str(biz.endorseR.id) if biz.endorseR and biz.endorseR.id else None
+        request_id_str = str(request_id) if request_id else ""
+
+        if action == EndorsementNegativeAction.endorsed_by_suspect.value:
             admin_audit(
                 self.session,
                 AdminAudit_EndorsedBySuspect(
-                    endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
+                    endorser_id if biz.endorseR and biz.endorseR.is_admin else None,
                     str(affected_user),
                     tapir_session_id,
-                    str(endorsement.endorseR.id),
-                    str(request_id) if request_id else None,
+                    endorser_id or "",
+                    request_id_str,
                     category,
-                    remote_ip=endorsement.remote_host_ip,
-                    remote_hostname=endorsement.remote_host_name,
-                    tracking_cookie=endorsement.tracking_cookie,
+                    remote_ip=biz.remote_host_ip,
+                    remote_hostname=biz.remote_host_name,
+                    tracking_cookie=biz.tracking_cookie,
                     comment=comment,
                 )
             )
 
-        elif action is EndorsementNegativeAction.got_negative_endorsement:
+        elif action == EndorsementNegativeAction.got_negative_endorsement.value:
             admin_audit(
                 self.session,
                 AdminAudit_GotNegativeEndorsement(
-                    endorsement.endorseR.id if endorsement.endorseR.is_admin else None,
+                    endorser_id if biz.endorseR and biz.endorseR.is_admin else None,
                     str(affected_user),
                     tapir_session_id,
-                    str(endorsement.endorseR.id),
-                    str(request_id) if request_id else None,
+                    endorser_id or "",
+                    request_id_str,
                     category,
-                    remote_ip=endorsement.remote_host_ip,
-                    remote_hostname=endorsement.remote_host_name,
-                    tracking_cookie=endorsement.tracking_cookie,
+                    remote_ip=biz.remote_host_ip,
+                    remote_hostname=biz.remote_host_name,
+                    tracking_cookie=biz.tracking_cookie,
                     comment=comment,
                 )
             )
         else:
             assert False, f"Invalid action {action!r}"
-
-        pass
 
 
     def arxiv_endorse(self, endorsement: EndorsementBusiness) -> EndorsementModel | None:
@@ -258,6 +259,15 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
         :return: The endorsement model if successful, None otherwise.
         :rtype: EndorsementModel | None
         """
+        # Validate required attributes
+        if endorsement.endorseE is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorsee is required")
+        if endorsement.endorsement_code is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorsement code is required")
+
+        endorseE = endorsement.endorseE
+        endorsement_code = endorsement.endorsement_code
+
         session = self.session  # sugar
         # Ensure category consistency
         canon_archive, canon_subject_class = endorsement.canon_archive, endorsement.canon_subject_class
@@ -273,7 +283,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 # My guess is that, if there is an auto endorse already, no need for another auto endorse.
                 previous_endorsements = session.query(Endorsement).filter(
                     Endorsement.endorser_id.is_(None),
-                    Endorsement.endorsee_id == endorsement.endorseE.id,
+                    Endorsement.endorsee_id == endorseE.id,
                     Endorsement.archive == endorsement.canon_archive,
                     Endorsement.subject_class == endorsement.canon_subject_class
                 ).with_for_update().count()
@@ -282,13 +292,13 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     session.rollback()
                     return None
             else:
-                endorser_is_suspect = endorsement.endorseR.flag_suspect
+                endorser_is_suspect = bool(endorsement.endorseR.flag_suspect)
                 endorsement_type = EndorsementType.admin if endorsement.endorseR.is_admin else EndorsementType.user
 
             # Check if an endorsement with the same key already exists
             existing_endorsement = session.query(Endorsement).filter(
                 Endorsement.endorser_id == endorser_id,
-                Endorsement.endorsee_id == endorsement.endorseE.id,
+                Endorsement.endorsee_id == endorseE.id,
                 Endorsement.archive == endorsement.canon_archive,
                 Endorsement.subject_class == endorsement.canon_subject_class
             ).with_for_update().one_or_none()
@@ -297,18 +307,18 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 # Update the existing endorsement instead of creating a new one
                 existing_endorsement.flag_valid = True
                 existing_endorsement.type = endorsement_type.value
-                existing_endorsement.point_value = endorsement.point_value if endorsement.endorsement_code.positive else 0
+                existing_endorsement.point_value = endorsement.point_value if endorsement_code.positive else 0
                 new_endorsement = existing_endorsement
             else:
                 # Insert new endorsement record
                 new_endorsement = Endorsement(
                     endorser_id=endorser_id,
-                    endorsee_id=endorsement.endorseE.id,
+                    endorsee_id=endorseE.id,
                     archive=endorsement.canon_archive,
                     subject_class=endorsement.canon_subject_class,
                     flag_valid=True,
                     type=endorsement_type.value,
-                    point_value=endorsement.point_value if endorsement.endorsement_code.positive else 0,
+                    point_value=endorsement.point_value if endorsement_code.positive else 0,
                     issued_when=datetime_to_epoch(endorsement.audit_timestamp, datetime.now(UTC)),
                     request_id=endorsement.endorsement_request_id
                 )
@@ -319,7 +329,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                 session.refresh(new_endorsement)
 
             # Now increase the total by this endorsement
-            if endorsement.endorsement_code.positive:
+            if endorsement_code.positive:
                 endorsement.total_points = endorsement.total_points + endorsement.point_value
 
             # For audit records, check if one already exists
@@ -333,18 +343,18 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     remote_addr=endorsement.remote_host_ip,
                     remote_host=endorsement.remote_host_name,
                     tracking_cookie=endorsement.tracking_cookie,
-                    flag_knows_personally=endorsement.endorsement_code.knows_personally,
-                    flag_seen_paper=endorsement.endorsement_code.seen_paper,
-                    comment=endorsement.endorsement_code.comment
+                    flag_knows_personally=endorsement_code.knows_personally,
+                    flag_seen_paper=endorsement_code.seen_paper,
+                    comment=endorsement_code.comment
                 )
                 session.add(audit_entry)
                 session.flush()
 
             # Handle suspect endorsements
             demographic: Demographic | None = session.query(Demographic).filter(
-                Demographic.user_id == endorsement.endorseE.id).one_or_none()
+                Demographic.user_id == endorseE.id).one_or_none()
 
-            if endorsement.endorsement_code.positive and endorser_is_suspect and (demographic and demographic.flag_suspect != 1):
+            if endorsement_code.positive and endorser_is_suspect and (demographic and demographic.flag_suspect != 1):
                 demographic.flag_suspect = 1
                 session.add(demographic)
                 session.flush()
@@ -352,8 +362,8 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
                 self.tapir_audit_admin(
                     endorsement,
-                    affected_user=endorsement.endorseE.id,
-                    action=EndorsementNegativeAction.endorsed_by_suspect,
+                    affected_user=endorseE.id,
+                    action=EndorsementNegativeAction.endorsed_by_suspect.value,
                     data=f"{endorsement.endorseR.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=endorsement.endorseR.id,
@@ -361,7 +371,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
                     category=canonical_category,
                 )
 
-            if (not endorsement.endorsement_code.positive) and demographic and demographic.flag_suspect != 1:
+            if (not endorsement_code.positive) and demographic and demographic.flag_suspect != 1:
                 demographic.flag_suspect = 1
                 session.add(demographic)
                 session.flush()
@@ -369,8 +379,8 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
                 self.tapir_audit_admin(
                     endorsement,
-                    affected_user=endorsement.endorseE.id,
-                    action=EndorsementNegativeAction.got_negative_endorsement,
+                    affected_user=endorseE.id,
+                    action=EndorsementNegativeAction.got_negative_endorsement.value,
                     data=f"{endorsement.endorseR.id} {canonical_category} {new_endorsement.endorsement_id}",
                     comment="",
                     user_id=-1,
@@ -406,16 +416,18 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
     def get_existing_endorsement(self, biz: EndorsementBusiness) -> EndorsementModel | None:
         """
-        Registers an endorsement for an arXiv user.
+        Retrieves an existing endorsement for an arXiv user.
 
         :param self:
         :param biz: An instance of ArxivEndorsementParams containing endorsement details.
         :type biz: ArxivEndorsementParams
-        :return: True if the endorsement was successfully recorded, False otherwise.
-        :rtype: bool
+        :return: The endorsement model if found, None otherwise.
+        :rtype: EndorsementModel | None
         """
         endorser_id = biz.endorseR.id if biz.endorseR else None
         if endorser_id is None:
+            return None
+        if biz.endorseE is None:
             return None
         session = self.session  # sugar
 

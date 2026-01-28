@@ -14,13 +14,12 @@ from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, field_validator
-from requests import session
 
 from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row, or_, func, literal
 from sqlalchemy.orm import Session, aliased
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic,
-                             t_arXiv_black_email, Category, OrcidIds, TapirSession, AdminLog)
+                             t_arXiv_black_email, Category, OrcidIds, TapirSession, AdminLog, TapirAdminAudit)
 from arxiv_bizlogic.bizmodels.user_model import UserModel, VetoStatusEnum, _tapir_user_utf8_fields_, \
     _demographic_user_utf8_fields_, list_mod_cats_n_arcs, ACCOUNT_MANAGEMENT_FIELDS
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
@@ -139,7 +138,7 @@ class UserUpdateModel(UserModel):
 
 class UserPropertyUpdateRequest(BaseModel):
     property_name: str
-    property_value: str | bool
+    property_value: str | int | bool
     comment: Optional[str] = None
 
 
@@ -454,8 +453,8 @@ async def list_users(
         if endorsing_categories is not None:
             all_users = False
             engine = endorsing_db.endorsing_db_get_cached_db(request)
-            candidates: List[EndorsementCandidate] = endorsing_db.endorsing_db_query_users_in_categories(engine, endorsing_categories)
-            user_ids = [candidate.id for candidate in candidates]
+            candidates = endorsing_db.endorsing_db_query_users_in_categories(engine, endorsing_categories)
+            user_ids = [candidate.id for candidate in candidates] if candidates else []
             query = query.filter(TapirUser.user_id.in_(user_ids))
 
     for column in order_columns:
@@ -546,7 +545,7 @@ async def update_user_demographic(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     demographic = session.query(Demographic).filter(Demographic.user_id == user_id).one_or_none()
-    if Demographic is None:
+    if demographic is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demographic not found")
 
     await _update_user_property(
@@ -560,7 +559,10 @@ async def update_user_demographic(
         remote_hostname,
         tracking_cookie)
     session.commit()
-    return UserModel.one_user(session, str(user_id))
+    result = UserModel.one_user(session, str(user_id))
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found after update")
+    return result
 
 
 @router.put('/{user_id:int}')
@@ -599,6 +601,8 @@ async def update_user(
                 continue
             old_value = getattr(target, field)
             new_value = data.get(field)
+            if new_value is None:
+                continue
             if isinstance(new_value, bool) and isinstance(old_value, int):
                 # column is boolean but shows up as int
                 new_value = 1 if new_value else 0
@@ -624,7 +628,10 @@ async def update_user(
                 else:
                     setattr(target, field, new_value)
     session.commit()
-    return UserModel.one_user(session, str(user_id))
+    result = UserModel.one_user(session, str(user_id))
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found after update")
+    return result
 
 @router.post('/{user_id:int}/comment', status_code=status.HTTP_201_CREATED)
 async def create_user_comment(
@@ -696,7 +703,10 @@ async def update_user_veto_status(
         session.commit()
     else:
         raise HTTPException(status_code=status.HTTP_208_ALREADY_REPORTED, detail="No change")
-    return UserModel.one_user(session, user_id)
+    result = UserModel.one_user(session, str(user_id))
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found after update")
+    return result
 
 
 @router.post('/')
@@ -711,7 +721,11 @@ async def create_user(request: Request,
         if key in user.__dict__:
             setattr(user, key, value)
     session.add(user)
-    return UserModel.one_user(session, user.user_id)
+    session.flush()  # Ensure user_id is populated
+    result = UserModel.one_user(session, str(user.user_id))
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user")
+    return result
 
 
 @router.delete('/{user_id:int}')
@@ -784,8 +798,10 @@ def get_user_can_submit_to(
     accessor = EndorsementDBAccessor(session)
 
     result = []
-    user = accessor.get_user(user_id)
-    covered = {}
+    user = accessor.get_user(str(user_id))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    covered: dict[str, bool] = {}
 
     cat: Category
     for cat in categories:
@@ -824,8 +840,10 @@ def get_user_can_endorse_for(
     accessor = EndorsementDBAccessor(session)
 
     result = []
-    user = accessor.get_user(user_id)
-    covered = {}
+    user = accessor.get_user(str(user_id))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    covered: dict[str, bool] = {}
 
     cat: Category
     for cat in categories:
@@ -1003,7 +1021,7 @@ async def list_users_by_username(
         query = query.join(sort_nickname_alias, TapirUser.user_id == sort_nickname_alias.user_id)
 
     if id is not None:
-        nick1: TapirNickname = aliased(TapirNickname)
+        nick1 = aliased(TapirNickname)
         query = query.join(nick1, nick1.user_id == TapirUser.user_id)
         query = query.filter(nick1.nickname.in_(id))
 
@@ -1088,8 +1106,8 @@ def get_user_activity_summary(user_id:int,
                               session: Session = Depends(get_db)) -> UserActivitySummary:
     check_authnz(None, current_user, user_id)
     tapir_sessions_count = session.query(TapirSession).filter(TapirSession.user_id == user_id).count()
-    admin_log_count = session.query(AdminLog).filter(AdminLog.user_id == user_id).count()
-
+    admin_log_count = session.query(TapirAdminAudit).filter(or_(TapirAdminAudit.admin_user == user_id,
+                                                                TapirAdminAudit.affected_user == user_id)).count()
     return UserActivitySummary(
         tapir_sessions_count=tapir_sessions_count,
         admin_log_count=admin_log_count,

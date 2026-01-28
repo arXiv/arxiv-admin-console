@@ -12,7 +12,7 @@ from fastapi import FastAPI, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
-from asgi_logger import AccessLoggerMiddleware
+# from asgi_logger import AccessLoggerMiddleware
 
 import sqlalchemy
 import sqlalchemy.event
@@ -57,8 +57,8 @@ from arxiv_admin_api.endorsement_domains import router as endorsement_domains_ro
 from arxiv_admin_api.system_status import router as system_status_router
 from arxiv_admin_api.bib_feeds import router as bib_feeds_router, bib_feed_updates_router
 
-from arxiv_admin_api.frontend import router as frontend_router
-from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
+# from arxiv_admin_api.frontend import router as frontend_router
+# from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
 from arxiv_admin_api.helpers.user_session import UserSession
 
 from arxiv_admin_api.public_users import router as public_users_router
@@ -151,7 +151,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     setup_logger()
 
     settings = Settings (
-        CLASSIC_DB_URI = DB_URI,
+        CLASSIC_DB_URI = DB_URI or "",
         LATEXML_DB_URI = None
     )
     from arxiv_bizlogic.database import Database
@@ -196,7 +196,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     KEYCLOAK_ACCESS_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_access_token_env, "keycloak_access_token")
     KEYCLOAK_REFRESH_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_refresh_token_env, "keycloak_refresh_token")
 
-    extra_options = {
+    extra_options: dict[str, Any] = {
         COOKIE_ENV_NAMES.classic_cookie_env: CLASSIC_COOKIE_NAME,
         COOKIE_ENV_NAMES.ng_cookie_env: ARXIVNG_COOKIE_NAME,
         COOKIE_ENV_NAMES.auth_session_cookie_env: AUTH_SESSION_COOKIE_NAME,
@@ -212,8 +212,9 @@ def create_app(*args, **kwargs) -> FastAPI:
     if TESTING:
         extra_options["TESTING"] = TESTING
 
-    if os.environ.get(ENABLE_USER_ACCESS_KEY):
-        extra_options[ENABLE_USER_ACCESS_KEY] = os.environ.get(ENABLE_USER_ACCESS_KEY)
+    enable_user_access = os.environ.get(ENABLE_USER_ACCESS_KEY)
+    if enable_user_access:
+        extra_options[ENABLE_USER_ACCESS_KEY] = enable_user_access
 
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
@@ -248,7 +249,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         origins.append(ADMIN_APP_URL)
 
     app.add_middleware(
-        CORSMiddleware,
+        CORSMiddleware, # type: ignore
         allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
@@ -257,7 +258,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     )
 
     app.add_middleware(
-        CorrelationIdMiddleware,  # type: ignore
+        CorrelationIdMiddleware, # type: ignore
         header_name='X-Request-ID',
         update_request_header=True,
         generator=lambda: uuid4().hex,
@@ -270,7 +271,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
     # app.add_middleware(SessionCookieMiddleware)
 
-    app.add_middleware(TapirCookieToUserClaimsMiddleware)
+    app.add_middleware(TapirCookieToUserClaimsMiddleware) # type: ignore
 
     # app.include_router(auth_router)
     app.include_router(system_status_router)
