@@ -75,8 +75,8 @@ def generate_paper_pw() -> str:
 
 def update_paper_ownership(session: Session,
                            user_id: str,
-                           owning: [int],
-                           disowning: [int]
+                           owning: list[int],
+                           disowning: list[int]
                            ) -> Tuple[List[int], List[int]]:
     """
     Updates paper authorship status for the given user.
@@ -111,7 +111,7 @@ def update_paper_ownership(session: Session,
     # Modify objects in Python
     owning_as_set = set(owning)
     disowning_as_set = set(disowning)
-    result = ([], [])
+    result: tuple[ list[int], list[int]] = ([], [])
     for paper in papers:
         if paper.document_id in owning_as_set:
             paper.flag_author = 1

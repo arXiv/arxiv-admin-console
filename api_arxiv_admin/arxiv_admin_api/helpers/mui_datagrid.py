@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class MuiDataGridFilter:
     def __init__(self, filter: str):
-        self.datagrid_filter = None
+        self.datagrid_filter = {}
         if filter:
             try:
                 self.datagrid_filter = json.loads(urllib.parse.unquote(filter))

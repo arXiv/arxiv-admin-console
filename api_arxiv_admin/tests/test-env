@@ -31,7 +31,8 @@ ARXIV_USER_SECRET=f3dc975132f09b27d90
 AUTH_SESSION_COOKIE_DOMAIN=localhost.arxiv.org
 BASE_SERVER=localhost.arxiv.org
 CLASSIC_COOKIE_NAME=tapir_session
-CLASSIC_DB_URI=mysql+mysqldb://arxiv:arxiv_password@127.0.0.1:22204/arXiv?ssl=false&ssl_mode=DISABLED
+# yay! removed: ?ssl=false&ssl_mode=DISABLED
+CLASSIC_DB_URI=mysql+mysqldb://arxiv:arxiv_password@127.0.0.1:22204/arXiv
 CLASSIC_SESSION_DURATION=36000
 CLASSIC_SESSION_HASH=classic-secret
 DEFAULT_LOGIN_REDIRECT_URL=/user/

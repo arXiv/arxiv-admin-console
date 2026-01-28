@@ -12,7 +12,7 @@ import json
 from conftest import generate_request_headers
 
 
-@pytest.mark.usefixtures("arxiv_db", "test_env", "api_client")
+@pytest.mark.usefixtures("reset_test_database", "test_env", "admin_api_db_only_client")
 class TestOwnershipByPaperPassword:
 
     @property
@@ -29,7 +29,7 @@ class TestOwnershipByPaperPassword:
 
 
 
-    def test_authorize_endpoint_wrong_password(self, arxiv_db, test_env, api_client):
+    def test_authorize_endpoint_wrong_password(self, reset_test_database, test_env, admin_api_db_only_client):
         """Test authorization failure with wrong password"""
 
         with DatabaseSession() as db_session:
@@ -55,7 +55,7 @@ class TestOwnershipByPaperPassword:
         )
 
         # Make the API request
-        response = api_client.post(
+        response = admin_api_db_only_client.post(
             "/v1/paper_owners/authorize",
             headers=headers,
             json=auth_request.model_dump()
@@ -73,7 +73,7 @@ class TestOwnershipByPaperPassword:
             assert ownership is None
 
 
-    def test_authorize_endpoint_invalid_paper_id(self, arxiv_db, test_env, api_client):
+    def test_authorize_endpoint_invalid_paper_id(self, reset_test_database, test_env, admin_api_db_only_client):
         """Test authorization failure with invalid paper ID"""
 
         headers = generate_request_headers(
@@ -92,7 +92,7 @@ class TestOwnershipByPaperPassword:
         )
 
         # Make the API request
-        response = api_client.post(
+        response = admin_api_db_only_client.post(
             "/v1/paper_owners/authorize",
             headers=headers,
             json=auth_request.model_dump()
@@ -103,7 +103,7 @@ class TestOwnershipByPaperPassword:
         assert "does not exist" in response.json()["detail"]
 
 
-    def test_authorize_endpoint_malformed_paper_id(self, arxiv_db, db_session: Session, test_env, api_client):
+    def test_authorize_endpoint_malformed_paper_id(self, reset_test_database, db_session: Session, test_env, admin_api_db_only_client):
         """Test authorization failure with malformed paper ID"""
 
         headers = generate_request_headers(
@@ -122,7 +122,7 @@ class TestOwnershipByPaperPassword:
         )
 
         # Make the API request
-        response = api_client.post(
+        response = admin_api_db_only_client.post(
             "/v1/paper_owners/authorize",
             headers=headers,
             json=auth_request.model_dump()
@@ -133,7 +133,7 @@ class TestOwnershipByPaperPassword:
         assert "Paper ID 'foo###12210021' is ill-formed." in response.json()["detail"]
 
 
-    def test_authorize_endpoint_verify_id_false(self, arxiv_db, db_session: Session, test_env, api_client):
+    def test_authorize_endpoint_verify_id_false(self, reset_test_database, db_session: Session, test_env, admin_api_db_only_client):
         """Test authorization failure when verify_id is False"""
 
         with DatabaseSession() as db_session:
@@ -159,7 +159,7 @@ class TestOwnershipByPaperPassword:
         )
 
         # Make the API request
-        response = api_client.post(
+        response = admin_api_db_only_client.post(
             "/v1/paper_owners/authorize",
             headers=headers,
             json=auth_request.model_dump()
@@ -177,7 +177,7 @@ class TestOwnershipByPaperPassword:
 
 
 
-    def test_authorize_endpoint_success(self, arxiv_db, test_env, api_client):
+    def test_authorize_endpoint_success(self, reset_test_database, test_env, admin_api_db_only_client):
         """Test successful paper ownership authorization via password"""
 
         with DatabaseSession() as db_session:
@@ -203,7 +203,7 @@ class TestOwnershipByPaperPassword:
         )
 
         # Make the API request
-        response = api_client.post(
+        response = admin_api_db_only_client.post(
             "/v1/paper_owners/authorize",
             headers=headers,
             json=auth_request.model_dump()
@@ -229,7 +229,7 @@ class TestOwnershipByPaperPassword:
 
 
         # Make the API request 2nd time
-        response = api_client.post(
+        response = admin_api_db_only_client.post(
             "/v1/paper_owners/authorize",
             headers=headers,
             json=auth_request.model_dump()

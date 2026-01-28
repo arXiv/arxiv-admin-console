@@ -32,7 +32,7 @@ async def modapi_clear_user_cache(
     authorization: Optional[str] = None,
     modkey: Optional[str] = None,
     arxivng_session_id: Optional[str] = None
-) -> Optional[dict]:
+) -> Optional[object]:
     """
     Clear the stored user cache for a given user ID using modapi.
 
@@ -75,64 +75,64 @@ async def modapi_clear_user_cache(
 
 
 # Synchronous wrapper for compatibility
-def modapi_clear_user_cache_sync(
-    user_id: int,
-    base_url: str = "https://services.dev.arxiv.org",
-    authorization: Optional[str] = None,
-    modkey: Optional[str] = None,
-    arxivng_session_id: Optional[str] = None
-) -> Optional[dict]:
-    """
-    Synchronous wrapper for clearing user cache.
-
-    Args:
-        user_id: The user ID to clear from cache
-        base_url: The base URL for the modapi service
-        authorization: Bearer token for authentication
-        modkey: Modkey header for authentication
-        arxivng_session_id: Session cookie for authentication
-
-    Returns:
-        Response data from the API call, or None if there was an error
-    """
-    import asyncio
-
-    try:
-        # Try to get existing event loop
-        loop = asyncio.get_running_loop()
-        # If we're in an async context, create a new task
-        if loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run,
-                    modapi_clear_user_cache(
-                        user_id=user_id,
-                        base_url=base_url,
-                        authorization=authorization,
-                        modkey=modkey,
-                        arxivng_session_id=arxivng_session_id
-                    )
-                )
-                return future.result()
-        else:
-            return asyncio.run(
-                modapi_clear_user_cache(
-                    user_id=user_id,
-                    base_url=base_url,
-                    authorization=authorization,
-                    modkey=modkey,
-                    arxivng_session_id=arxivng_session_id
-                )
-            )
-    except RuntimeError:
-        # No event loop, safe to use asyncio.run
-        return asyncio.run(
-            modapi_clear_user_cache(
-                user_id=user_id,
-                base_url=base_url,
-                authorization=authorization,
-                modkey=modkey,
-                arxivng_session_id=arxivng_session_id
-            )
-        )
+# def modapi_clear_user_cache_sync(
+#     user_id: int,
+#     base_url: str = "https://services.dev.arxiv.org",
+#     authorization: Optional[str] = None,
+#     modkey: Optional[str] = None,
+#     arxivng_session_id: Optional[str] = None
+# ) -> Optional[dict]:
+#     """
+#     Synchronous wrapper for clearing user cache.
+#
+#     Args:
+#         user_id: The user ID to clear from cache
+#         base_url: The base URL for the modapi service
+#         authorization: Bearer token for authentication
+#         modkey: Modkey header for authentication
+#         arxivng_session_id: Session cookie for authentication
+#
+#     Returns:
+#         Response data from the API call, or None if there was an error
+#     """
+#     import asyncio
+#
+#     try:
+#         # Try to get existing event loop
+#         loop = asyncio.get_running_loop()
+#         # If we're in an async context, create a new task
+#         if loop.is_running():
+#             import concurrent.futures
+#             with concurrent.futures.ThreadPoolExecutor() as executor:
+#                 future = executor.submit(
+#                     asyncio.run,
+#                     modapi_clear_user_cache(
+#                         user_id=user_id,
+#                         base_url=base_url,
+#                         authorization=authorization,
+#                         modkey=modkey,
+#                         arxivng_session_id=arxivng_session_id
+#                     )
+#                 )
+#                 return future.result()
+#         else:
+#             return asyncio.run(
+#                 modapi_clear_user_cache(
+#                     user_id=user_id,
+#                     base_url=base_url,
+#                     authorization=authorization,
+#                     modkey=modkey,
+#                     arxivng_session_id=arxivng_session_id
+#                 )
+#             )
+#     except RuntimeError:
+#         # No event loop, safe to use asyncio.run
+#         return asyncio.run(
+#             modapi_clear_user_cache(
+#                 user_id=user_id,
+#                 base_url=base_url,
+#                 authorization=authorization,
+#                 modkey=modkey,
+#                 arxivng_session_id=arxivng_session_id
+#             )
+#         )

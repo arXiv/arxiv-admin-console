@@ -7,9 +7,10 @@ import threading
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta, timezone
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Generator
 from pathlib import Path
 from collections import defaultdict
+from sqlalchemy.log import _EchoFlagType
 
 # Using threading instead of multiprocessing due to Hypercorn daemon process restrictions
 # This maintains the same structure but uses threads instead of processes
@@ -18,7 +19,7 @@ _non_daemon_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="end
 from google.cloud import storage
 from urllib.parse import urlparse
 from fastapi import HTTPException, status, Request
-from sqlalchemy import create_engine, select, Engine, and_, func
+from sqlalchemy import create_engine, select, Engine
 from sqlalchemy.orm import Session
 
 from arxiv.base import logging
@@ -30,7 +31,7 @@ from .endorsing_models import EndorsingBase, EndorsingCategoryModel, EndorsingCa
 logger = logging.getLogger(__name__)
 
 # Cache for SQLAlchemy engines to avoid repeated deserialization
-_db_cache = {}
+_db_cache: dict[str, Engine] = {}
 
 
 class DocumentRecord:
@@ -213,8 +214,8 @@ def endorsing_db_query_users_in_categories(engine: Engine, category: Optional[st
     # Convert single category to list for uniform processing
     if category is None:
         with Session(engine) as session:
-            stmt = select(EndorsingCategoryModel)
-            category = session.execute(stmt).scalars().all()
+            stmt = select(EndorsingCategoryModel.category).distinct()
+            category = list(session.execute(stmt).scalars().all())
 
     categories = [category] if isinstance(category, str) else category
 
@@ -446,7 +447,7 @@ def _fetch_user_docs_for_batch(engine: Engine, doc_ids: List[str]):
         return result
 
 
-def _fetch_metadata_for_batch(engine: Engine, doc_ids: List[str]):
+def _fetch_metadata_for_batch(engine: Engine, doc_ids: List[str]) -> List[tuple[int, Optional[str]]]:
     """
     Step 3: Get abs_categories for documents.
 
@@ -475,7 +476,7 @@ def _fetch_metadata_for_batch(engine: Engine, doc_ids: List[str]):
         )
         elapsed = time.time() - start_time
         logger.debug(f"_fetch_metadata_for_batch: {len(result)} rows in {elapsed:.3f}s")
-        return result
+        return [(r.document_id, r.abs_categories) for r in result]
 
 
 def _fetch_documents_batched(
@@ -483,11 +484,11 @@ def _fetch_documents_batched(
     start_timestamp: int,
     end_timestamp: int,
     batch_size: int = 10000
-):
+) -> Generator[tuple[int, int, int, Optional[str]], None, None]:
     """
     Fetch documents and related data in batches using 3-step approach.
 
-    Yields tuples of (user_id, dated, abs_categories) for each document.
+    Yields tuples of (user_id, doc_id, dated, abs_categories) for each document.
 
     Args:
         session: SQLAlchemy session
@@ -496,7 +497,7 @@ def _fetch_documents_batched(
         batch_size: Number of documents to fetch per batch
 
     Yields:
-        Tuple of (user_id, dated, abs_categories)
+        Tuple of (user_id, doc_id, dated, abs_categories)
     """
     offset = 0
 
@@ -520,8 +521,8 @@ def _fetch_documents_batched(
 
         # Steps 2 and 3 are independent queries - run them concurrently using simple threading
         # Each thread will create its own session from the engine (which is thread-safe)
-        user_docs_result = []
-        metadata_batch_result = []
+        user_docs_result: list[tuple[int, int]] = []
+        metadata_batch_result: list[tuple[int, Optional[str]]] = []
         engine = session.bind
 
         def fetch_user_docs():
@@ -544,14 +545,12 @@ def _fetch_documents_batched(
         thread2.join()
 
         # Build document_id -> list of user_ids mapping
-        doc_users_map: Dict[str, List[int]] = defaultdict(list)
+        doc_users_map: Dict[int, List[int]] = defaultdict(list)
         for user_id, doc_id in user_docs_result:
             doc_users_map[doc_id].append(user_id)
 
         # Step 4: Merge results and yield
-        for metadata in metadata_batch_result:
-            doc_id = metadata.document_id
-            abs_categories = metadata.abs_categories
+        for doc_id, abs_categories in metadata_batch_result:
             dated = doc_dated_map.get(doc_id)
 
             if doc_id in doc_users_map and dated is not None:
@@ -652,8 +651,8 @@ def _process_concurrently(
     }
 
     # Create worker queues (using threading.Queue which uses 'maxsize' parameter)
-    input_queues = [Queue(maxsize=100) for _ in range(num_workers)]
-    output_queue = Queue()
+    input_queues: list[Queue[tuple[int, int, int, str] | None]] = [Queue(maxsize=100) for _ in range(num_workers)]
+    output_queue: Queue[list[tuple[int, str, int, datetime, int]]] = Queue()
 
     # Start worker threads (changed from processes to threads)
     workers = []
@@ -704,25 +703,6 @@ def _process_concurrently(
     return result
 
 
-def post_process(all_aggregates, timestamp):
-    # Group qualified candidates by category
-    candidates_by_category: Dict[str, List[EndorsementCandidate]] = defaultdict(list)
-
-    for user_id, category, count, latest, latest_document_id in all_aggregates:
-        candidates_by_category[category].append(EndorsementCandidate(
-            id=user_id,
-            category=category,
-            document_count=count,
-            latest_document_id=latest_document_id,
-        ))
-
-    # Build final result
-    return [
-        EndorsementCandidates(category=cat, candidates=candidates)
-        for cat, candidates in candidates_by_category.items()
-    ]
-
-
 async def endorsing_db_list_endorsement_candidates(
     session: Session,
     start_date: Optional[date] = None,
@@ -764,9 +744,11 @@ async def endorsing_db_list_endorsement_candidates(
     logger.info(f"Querying endorsement candidates (v2 batched) from {start_date} to {end_date}")
 
     # Disable SQL echo for this session to reduce log noise
+    old_echo: Optional[_EchoFlagType] = None
+
     if hasattr(session, 'bind') and hasattr(session.bind, 'echo'):
-        old_echo = session.bind.echo
-        session.bind.echo = False
+        old_echo = session.bind.echo  # type: ignore
+        session.bind.echo = False  # type: ignore
     else:
         old_echo = None
 
@@ -814,9 +796,9 @@ async def endorsing_db_list_endorsement_candidates(
         logger.info(f"Endorsement processing: {total_time:.3f}s total, "
                     f"{len(result)} qualified candidates")
 
-        return result, timestamp, start_date, end_date
+        return result, timestamp, datetime.combine(start_date, datetime.min.time(), timezone.utc), datetime.combine(end_date, datetime.min.time(), timezone.utc)
 
     finally:
         # Restore original echo setting
         if old_echo is not None and hasattr(session, 'bind'):
-            session.bind.echo = old_echo
+            session.bind.echo = old_echo  # type: ignore

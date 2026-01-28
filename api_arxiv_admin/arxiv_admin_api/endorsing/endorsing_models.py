@@ -43,7 +43,7 @@ class EndorsingCandidateModel(EndorsingBase):
     category_ref: Mapped["EndorsingCategoryModel"] = relationship(back_populates="candidates")
 
     def __repr__(self) -> str:
-        return f"EndorsementCandidateModel(id={self.id}, category_id={self.category_id}, document_count={self.document_count}, latest={self.latest}, timestamp={self.timestamp})"
+        return f"EndorsementCandidateModel(id={self.id}, category_id={self.category_id}, document_count={self.document_count}, latest={self.latest_document_id})"
 
 
 class EndorsingMetadataModel(EndorsingBase):

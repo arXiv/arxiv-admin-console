@@ -1,8 +1,7 @@
 """Things used for API implementation"""
-from http.client import HTTPException
 
 from arxiv_bizlogic.gcp_helper import verify_gcp_oidc_token
-from fastapi import Request, HTTPException, status as http_status, Depends
+from fastapi import Request, status as http_status, Depends, HTTPException
 import os
 
 # This is used by others. Don't remove

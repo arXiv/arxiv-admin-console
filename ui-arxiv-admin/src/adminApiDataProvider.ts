@@ -527,12 +527,13 @@ class adminApiDataProvider implements DataProvider {
         // Handle email_patterns with purpose-based path
         if (resource === 'email_patterns' && params.meta?.purpose) {
             const { purpose } = params.meta;
-            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/email_patterns/${purpose}`;
-            
+            const queryParams = new URLSearchParams();
+            params.ids.forEach(id => queryParams.append('ids', String(id)));
+            const url = `${this.runtimeProps.ADMIN_API_BACKEND_URL}/v1/email_patterns/${purpose}?${queryParams.toString()}`;
+
             try {
                 const response = await retryHttpClient(url, {
                     method: 'DELETE',
-                    body: JSON.stringify({ ids: params.ids }),
                 });
                 
                 // Track bulk deleted IDs to prevent individual delete calls

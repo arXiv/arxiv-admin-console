@@ -28,7 +28,7 @@ refresh_retry = int(os.environ.get('KC_RETRY', '5'))
 async def refresh_token(aaa_url: str,
                         cookies: dict,
                         session_cookie: str,
-                        classic_cookie: str) -> Optional[dict]:
+                        classic_cookie: str) -> Optional[dict[str, Any]]:
     for iter in range(refresh_retry):
         try:
             async with httpx.AsyncClient() as client:
@@ -44,7 +44,7 @@ async def refresh_token(aaa_url: str,
 
             if refresh_response.status_code == 200:
                 # Extract the new token from the response
-                refreshed_tokens = refresh_response.json()
+                refreshed_tokens: dict[str, Any] = refresh_response.json()  # type: ignore
                 return refreshed_tokens
             elif refresh_response.status_code in [401, 422]:
                 logger.info("post to %s: bad/expired refresh token", aaa_url)
@@ -114,7 +114,7 @@ class SessionCookieMiddleware(BaseHTTPMiddleware):
             request.state.tapir_session = None
 
         if session_cookie is not None:
-            kc_tokens = {}
+            kc_tokens: dict[str, Any] = {}
             claims = ArxivUserClaims.decode_jwt_payload(kc_tokens, session_cookie, secret)
             user_id = claims.user_id
 

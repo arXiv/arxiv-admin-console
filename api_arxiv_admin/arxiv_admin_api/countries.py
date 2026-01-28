@@ -4102,8 +4102,8 @@ def list_countries_in_iso2(
         response: Response,
         _sort: Optional[str] = Query("country_name", description="sort by country_name, continent or id"),
         _order: Optional[str] = Query("ASC", description="sort order ASC or DESC"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(len(COUNTRIES), alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(len(COUNTRIES), alias="_end"),
     ) -> List[CountryAlpha2Model]:
 
     if _start and _end and (_start < 0 or _end < _start):
