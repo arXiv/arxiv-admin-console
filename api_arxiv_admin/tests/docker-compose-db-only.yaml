@@ -40,7 +40,7 @@ services:
     container_name: admin-api-db-myloader
     user: "${UID}:${GID}"
     volumes:
-      - ../../tests/data/test-db-dump:/myloader-data:ro
+      - ${TEST_DB_DUMP_DIR}:/myloader-data:ro
     network_mode: host
     depends_on:
       arxiv-test-db:

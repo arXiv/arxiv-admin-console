@@ -1,22 +1,23 @@
+from typing import Optional
 import pytest
-from datetime import datetime
-
-from arxiv_bizlogic.database import DatabaseSession
 from arxiv_admin_api.endorsement_requests import EndorsementRequestModel
 
-from arxiv.db.models import EndorsementRequest, \
-    TapirUser  # Category, EndorsementDomain, QuestionableCategory, Endorsement,
+from arxiv.db.models import EndorsementRequest, TapirUser
+# Category, EndorsementDomain, QuestionableCategory, Endorsement,
 
 from arxiv_admin_api.biz.endorsement_biz import EndorsementBusiness
 from arxiv_admin_api.biz.endorsement_io import EndorsementDBAccessor
 from arxiv_admin_api.endorsements import EndorsementCodeModel
+from datetime import datetime
+
+from arxiv_admin_api.public_users import PublicUserModel
 
 
 def test_see_papers(reset_test_database, database_session) -> None:
     with database_session() as session:
         accessor = EndorsementDBAccessor(session)
         user_ids = session.query(TapirUser.user_id).all()
-        window = [None, None]
+        window: Optional[list[datetime]] = None
         count = 0
         for domain in ["cs"]:
             for user_id in user_ids:
@@ -100,7 +101,7 @@ def test_get_papers_by_user(reset_test_database, database_session) -> None:
         accessor = EndorsementDBAccessor(session)
         user_ids = session.query(TapirUser.user_id).all()
         count = 0
-        window = [None, None]
+        window = None
         for user_id in user_ids:
             result = accessor.get_papers_by_user(user_id[0], "cs", window, require_author = True)
             if result is not None:
@@ -113,6 +114,9 @@ def test_create_endorsement(reset_test_database, database_session) -> None:
     client_host = "127.0.0.1"
     client_host_name = "no-place-like@home.biz"
     tracking_cookie = "I-ate-them-all"
+    audit_timestamp = datetime.fromisoformat("2025-01-01T00:00:00Z")  # Using now makes it
+    tapir_session_id = 100
+
     # Unfortunatnely, this seems to load the default
 
     endorsement_code = "R8T3GZ"
@@ -125,7 +129,11 @@ def test_create_endorsement(reset_test_database, database_session) -> None:
 
         accessor = EndorsementDBAccessor(session)
         endorser = accessor.get_user("591211")
-        endorsee = accessor.get_user("1019756")
+        endorsee_0 = accessor.get_user("1019756")
+        # this would be a test bug
+        assert endorser is not None
+        assert endorsee_0 is not None
+        endorsee = PublicUserModel.model_validate(endorsee_0.model_dump())
 
         code: EndorsementCodeModel = EndorsementCodeModel(
             preflight=False,
@@ -137,16 +145,19 @@ def test_create_endorsement(reset_test_database, database_session) -> None:
             positive=True,
         )
 
+        assert erm0.archive is not None
+        assert erm0.subject_class is not None
+
         business = EndorsementBusiness(
             accessor,
             endorser,
             endorsee,
-            reset_test_database.audit_timestamp,
+            audit_timestamp,
             archive=erm0.archive,
             subject_class=erm0.subject_class,
             endorsement_request=erm0,
             endorsement_code=code,
-            session_id=str(reset_test_database.tapir_session_id),
+            session_id=str(tapir_session_id),
             remote_host_ip=client_host,
             remote_host_name=client_host_name,
             tracking_cookie=tracking_cookie,

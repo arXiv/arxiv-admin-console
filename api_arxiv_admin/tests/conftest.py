@@ -1,16 +1,20 @@
 import shlex
 import sys, os
+
+from arxiv_bizlogic.fastapi_helpers import datetime_to_epoch
+
 rooddir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(rooddir)
 
 import subprocess
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Generator
 
 from arxiv.auth.user_claims import ArxivUserClaims, ArxivUserClaimsModel
 from dotenv import dotenv_values, load_dotenv
 from arxiv.config import Settings
 from arxiv_bizlogic.database import Database, DatabaseSession
+from arxiv_bizlogic.user_account_models import AccountIdentifierModel
 
 ADMIN_API_TEST_DIR = Path(__file__).parent
 
@@ -21,6 +25,7 @@ import pytest
 import logging
 
 from time import sleep
+from datetime import datetime
 
 from fastapi.testclient import TestClient
 from arxiv_admin_api.main import create_app
@@ -32,6 +37,10 @@ MYSQL_SNAPSHOT_DIR = ADMIN_API_TEST_DIR / "mysql-data-snapshot"
 
 DC_YAML = ADMIN_API_TEST_DIR.joinpath('docker-compose.yaml')
 DC_DBO_YAML = ADMIN_API_TEST_DIR.joinpath('docker-compose-db-only.yaml')
+
+ADMIN_API_DIR = ADMIN_API_TEST_DIR.parent
+ARXIV_ADMIN_CONSOLE_DIR = ADMIN_API_DIR.parent
+TEST_DB_DUMP_DIR = ARXIV_ADMIN_CONSOLE_DIR / "tests" / "data" / "test-db-dump"
 
 
 def ignore_socket_files(directory, files):
@@ -139,6 +148,37 @@ def check_any_rows_in_table(schema: str, table_name: str, db_user: str, db_passw
         return False
 
 
+def generate_request_headers(test_env: dict, user_id: int = 1129053, tapir_session_id: int = 0) -> Dict[str, str]:
+    jwt_secret = test_env['JWT_SECRET']
+    now_epoch = datetime_to_epoch(None, datetime.now())
+
+    claims_data = ArxivUserClaimsModel(
+        sub = str(user_id),
+        exp = now_epoch + 360000,  # Expiration
+        iat = now_epoch,
+        roles = ["Public user"],
+        email_verified = True,
+        email = "no-reply@example.com",
+
+        acc = "magic-access", # Access token
+        idt = "", # ID token
+        sid = "kc-session-id",
+
+        first_name = "Test",
+        last_name = "User",
+        username = "cookie_monster",
+        client_ipv4 = "127.0.0.1",
+        ts_id = tapir_session_id)
+
+    api_token = ArxivUserClaims(claims_data).encode_jwt_token(jwt_secret)
+
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    return headers
+
+
 @pytest.fixture(scope="module")
 def test_env() -> Dict[str, Optional[str]]:
     if not ADMIN_API_TEST_DIR.joinpath(dotenv_filename).exists():
@@ -218,7 +258,7 @@ def admin_api_client(test_env, docker_compose):
 
 
 @pytest.fixture(scope="module")
-def admin_api_db_only_client(test_env: Dict, docker_compose_db_only):
+def admin_api_db_only_client(test_env: Dict, docker_compose_db_only) -> Generator[TestClient, None, None]:
     """Start Admin API with database-only setup (faster for isolated tests)"""
     # Make sure there is no keycloak secret
     test_env["KEYCLOAK_ADMIN_SECRET"] = "<NOT-SET>"
@@ -330,6 +370,7 @@ def docker_compose_db_only(test_env):
     docker_env = os.environ.copy()
     docker_env["UID"] = str(os.getuid())
     docker_env["GID"] = str(os.getgid())
+    docker_env["TEST_DB_DUMP_DIR"] = TEST_DB_DUMP_DIR.as_posix()
 
     try:
         container_name = "admin-api-arxiv-test-db"

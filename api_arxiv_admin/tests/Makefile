@@ -7,8 +7,7 @@ export $(shell sed 's/=.*//' test-env)
 ARXIV_BASE_DIR ?= $(HOME)/arxiv/arxiv-base
 GID := $(shell id -g)
 UID := $(shell id -u)
-
-
+TEST_DB_DUMP_DIR ?= $(abspath $(CURDIR)/../../tests/data/test-db-dump)
 
 .PHONY: dump 
 
@@ -55,6 +54,7 @@ temp-test-env:
 	cp test-env temp-test-env
 	echo "UID=${UID}" >> temp-test-env
 	echo "GID=${GID}" >> temp-test-env
+	echo "TEST_DB_DUMP_DIR=${TEST_DB_DUMP_DIR}" >> temp-test-env
 	cp temp-test-env .env
 
 up: temp-test-env
@@ -74,6 +74,7 @@ temp-dbo-test-env:
 	cp test-env temp-dbo-test-env
 	echo "UID=${UID}" >> temp-dbo-test-env
 	echo "GID=${GID}" >> temp-dbo-test-env
+	echo "TEST_DB_DUMP_DIR=${TEST_DB_DUMP_DIR}" >> temp-dbo-test-env
 	cp temp-dbo-test-env .env
 
 dbo-up: temp-dbo-test-env
@@ -90,7 +91,7 @@ dbo-down:
 #-# clean:
 #-# 
 clean:
-	@echo "?"
+	rm -fr mysql mysql-data mysql-data-snapshot
 
 #-#
 #-# sh:

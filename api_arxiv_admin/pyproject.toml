@@ -46,6 +46,7 @@ openapi-generator-cli = "^7.16.0"
 # ]
 # ignore_missing_imports = true
 types-cachetools = "^6.2.0.20251022"
+pytest-cov = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core"]
