@@ -1,7 +1,6 @@
 """arXiv publci user routes."""
 from __future__ import annotations
 from functools import reduce
-from http.client import HTTPException
 from typing import Optional
 
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -26,6 +25,7 @@ class PublicUserModel(BaseModel):
 
     class Config:
         from_attributes = True
+        extra = "allow"
 
     id: int
     flag_is_mod: Optional[bool]

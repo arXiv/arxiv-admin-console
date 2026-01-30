@@ -1,12 +1,10 @@
 """arXiv paper display routes."""
-from arxiv.db import Base
-from arxiv.base import logging
-from arxiv.db.models import Metadata, Document, Submission
+from typing import Optional, Callable
 from sqlalchemy.orm import Session
-
+from arxiv.db.models import Base, Metadata, Document, Submission
 from .submission_categories_biz import update_submissions_categories
 
-logger = logging.getLogger(__name__)
+TransformFn = Callable[[Session, "Base", str, "Base", str | None], bool]
 
 def xfer_column_value(_session: Session, src: Base, column: str, dest: Base, dest_column: str | None = None):
     value = getattr(src, column)
@@ -23,6 +21,8 @@ def verify_column_values(_session: Session, src: Base, column: str, dest: Base, 
     value = getattr(src, column)
     dest_value = getattr(dest, dest_column)
     if dest_value != value:
+        import logging
+        logger = logging.getLogger(__name__)
         logger.warning(f"{src.__class__} {column} {value!r} != {dest.__class__} {dest_column} {dest_value!r}")
     return False
 
@@ -35,47 +35,48 @@ def md_to_sub_cats(session: Session, src: Base, column: str, dest: Base, dest_co
     return update_submissions_categories(session, cats, dest)
 
 
-metadata_xfer_map = {
+metadata_xfer_map: dict[str, dict[str, dict[str, tuple[TransformFn, str | None]]]] = {
     "abs_categories": {
-        Document: {"transform": (md_to_sub_cats, None)},
+        "document": {"transform": (md_to_sub_cats, None)},
     },
     "authors": {
-        Document: {"transform": (xfer_column_value, None)},
-        Metadata: {"transform": (xfer_column_value, None)},
+        "document": {"transform": (xfer_column_value, None)},
+        "metadata": {"transform": (xfer_column_value, None)},
     },
     "document_id": {
-        Document: {"transform": (verify_column_values, None)},
-        Metadata: {"transform": (verify_column_values, None)},
+        "document": {"transform": (verify_column_values, None)},
+        "metadata": {"transform": (verify_column_values, None)},
     },
     "paper_id": {
-        Document: {"transform": (verify_column_values, None)},
-        Metadata: {"transform": (verify_column_values, None)},
+        "document": {"transform": (verify_column_values, None)},
+        "metadata": {"transform": (verify_column_values, None)},
     },
     "submitter_email": {
-        Document: {"transform": (xfer_column_value, None)},
-        Metadata: {"transform": (xfer_column_value, None)},
+        "document": {"transform": (xfer_column_value, None)},
+        "metadata": {"transform": (xfer_column_value, None)},
     },
     "submitter_id": {
-        Document: {"transform": (xfer_column_value, None)},
-        Metadata: {"transform": (xfer_column_value, None)},
+        "document": {"transform": (xfer_column_value, None)},
+        "metadata": {"transform": (xfer_column_value, None)},
     },
     "title": {
-        Document: {"transform": (xfer_column_value, None)},
-        Metadata: {"transform": (xfer_column_value, None)},
+        "document": {"transform": (xfer_column_value, None)},
+        "metadata": {"transform": (xfer_column_value, None)},
     },
 }
 
 
 def propagate_metadata_to_document(session: Session, md: Metadata, column_name: str, doc: Document) -> bool:
-    specs = metadata_xfer_map.get(column_name)
+
+    specs: Optional[dict[str, dict[str, tuple[TransformFn, str | None]]]] = metadata_xfer_map.get(column_name)
     if specs is None:
         return False
 
-    doc_spec = specs.get(Document)
+    doc_spec: Optional[dict[str, tuple[TransformFn, str | None]]] = specs.get("document")
     if doc_spec is None:
         return False
 
-    transform, dest_column = doc_spec.get("transform")
+    transform, dest_column = doc_spec.get("transform", (None, None))
     if transform is not None:
         return transform(session, md, column_name, doc, dest_column)
     return False

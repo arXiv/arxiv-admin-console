@@ -40,8 +40,8 @@ async def list_documents_in_category(
         response: Response,
         _sort: Optional[str] = Query("document_id,archive,subject_class", description="keys"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         document_id: Optional[int] = Query(None),
         archive: Optional[str] = Query(None),
         subject_class: Optional[str] = Query(None),
@@ -56,7 +56,9 @@ async def list_documents_in_category(
         result = []
         for combind_id in id:
             fragments = combind_id.split("+")
-            document_id = fragments[0]
+            if len(fragments) != 3:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID")
+            document_id = int(fragments[0])
             archive = fragments[1] 
             subject_class = fragments[2]
             record = DocInCategoryWithId.base_query(db).filter(and_(
@@ -115,8 +117,8 @@ async def get_documents_in_category(
         response: Response,
         _sort: Optional[str] = Query("document_id,archive,subject_class", description="keys"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: str = Query("", description="In cat ID"),
         db: Session = Depends(get_db)
     ) -> Optional[DocInCategoryWithId]:

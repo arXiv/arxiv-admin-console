@@ -172,3 +172,6 @@
     src/admin/code/update-head.php.m4:     $auth->conn->query("UPDATE $table SET $column='$code_value' WHERE $key_column=$tapir_id");
     src/admin/code/update-head.php.m4:     $auth->conn->query("UPDATE $table SET $column=IF($column='$off_code','$on_code','$off_code') WHERE $key_column=$tapir_id");
     src/admin/code/update-head.php.m4:   $auth->conn->query($sql);
+
+
+pytest --cov=what-pkg-to-track-coverage test-dir

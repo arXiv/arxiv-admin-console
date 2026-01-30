@@ -42,8 +42,8 @@ async def list_licenses(
         response: Response,
         _sort: Optional[str] = Query("sequence", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of licenses"),
         active: Optional[bool] = Query(None, description="Active licenses"),
         session: Session = Depends(get_db)
