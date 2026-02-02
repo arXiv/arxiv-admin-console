@@ -21,7 +21,7 @@ def test_get_public_user_by_id(admin_api_db_only_client: TestClient):
     data = response.json()
     assert data["id"] == 1
     assert data["first_name"] == "Jacques"
-    assert data["last_name"] == "Houle"
+    assert data["last_name"] == "Watt"
 
 def test_get_public_user_not_found(admin_api_db_only_client: TestClient):
     response = admin_api_db_only_client.get("/v1/public-users/9999999")
@@ -34,11 +34,11 @@ def test_get_public_user_with_query_user_id(admin_api_db_only_client: TestClient
     assert data["id"] == 1
 
 def test_get_public_user_with_query_email(admin_api_db_only_client: TestClient, api_headers):
-    response = admin_api_db_only_client.get("/v1/public-users/?email=jhoule@example.com", headers=api_headers)
+    response = admin_api_db_only_client.get("/v1/public-users/?email=jjw1133@cornell.edu", headers=api_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == 1
-    assert data["email"] == "jhoule@example.com"
+    assert data["email"] == "jjw1133@cornell.edu"
 
 def test_get_public_user_with_query_username(admin_api_db_only_client: TestClient, api_headers: dict):
     response = admin_api_db_only_client.get("/v1/public-users/?username=cookie_monster", headers=api_headers)
