@@ -34,6 +34,8 @@ services:
       timeout: 2s
       retries: 15
       start_period: 30s
+    command:
+      - --log-error-suppression-list=MY-013360
 
   myloader:
     image: mydumper/mydumper:latest

@@ -291,9 +291,8 @@ def admin_api_headers(test_env):
     }
     return headers
 
-
 @pytest.fixture(scope="module")
-def admin_api_admin_user_headers(test_env):
+def cookie_monster_claims(test_env):
     user_info = ArxivUserClaimsModel(
         sub = "1129053",
         exp = 253402300799,
@@ -307,8 +306,12 @@ def admin_api_admin_user_headers(test_env):
         last_name = "Monster",
         username = "cmonster",
     )
-    claims = ArxivUserClaims(user_info)
-    token = claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
+    return ArxivUserClaims(user_info)
+
+
+@pytest.fixture(scope="module")
+def admin_api_admin_user_headers(test_env, cookie_monster_claims):
+    token = cookie_monster_claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -319,7 +322,7 @@ def admin_api_admin_user_headers(test_env):
 @pytest.fixture(scope="module")
 def user0001_headers(test_env, admin_api_client, admin_api_headers):
     response1 = admin_api_client.get("/account/identifier/?username=user0001", headers=admin_api_headers)
-    first_user: AccountIdentifierModel = AccountIdentifierModel.model_validate(response1.json())
+    first_user: AccountIdentifierModel = AccountIdentifierModel.model_validate(response1.json()) # type: ignore
 
     user_claims = ArxivUserClaims(
         ArxivUserClaimsModel(
