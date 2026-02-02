@@ -204,10 +204,13 @@ def create_app(*args, **kwargs) -> FastAPI:
         COOKIE_ENV_NAMES.keycloak_refresh_token_env: KEYCLOAK_REFRESH_TOKEN_NAME,
     }
 
-    # GOOGLE_APPLICATION_CREDENTIALS is needed
-    gcp_client: gcs.Client = gcs.Client(project=GCP_PROJECT)
-    document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
-    document_storage = GCPStorage(gcp_client, document_bucket_name)
+    # GOOGLE_APPLICATION_CREDENTIALS is needed (skip in testing mode)
+    if TESTING:
+        document_storage = None
+    else:
+        gcp_client: gcs.Client = gcs.Client(project=GCP_PROJECT)
+        document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
+        document_storage = GCPStorage(gcp_client, document_bucket_name)
 
     if TESTING:
         extra_options["TESTING"] = TESTING
