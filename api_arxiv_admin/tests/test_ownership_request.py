@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Any, Optional
+
+from pydantic import TypeAdapter
 
 import pytest
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -141,20 +143,21 @@ def test_create_ownership_request(reset_test_database,
         )).all()
 
         audited_doc_ids = []
+        audit: TapirAdminAudit
         for audit in admin_audits:
-            if audit.action == "add-paper-owner-2":
+            if audit.action == "add-paper-owner-2" and audit.remote_host == "localhost":
                 audited_doc_ids.append(int(audit.data))
-        assert len(audited_doc_ids) == len(selected_documents)
+        assert len(audited_doc_ids) == len(doc_ids)
 
         # check the paper ownership by the user
 
         response31 = admin_api_db_only_client.get(f"/v1/paper_owners?user_id={_TestParams.USER_ID}",
                                                   headers=user_headers)
-        result31 = response31.json()
+        result31 = TypeAdapter(list[dict[str, Any]]).validate_python(response31.json())
         assert len(result31) > 0
 
         # fixme:
-        expected_result = [  # type: ignore
+        expected_result: list[dict[str, Any]] = [  # type: ignore
             {'added_by': 1129053, 'document': None, 'document_id': 2664960, 'flag_author': True, 'flag_auto': False,
              'id': 'user_303688-doc_2664960', 'remote_addr': 'testclient', 'remote_host': 'localhost',
              'tracking_cookie': '', 'user_id': 303688, 'valid': True},
