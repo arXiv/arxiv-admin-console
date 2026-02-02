@@ -59,6 +59,7 @@ jobs:
           cp test-env temp-dbo-test-env
           echo "UID=$(id -u)" >> temp-dbo-test-env
           echo "GID=$(id -g)" >> temp-dbo-test-env
+          echo "TEST_DB_DUMP_DIR=$GITHUB_WORKSPACE/tests/data/test-db-dump" >> temp-dbo-test-env
           cp temp-dbo-test-env .env
           mkdir -p mysql-data
 
