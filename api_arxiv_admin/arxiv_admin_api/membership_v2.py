@@ -5,7 +5,7 @@ import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import MembershipInstitutions, MembershipUsers
@@ -34,8 +34,7 @@ class V2MembershipInstitutionModel(BaseModel):
     comment: Optional[str] = None
     users: Optional[List[int]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_query(session: Session) -> sqlalchemy.orm.Query:

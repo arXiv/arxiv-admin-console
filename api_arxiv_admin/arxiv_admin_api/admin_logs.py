@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, R
 
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import AdminLog, Submission, TapirAdminAudit
 
@@ -23,8 +23,7 @@ router = APIRouter(prefix="/admin_logs", dependencies=[Depends(is_any_user)])
 
 
 class AdminLogModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     logtime: Optional[str] = None
@@ -140,8 +139,8 @@ async def get_admin_log(id: int,
 
 
 class AdminUserComment(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: str
     comment: str
 

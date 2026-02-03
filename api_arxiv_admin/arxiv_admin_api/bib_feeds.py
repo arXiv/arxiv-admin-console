@@ -16,7 +16,7 @@ from arxiv.base import logging
 from arxiv.db.models import BibFeed, BibUpdate, Document
 from arxiv_bizlogic.fastapi_helpers import get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status as http_status, Body, Query, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from . import get_db, is_admin_user
@@ -44,9 +44,7 @@ class BibFeedModel(BaseModel):
     prune_regex: Optional[str] = Field(None, description="Regex pattern for pruning")
     enabled: Optional[bool] = Field(True, description="Feed enabled flag")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class BibFeedCreateModel(BaseModel):
@@ -93,9 +91,7 @@ class BibUpdateModel(BaseModel):
     journal_ref: Optional[str] = Field(None, description="Journal reference")
     doi: Optional[str] = Field(None, description="DOI")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class BibUpdateCreateModel(BaseModel):

@@ -198,6 +198,7 @@ def docker_compose(test_env):
     docker_env = os.environ.copy()
     docker_env["UID"] = str(os.getuid())
     docker_env["GID"] = str(os.getgid())
+    docker_env["TEST_DB_DUMP_DIR"] = TEST_DB_DUMP_DIR.as_posix()
 
     try:
         subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", DC_DBO_YAML.as_posix(), "down", "--remove-orphans"],
@@ -356,7 +357,7 @@ def docker_compose_db_only(test_env):
     env_arg = "--env-file=" + dotenv_filename
     working_dir = ADMIN_API_TEST_DIR.as_posix()
 
-    LOADER_CONTAINER_NAME = "admin-api-db-myloader"
+    LOADER_CONTAINER_NAME = "dbot-admin-api-db-myloader"
 
     # kill off the other docker-compose instance
     try:
@@ -376,12 +377,12 @@ def docker_compose_db_only(test_env):
     docker_env["TEST_DB_DUMP_DIR"] = TEST_DB_DUMP_DIR.as_posix()
 
     try:
-        container_name = "admin-api-arxiv-test-db"
+        DBOT_DB_CONTAINER_NAME = "dbot-admin-api-arxiv-test-db"
         needs_data_load = False
 
         # Check if container exists and is running
         result = subprocess.run(
-            ["docker", "inspect", "-f", "{{.State.Running}}", container_name],
+            ["docker", "inspect", "-f", "{{.State.Running}}", DBOT_DB_CONTAINER_NAME],
             capture_output=True,
             text=True,
             check=False,
@@ -452,7 +453,7 @@ def docker_compose_db_only(test_env):
         logging.info("Waiting for MySQL to be ready...")
         for _ in range(30):
             result = subprocess.run(
-                ["docker", "exec", container_name, "mysqladmin",
+                ["docker", "exec", DBOT_DB_CONTAINER_NAME, "mysqladmin",
                  "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
                 capture_output=True,
                 check=False
@@ -476,7 +477,7 @@ def docker_compose_db_only(test_env):
                 # Flush tables to ensure data consistency
                 logging.info("Flushing tables for snapshot...")
                 subprocess.run(
-                    ["docker", "exec", container_name, "mysql",
+                    ["docker", "exec", DBOT_DB_CONTAINER_NAME, "mysql",
                      "-uroot", "-proot_password", "-h", "127.0.0.1",
                      "-P", test_env["ARXIV_DB_PORT"],
                      "-e", "FLUSH TABLES;"],
@@ -487,7 +488,7 @@ def docker_compose_db_only(test_env):
                 # Stop the container to ensure clean snapshot
                 logging.info("Stopping container for snapshot...")
                 subprocess.run(
-                    ["docker", "stop", container_name],
+                    ["docker", "stop", DBOT_DB_CONTAINER_NAME],
                     check=True,
                     timeout=30
                 )
@@ -500,7 +501,7 @@ def docker_compose_db_only(test_env):
                 # Start the container again
                 logging.info("Starting container after snapshot...")
                 subprocess.run(
-                    ["docker", "start", container_name],
+                    ["docker", "start", DBOT_DB_CONTAINER_NAME],
                     check=True,
                     timeout=30
                 )
@@ -508,7 +509,7 @@ def docker_compose_db_only(test_env):
                 # Wait for MySQL to be ready again
                 for _ in range(30):
                     result = subprocess.run(
-                        ["docker", "exec", container_name, "mysqladmin",
+                        ["docker", "exec", DBOT_DB_CONTAINER_NAME, "mysqladmin",
                          "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
                         capture_output=True,
                         check=False

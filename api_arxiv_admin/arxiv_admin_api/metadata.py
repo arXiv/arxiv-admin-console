@@ -8,7 +8,7 @@ from arxiv.document.version import SOURCE_FORMAT
 from sqlalchemy import LargeBinary, cast
 
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime, date, timedelta, timezone
 # from .models import CrossControlModel
 import re
@@ -57,8 +57,7 @@ class MetadataModel(BaseModel):
     is_current: Optional[int] = None  # Mapped[Optional[int]] = mapped_column(Integer, server_default=FetchedValue())
     is_withdrawn: bool  # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(db: Session):

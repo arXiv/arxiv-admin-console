@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy import func, and_ # case, Select, distinct, exists, update,
 from sqlalchemy.orm import Session, Query as SAQuery
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 # from arxiv.db import transaction
 from arxiv.db.models import t_arXiv_in_category
@@ -22,8 +22,7 @@ router = APIRouter(prefix="/doc-in-category", tags=["document"])
 class DocInCategoryWithId(DocInCategoryModel):
     id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def base_query(cls, db: Session) -> SAQuery:

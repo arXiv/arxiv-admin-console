@@ -7,7 +7,7 @@ from arxiv_bizlogic.audit_event import AdminAuditActionEnum as TapirAdminActionE
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Query
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import re
 from arxiv.db.models import TapirAdminAudit
@@ -35,8 +35,7 @@ class TapirAdminAuditModel(BaseModel):
     data: str
     comment: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(session: Session):

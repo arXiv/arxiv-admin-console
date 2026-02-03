@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response #
 from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import TapirSession, TapirSessionsAudit
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session, Query as SAQuery
 from sqlalchemy import case #, text
 
@@ -26,8 +26,7 @@ class TapirSessionModel(BaseModel):
     remote_ip: Optional[str] = None
     remote_host: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def base_query(cls, db: Session) -> SAQuery:

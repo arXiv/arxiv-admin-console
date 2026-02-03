@@ -8,7 +8,7 @@ import sqlalchemy.orm
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 
 from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 # from arxiv.db import transaction
@@ -22,8 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(is_any_user)], prefix='/ownership_requests_audit')
 
 class OwnershipRequestsAuditModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int  # request_id
     session_id: int # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())

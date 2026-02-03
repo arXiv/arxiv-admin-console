@@ -2,7 +2,7 @@
 
 from typing import Optional, List, Any
 from fastapi import APIRouter, Query, HTTPException, status, Depends, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from sqlalchemy.orm import Session
 from arxiv.db.models import EndorsementRequestsAudit
@@ -13,8 +13,7 @@ from . import is_admin_user, get_db
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsement_requests_audit")
 
 class EndorsementRequestsAuditModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     session_id: Optional[int]

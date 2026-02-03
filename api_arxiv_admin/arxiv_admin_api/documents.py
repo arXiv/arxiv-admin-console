@@ -13,7 +13,7 @@ from arxiv.base import logging
 from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic, TapirUser
 from sqlalchemy import func, and_, desc, cast, LargeBinary, Row, text
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime, date, timedelta
 # from .models import CrossControlModel
 import re
@@ -101,8 +101,7 @@ class DocumentModel(BaseModel):
 
     author_ids: Optional[List[int]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(db: Session):

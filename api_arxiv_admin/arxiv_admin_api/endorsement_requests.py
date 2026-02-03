@@ -15,7 +15,7 @@ from google.cloud import storage
 from pathlib import Path
 from google.api_core.exceptions import Forbidden as GCPForbidden
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, TapirUser, Category
 
@@ -39,8 +39,7 @@ endorsers_router = APIRouter(prefix="/qualified_endorsers")
 
 
 class EndorsementRequestModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: Optional[int] = None
     endorsee_id: Optional[int] = None

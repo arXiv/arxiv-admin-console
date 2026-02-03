@@ -10,7 +10,7 @@ from fastapi import APIRouter, Query, HTTPException, status, Depends, Request
 from sqlalchemy import select, case, exists, LargeBinary, cast
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demographic, TapirCountry,
                              t_arXiv_black_email, t_arXiv_white_email, Category)
@@ -23,9 +23,8 @@ router = APIRouter(prefix="/public-users")
 
 class PublicUserModel(BaseModel):
 
-    class Config:
-        from_attributes = True
-        extra = "allow"
+    model_config = ConfigDict(from_attributes=True, extra="allow")
+
 
     id: int
     flag_is_mod: Optional[bool]

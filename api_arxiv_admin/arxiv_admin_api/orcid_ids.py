@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 
 from sqlalchemy.orm import Session, Query as OrmQuery
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import OrcidIds
@@ -26,8 +26,7 @@ class OrcidIDModel(BaseModel):
     authenticated: Optional[bool]
     updated: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_query(session: Session) -> OrmQuery:

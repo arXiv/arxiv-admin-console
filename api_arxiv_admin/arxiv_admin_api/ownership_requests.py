@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.orm import Session, Query as OrmQuery
 from sqlalchemy import insert, Row, and_
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import OwnershipRequest, t_arXiv_ownership_requests_papers, PaperOwner, OwnershipRequestsAudit, \
@@ -42,8 +42,7 @@ class WorkflowStatus(StrEnum):
 
 
 class OwnershipRequestModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int  # request_id
     user_id: int
@@ -143,16 +142,15 @@ class OwnershipRequestSubmit(BaseModel):
         None, description="Optional list of paper IDs associated with the ownership request."
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "user_id": 1129053,
-                "workflow_status": "accepted",
-                "document_ids": [2123367, 2123675, 2125897, 2130529, 2134610, 2612674, 2618378],
-                "authored_documents": [2125897, 2123675, 2130529],
-                "paper_ids": ["2208.04373", "2208.04681", "2208.06903", "2208.11535", "2209.00613"]
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "user_id": 1129053,
+            "workflow_status": "accepted",
+            "document_ids": [2123367, 2123675, 2125897, 2130529, 2134610, 2612674, 2618378],
+            "authored_documents": [2125897, 2123675, 2130529],
+            "paper_ids": ["2208.04373", "2208.04681", "2208.06903", "2208.11535", "2209.00613"]
         }
+    })
 
 
 class OwnershipRequestNavi(BaseModel):

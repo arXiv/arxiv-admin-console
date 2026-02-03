@@ -1,7 +1,7 @@
 services:
   cleanup-db:
     image: alpine:latest
-    container_name: admin-api-db-cleanup
+    container_name: dbot-admin-api-db-cleanup
     environment:
       HOST_UID: ${UID}
       HOST_GID: ${GID}
@@ -11,7 +11,7 @@ services:
 
   arxiv-test-db:
     image: mysql:8.4.5
-    container_name: admin-api-arxiv-test-db
+    container_name: dbot-admin-api-arxiv-test-db
     user: "${UID}:${GID}"
     ports:
       - "${ARXIV_DB_PORT}:${ARXIV_DB_PORT}"  # Host port:Container port
@@ -39,7 +39,7 @@ services:
 
   myloader:
     image: mydumper/mydumper:latest
-    container_name: admin-api-db-myloader
+    container_name: dbot-admin-api-db-myloader
     user: "${UID}:${GID}"
     volumes:
       - ${TEST_DB_DUMP_DIR}:/myloader-data:ro

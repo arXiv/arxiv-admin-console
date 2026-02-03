@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, 
 from sqlalchemy import func, and_
 from sqlalchemy.orm import Session, Query as OrmQuery
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import Category, ArchiveGroup
 
@@ -49,8 +49,7 @@ class CategoryModel(BaseModel):
     papers_to_endorse: int
     endorsement_domain: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def base_query(cls, db: Session) -> OrmQuery:
@@ -170,6 +169,10 @@ async def update_category(
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> CategoryModel:
+
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
     body = await request.json()
     [archive, subject_class] = id.split(".")
     item = session.query(Category).filter(
@@ -211,20 +214,46 @@ async def update_category(
 @router.post('/')
 async def create_category(
         request: Request,
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> CategoryModel:
+
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
     body = await request.json()
 
     item = Category(**body)
     session.add(item)
-    session.commit()
     session.refresh(item)
+
+    admin_audit(
+        session,
+        AdminAudit_Category(
+            current_user.user_id,
+            None,
+            current_user.tapir_session_id,
+            data={"create": body},
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+        )
+    )
+
+    session.commit()
     return CategoryModel.model_validate(item)
 
 
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
         id: str,
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> Response:
+
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     [archive, subject_class] = id.split(".")
     item = session.query(Category).filter(

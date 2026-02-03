@@ -7,7 +7,7 @@ from typing import Optional, List, Annotated
 
 # from pydantic.types import conint
 from sqlalchemy.orm import Session, Query as OrmQuery
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import MemberInstitution, MemberInstitutionContact, MemberInstitutionIP
@@ -27,8 +27,7 @@ class MemberInstitutionIPModel(BaseModel):
     start: Annotated[int, Field(strict=True, ge=0)]
     end: Annotated[int, Field(strict=True, ge=0)]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_query(session: Session) -> OrmQuery:
@@ -60,8 +59,7 @@ class MemberInstitutionModel(BaseModel):
 
     ip_ranges: Optional[List[MemberInstitutionIPModel]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_query(session: Session) -> OrmQuery:

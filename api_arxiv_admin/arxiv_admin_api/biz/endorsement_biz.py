@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, aliased, Query
 from arxiv.db.models import (Endorsement, Category, EndorsementDomain, TapirNickname, QuestionableCategory,)
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from ..endorsement_requests import EndorsementRequestModel
 from ..dao.endorsement_model import EndorsementType, EndorsementCodeModel, EndorsementOutcomeModel, EndorsementModel, \
     EndorserCapabilityType
@@ -24,8 +24,7 @@ class EndorsementNegativeAction(str, Enum):
 
 
 class EndorsementWithEndorser(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     endorsement_id: int  # Mapped[intpk]
     endorser_id: Optional[int]  # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)
@@ -60,8 +59,8 @@ class EndorsementWithEndorser(BaseModel):
 
 
 class PaperProps(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     document_id: int
     flag_author: bool
     title: str

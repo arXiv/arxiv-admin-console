@@ -4,7 +4,7 @@ from typing import List
 
 from sqlalchemy import String, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class EndorsingBase(DeclarativeBase):
@@ -64,13 +64,13 @@ class EndorsementCandidate(BaseModel):
     category: str
     document_count: int
     latest_document_id: int
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EndorsementCandidates(BaseModel):
     """Model for endorsement candidate data."""
     category: str
     candidates: List[EndorsementCandidate]
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)

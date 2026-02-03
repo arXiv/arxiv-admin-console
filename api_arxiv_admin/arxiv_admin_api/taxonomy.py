@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/taxonomy", tags=["Taxonomy"])
 
-
-
 shadow_groups : Dict[str, Group] = {
     "grp_q-stat": Group(
         id="grp_q-stat",

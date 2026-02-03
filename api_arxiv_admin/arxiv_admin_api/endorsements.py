@@ -8,7 +8,7 @@ from arxiv_bizlogic.audit_event import AdminAudit_GotNegativeEndorsement, admin_
     AdminAudit_SetPointValue
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, get_tapir_tracking_cookie
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import and_
 
 # from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias

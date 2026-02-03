@@ -13,7 +13,7 @@ from arxiv_bizlogic.fastapi_helpers import get_current_user, get_authn, get_clie
 from fastapi import APIRouter, Query, status, Depends, Request
 from fastapi.responses import Response
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from sqlalchemy import select, distinct, and_, inspect, cast, LargeBinary, Row, or_, func, literal
 from sqlalchemy.orm import Session, aliased
@@ -746,11 +746,11 @@ def delete_user(response: Response,
 
 
 class UserDocumentSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     submitted_count: int
     owns_count: int
     authored_count: int
-    class Config:
-        from_attributes = True
 
 
 @router.get("/{user_id:int}/document-summary")
@@ -860,8 +860,7 @@ def get_user_can_endorse_for(
 
 
 class UserByUsernameModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     user_id: int
@@ -1092,12 +1091,12 @@ async def list_users_by_username(
 
 
 class UserActivitySummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     tapir_sessions_count: int
     admin_log_count: int
     # email_history_count: int
     # it is in AAA - I could borrow the code but not worth it
-    class Config:
-        from_attributes = True
 
 
 @router.get("/{user_id:int}/activity-summary")

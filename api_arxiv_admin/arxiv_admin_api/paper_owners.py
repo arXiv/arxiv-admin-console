@@ -22,7 +22,7 @@ from sqlalchemy import literal_column, func, and_  # , update, case, Select, dis
 
 from sqlalchemy.orm import Session  # , joinedload
 
-from pydantic import BaseModel  # , validator
+from pydantic import BaseModel, ConfigDict  # , validator
 from arxiv.base import logging
 from arxiv.db.models import PaperOwner, PaperPw, Document, DocumentCategory
 
@@ -39,8 +39,7 @@ router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/paper_owners")
 
 
 class OwnershipModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     document_id: int
@@ -395,8 +394,7 @@ class PaperPwModel(BaseModel):
     id: int
     password_enc: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(session: Session):

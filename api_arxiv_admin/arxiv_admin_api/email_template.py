@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from sqlalchemy import cast, LargeBinary, update, func
 from sqlalchemy.orm import Session, Query as OrmQuery
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from enum import IntEnum
 
 from arxiv.base import logging
@@ -34,8 +34,7 @@ class WorkflowStatus(IntEnum):
     REJECTED = 3
 
 class EmailTemplateModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     short_name: str

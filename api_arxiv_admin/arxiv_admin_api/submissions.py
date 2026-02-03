@@ -12,7 +12,7 @@ from arxiv_bizlogic.latex_helpers import convert_latex_accents
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status as http_status
 from google.protobuf.internal.wire_format import INT32_MAX
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from sqlalchemy import text, cast, LargeBinary, Row, and_  # select, update, func, case, Select, distinct, exists, and_
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
@@ -174,8 +174,7 @@ class SubmissionModel(BaseModel):
     metadata_queued_time: Optional[datetime] = None
     preflight: Optional[bool] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(db: Session):

@@ -7,7 +7,7 @@ from io import StringIO
 
 from sqlalchemy import select, delete, insert
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import t_arXiv_black_email, t_arXiv_white_email, t_arXiv_block_email
@@ -21,8 +21,8 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/email_pattern
 
 
 class EmailPatternModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     purpose: str
     pass
@@ -128,8 +128,8 @@ async def create_email_pattern(
 
 
 class EmailPatternListModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     ids: List[str]
 
 

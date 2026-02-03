@@ -8,7 +8,7 @@ from arxiv.base import logging
 from arxiv.db.models import Demographic, OrcidIds, AuthorIds
 from sqlalchemy import LargeBinary, cast
 from sqlalchemy.orm import Session, Query as OrmQuery
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import get_db, is_any_user, gate_admin_user, get_current_user
@@ -48,8 +48,7 @@ class DemographicModel(BaseModel):
     orcid: Optional[str] = None
     author_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(db: Session) -> OrmQuery:

@@ -3,7 +3,7 @@
 from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException, status, Query, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 
 logger = logging.getLogger(__name__)

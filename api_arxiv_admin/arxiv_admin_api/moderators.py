@@ -11,7 +11,7 @@ from sqlalchemy import insert, func, and_, select # case, Select, distinct, exis
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session, joinedload, Query as SAQuery
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from arxiv.base import logging
 # from arxiv.db import transaction
 from arxiv.db.models import t_arXiv_moderators, TapirUser
@@ -89,8 +89,7 @@ class ModeratorModel(BaseModel):
     no_reply_to: bool
     daily_update: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def base_query(cls, db: Session) -> SAQuery:

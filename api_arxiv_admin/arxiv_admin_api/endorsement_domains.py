@@ -7,7 +7,7 @@ from typing import Optional, List
 
 from sqlalchemy.orm import Session, Query as OrmQuery
 from sqlalchemy.exc import IntegrityError
-from pydantic import BaseModel, field_validator, field_serializer
+from pydantic import BaseModel, field_validator, field_serializer, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import EndorsementDomain
@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsement_domains")
 
 class EndorsementDomainModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str #  endorsement_domain: str # mapped_column(String(32), primary_key=True, server_default=FetchedValue())
     endorse_all: bool # YesNoEnum # Mapped[Literal["y", "n"]] = mapped_column(Enum("y", "n"), nullable=False, server_default=FetchedValue())
