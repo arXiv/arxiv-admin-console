@@ -53,6 +53,7 @@ types-python-dateutil = "^2.9.0.20260124"
 filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20",
 ]
+norecursedirs = ["mysql-data", "mysql-data-snapshot"]
 
 [build-system]
 requires = ["poetry-core"]

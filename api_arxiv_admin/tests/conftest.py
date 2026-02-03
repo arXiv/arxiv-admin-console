@@ -186,13 +186,34 @@ def test_env() -> Dict[str, Optional[str]]:
     return dotenv_values(ADMIN_API_TEST_DIR.joinpath(dotenv_filename).as_posix())
 
 
-@pytest.fixture(scope="module")
-def docker_compose(test_env):
-    logging.info("Setting up docker-compose")
-    if not DC_YAML.exists():
-        raise FileNotFoundError(DC_YAML.as_posix())
+def _setup_docker_compose(test_env, compose_yaml: Path, other_compose_yaml: Path,
+                          db_container_name: str, loader_container_name: str):
+    """
+    Shared implementation for docker-compose fixtures.
+
+    Args:
+        test_env: Test environment configuration
+        compose_yaml: Path to the docker-compose YAML file to use
+        other_compose_yaml: Path to the other docker-compose YAML to shut down
+        db_container_name: Name of the database container
+        loader_container_name: Name of the myloader container
+    """
+    logging.info("Setting up database only")
+    if not compose_yaml.exists():
+        raise FileNotFoundError(compose_yaml.as_posix())
     env_arg = "--env-file=" + dotenv_filename
     working_dir = ADMIN_API_TEST_DIR.as_posix()
+
+    # kill off the other docker-compose instance
+    try:
+        subprocess.run(
+            ["docker", "compose", "-f", other_compose_yaml.as_posix(), "down"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+    except Exception:
+        pass
 
     # Set UID/GID for docker-compose to run containers as current user
     docker_env = os.environ.copy()
@@ -201,32 +222,170 @@ def docker_compose(test_env):
     docker_env["TEST_DB_DUMP_DIR"] = TEST_DB_DUMP_DIR.as_posix()
 
     try:
-        subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", DC_DBO_YAML.as_posix(), "down", "--remove-orphans"],
-                       check=False, cwd=working_dir, env=docker_env)
-    except Exception as e:
-        pass
+        needs_data_load = False
 
-    try:
-        logging.info("Stopping docker-compose...")
-        subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", DC_YAML.as_posix(), "down", "--remove-orphans"], check=False, cwd=working_dir, env=docker_env)
-        logging.info("Starting docker-compose...")
-        subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", DC_YAML.as_posix(), "up", "-d"], check=True, cwd=working_dir, env=docker_env)
-        
-        # Loop until at least one row is present
-        for _ in range(100):
-            sleep(1)
-            if check_any_rows_in_table("arXiv", "tapir_users", "arxiv", "arxiv_password", db_port=test_env["ARXIV_DB_PORT"], ssl=False):
-                logging.info("Database is ready.")
-                break
+        # Check if container exists and is running
+        result = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Running}}", db_container_name],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=docker_env
+        )
+
+        # Ensure mysql-data directory exists with proper ownership for bind mount
+        if not MYSQL_DATA_DIR.exists():
+            logging.info("Creating mysql-data directory...")
+            MYSQL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        if result.returncode != 0:
+            # Container doesn't exist, start docker-compose
+            logging.info("Container doesn't exist, starting docker-compose...")
+            args = ["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"]
+            logging.info(shlex.join(args))
+            result = subprocess.run(args, cwd=working_dir, env=docker_env, capture_output=True, text=True)
+            if result.returncode != 0:
+                logging.error(f"docker-compose failed: {result.stderr}")
+                raise RuntimeError(f"docker-compose failed: {result.stderr}")
+            needs_data_load = True
+        elif result.stdout.strip() == "true":
+            # Container is running
+            logging.info("Container already running")
         else:
-            assert False, "Failed to load "
+            # Container exists but is not running (stopped, created, etc.)
+            logging.info("Container exists but is not running, recreating...")
+            subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "down"],
+                           cwd=working_dir, env=docker_env)
+            result = subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"],
+                           cwd=working_dir, env=docker_env, capture_output=True, text=True)
+            if result.returncode != 0:
+                logging.error(f"docker-compose failed: {result.stderr}")
+                raise RuntimeError(f"docker-compose failed: {result.stderr}")
+            needs_data_load = True
 
-        yield None
+        # Wait for myloader container to complete (only if we just started docker-compose)
+        if needs_data_load:
+            logging.info("Waiting for myloader to complete...")
+            for _ in range(100):
+                result = subprocess.run(
+                    ["docker", "inspect", "-f", "{{.State.Status}}", loader_container_name],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                if result.returncode == 0 and "exited" in result.stdout:
+                    # Check if it exited successfully (exit code 0)
+                    exit_code_result = subprocess.run(
+                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", loader_container_name],
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+                    if exit_code_result.returncode == 0 and "0" in exit_code_result.stdout:
+                        logging.info("Myloader completed successfully")
+                        break
+                    else:
+                        logging.error(f"Myloader failed with exit code: {exit_code_result.stdout.strip()}")
+                        assert False, "Myloader failed to load data"
+                sleep(1)
+            else:
+                assert False, "Myloader timed out"
+        else:
+            logging.info("Skipping myloader wait (container already existed)")
+
+        # Wait for MySQL to be ready
+        logging.info("Waiting for MySQL to be ready...")
+        for _ in range(30):
+            result = subprocess.run(
+                ["docker", "exec", db_container_name, "mysqladmin",
+                 "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
+                capture_output=True,
+                check=False
+            )
+            if result.returncode == 0:
+                logging.info("MySQL is ready")
+                break
+            sleep(1)
+        else:
+            assert False, "MySQL failed to become ready"
+
+        # Check if snapshot exists on local disk
+        snapshot_exists = MYSQL_SNAPSHOT_DIR.exists()
+        logging.info(f"Snapshot exists: {snapshot_exists}")
+
+        # Create snapshot if it doesn't exist
+        if not snapshot_exists:
+            import shutil
+            logging.info("Creating database snapshot on local disk...")
+            try:
+                # Flush tables to ensure data consistency
+                logging.info("Flushing tables for snapshot...")
+                subprocess.run(
+                    ["docker", "exec", db_container_name, "mysql",
+                     "-uroot", "-proot_password", "-h", "127.0.0.1",
+                     "-P", test_env["ARXIV_DB_PORT"],
+                     "-e", "FLUSH TABLES;"],
+                    check=True,
+                    timeout=30
+                )
+
+                # Stop the container to ensure clean snapshot
+                logging.info("Stopping container for snapshot...")
+                subprocess.run(
+                    ["docker", "stop", db_container_name],
+                    check=True,
+                    timeout=30
+                )
+                sleep(1)
+
+                # Copy mysql-data to snapshot directory on local disk
+                logging.info(f"Copying {MYSQL_DATA_DIR} to {MYSQL_SNAPSHOT_DIR}...")
+                shutil.copytree(MYSQL_DATA_DIR, MYSQL_SNAPSHOT_DIR, ignore=ignore_socket_files)
+
+                # Start the container again
+                logging.info("Starting container after snapshot...")
+                subprocess.run(
+                    ["docker", "start", db_container_name],
+                    check=True,
+                    timeout=30
+                )
+
+                # Wait for MySQL to be ready again
+                for _ in range(30):
+                    result = subprocess.run(
+                        ["docker", "exec", db_container_name, "mysqladmin",
+                         "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
+                        capture_output=True,
+                        check=False
+                    )
+                    if result.returncode == 0:
+                        break
+                    sleep(1)
+
+                logging.info("Database snapshot created successfully")
+
+            except Exception as e:
+                logging.error(f"Failed to create snapshot: {str(e)}")
+                raise
+
+        yield db_container_name
     except Exception as e:
         logging.error(f"bad... {str(e)}")
+        raise
 
     finally:
-        logging.info("Leaving the docker-compose as is...")
+        logging.info("Keeping docker-compose running for subsequent tests...")
+
+
+@pytest.fixture(scope="module")
+def docker_compose(test_env):
+    yield from _setup_docker_compose(
+        test_env,
+        compose_yaml=DC_YAML,
+        other_compose_yaml=DC_DBO_YAML,
+        db_container_name="admin-api-arxiv-test-db",
+        loader_container_name="admin-api-db-myloader"
+    )
 
 
 
@@ -351,186 +510,13 @@ def user0001_headers(test_env, admin_api_client, admin_api_headers):
 
 @pytest.fixture(scope="module")
 def docker_compose_db_only(test_env):
-    logging.info("Setting up database only")
-    if not DC_DBO_YAML.exists():
-        raise FileNotFoundError(DC_DBO_YAML.as_posix())
-    env_arg = "--env-file=" + dotenv_filename
-    working_dir = ADMIN_API_TEST_DIR.as_posix()
-
-    LOADER_CONTAINER_NAME = "dbot-admin-api-db-myloader"
-
-    # kill off the other docker-compose instance
-    try:
-        result = subprocess.run(
-            ["docker", "compose", "-f", DC_YAML, "down"],
-            capture_output=True,
-            text=True,
-            check=False
-        )
-    except Exception as e:
-        pass
-
-    # Set UID/GID for docker-compose to run containers as current user
-    docker_env = os.environ.copy()
-    docker_env["UID"] = str(os.getuid())
-    docker_env["GID"] = str(os.getgid())
-    docker_env["TEST_DB_DUMP_DIR"] = TEST_DB_DUMP_DIR.as_posix()
-
-    try:
-        DBOT_DB_CONTAINER_NAME = "dbot-admin-api-arxiv-test-db"
-        needs_data_load = False
-
-        # Check if container exists and is running
-        result = subprocess.run(
-            ["docker", "inspect", "-f", "{{.State.Running}}", DBOT_DB_CONTAINER_NAME],
-            capture_output=True,
-            text=True,
-            check=False,
-            env = docker_env
-        )
-
-        # Ensure mysql-data directory exists with proper ownership for bind mount
-        if not MYSQL_DATA_DIR.exists():
-            logging.info("Creating mysql-data directory...")
-            MYSQL_DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-        if result.returncode != 0:
-            # Container doesn't exist, start docker-compose
-            logging.info("Container doesn't exist, starting docker-compose...")
-            args = ["docker", "compose", "--ansi=none", env_arg, "-f", DC_DBO_YAML.as_posix(), "up", "-d"]
-            logging.info(shlex.join(args))
-            result = subprocess.run(args, cwd=working_dir, env=docker_env, capture_output=True, text=True)
-            if result.returncode != 0:
-                logging.error(f"docker-compose failed: {result.stderr}")
-                raise RuntimeError(f"docker-compose failed: {result.stderr}")
-            needs_data_load = True
-        elif result.stdout.strip() == "true":
-            # Container is running
-            logging.info("Container already running")
-        else:
-            # Container exists but is not running (stopped, created, etc.)
-            logging.info("Container exists but is not running, recreating...")
-            subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", DC_DBO_YAML.as_posix(), "down"],
-                           cwd=working_dir, env=docker_env)
-            result = subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", DC_DBO_YAML.as_posix(), "up", "-d"],
-                           cwd=working_dir, env=docker_env, capture_output=True, text=True)
-            if result.returncode != 0:
-                logging.error(f"docker-compose failed: {result.stderr}")
-                raise RuntimeError(f"docker-compose failed: {result.stderr}")
-            needs_data_load = True
-
-        # Wait for myloader container to complete (only if we just started docker-compose)
-        if needs_data_load:
-            logging.info("Waiting for myloader to complete...")
-            for _ in range(100):
-                result = subprocess.run(
-                    ["docker", "inspect", "-f", "{{.State.Status}}", LOADER_CONTAINER_NAME],
-                    capture_output=True,
-                    text=True,
-                    check=False
-                )
-                if result.returncode == 0 and "exited" in result.stdout:
-                    # Check if it exited successfully (exit code 0)
-                    exit_code_result = subprocess.run(
-                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", LOADER_CONTAINER_NAME],
-                        capture_output=True,
-                        text=True,
-                        check=False
-                    )
-                    if exit_code_result.returncode == 0 and "0" in exit_code_result.stdout:
-                        logging.info("Myloader completed successfully")
-                        break
-                    else:
-                        logging.error(f"Myloader failed with exit code: {exit_code_result.stdout.strip()}")
-                        assert False, "Myloader failed to load data"
-                sleep(1)
-            else:
-                assert False, "Myloader timed out"
-        else:
-            logging.info("Skipping myloader wait (container already existed)")
-
-        # Wait for MySQL to be ready
-        logging.info("Waiting for MySQL to be ready...")
-        for _ in range(30):
-            result = subprocess.run(
-                ["docker", "exec", DBOT_DB_CONTAINER_NAME, "mysqladmin",
-                 "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
-                capture_output=True,
-                check=False
-            )
-            if result.returncode == 0:
-                logging.info("MySQL is ready")
-                break
-            sleep(1)
-        else:
-            assert False, "MySQL failed to become ready"
-
-        # Check if snapshot exists on local disk
-        snapshot_exists = MYSQL_SNAPSHOT_DIR.exists()
-        logging.info(f"Snapshot exists: {snapshot_exists}")
-
-        # Create snapshot if it doesn't exist
-        if not snapshot_exists:
-            import shutil
-            logging.info("Creating database snapshot on local disk...")
-            try:
-                # Flush tables to ensure data consistency
-                logging.info("Flushing tables for snapshot...")
-                subprocess.run(
-                    ["docker", "exec", DBOT_DB_CONTAINER_NAME, "mysql",
-                     "-uroot", "-proot_password", "-h", "127.0.0.1",
-                     "-P", test_env["ARXIV_DB_PORT"],
-                     "-e", "FLUSH TABLES;"],
-                    check=True,
-                    timeout=30
-                )
-
-                # Stop the container to ensure clean snapshot
-                logging.info("Stopping container for snapshot...")
-                subprocess.run(
-                    ["docker", "stop", DBOT_DB_CONTAINER_NAME],
-                    check=True,
-                    timeout=30
-                )
-                sleep(1)
-
-                # Copy mysql-data to snapshot directory on local disk
-                logging.info(f"Copying {MYSQL_DATA_DIR} to {MYSQL_SNAPSHOT_DIR}...")
-                shutil.copytree(MYSQL_DATA_DIR, MYSQL_SNAPSHOT_DIR, ignore=ignore_socket_files)
-
-                # Start the container again
-                logging.info("Starting container after snapshot...")
-                subprocess.run(
-                    ["docker", "start", DBOT_DB_CONTAINER_NAME],
-                    check=True,
-                    timeout=30
-                )
-
-                # Wait for MySQL to be ready again
-                for _ in range(30):
-                    result = subprocess.run(
-                        ["docker", "exec", DBOT_DB_CONTAINER_NAME, "mysqladmin",
-                         "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
-                        capture_output=True,
-                        check=False
-                    )
-                    if result.returncode == 0:
-                        break
-                    sleep(1)
-
-                logging.info("Database snapshot created successfully")
-
-            except Exception as e:
-                logging.error(f"Failed to create snapshot: {str(e)}")
-                raise
-
-        yield None
-    except Exception as e:
-        logging.error(f"bad... {str(e)}")
-        raise
-
-    finally:
-        logging.info("Keeping docker-compose running for subsequent tests...")
+    yield from _setup_docker_compose(
+        test_env,
+        compose_yaml=DC_DBO_YAML,
+        other_compose_yaml=DC_YAML,
+        db_container_name="dbot-admin-api-arxiv-test-db",
+        loader_container_name="dbot-admin-api-db-myloader"
+    )
 
 
 @pytest.fixture(scope="module")
@@ -540,7 +526,8 @@ def reset_test_database(test_env, docker_compose_db_only):
     Use this fixture when you need a clean database state for each test.
     """
     logging.info("Resetting database from snapshot...")
-    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"])
+    container_name = docker_compose_db_only
+    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"], container_name=container_name)
     if not success:
         pytest.fail("Failed to reset database from snapshot")
     yield None
@@ -553,7 +540,8 @@ def reset_test_database_for_function(test_env, docker_compose_db_only):
     Use this fixture when you need a clean database state for each test.
     """
     logging.info("Resetting database from snapshot...")
-    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"])
+    container_name = docker_compose_db_only
+    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"], container_name=container_name)
     if not success:
         pytest.fail("Failed to reset database from snapshot")
     yield None
