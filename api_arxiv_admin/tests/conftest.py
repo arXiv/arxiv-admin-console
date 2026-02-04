@@ -1,4 +1,6 @@
+import gzip
 import shlex
+import shutil
 import sys, os
 
 from arxiv_bizlogic.fastapi_helpers import datetime_to_epoch
@@ -19,6 +21,9 @@ from arxiv_bizlogic.user_account_models import AccountIdentifierModel
 ADMIN_API_TEST_DIR = Path(__file__).parent
 
 dotenv_filename = 'test-env'
+dotenv_sqlite_filename = 'test-env-sqlite'
+sqlite_db_filename = 'data/arxiv-sqlite.db'
+compressed_sqlite_db_filename = 'data/arxiv-sqlite-0.db.gz'
 load_dotenv(dotenv_path=ADMIN_API_TEST_DIR.joinpath(dotenv_filename), override=True)
 
 import pytest
@@ -43,7 +48,7 @@ ARXIV_ADMIN_CONSOLE_DIR = ADMIN_API_DIR.parent
 TEST_DB_DUMP_DIR = ARXIV_ADMIN_CONSOLE_DIR / "tests" / "data" / "test-db-dump"
 
 
-def ignore_socket_files(directory, files):
+def ignore_socket_files(directory: str, files: list[str]) -> list[str]:
     """Ignore socket files when copying directory trees.
 
     Also ignores files that no longer exist (race condition when container stops)
@@ -607,3 +612,60 @@ def database_session(test_env, docker_compose_db_only):
     database.set_to_global()
 
     yield DatabaseSession
+
+
+@pytest.fixture(scope="module")
+def sqlite_db() -> str:
+    sqlite_0_path = ADMIN_API_TEST_DIR.joinpath(compressed_sqlite_db_filename)
+    if not sqlite_0_path.exists():
+        raise FileNotFoundError(compressed_sqlite_db_filename)
+
+    sqlite_db_path = ADMIN_API_TEST_DIR.joinpath(sqlite_db_filename)
+    sqlite_db_path.unlink(missing_ok=True)
+    temp_path = sqlite_db_path.as_posix() + ".gz"
+    shutil.copy(sqlite_0_path, temp_path)
+    subprocess.run(["gzip", "--decompress", temp_path])
+
+    db_uri = f'sqlite:///{sqlite_db_path}'
+
+    settings = Settings(
+        CLASSIC_DB_URI=db_uri,
+        LATEXML_DB_URI=None
+    )
+    database = Database(settings)
+    database.set_to_global()
+
+    return sqlite_db_path.as_posix()
+
+
+@pytest.fixture(scope="module")
+def test_env_sqlite(sqlite_db) -> Dict[str, Optional[str]]:
+    if not ADMIN_API_TEST_DIR.joinpath(dotenv_sqlite_filename).exists():
+        raise FileNotFoundError(dotenv_sqlite_filename)
+    env = dotenv_values(ADMIN_API_TEST_DIR.joinpath(dotenv_sqlite_filename).as_posix())
+    db_uri = f'sqlite:///{sqlite_db}'
+    env['CLASSIC_DB_URI'] = db_uri
+    env['DB_URI'] = db_uri
+    return env
+
+
+@pytest.fixture(scope="module")
+def sqlite_session(test_env_sqlite, sqlite_db):
+    """
+    Set up the database connection for tests that need direct database access.
+    This fixture configures the global Database instance and provides DatabaseSession.
+    """
+    yield DatabaseSession
+
+
+@pytest.fixture(scope="module")
+def admin_api_sqlite_client(test_env_sqlite: Dict, sqlite_db) -> Generator[TestClient, None, None]:
+    """Start Admin API with database-only setup (faster for isolated tests)"""
+    # Make sure there is no keycloak secret
+    test_env_sqlite["KEYCLOAK_ADMIN_SECRET"] = "<NOT-SET>"
+    os.environ.update(test_env_sqlite)
+    app = create_app(TESTING=True)
+    admin_api_url = test_env_sqlite['ADMIN_API_URL']
+    client = TestClient(app, base_url=admin_api_url)
+    yield client
+    client.close()

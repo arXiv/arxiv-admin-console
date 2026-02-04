@@ -70,54 +70,6 @@ from google.cloud import storage as gcs
 
 from app_logging import setup_logger
 
-# API root path (excluding the host)
-ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if os.environ.get('TESTING') is None else ''
-
-# Admin app URL
-#
-ADMIN_APP_URL = os.environ.get('ADMIN_APP_URL', 'http://localhost.arxiv.org:5100/admin-console')
-#
-DB_URI = os.environ.get('CLASSIC_DB_URI')
-#
-MODAPI_URL = os.environ.get('MODAPI_URL', "https://services.dev.arxiv.org")
-MODAPI_MODKEY = os.environ.get('MODAPI_MODKEY', "not-a-modkey")
-#
-AAA_LOGIN_REDIRECT_URL = os.environ.get("AAA_LOGIN_REDIRECT_URL", "http://localhost.arxiv.org:5100/aaa/login")
-# When it got the expired, ask the oauth server to refresh the token
-# This is still WIP.
-AAA_TOKEN_REFRESH_URL = os.environ.get("AAA_TOKEN_REFRESH_URL", "http://localhost.arxiv.org:5100/aaa/refresh")
-#
-LOGOUT_REDIRECT_URL = os.environ.get("LOGOUT_REDIRECT_URL", ADMIN_APP_URL)
-#
-JWT_SECRET = os.environ.get("JWT_SECRET")
-AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "ARXIVNG_SESSION_ID")
-CLASSIC_COOKIE_NAME = os.environ.get("CLASSIC_COOKIE_NAME", "tapir_session")
-TRACKING_COOKIE_NAME = os.environ.get("TRACKING_COOKIE_NAME", "tapir_tracking")
-
-SQLALCHMEY_MAPPING = {
-    'pool_size': 8,
-    'max_overflow': 8,
-    'pool_timeout': 30,
-    'pool_recycle': 900
-}
-
-USER_ACTION_SITE = os.environ.get("USER_ACTION_SITE", "https://dev.arxiv.org")
-USER_ACTION_URLS = {
-    "replace": os.environ.get("USER_ACTION_URL_REPLACE", "{site}/user/{doc_id}/replace"),
-    "withdraw": os.environ.get("USER_ACTION_URL_WITHDRAW", "{site}/user/{doc_id}/withdraw"),
-    "cross": os.environ.get("USER_ACTION_URL_CROSS", "{site}/user/{doc_id}/cross"),
-    "jref": os.environ.get("USER_ACTION_URL_JREF", "{site}/user/{doc_id}/jref"),
-    "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
-}
-
-ARXIV_CHECK_URL = os.environ.get("ARXIV_CHECK_URL", "https://check.dev.arxiv.org")
-
-#
-#
-#
-
-GCP_PROJECT = os.environ.get("GCP_PROJECT", "arxiv-development")
-ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "arxiv-dev-data")
 
 # Auth is now handled by auth service
 # No need for keycloak URL, etc.
@@ -145,10 +97,59 @@ origins = [
 ]
 
 
-
-
 def create_app(*args, **kwargs) -> FastAPI:
     setup_logger()
+
+    # API root path (excluding the host)
+    ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if os.environ.get(
+        'TESTING') is None else ''
+
+    # Admin app URL
+    #
+    ADMIN_APP_URL = os.environ.get('ADMIN_APP_URL', 'http://localhost.arxiv.org:5100/admin-console')
+    #
+    MODAPI_URL = os.environ.get('MODAPI_URL', "https://services.dev.arxiv.org")
+    MODAPI_MODKEY = os.environ.get('MODAPI_MODKEY', "not-a-modkey")
+    #
+    AAA_LOGIN_REDIRECT_URL = os.environ.get("AAA_LOGIN_REDIRECT_URL", "http://localhost.arxiv.org:5100/aaa/login")
+    # When it got the expired, ask the oauth server to refresh the token
+    # This is still WIP.
+    AAA_TOKEN_REFRESH_URL = os.environ.get("AAA_TOKEN_REFRESH_URL", "http://localhost.arxiv.org:5100/aaa/refresh")
+    #
+    LOGOUT_REDIRECT_URL = os.environ.get("LOGOUT_REDIRECT_URL", ADMIN_APP_URL)
+    #
+    JWT_SECRET = os.environ.get("JWT_SECRET")
+    AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "ARXIVNG_SESSION_ID")
+    CLASSIC_COOKIE_NAME = os.environ.get("CLASSIC_COOKIE_NAME", "tapir_session")
+    TRACKING_COOKIE_NAME = os.environ.get("TRACKING_COOKIE_NAME", "tapir_tracking")
+
+    SQLALCHMEY_MAPPING = {
+        'pool_size': 8,
+        'max_overflow': 8,
+        'pool_timeout': 30,
+        'pool_recycle': 900
+    }
+
+    USER_ACTION_SITE = os.environ.get("USER_ACTION_SITE", "https://dev.arxiv.org")
+    USER_ACTION_URLS = {
+        "replace": os.environ.get("USER_ACTION_URL_REPLACE", "{site}/user/{doc_id}/replace"),
+        "withdraw": os.environ.get("USER_ACTION_URL_WITHDRAW", "{site}/user/{doc_id}/withdraw"),
+        "cross": os.environ.get("USER_ACTION_URL_CROSS", "{site}/user/{doc_id}/cross"),
+        "jref": os.environ.get("USER_ACTION_URL_JREF", "{site}/user/{doc_id}/jref"),
+        "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
+    }
+
+    ARXIV_CHECK_URL = os.environ.get("ARXIV_CHECK_URL", "https://check.dev.arxiv.org")
+
+    #
+    #
+    #
+
+    GCP_PROJECT = os.environ.get("GCP_PROJECT", "arxiv-development")
+    ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "arxiv-dev-data")
+
+    DB_URI = os.environ.get('CLASSIC_DB_URI')
+    #
 
     settings = Settings (
         CLASSIC_DB_URI = DB_URI or "",
