@@ -696,8 +696,8 @@ async def update_user_veto_status(
                 remote_ip=remote_ip,
                 remote_hostname=remote_hostname,
                 tracking_cookie=tracking_cookie,
-                status_before=demographic.veto_status,
-                status_after=body.status_after.value,
+                status_before=UserVetoStatus(demographic.veto_status),
+                status_after=UserVetoStatus(body.status_after.value),
                 comment=body.comment,
         ))
         session.commit()
@@ -712,8 +712,11 @@ async def update_user_veto_status(
 @router.post('/')
 async def create_user(request: Request,
                       _is_admin: bool = Depends(is_admin_user),
+                      current_user: ArxivUserClaims = Depends(get_authn_user),
                       session: Session = Depends(get_db)) -> UserModel:
     """Creates a new user - by POST"""
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owner can create new users")
     body = await request.json()
 
     user = TapirUser()
