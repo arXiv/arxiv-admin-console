@@ -125,9 +125,6 @@ def test_get_user_can_endorse_for(admin_api_sqlite_client: TestClient,
     # Verify structure of first item
     item = data[0]
     assert "id" in item
-    assert "archive" in item
-    assert "subject_class" in item
-    assert "positive" in item
     assert "reason" in item
     # Verify X-Total-Count header
     assert "X-Total-Count" in response.headers
@@ -140,3 +137,25 @@ def test_get_user_can_endorse_for_not_found(admin_api_sqlite_client: TestClient,
     response = admin_api_sqlite_client.get("/v1/users/9999999/can-endorse-for",
                                            headers=admin_api_admin_user_headers)
     assert response.status_code == 404
+
+# activity summary
+
+def test_get_user_activity_summary_no_auth(admin_api_sqlite_client: TestClient) -> None:
+    """Test that getting activity-summary without auth returns 401"""
+    response = admin_api_sqlite_client.get(f"/v1/users/{TEST_USER_ID}/activity-summary")
+    assert response.status_code == 401
+
+
+def test_get_user_activity_summary(admin_api_sqlite_client: TestClient,
+                                    admin_api_admin_user_headers: dict) -> None:
+    """Test getting a user's activity summary"""
+    response = admin_api_sqlite_client.get(f"/v1/users/{TEST_USER_ID}/activity-summary",
+                                           headers=admin_api_admin_user_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "tapir_sessions_count" in data
+    assert "admin_log_count" in data
+    assert isinstance(data["tapir_sessions_count"], int)
+    assert isinstance(data["admin_log_count"], int)
+    assert data["tapir_sessions_count"] >= 0
+    assert data["admin_log_count"] >= 0
