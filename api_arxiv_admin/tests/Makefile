@@ -5,11 +5,12 @@ include test-env
 export $(shell sed 's/=.*//' test-env)
 
 ARXIV_BASE_DIR ?= $(HOME)/arxiv/arxiv-base
+API_TEST_DIR := $(abspath $(CURDIR)/..)
 GID := $(shell id -g)
 UID := $(shell id -u)
 TEST_DB_DUMP_DIR ?= $(abspath $(CURDIR)/../../tests/data/test-db-dump)
 
-.PHONY: dump 
+.PHONY: dump mysql2sqlite-image
 
 dump:
 	mkdir -p $(CURDIR)/../../tests/data/test-db-dump
@@ -99,3 +100,16 @@ clean:
 sh:
 	docker compose --env-file=test-env -f ./docker-compose-db-only.yaml up
 
+
+mysql2sqlite-image: /usr/bin/docker
+	docker buildx build -f ./Dockerfile.mysql2sqlite \
+		--security-opt seccomp=unconfined  \
+		--progress=plain \
+		--platform=linux/amd64 -t mysql2sqlite:latest .
+
+mysql2sqlite:
+	docker run --rm --network=host \
+		--user $(UID):$(GID) \
+		-v $(API_TEST_DIR)/tests/data:/data \
+		mysql2sqlite \
+		-f /data/arxiv-sqlite.db -d arXiv -u arxiv --mysql-password arxiv_password -h 127.0.0.1 -P 22204
