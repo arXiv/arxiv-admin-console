@@ -44,13 +44,27 @@ TEST_DB_DUMP_DIR = ARXIV_ADMIN_CONSOLE_DIR / "tests" / "data" / "test-db-dump"
 
 
 def ignore_socket_files(directory, files):
-    """Ignore socket files when copying directory trees."""
+    """Ignore socket files when copying directory trees.
+
+    Also ignores files that no longer exist (race condition when container stops)
+    and files with .sock extension.
+    """
     import stat
     ignored = []
     for f in files:
+        # Always ignore .sock files by name (handles race condition where
+        # socket is enumerated but disappears before we can stat it)
+        if f.endswith('.sock'):
+            ignored.append(f)
+            continue
         path = Path(directory) / f
         try:
-            if path.exists() and stat.S_ISSOCK(path.stat().st_mode):
+            # Ignore files that don't exist (race condition: file was enumerated
+            # but disappeared before copy)
+            if not path.exists():
+                ignored.append(f)
+                continue
+            if stat.S_ISSOCK(path.stat().st_mode):
                 ignored.append(f)
         except (OSError, IOError):
             # If we can't stat the file, ignore it to be safe
