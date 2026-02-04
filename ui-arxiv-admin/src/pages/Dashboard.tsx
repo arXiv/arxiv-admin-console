@@ -108,7 +108,7 @@ export const Dashboard = () => {
                     maxWidth: '1200px'
                 }}
             >
-                ConsoleTitle>Welcome, {runtimeProps.currentUser?.first_name}</ConsoleTitle>
+                <ConsoleTitle>Welcome, {runtimeProps.currentUser?.first_name}</ConsoleTitle>
                 <Box sx={{ my: 2, display: 'flex', gap: 2, mt: 4 }}>
                     <Box sx={{
                         display: 'flex',
