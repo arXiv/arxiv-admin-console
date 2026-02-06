@@ -145,8 +145,8 @@ def create_app(*args, **kwargs) -> FastAPI:
     #
     #
 
-    GCP_PROJECT = os.environ.get("GCP_PROJECT", "arxiv-development")
-    ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "arxiv-dev-data")
+    GCP_PROJECT = os.environ.get("GCP_PROJECT", "<NONE>")
+    ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "<NONE>")
 
     DB_URI = os.environ.get('CLASSIC_DB_URI')
     #
@@ -206,7 +206,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     }
 
     # GOOGLE_APPLICATION_CREDENTIALS is needed (skip in testing mode)
-    if TESTING:
+    if TESTING or ARXIV_DOCUMENT_BUCKET_NAME == "<NONE>" or GCP_PROJECT == "<NONE>":
         document_storage = None
     else:
         gcp_client: gcs.Client = gcs.Client(project=GCP_PROJECT)
