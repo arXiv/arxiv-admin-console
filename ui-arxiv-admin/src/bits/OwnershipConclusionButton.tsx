@@ -1,10 +1,10 @@
-import { ButtonProps, useSaveContext } from "react-admin";
+import { useSaveContext } from "react-admin";
 
 import {components} from "../types/admin-api";
 type WorkflowStatusType = components["schemas"]["WorkflowStatus"];
 import { useFormContext } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import Button from '@mui/material/Button';
+import Button, { ButtonProps } from '@mui/material/Button';
 
 
 interface OwnershipConclusionButtonProps extends ButtonProps {

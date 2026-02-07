@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, 
 from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.orm import Session
-from sqlalchemy import insert, Row, and_
+from sqlalchemy import insert, Row, and_, select
 from pydantic import BaseModel, Field
 
 from arxiv.base import logging
@@ -136,10 +136,9 @@ class UpdateOwnershipRequestModel(BaseModel):
 class OwnershipRequestSubmit(BaseModel):
     user_id: int = Field(..., description="The ID of the user associated with the ownership request.")
     workflow_status: WorkflowStatus = Field(..., description="The status of the workflow ('pending', 'accepted', 'rejected').")
-    document_ids: List[int] = Field(..., description="List of IDs of the documents in the ownership request.")
-    authored_documents: Optional[List[int]] = Field(
-        None, description="List of document IDs that the requester is the author."
-    )
+    document_ids: List[int] = Field(..., description="List of doc ids as owner.")
+    authored_documents: Optional[List[int]] = Field( None, description="List of document IDs as author.")
+    # If the requester is proxy, the user can be owner but not author.
     paper_ids: Optional[List[str]] = Field(
         None, description="Optional list of paper IDs associated with the ownership request."
     )
@@ -554,9 +553,9 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
 
     req_id = id
     # body = await request.json()
-    workflow_status = payload.workflow_status
-    if workflow_status is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is required.")
+    workflow_status: WorkflowStatus = payload.workflow_status
+    # if workflow_status is None:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is required.")
 
     if workflow_status == WorkflowStatus.pending:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is pending. It needs to be rejected or accepted.")
@@ -575,18 +574,37 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Ownership request id %s does not exist." % req_id)
 
+    # Get all of docs in the ownership request
+    stmt = select(t_arXiv_ownership_requests_papers).where(t_arXiv_ownership_requests_papers.c.request_id == req_id)
+    requested_documents = session.execute(stmt).fetchall()
+    requested_document_ids = [row.document_id for row in requested_documents]
+
+    # If the payload contains extra ids, raise an error.
+    extra_ids = set(document_ids) - set(requested_document_ids)
+    if extra_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Ownership request id %s - the some documents {extra_ids!r} IDs are not in the request." % req_id)
+
     # The ownership request must be in pending statue
     if ownership_request.workflow_status != WorkflowStatus.pending.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Ownership request id %s has been decided as {ownership_request.workflow_status }." % req_id)
 
+    # if none is accepted, mark it as rejected
+    if len(document_ids) == 0:
+        workflow_status = WorkflowStatus.rejected
+
+    # if the request says it's rejected, zero docs accepted
+    if workflow_status == WorkflowStatus.rejected:
+        document_ids = []
+
     # Make sure all of the docs in the request exist
     existing_document_ids: Set[int] = set([
         doc.document_id for doc in session.query(Document.document_id).filter(Document.document_id.in_(document_ids)).all()
     ])
+
     if len(existing_document_ids) != len(document_ids):
-        nonexistng_ids = set(document_ids)
-        nonexistng_ids.remove(set(existing_document_ids))
+        nonexistng_ids = set(document_ids) - set(existing_document_ids)
         bads = list(nonexistng_ids)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=f"Ownership request id %s - the some documents {bads!r} IDs doss not exist" % req_id)
@@ -600,7 +618,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
 
     requester = UserModel.one_user(session, user_id)
     date = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
-    ownership_request.workflow_status = workflow_status
+    ownership_request.workflow_status = workflow_status.value # type: ignore
 
     tracking_cookie = requester.tracking_cookie
     if tracking_cookie and len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
@@ -617,6 +635,17 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         tracking_cookie = hashlib.md5(tracking_cookie.encode()).hexdigest()
 
     authored_documents = set(payload.authored_documents) if payload.authored_documents else set()
+
+    # guard against bug
+    if workflow_status == WorkflowStatus.accepted and len(document_ids) == 0:
+        logger.warning(f"Accepting ownership request {req_id} with no documents")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="No documents to accept")
+
+    if workflow_status == WorkflowStatus.rejected and len(document_ids) > 0:
+        logger.warning("Rejecting ownership request %s with %d documents", req_id, len(document_ids))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="non-zepo documents to accept while status is rejected")
 
     try:
         for document_id in document_ids:
@@ -643,10 +672,11 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
                     str(current_user.user_id),
                     str(user_id),
                     str(current_tapir_session_id),
-                    str(document_id),
+                    str(document_id), # data
                     remote_ip=remote_ip,
                     remote_hostname=remote_host,
                     tracking_cookie=tracking_cookie,
+                    comment="is_author=true" if is_author else "is_author=false"
                 ))
 
         audit: OwnershipRequestsAudit | None = session.query(OwnershipRequestsAudit).filter(OwnershipRequestsAudit.request_id == req_id).one_or_none()
