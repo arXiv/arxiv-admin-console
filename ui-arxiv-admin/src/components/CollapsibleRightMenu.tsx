@@ -19,8 +19,10 @@ const CollapsibleMenuContainer = styled(Box, {
 })<{ open?: boolean }>(({ theme, open }) => ({
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
-    overflow: 'hidden',
+    flex: 1,
+    minHeight: 0,
+    overflowX: 'hidden',
+    overflowY: 'auto',
 }));
 
 const MenuList = styled(List)(({ theme }) => ({

@@ -31,6 +31,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import SuspectIcon from '@mui/icons-material/Dangerous';
+import SaveIcon from '@mui/icons-material/Save';
 
 import {
     useDataProvider,
@@ -59,19 +60,19 @@ import {
 } from 'react-admin';
 
 
-import { useParams, useNavigate } from 'react-router-dom';
+import {useParams, useNavigate} from 'react-router-dom';
 
-import { addDays } from 'date-fns';
+import {addDays} from 'date-fns';
 import CircularProgress from "@mui/material/CircularProgress";
 import Button from '@mui/material/Button';
 
-import { useFormContext } from 'react-hook-form';
+import {useFormContext} from 'react-hook-form';
 
 import {paths as adminApi, components as adminComponents} from "../types/admin-api";
 import HighlightText from "../bits/HighlightText";
 import {RuntimeContext} from "../RuntimeContext";
 import ISODateField from '../bits/ISODateFiled';
-import ToggleButton from "@mui/material/ToggleButton";
+// ToggleButton replaced by RadioGroup for 3-state ownership judgement
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -97,36 +98,39 @@ type DocumentIdType = DocumentType['id'];
 type OwnershipRequestNavi = adminApi['/v1/ownership_requests/navigate']['get']['responses']['200']['content']['application/json'];
 
 type WorkflowStatusType = adminComponents['schemas']['WorkflowStatus'];
+type UserModelType = adminComponents['schemas']['UserModel'];
 
-const workflowStatus : {id: WorkflowStatusType, name: string}[]  = [
-    { id: 'pending', name: 'Pending' },
-    { id: 'accepted', name: 'Accepted' },
-    { id: 'rejected', name: 'Rejected' },
+type DocOwnershipJudgementType = Map<DocumentIdType, { owner: boolean; authored: boolean; }>;
+
+const workflowStatus: { id: WorkflowStatusType, name: string }[] = [
+    {id: 'pending', name: 'Pending'},
+    {id: 'accepted', name: 'Accepted'},
+    {id: 'rejected', name: 'Rejected'},
 ];
 
 const presetOptions = [
-    { id: 'last_1_day', name: 'Last 1 Day' },
-    { id: 'last_7_days', name: 'Last 7 Days' },
-    { id: 'last_28_days', name: 'Last 28 Days' },
+    {id: 'last_1_day', name: 'Last 1 Day'},
+    {id: 'last_7_days', name: 'Last 7 Days'},
+    {id: 'last_28_days', name: 'Last 28 Days'},
 ];
 
 const calculatePresetDates = (preset: string) => {
     const today = new Date();
     switch (preset) {
         case 'last_1_day':
-            return { preset: preset };
+            return {preset: preset};
         case 'last_7_days':
-            return { preset: preset };
+            return {preset: preset};
         case 'last_28_days':
-            return { preset: preset };
+            return {preset: preset};
         default:
-            return { startDate: null, endDate: null, preset: null};
+            return {startDate: null, endDate: null, preset: null};
     }
 };
 
 
 const OwnershipRequestFilter = (props: any) => {
-    const { setFilters, filterValues } = useListContext();
+    const {setFilters, filterValues} = useListContext();
 
     const handleWorkflowStatusChoice = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const value = event.target.value;
@@ -160,38 +164,39 @@ const OwnershipRequestFilter = (props: any) => {
                 onChange={(event) => handlePresetChange(event as React.ChangeEvent<HTMLSelectElement>)}
                 alwaysOn
             />
-            <DateInput label="Start Date" source="start_date" />
-            <DateInput label="End Date" source="end_date" />
+            <DateInput label="Start Date" source="start_date"/>
+            <DateInput label="End Date" source="end_date"/>
         </Filter>
     );
 };
 
 export const OwnershipRequestList = () => {
     return (
-        <Box maxWidth={"xl"} sx={{ margin: '0 auto'}}>
+        <Box maxWidth={"xl"} sx={{margin: '0 auto'}}>
             <ConsoleTitle>Ownership Requests</ConsoleTitle>
 
-        <List filters={<OwnershipRequestFilter />} filterDefaultValues={{workflow_status: "pending"}}>
-            <Datagrid rowClick="edit">
-                <NumberField source="id" label={"Req ID"}/>
-                <ISODateField source="date" label={"Date"}/>
-                <ReferenceField source="user_id" reference="users"
-                                link={(record, reference) => `/${reference}/${record.id}`} >
-                    <TextField source={"last_name"} />
-                    {", "}
-                    <TextField source={"first_name"} />
-                </ReferenceField>
-                <ReferenceField source="endorsement_request_id" reference="endorsement_requests" label={"Endorsement Request"}>
+            <List filters={<OwnershipRequestFilter/>} filterDefaultValues={{workflow_status: "pending"}}>
+                <Datagrid rowClick="edit">
+                    <NumberField source="id" label={"Req ID"}/>
+                    <ISODateField source="date" label={"Date"}/>
+                    <ReferenceField source="user_id" reference="users"
+                                    link={(record, reference) => `/${reference}/${record.id}`}>
+                        <TextField source={"last_name"}/>
+                        {", "}
+                        <TextField source={"first_name"}/>
+                    </ReferenceField>
+                    <ReferenceField source="endorsement_request_id" reference="endorsement_requests"
+                                    label={"Endorsement Request"}>
 
-                </ReferenceField>
-                <TextField source="workflow_status" label={"Status"}/>
-                <ReferenceField source="ownershipRequest_id" reference="ownership_requests_audit" label={"Remote host"}>
-                    <TextField source={"remote_host"} defaultValue={"Unknown"}/>
-                </ReferenceField>
-            </Datagrid>
-        </List>
+                    </ReferenceField>
+                    <TextField source="workflow_status" label={"Status"}/>
+                    <ReferenceField source="ownershipRequest_id" reference="ownership_requests_audit"
+                                    label={"Remote host"}>
+                        <TextField source={"remote_host"} defaultValue={"Unknown"}/>
+                    </ReferenceField>
+                </Datagrid>
+            </List>
         </Box>
-
     );
 };
 
@@ -199,10 +204,16 @@ const OwnershipRequestTitle = () => {
     const record = useRecordContext();
 
     // Fetch the ownership request data
-    const { data: ownershipRequestData, isLoading: isLoadingOwnershipRequest } = useGetOne('ownership_requests', { id: record?.id });
+    const {
+        data: ownershipRequestData,
+        isLoading: isLoadingOwnershipRequest
+    } = useGetOne('ownership_requests', {id: record?.id});
 
     // Fetch the user data based on user_id from the ownership request
-    const { data: userData, isLoading: isLoadingUser } = useGetOne('users', { id: ownershipRequestData?.user_id }, { enabled: !!ownershipRequestData?.user_id });
+    const {
+        data: userData,
+        isLoading: isLoadingUser
+    } = useGetOne('users', {id: ownershipRequestData?.user_id}, {enabled: !!ownershipRequestData?.user_id});
 
     if (!record) {
         return <span>Ownership Request - no record</span>;
@@ -221,18 +232,18 @@ const OwnershipRequestTitle = () => {
 
 
 const PaperOwnerListContent: React.FC = () => {
-    const { total } = useListContext();
+    const {total} = useListContext();
 
     return (
         <Datagrid bulkActionButtons={false}>
             <ReferenceField source="document_id" reference="documents" link="show" label="arXiv ID">
-                <TextField source="paper_id" />
+                <TextField source="paper_id"/>
             </ReferenceField>
             <ReferenceField source="document_id" reference="documents" label="Title">
-                <TextField source="title" />
+                <TextField source="title"/>
             </ReferenceField>
             <ReferenceField source="document_id" reference="documents" label="Date">
-                <TextField source="dated" />
+                <TextField source="dated"/>
             </ReferenceField>
         </Datagrid>
     );
@@ -262,20 +273,20 @@ const PaperOwnerList: React.FC<{
             <Paper>
                 <List
                     resource="paper_owners"
-                    filter={{ user_id: record.user_id }}
+                    filter={{user_id: record.user_id}}
                     actions={false}
                     component="div"
                     perPage={25}
                 >
-                    <PaperOwnerListContentWrapper setDocumentCount={setDocumentCount} />
+                    <PaperOwnerListContentWrapper setDocumentCount={setDocumentCount}/>
                 </List>
             </Paper>
         </StandardAccordion>
     );
 };
 
-const PaperOwnerListContentWrapper: React.FC<{ setDocumentCount: (count: number) => void }> = ({ setDocumentCount }) => {
-    const { total } = useListContext();
+const PaperOwnerListContentWrapper: React.FC<{ setDocumentCount: (count: number) => void }> = ({setDocumentCount}) => {
+    const {total} = useListContext();
 
     useEffect(() => {
         if (total !== undefined) {
@@ -283,7 +294,7 @@ const PaperOwnerListContentWrapper: React.FC<{ setDocumentCount: (count: number)
         }
     }, [total, setDocumentCount]);
 
-    return <PaperOwnerListContent />;
+    return <PaperOwnerListContent/>;
 };
 
 interface RequestedPaperListProps {
@@ -291,12 +302,12 @@ interface RequestedPaperListProps {
     workflowStatus: WorkflowStatusType; // Expecting a string prop for workflowStatus
     nameFragments: string[];
     documents: DocumentType[];
-    authoredDocuments: DocumentIdType[];
-    setSelectedDocuments: (newSel: DocumentIdType[]) => void;
+    authoredDocuments: DocOwnershipJudgementType;
+    setSelectedDocuments: (newSel: DocOwnershipJudgementType) => void;
     ownedPapers: number[];
 }
 
-const AuthorsField : React.FC<{
+const AuthorsField: React.FC<{
     nameFragments: string[];
     document: DocumentType;
 }> = ({nameFragments, document}) => {
@@ -313,7 +324,7 @@ const AuthorsField : React.FC<{
 
     return (
         <span>
-            <HighlightText text={document.authors || ""} highlighters={nameFragments} secondary={submitter}/>
+            <HighlightText text={document.authors || ""} highlighters={nameFragments}/>
         </span>
 
     );
@@ -324,47 +335,54 @@ const RequestedPaperRow: React.FC<{
     document: DocumentType;
     userId: number;
     nameFragments: string[];
-    authoredDocuments: DocumentIdType[];
+    authoredDocuments: DocOwnershipJudgementType;
     ownedPapers: number[];
-    docSelectionChange: (doc: DocumentType) => void;
-}> = ({ document, userId, nameFragments, authoredDocuments, ownedPapers, docSelectionChange }) => {
+    docSelectionChange: (doc: DocumentType, value: string) => void;
+}> = ({document, userId, nameFragments, authoredDocuments, ownedPapers, docSelectionChange}) => {
     const [open, setOpen] = useState(false);
+    const judgement = authoredDocuments.get(document.id);
+    const radioValue = !judgement?.owner ? 'no' : judgement?.authored ? 'owner_author' : 'owner_only';
 
     return (
         <>
-            <TableRow sx={{ height: 'auto' }}>
+            <TableRow sx={{height: 'auto'}}>
                 <TableCell>
                     <IconButton size="small" onClick={() => setOpen(!open)}>
-                        {open ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
+                        {open ? <KeyboardArrowDownIcon/> : <KeyboardArrowRightIcon/>}
                     </IconButton>
                 </TableCell>
                 <TableCell>
-                    <ToggleButton
-                        id={`author-user_${userId}-doc_${document.id}`}
-                        onClick={() => docSelectionChange(document)}
-                        value={`user_${userId}-doc_${document.id}`}
-                        selected={authoredDocuments.includes(document.id)}
-                        sx={{minWidth: "4em", padding: "2px"}} // Reduce padding here too
+                    <RadioGroup
+                        row
+                        value={radioValue}
+                        onChange={(e) => docSelectionChange(document, e.target.value)}
+                        sx={{flexWrap: 'nowrap', gap: '1rem'}}
+
                     >
-                        {authoredDocuments.includes(document.id) ? 'Yes' : 'No'}
-                    </ToggleButton>
+                        <FormControlLabel value="owner_author" control={<Radio size="small"/>} label="Author"
+                                          sx={{mr: 0.5, '& .MuiFormControlLabel-label': {fontSize: '0.8rem'}}}/>
+                        <FormControlLabel value="owner_only" control={<Radio size="small"/>} label="Proxy"
+                                          sx={{mr: 0.5, '& .MuiFormControlLabel-label': {fontSize: '0.8rem'}}}/>
+                        <FormControlLabel value="no" control={<Radio size="small"/>} label="No"
+                                          sx={{mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.8rem'}}}/>
+                    </RadioGroup>
                 </TableCell>
                 <TableCell>
                     {document.title}
                 </TableCell>
                 <TableCell>
                     <ReferenceField source="submitter_id" reference="users" record={document} link="edit">
-                        <UserNameField />
+                        <UserNameField/>
                     </ReferenceField>
                 </TableCell>
                 <TableCell>
-                    <AuthorsField nameFragments={nameFragments} document={document} />
+                    <AuthorsField nameFragments={nameFragments} document={document}/>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+                <TableCell style={{paddingBottom: 0, paddingTop: 0}} colSpan={5}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 1 }}>
+                        <Box sx={{margin: 1}}>
                             <Typography variant="h6" gutterBottom component="div">
                                 Details
                             </Typography>
@@ -373,7 +391,8 @@ const RequestedPaperRow: React.FC<{
                                     <TableRow>
                                         <TableCell><strong>Document ID:</strong></TableCell>
                                         <TableCell>
-                                            <ReferenceField source="id" reference="documents" record={document} link="show">
+                                            <ReferenceField source="id" reference="documents" record={document}
+                                                            link="show">
                                                 <Chip
                                                     id={`owner-user_${userId}-doc_${document.id}`}
                                                     label={ownedPapers.includes(document.id) ? 'Owns' : document.id}
@@ -385,8 +404,9 @@ const RequestedPaperRow: React.FC<{
                                     <TableRow>
                                         <TableCell><strong>Paper ID:</strong></TableCell>
                                         <TableCell>
-                                            <ReferenceField source="id" reference="documents" record={document} link="show">
-                                                <TextField source="paper_id" />
+                                            <ReferenceField source="id" reference="documents" record={document}
+                                                            link="show">
+                                                <TextField source="paper_id"/>
                                             </ReferenceField>
                                         </TableCell>
                                     </TableRow>
@@ -397,7 +417,7 @@ const RequestedPaperRow: React.FC<{
                                     <TableRow>
                                         <TableCell><strong>Owners:</strong></TableCell>
                                         <TableCell>
-                                            <PaperOwnersReadOnlyList document_id={document.id} />
+                                            <PaperOwnersReadOnlyList document_id={document.id}/>
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
@@ -410,17 +430,37 @@ const RequestedPaperRow: React.FC<{
     );
 };
 
-const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflowStatus, nameFragments, documents, authoredDocuments, setSelectedDocuments, ownedPapers}) => {
+const RequestedPaperList: React.FC<RequestedPaperListProps> = ({
+                                                                   userId,
+                                                                   workflowStatus,
+                                                                   nameFragments,
+                                                                   documents,
+                                                                   authoredDocuments,
+                                                                   setSelectedDocuments,
+                                                                   ownedPapers
+                                                               }) => {
     const {register, setValue} = useFormContext();
     register('authored_documents');
-    setValue('authored_documents', authoredDocuments);
+    register('document_ids');
+    const ownerDocIds = [...authoredDocuments.entries()].filter(([_, v]) => v.owner).map(([id]) => id);
+    const authoredDocIds = [...authoredDocuments.entries()].filter(([_, v]) => v.authored).map(([id]) => id);
+    setValue('authored_documents', authoredDocIds);
+    setValue('document_ids', ownerDocIds);
 
-    const docSelectionChange = (doc: DocumentType) => {
-        const newSelection =  authoredDocuments.includes(doc.id) ?
-            authoredDocuments.filter( (id) => id !== doc.id)
-            :
-            authoredDocuments.concat(doc.id);
-        setSelectedDocuments(newSelection);
+    const docSelectionChange = (doc: DocumentType, value: string) => {
+        const newMap = new Map(authoredDocuments);
+        switch (value) {
+            case 'owner_author':
+                newMap.set(doc.id, {owner: true, authored: true});
+                break;
+            case 'owner_only':
+                newMap.set(doc.id, {owner: true, authored: false});
+                break;
+            default:
+                newMap.set(doc.id, {owner: false, authored: false});
+                break;
+        }
+        setSelectedDocuments(newMap);
     }
 
     if (!documents) {
@@ -428,24 +468,23 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
             Requested papers - loading...
         </Typography>)
     }
-    console.log("docSelectionChange ", JSON.stringify(authoredDocuments));
 
     return (
         <>
             <Typography variant={"h6"} m={2}>
                 Requested papers
             </Typography>
-            <Table sx={{ 
-                '& .MuiTableCell-root': { px: "3px", py: "6px" },
-                '& .MuiTableHead-root .MuiTableCell-root': { 
+            <Table sx={{
+                '& .MuiTableCell-root': {px: "3px", py: "6px"},
+                '& .MuiTableHead-root .MuiTableCell-root': {
                     paddingBottom: "0px", // Reduce bottom padding of header cells
                     paddingTop: "4px"     // Optionally reduce top padding too for balance
                 }
             }}>
                 <TableHead>
-                    <TableCell />
+                    <TableCell/>
                     <TableCell>
-                        <Tooltip title={"If this is on, the user is already a owner"}><span>Owner</span></Tooltip>
+                        <Tooltip title={"Set ownership and authorship for each paper"}><span>Owner</span></Tooltip>
                     </TableCell>
                     <TableCell>Title</TableCell>
                     <TableCell>Submitter</TableCell>
@@ -470,14 +509,15 @@ const RequestedPaperList: React.FC<RequestedPaperListProps> = ({userId, workflow
 };
 
 
-const OwnershipRequestToolbar = ({ prevId, nextId, setWorkflowStatus, ok }: {
+const OwnershipRequestToolbar = ({prevId, nextId, setWorkflowStatus, ok, count}: {
     prevId: number | null;
     nextId: number | null;
     setWorkflowStatus: (newStatus: WorkflowStatusType) => void;
     ok: boolean;
+    count: number;
 }) => {
     const navigate = useNavigate();
-    
+
     useEffect(() => {
 
         const handleKeyPress = (event: KeyboardEvent) => {
@@ -488,7 +528,7 @@ const OwnershipRequestToolbar = ({ prevId, nextId, setWorkflowStatus, ok }: {
                     saveButton.click();
                 }
             }
-            
+
             // Previous with Ctrl+Left
             if (event.ctrlKey && event.key === 'ArrowLeft') {
                 const prevButton = document.querySelector('[data-testid="ownership-request-prev-button"]');
@@ -496,7 +536,7 @@ const OwnershipRequestToolbar = ({ prevId, nextId, setWorkflowStatus, ok }: {
                     prevButton.click();
                 }
             }
-            
+
             // Next with Ctrl+Right
             if (event.ctrlKey && event.key === 'ArrowRight') {
                 const nextButton = document.querySelector('[data-testid="ownership-request-next-button"]');
@@ -517,85 +557,87 @@ const OwnershipRequestToolbar = ({ prevId, nextId, setWorkflowStatus, ok }: {
 
     return (
         <Toolbar>
-            {/* Default Save button */}
-            <OwnershipConclusionButton
-                disabled={!ok} nextId={nextId}
-                setWorkflowStatus={setWorkflowStatus}
-                conclusion={"accepted"}
-                buttonLabel={nextId ? `Accept then ${nextId}` : "Accept"}
-                startIcon={<AcceptIcon />}
-                variant="contained"
-            />
             {/* Navigation buttons */}
-            <Stack direction="row" spacing={1} sx={{ ml: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ml: 2}}>
                 <Button
                     data-testid="ownership-request-prev-button"
                     variant="outlined"
-                    startIcon={<ArrowBackIcon />}
+                    startIcon={<ArrowBackIcon/>}
                     onClick={() => navigate(`/ownership_requests/${prevId}`)}
                     disabled={!prevId}
                 >
-                    {prevId ?? ''}
+                    Prev
                 </Button>
                 <Button
                     data-testid="ownership-request-next-button"
                     variant="outlined"
-                    endIcon={<ArrowForwardIcon />}
+                    endIcon={<ArrowForwardIcon/>}
                     onClick={() => navigate(`/ownership_requests/${nextId}`)}
                     disabled={!nextId}
                 >
-                    {nextId ?? ''}
+                    Next
                 </Button>
             </Stack>
-            <Box sx={{ flexGrow: 1 }} />
-
+            <Box sx={{flexGrow: 1}}/>
+            {/* Default Save button */}
             <OwnershipConclusionButton
                 disabled={!ok} nextId={nextId}
                 setWorkflowStatus={setWorkflowStatus}
-                conclusion={"rejected"}
-                buttonLabel={"Reject"}
-                startIcon={<RejectIcon />}
+                conclusion={count === 0 ? "rejected" : "accepted"}
+                buttonLabel={`Save ${count}`}
+                startIcon={<SaveIcon/>}
                 variant="contained"
-                color="error"
+                sx={count === 0 ? {backgroundColor: 'warning.main', '&:hover': {backgroundColor: 'warning.dark'}} : {}}
+                endIcon={nextId ? <ArrowForwardIcon/> : null}
             />
-
         </Toolbar>
     );
 };
 
 
-const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { id: string, nameFragments: string[], ownershipRequest: OwnershipRequestType }) => {
+const OwnershipRequestEditContent = ({id, nameFragments, requester, ownershipRequest}: {
+    id: string,
+    nameFragments: string[],
+    requester: UserModelType,
+    ownershipRequest: OwnershipRequestType
+}) => {
     const runtimeProps = useContext(RuntimeContext);
     const dataProvider = useDataProvider();
     const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatusType>('pending'); // State to hold workflow_status
-/*
-    const handleWorkflowStatusChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-        setWorkflowStatus(event.target.value as any);
-    };
+    /*
+        const handleWorkflowStatusChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+            setWorkflowStatus(event.target.value as any);
+        };
 
- */
+     */
 
     const [documents, setDocuments] = useState<DocumentType[]>([]);
-    const [authoredDocuments, setSelectedDocuments] = useState<DocumentIdType[]>([]);
-    const [isMentioned, setIsMentioned] = useState<boolean>(false);
+    const [authoredDocuments, setAuthoredDocuments] = useState<DocOwnershipJudgementType>(new Map());
 
-/*
-    const [listOptions, setListOptions] = useState<UseListOptions>(
-        {
-            filter: {workflow_status: "pending", current_id: id},
-        }
-    );
-    const {data, isLoading } = useGetList<OwnershipRequestType>("ownership_requests", listOptions);
+    /*
+        const [listOptions, setListOptions] = useState<UseListOptions>(
+            {
+                filter: {workflow_status: "pending", current_id: id},
+            }
+        );
+        const {data, isLoading } = useGetList<OwnershipRequestType>("ownership_requests", listOptions);
+    */
 
- */
     const [navigation, setNavigation] = useState<OwnershipRequestNavi | null>(null);
 
     useEffect(() => {
         const fetchDocuments = async () => {
             console.log('Fetching documents ' + JSON.stringify(ownershipRequest));
+            const mentionedMap: DocOwnershipJudgementType = new Map();
+
             if (ownershipRequest?.document_ids) {
+                /* When a proxy user is requesting the ownership, it can become owner so init as so */
+                ownershipRequest.document_ids.map((doc_id) => {
+                    mentionedMap.set(doc_id, {owner: Boolean(requester.flag_proxy) , authored: false});
+                });
+
                 const documentPromises = ownershipRequest.document_ids.map((doc_id) =>
-                    dataProvider.getOne<DocumentType>('documents', { id: doc_id })
+                    dataProvider.getOne<DocumentType>('documents', {id: doc_id})
                 );
 
                 const results = await Promise.allSettled(documentPromises);
@@ -611,11 +653,12 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                         nameFragments.filter((nf) => doc.authors?.includes(nf)).length > 0
                     );
                     if (mentioned.length > 0) {
-                        setSelectedDocuments(mentioned.map(doc => doc.id));
-                        setIsMentioned(true);
+                        mentioned.forEach(doc => mentionedMap.set(doc.id, {owner: true, authored: true}));
                     }
                 }
             }
+
+            setAuthoredDocuments(mentionedMap);
         };
         fetchDocuments();
     }, [ownershipRequest, dataProvider]);
@@ -629,8 +672,9 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                 const ownershipPromises = documents.map(async (doc) => {
                     const fake_id = `user_${user_id}-doc_${doc.id}`;
                     try {
-                        const response = await dataProvider.getOne<PaperOwnerType>('paper_owners', { id: fake_id });
-                        const data = {...response.data,
+                        const response = await dataProvider.getOne<PaperOwnerType>('paper_owners', {id: fake_id});
+                        const data = {
+                            ...response.data,
                             user_id: user_id,
                             document_id: doc.id,
                         };
@@ -662,19 +706,22 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
     }, [documents, dataProvider]);
 
     useEffect(() => {
-        const validDocs = paperOwners.filter((paperOwner: PaperOwnerType) => paperOwner.valid);
-        const mergedSelection = [...new Set([
-            ...validDocs.map((doc) => doc.document_id),
-            ...authoredDocuments
-        ])];
-
-        setSelectedDocuments(mergedSelection);
+        /* When there is existing ownership, update the status with it */
+        const newMap = new Map(authoredDocuments);
+        paperOwners.forEach((paperOwner) => {
+            if (paperOwner.valid && !newMap.has(paperOwner.document_id)) {
+                newMap.set(paperOwner.document_id, {
+                    owner: true,
+                    authored: paperOwner.flag_author ?? false,
+                });
+            }
+        });
+        setAuthoredDocuments(newMap);
     }, [paperOwners]);
 
-    const selectionChanged = (newSelection: DocumentIdType[]) => {
-        setSelectedDocuments(newSelection);
+    const selectionChanged = (newSelection: DocOwnershipJudgementType) => {
+        setAuthoredDocuments(newSelection);
     }
-
 
     useEffect(() => {
         async function fetchNavigation() {
@@ -686,8 +733,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                         setNavigation(navi);
                         console.log("navi: " + JSON.stringify(navi))
                     }
-                }
-                catch (error) {
+                } catch (error) {
                     console.log(error);
                 }
             }
@@ -704,14 +750,20 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
 
     const ok_to_save = workflowStatus === 'pending';
     const ownedPapers = paperOwners.filter((paper) => paper.valid).map((paper) => paper.document_id);
+    /* While loading the page, count is 0, but it makes the "save" button to become warning color and not very pleasing.
+    Since the actual count is not known yet, set it to 1 for now. When the actual count is known, it reflects the correct status.
+    * */
+    const goodCount = authoredDocuments.size > 0 ? [...authoredDocuments.values()].filter(v => v.owner).length : 1;
 
     return (
         <Edit title={false} redirect={false} component={"div"}>
-            <ConsoleTitle><OwnershipRequestTitle /></ConsoleTitle>
+            <ConsoleTitle><OwnershipRequestTitle/></ConsoleTitle>
 
-            <Paper >
-            <SimpleForm toolbar={<OwnershipRequestToolbar
-                prevId={prevId} nextId={nextId} ok={ok_to_save} setWorkflowStatus={setWorkflowStatus} />}>
+            <Paper>
+                <SimpleForm toolbar={<OwnershipRequestToolbar
+                    count={goodCount}
+                    prevId={prevId} nextId={nextId} ok={ok_to_save}
+                    setWorkflowStatus={setWorkflowStatus}/>}>
                     <Table>
                         <TableHead>
                             <TableCell>User</TableCell>
@@ -722,21 +774,21 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                         <TableRow>
                             <TableCell>
                                 <ReferenceField source="user_id" reference="users"
-                                                link={(record, reference) => `/${reference}/${record.id}`} >
-                                    <UserNameField />
+                                                link={(record, reference) => `/${reference}/${record.id}`}>
+                                    <UserNameField/>
                                     <BooleanField source={"flag_suspect"} FalseIcon={null} TrueIcon={SuspectIcon}/>
                                 </ReferenceField>
                             </TableCell>
                             <TableCell>
                                 <ReferenceField source="user_id" reference="users"
-                                                link={(record, reference) => `/${reference}/${record.id}`} >
+                                                link={(record, reference) => `/${reference}/${record.id}`}>
                                     <UserStatusField source={"id"} variant={"labeled"}/>
                                 </ReferenceField>
                             </TableCell>
 
                             <TableCell>
                                 <ReferenceField source="user_id" reference="users">
-                                    <EmailField source={"email"} />
+                                    <EmailField source={"email"}/>
                                 </ReferenceField>
                             </TableCell>
                             <TableCell>
@@ -744,7 +796,7 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                                     {"Remote host: "}
                                     <TextField source={"remote_host"} defaultValue={"Unknown"}/>
                                     {"Date: "}
-                                    <ISODateField source={"date"} />
+                                    <ISODateField source={"date"}/>
                                 </ReferenceField>
 
                             </TableCell>
@@ -758,9 +810,9 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
                         setSelectedDocuments={selectionChanged}
                         ownedPapers={ownedPapers}
                     />
-                <input type="hidden" name="workflow_status" value={workflowStatus} />
+                    <input type="hidden" name="workflow_status" value={workflowStatus}/>
 
-            </SimpleForm>
+                </SimpleForm>
             </Paper>
 
             <PaperOwnerList nameFragments={nameFragments}/>
@@ -769,12 +821,20 @@ const OwnershipRequestEditContent = ({ id, nameFragments, ownershipRequest }: { 
 }
 
 export const OwnershipRequestEdit = () => {
-    const { id } = useParams();
+    const {id} = useParams();
 
-    const { data: this_request, isLoading } = useGetOne<OwnershipRequestType>('ownership_requests', { id: Number(id || "0") }, { enabled: !!id });
-    const { data: this_user, isLoading: isUserLoading } = useGetOne('users', {
+    const {
+        data: this_request,
+        isLoading
+    } = useGetOne<OwnershipRequestType>('ownership_requests', {id: Number(id || "0")}, {enabled: !!id});
+    const {
+        data: this_user,
+        isLoading: isUserLoading
+    } = useGetOne('users', {
         id: this_request?.user_id,
-    }, { enabled: !!this_request?.user_id });
+    }, {
+        enabled: !!this_request?.user_id}
+    );
 
     const nameFragments = !isUserLoading && this_user
         ? this_user.first_name.split(' ').concat(this_user.last_name.split(' '))
@@ -784,50 +844,9 @@ export const OwnershipRequestEdit = () => {
 
     return (
         <Box ml={"10%"} width={"80%"} maxWidth={"xl"}>
-            <OwnershipRequestEditContent key={id} id={id} nameFragments={nameFragments} ownershipRequest={this_request} />
+            <OwnershipRequestEditContent key={id} id={id} nameFragments={nameFragments}
+                                         requester={this_user}
+                                         ownershipRequest={this_request}/>
         </Box>
     );
-}
-
-export const OwnershipRequestCreate = () => (
-    <Create>
-        <SimpleForm>
-            <ReferenceInput source="ownershipRequestname" reference="ownershipRequests" />
-            <TextInput source="first_name" />
-            <TextInput source="last_name" />
-            <TextInput source="email" />
-        </SimpleForm>
-    </Create>
-);
-
-
-export const OwnershipRequestShow = () => {
-    // const record = useRecordContext();
-    return (
-        <Show>
-        <Card>
-            <CardHeader title={<>
-            {"Ownership Request: "}
-                <TextField source="id"/>
-            </>}
-            />
-            <CardContent>
-                <ReferenceField source="endorsement_request_id" reference="endorsement_requests"/>
-                <TextField source="workflow_status"/>
-                <Box>
-                    <TextField source="id"/>
-                    <ReferenceField source="user_id" reference="users"
-                                    link={(record, reference) => `/${reference}/${record.id}`}>
-                        <TextField source={"last_name"}/>
-                        {", "}
-                        <TextField source={"first_name"}/>
-                    </ReferenceField>
-                    <ISODateField source="date"/>
-                </Box>
-                <ReferenceArrayField source="document_ids" reference="documents">
-                    <TextField source="id"/>
-                </ReferenceArrayField>
-            </CardContent>
-        </Card>
-    </Show>)
 }
