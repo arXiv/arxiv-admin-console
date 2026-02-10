@@ -10,26 +10,43 @@ The API backend tests live in `api_arxiv_admin/tests/`. They use Docker to run a
 - Python 3.12 (may be updated yearly!)
 - Docker and Docker Compose
 - `mysql` client CLI (for some health-check helpers)
+- 1password CLI
 
 ### 1. Bootstrap the Python environment
 
 From the `api_arxiv_admin/` directory:
 
 ```bash
-cd api_arxiv_admin
+cd ~/arxiv/arxiv-keycloak
 ./config.sh
 make bootstrap
-```
+make docker-image
+make up
 
-This creates a Python 3.12 venv and installs all dependencies (including dev dependencies) via Poetry.
-
-If you already have the venv, you can update dependencies with:
-
-```bash
 cd api_arxiv_admin
-source venv/bin/activate
-poetry install
+ln -s ../arxiv-keycloak/.env .env
+make bootstrap
+make docker-image
+make up
 ```
+
+After that, one should be able to log into
+
+    http://localhost.arxiv.org:5100/admin-console/
+
+with user/pass from 1password entry `localhost.arxiv.org for tapir test`
+
+arxiv-keycloak provides not only the auth backend but it has nginx that
+reverse proxies the service and UI.
+
+## .env
+
+./config.sh in arxiv-keycloak creates the file. Use it by symlink to make life easier.
+You may create your own .env. When you do so, make sure two .env files align.
+
+This is used for building Docker images as well as running Docker containers.
+docker compose takes this env file.
+
 
 ### 2. Test configurations
 
@@ -95,3 +112,12 @@ See the fixtures in `./api_arxiv_admin/tests/conftest.py`
 | `sqlite_session` | module | Direct SQLAlchemy database session using SQLite |
 | `admin_api_sqlite_client` | module | FastAPI TestClient using SQLite (no Docker needed) |
 
+
+## Development
+
+Once everything is running, you stop a docker and run your development server.
+
+For example, if you want to work on UI, you can `docker kill admin-ui` and then
+run the admin UI dev server. Same goes for admin-api.
+
+If you need the env vars, copy&paste `.env` file.

@@ -108,7 +108,14 @@ sh: stop
 
 
 /usr/bin/python3.12:
-	sudo apt install -y python3.12
+	sudo apt-get update
+	sudo apt install -y python3.12 
+
+
+/usr/include/mysql/mysql.h:
+	sudo apt-get update
+	sudo apt install pkg-config python3-dev libmysqlclient-dev build-essential
+
 
 /usr/lib/python3.12/ensurepip/__init__.py:
 	sudo apt install -y python3.12-venv
@@ -122,10 +129,10 @@ venv:
 	. venv/bin/activate && pip install --upgrade pip
 
 
-venv/bin/poetry: /usr/bin/python3.12 /usr/lib/python3.12/ensurepip/__init__.py venv
+venv/bin/poetry: /usr/bin/python3.12 /usr/lib/python3.12/ensurepip/__init__.py venv  /usr/include/mysql/mysql.h
 	. venv/bin/activate && pip install --upgrade pip && pip install poetry && poetry lock
 
-venv/lib/python3.12/site-packages/fastapi: venv/bin/poetry
+venv/lib/python3.12/site-packages/fastapi: venv/bin/poetry 
 	. venv/bin/activate && poetry install
 
 /usr/bin/docker:
