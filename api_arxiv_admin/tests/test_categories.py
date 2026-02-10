@@ -256,10 +256,10 @@ def test_create_category_not_owner(admin_api_sqlite_client: TestClient, admin_ap
     """Admin user without owner role gets 403."""
     response = admin_api_sqlite_client.post("/v1/categories/", headers=admin_api_admin_user_headers, json={
         "archive": "test-arch",
-        "subject_class": "XX",
+        "subject_class": "XC",
         "definitive": True,
         "active": True,
-        "category_name": "Test Category",
+        "category_name": "Extraterrestrial Computing",
         "endorse_all": "d",
         "endorse_email": "d",
         "papers_to_endorse": 0,
@@ -269,10 +269,10 @@ def test_create_category_not_owner(admin_api_sqlite_client: TestClient, admin_ap
 
 
 def test_create_category_owner(admin_api_sqlite_client: TestClient, admin_api_owner_headers: dict) -> None:
-    """Admin user without owner role gets 403."""
+    """Owner role can create a new category."""
     response = admin_api_sqlite_client.post("/v1/categories/", headers=admin_api_owner_headers, json={
         "archive": "cs",
-        "subject_class": "xc",
+        "subject_class": "XC",
         "definitive": True,
         "active": True,
         "category_name": "Extraterrestrial Computing",
@@ -339,7 +339,9 @@ def test_update_delete_category_owner(admin_api_sqlite_client: TestClient,
                                       admin_api_owner_headers: dict,
                                       sqlite_session
                                       ) -> None:
-    """Admin user without owner role gets 403."""
+    """Owner can create/update/delete a category.
+    See the audit log created for each step
+    """
     with sqlite_session() as session:
         audit_count_0 = session.query(TapirAdminAudit.entry_id).count()
         last_audit_entry = session.query(TapirAdminAudit.entry_id).order_by(TapirAdminAudit.entry_id.desc()).first()[0]
