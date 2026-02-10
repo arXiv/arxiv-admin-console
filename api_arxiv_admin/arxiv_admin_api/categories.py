@@ -197,7 +197,6 @@ async def update_category(
             session,
             AdminAudit_Category(
                 current_user.user_id,
-                None,
                 current_user.tapir_session_id,
                 data={"update": changes},
                 remote_ip=remote_ip,
@@ -211,7 +210,7 @@ async def update_category(
                 Category.subject_class == subject_class)).one_or_none())
 
 
-@router.post('/')
+@router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_category(
         request: Request,
         remote_ip: Optional[str] = Depends(get_client_host),
@@ -227,13 +226,13 @@ async def create_category(
 
     item = Category(**body)
     session.add(item)
+    session.flush()
     session.refresh(item)
 
     admin_audit(
         session,
         AdminAudit_Category(
             current_user.user_id,
-            None,
             current_user.tapir_session_id,
             data={"create": body},
             remote_ip=remote_ip,
@@ -243,12 +242,19 @@ async def create_category(
     )
 
     session.commit()
-    return CategoryModel.model_validate(item)
+    new_category = CategoryModel.base_query(session).filter(Category.archive == item.archive, Category.subject_class == item.subject_class).one_or_none()
+    if new_category is None:
+        logger.error(f"Failed to create category {item.archive}.{item.subject_class}", extra={"user_id": current_user.user_id})
+        raise HTTPException(status_code=500, detail="Failed to create category")
+    return CategoryModel.model_validate(new_category)
 
 
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
         id: str,
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> Response:
 
@@ -263,6 +269,19 @@ async def delete_category(
     if item is None:
         raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
     session.delete(item)
+
+    admin_audit(
+        session,
+        AdminAudit_Category(
+            current_user.user_id,
+            current_user.tapir_session_id,
+            data={"delete": id},
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+        )
+    )
+
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

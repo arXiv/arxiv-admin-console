@@ -580,7 +580,7 @@ rows = 21611
 
 [`arXiv`.`tapir_sessions`]
 real_table_name=tapir_sessions
-rows = 22488
+rows = 22489
 
 [`arXiv`.`tapir_string_variables`]
 real_table_name=tapir_string_variables

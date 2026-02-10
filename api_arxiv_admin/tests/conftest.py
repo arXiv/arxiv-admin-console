@@ -322,7 +322,7 @@ def _setup_docker_compose(test_env, compose_yaml: Path, other_compose_yaml: Path
                 check=False
             )
             if result.returncode == 0:
-                logging.info("MySQL is ready")
+                logging.info("Backend database is ready")
                 break
             sleep(1)
         else:
@@ -491,6 +491,34 @@ def cookie_monster_claims(test_env):
 @pytest.fixture(scope="module")
 def admin_api_admin_user_headers(test_env, cookie_monster_claims):
     token = cookie_monster_claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    return headers
+
+
+@pytest.fixture(scope="module")
+def oscar_the_grouch_claims(test_env):
+    oscar = ArxivUserClaimsModel(
+        sub = "1129055",
+        exp = 253402300799,
+        iat = 0,
+        sid = "23276930",
+        ts_id = 23276930,
+        roles = ["Administrator", "CanLock", "Approved", "Public user", "Owner"],
+        email_verified = True,
+        email = "<EMAIL>",
+        first_name = "Oscar",
+        last_name = "Grouch",
+        username = "ogrouch",
+    )
+    return ArxivUserClaims(oscar)
+
+
+@pytest.fixture(scope="module")
+def admin_api_owner_headers(test_env, oscar_the_grouch_claims):
+    token = oscar_the_grouch_claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
