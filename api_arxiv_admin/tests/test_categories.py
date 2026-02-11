@@ -1,6 +1,6 @@
 import pytest
-from arxiv.db.models import Session, TapirAdminAudit
-from arxiv.taxonomy.category import Category
+from arxiv.db.models import TapirAdminAudit, Category
+from sqlalchemy.sql import and_
 from fastapi.testclient import TestClient
 
 from arxiv_admin_api.categories import CategoryModel
@@ -345,19 +345,21 @@ def test_update_delete_category_owner(admin_api_sqlite_client: TestClient,
     with sqlite_session() as session:
         audit_count_0 = session.query(TapirAdminAudit.entry_id).count()
         last_audit_entry = session.query(TapirAdminAudit.entry_id).order_by(TapirAdminAudit.entry_id.desc()).first()[0]
+        cs_xc_p = session.query(Category).filter(and_(Category.archive == "cs", Category.subject_class == "XC")).count() == 1
 
-    response = admin_api_sqlite_client.post("/v1/categories/", headers=admin_api_owner_headers, json={
-        "archive": "cs",
-        "subject_class": "XC",
-        "definitive": True,
-        "active": True,
-        "category_name": "Extraterrestrial Computing",
-        "endorse_all": "y",
-        "endorse_email": "y",
-        "papers_to_endorse": 0,
-        "endorsement_domain": "cs",
-    })
-    assert response.status_code == 201
+    if not cs_xc_p:
+        response = admin_api_sqlite_client.post("/v1/categories/", headers=admin_api_owner_headers, json={
+            "archive": "cs",
+            "subject_class": "XC",
+            "definitive": True,
+            "active": True,
+            "category_name": "Extraterrestrial Computing",
+            "endorse_all": "y",
+            "endorse_email": "y",
+            "papers_to_endorse": 0,
+            "endorsement_domain": "cs",
+        })
+        assert response.status_code == 201
 
     with sqlite_session() as session:
         audit_count_1 = session.query(TapirAdminAudit.entry_id).count()

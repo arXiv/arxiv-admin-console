@@ -101,8 +101,10 @@ def create_app(*args, **kwargs) -> FastAPI:
     setup_logger()
 
     # API root path (excluding the host)
-    ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if os.environ.get(
-        'TESTING') is None else ''
+    TESTING = os.environ.get('TESTING')
+    ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if not TESTING else ''
+    logging.info(f"TESTING: {TESTING!r}")
+    logging.info(f"ADMIN_API_ROOT_PATH: {ADMIN_API_ROOT_PATH}")
 
     # Admin app URL
     #
