@@ -1,22 +1,21 @@
 """arXiv endorsement routes."""
 import re
 from datetime import timedelta, datetime, date, UTC
-from sqlite3 import IntegrityError
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, ApiToken, get_authn_or_none
 from arxiv_bizlogic.gcp_helper import verify_gcp_oidc_token
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
-from pip._internal.models import candidate
 
 from sqlalchemy import case, and_  # select, update, func, Select, distinct, exists, and_, or_
-from sqlalchemy.orm import Session #, joinedload
+from sqlalchemy.orm import Session, InstrumentedAttribute  # , joinedload
 from google.cloud import storage
 from pathlib import Path
 from google.api_core.exceptions import Forbidden as GCPForbidden
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import EndorsementRequest, Demographic, TapirNickname, TapirUser, Category
 
@@ -40,8 +39,7 @@ endorsers_router = APIRouter(prefix="/qualified_endorsers")
 
 
 class EndorsementRequestModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: Optional[int] = None
     endorsee_id: Optional[int] = None
@@ -93,8 +91,8 @@ async def list_endorsement_requests(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of endorsement request IDs to filter by"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
@@ -317,10 +315,7 @@ async def create_endorsement_request(
         body: EndorsementRequestRequestModel,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> EndorsementRequestModel:
-    endorsee_id = body.endorsee_id
-    if endorsee_id is None:
-        endorsee_id = current_user.user_id
-
+    endorsee_id = current_user.user_id if body.endorsee_id is None else str(body.endorsee_id)
     if endorsee_id != current_user.user_id and (not current_user.is_admin):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to create endorsement for other users.")
 
@@ -556,10 +551,10 @@ async def get_cached_eligible_endorsers_for_the_category(
         category: str,
         request: Request,
         response: Response,
-        _sort: Optional[str] = Query("id", description="sort by"),
-        _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _sort: str = Query("id", description="sort by"),
+        _order: str = Query("ASC", description="sort order"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidate]:
     """
@@ -602,10 +597,10 @@ async def get_cached_endorser_candidates(
         request: Request,
         response: Response,
         id: Optional[List[int] | int] = Query(None, description="List of user IDs to filter by"),
-        _sort: Optional[str] = Query("id", description="sort by"),
-        _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _sort: str = Query("id", description="sort by"),
+        _order: str = Query("ASC", description="sort order"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidate]:
     """
@@ -657,10 +652,10 @@ async def get_cached_endorser_candidate_categories(
         request: Request,
         response: Response,
         id: Optional[List[int] | int] = Query(None, description="List of user IDs to filter by"),
-        _sort: Optional[str] = Query("id", description="sort by"),
-        _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _sort: str = Query("id", description="sort by"),
+        _order: str = Query("ASC", description="sort order"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
 ) -> List[EndorsementCandidateCategories]:
     """
@@ -678,9 +673,10 @@ async def get_cached_endorser_candidate_categories(
     if id is not None and (not isinstance(id, list)):
         id = [id]
 
+
     candidates = [
         EndorsementCandidateCategories(id=user_id, data=endorsing_db.endorsing_db_query_user(engine, user_id)) for user_id in id
-    ]
+    ] if id is not None else []
 
     # Apply sorting
     reverse_order = _order.upper() == "DESC"
@@ -696,13 +692,13 @@ async def get_cached_endorser_candidate_categories(
 
 
 @endorsers_router.get('/')
-async def get_cached_eligible_endorsers_for_the_category(
+async def list_cached_eligible_endorsers(
         request: Request,
         response: Response,
-        _sort: Optional[str] = Query("user_id", description="sort by"),
-        _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _sort: str = Query("user_id", description="sort by"),
+        _order: str = Query("ASC", description="sort order"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         category: Optional[List[str]] = Query(None, description="Category to filter by"),
         minimum_count: Optional[int] = Query(None, description="Minimum document count"),
         authn: ArxivUserClaims | ApiToken = Depends(get_authn),
@@ -720,8 +716,7 @@ async def get_cached_eligible_endorsers_for_the_category(
 
     # Query specific category from database
     with Session(engine) as session:
-        order_columns = []
-
+        order_columns: list[InstrumentedAttribute[str|int]] = []
         if _sort:
             if _sort == "id":
                 order_columns.append(EndorsingCandidateModel.id)

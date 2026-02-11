@@ -22,7 +22,7 @@ from sqlalchemy import literal_column, func, and_  # , update, case, Select, dis
 
 from sqlalchemy.orm import Session  # , joinedload
 
-from pydantic import BaseModel  # , validator
+from pydantic import BaseModel, ConfigDict  # , validator
 from arxiv.base import logging
 from arxiv.db.models import PaperOwner, PaperPw, Document, DocumentCategory
 
@@ -39,8 +39,7 @@ router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/paper_owners")
 
 
 class OwnershipModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     document_id: int
@@ -118,8 +117,8 @@ async def list_ownerships(
         response: Response,
         _sort: Optional[str] = Query("date", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
@@ -284,10 +283,10 @@ async def list_ownerships(
 
     if with_document:
         doc_ids = [doc.document_id for doc in result]
-        docs = {d.id: d for d in [DocumentModel.model_validate(doc).populate_remaining_fields(session) for doc in
+        docs_map = {d.id: d for d in [DocumentModel.model_validate(doc).populate_remaining_fields(session) for doc in
                                   DocumentModel.base_select(session).filter(Document.document_id.in_(doc_ids)).all()]}
         for onwnership in result:
-            onwnership.document = docs.get(onwnership.document_id)
+            onwnership.document = docs_map.get(onwnership.document_id)
     return result
 
 
@@ -297,8 +296,8 @@ async def list_ownerships_for_user(
         user_id: int,
         _sort: Optional[str] = Query("date", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
@@ -395,8 +394,7 @@ class PaperPwModel(BaseModel):
     id: int
     password_enc: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(session: Session):
@@ -417,16 +415,16 @@ async def _get_paper_pw(id: str,
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     if not current_user.is_admin:
-        owner = session.query(Document).filter(and_(
+        is_submitter = session.query(Document).filter(and_(
             Document.document_id == id,
             Document.submitter_id == current_user.user_id
         )).one_or_none()
-        if not owner:
-            owner = session.query(PaperOwner).filter(and_(
+        if not is_submitter:
+            paper_owners = session.query(PaperOwner).filter(and_(
                 PaperOwner.document_id == id,
                 PaperOwner.user_id == current_user.user_id)).all()
-        if not owner:
-            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not paper owner")
+            if not paper_owners:
+                raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not paper owner")
 
     item = PaperPwModel.base_select(session).filter(PaperPw.document_id == id).one_or_none()
     if not item:
@@ -446,8 +444,8 @@ async def list_paper_pw(
         response: Response,
         _sort: Optional[str] = Query("date", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of paper owner"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)
@@ -476,13 +474,16 @@ async def get_paper_pw(id: str,
     
     try:
         user_id, doc_id = to_ids(id)
-    except Exception:
-        raise HTTPException(status=http_status.HTTP_400_BAD_REQUEST, detail=f"{id} is malformed.")
+    except Exception as exc:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"{id} is malformed.") from exc
+
+    if doc_id is None:
+        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"{id} is malformed.")
 
     if not current_user.is_admin and str(current_user.user_id) != str(user_id):
-        raise HTTPException(status=http_status.HTTP_403_FORBIDDEN, detail=f"You are permitted for your own.")
-        
-    return await _get_paper_pw(doc_id, current_user, session)
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="You are permitted for your own.")
+
+    return await _get_paper_pw(str(doc_id), current_user, session)
 
 
 @paper_pw_router.get('/paper/{arxiv_id:str}')
@@ -492,18 +493,18 @@ async def get_paper_pw_from_arxiv_id(arxiv_id: str,
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
     if not doc:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper not found")
-    return await _get_paper_pw(doc.document_id, current_user, session)
+    return await _get_paper_pw(str(doc.document_id), current_user, session)
 
 
 @paper_pw_router.get('/paper/{category:str}/{subject_class:str}')
-async def get_paper_pw_from_arxiv_id(category: str, subject_class: str,
+async def get_paper_pw_from_legacy_arxiv_id(category: str, subject_class: str,
                                      current_user: ArxivUserClaims = Depends(get_authn_user),
                                      session: Session = Depends(get_db)) -> PaperPwModel:
     arxiv_id = f"{category}/{subject_class}"
     doc: Document | None = session.query(Document).filter(Document.paper_id == arxiv_id).one_or_none()
     if not doc:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Paper not found")
-    return await _get_paper_pw(doc.document_id, current_user, session)
+    return await _get_paper_pw(str(doc.document_id), current_user, session)
 
 
 @router.post('/')
@@ -593,15 +594,19 @@ def register_paper_owner(
     existing = session.query(PaperOwner).filter(PaperOwner.user_id == body.user_id,
                                                 PaperOwner.document_id == document_id).one_or_none()
     if existing:
+        username = user.username if user else body.user_id
         raise HTTPException(status_code=http_status.HTTP_409_CONFLICT,
-                            detail=f"You, {user.username} have the ownership of '{body.paper_id}'.")
+                            detail=f"You, {username} have the ownership of '{body.paper_id}'.")
+
+    if current_user.user_id is None:
+        raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
 
     paper_owner = PaperOwner(
         user_id=int(body.user_id),
         document_id=document_id,
         added_by=int(current_user.user_id),
-        remote_addr=remote_addr,
-        remote_host=remote_host,
+        remote_addr=remote_addr or "",
+        remote_host=remote_host or "",
         valid=True,
         flag_author=body.is_author,
         flag_auto=1 if is_auto else 0,
@@ -615,7 +620,7 @@ def register_paper_owner(
         admin_audit(
             session,
             AdminAudit_AddPaperOwner(
-                str(current_user.user_id), str(body.uesr_id),
+                str(current_user.user_id), str(body.user_id),
                 str(current_user.tapir_session_id),
                 str(paper.document_id),
                 remote_ip=remote_addr, remote_hostname=remote_host, tracking_cookie=tracking_cookie))
@@ -695,9 +700,9 @@ async def update_authorship(
             raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN,
                                 detail="Only admin can create ownership/authorship records.")
 
-    timestamp = datetime.fromisoformat(body.timestamp) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
+    timestamp: int = datetime_to_epoch(datetime.fromisoformat(body.timestamp), datetime.now(UTC)) if body.timestamp else datetime_to_epoch(None, datetime.now(UTC))
 
-    existing_docs: Dict[str, type[PaperOwner]] = {}
+    existing_docs: Dict[str, PaperOwner] = {}
     for doc__list in [body.not_authored, body.authored]:
         for po_primary_key in doc__list:
             uid, did = to_ids(po_primary_key)
@@ -719,6 +724,9 @@ async def update_authorship(
             continue
         for po_primary_key in doc__list:
             uid, did = to_ids(po_primary_key)
+            if uid is None or did is None:
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Invalid id {po_primary_key}")
             auto = 1 if body.auto else 0
             valid = 1 if body.valid or body.valid is None else 0
             valid_changed = False
@@ -737,13 +745,16 @@ async def update_authorship(
                 if current_user.tapir_session_id is None:
                     raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="There is no Tapir session ID")
 
+                if current_user.user_id is None:
+                    raise HTTPException(status_code=http_status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+
                 new_ownership = PaperOwner(
                     document_id=did,
-                    user_id=int(uid),
+                    user_id=uid,
                     date=timestamp,
                     added_by=int(current_user.user_id),
-                    remote_addr=remote_addr,
-                    remote_host=remote_host,
+                    remote_addr=remote_addr or "",
+                    remote_host=remote_host or "",
                     tracking_cookie=tracking_cookie,
                     valid=valid,
                     flag_author=flag,
@@ -874,11 +885,12 @@ def pwc_link(request: Request,
     if document is None:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
 
+    client_host = request.client.host if request.client else "unknown"
     assertion = {
         "arxiv_id": document.paper_id,
         "person_id": person_id,
         "__timeout__": int(time.time()) + 600,
-        "__user_ip__": request.client.host
+        "__user_ip__": client_host
     }
     json_encoded = json.dumps(assertion, separators=(",", ":"))
     b64_assertion = base64.urlsafe_b64encode(json_encoded.encode()).decode().rstrip("=")
@@ -942,7 +954,7 @@ async def bulk_upload_ownership_request(
         tracking_cookie: Optional[str] = Depends(get_tracking_cookie),
         session: Session = Depends(get_db)) -> PaperOwnershipUpdateRequest:
 
-    user = UserModel.one_user(session, user_id)
+    user = UserModel.one_user(session, str(user_id))
     if user is None:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST,
                            detail="Invalid user ID")

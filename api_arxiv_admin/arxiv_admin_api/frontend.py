@@ -21,7 +21,7 @@ async def serve_react_app(full_path: str):
     return FileResponse("frontend/build/index.html")
 
 @router.get("/static/{full_path:path}")
-async def serve_react_app(full_path: str):
+async def serve_static_assets(full_path: str):
     if full_path and Path(f"frontend/build/static/{full_path}").exists():
         return FileResponse(f"frontend/build/static/{full_path}")
     return FileResponse("frontend/build/index.html")

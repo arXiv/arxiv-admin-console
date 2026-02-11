@@ -3,11 +3,12 @@ arXiv author ID of user
 """
 from datetime import datetime
 
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import AuthorIds
@@ -25,11 +26,10 @@ class AuthorIDModel(BaseModel):
     author_id: Optional[str]
     updated: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
-    def base_query(session: Session) -> Query:
+    def base_query(session: Session) -> sqlalchemy.orm.Query:
         """
         Returns a basic query for author IDs.
         """
@@ -44,8 +44,8 @@ async def list_membership_institutions(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="User ID"),
         db: Session = Depends(get_db)
     ) -> List[AuthorIDModel]:
@@ -77,7 +77,7 @@ async def list_membership_institutions(
 
 @router.get('/{id:int}')
 async def membership_institution_data(id: int, db: Session = Depends(get_db)) -> AuthorIDModel:
-    item = AuthorIDModel.base_select(db).filter(AuthorIds.user_id == id).one_or_none()
+    item = AuthorIDModel.base_query(db).filter(AuthorIds.user_id == id).one_or_none()
     if item:
         return AuthorIDModel.model_validate(item)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

@@ -5,9 +5,9 @@ from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 from sqlalchemy.exc import IntegrityError
-from pydantic import BaseModel, field_validator, field_serializer
+from pydantic import BaseModel, field_validator, field_serializer, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import EndorsementDomain
@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/endorsement_domains")
 
 class EndorsementDomainModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str #  endorsement_domain: str # mapped_column(String(32), primary_key=True, server_default=FetchedValue())
     endorse_all: bool # YesNoEnum # Mapped[Literal["y", "n"]] = mapped_column(Enum("y", "n"), nullable=False, server_default=FetchedValue())
@@ -39,7 +38,7 @@ class EndorsementDomainModel(BaseModel):
 
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> OrmQuery:
         return db.query(
             EndorsementDomain.endorsement_domain.label("id"),
             EndorsementDomain.endorse_all,
@@ -55,8 +54,8 @@ async def list_endorsement_domains(
         response: Response,
         _sort: Optional[str] = Query("endorsement_domain", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         name: Optional[str] = Query(None),
         id: Optional[List[str]] = Query(None),
         db: Session = Depends(get_db)
@@ -164,6 +163,8 @@ async def update_endorsement_domain(
     ))
 
     mint = EndorsementDomainModel.base_select(session).filter(EndorsementDomain.endorsement_domain == id).one_or_none()
+    if mint is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement Domain '{id}' not found'")
     return EndorsementDomainModel.model_validate(mint._asdict())
 
 
@@ -194,7 +195,9 @@ async def create_endorsement_domain(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Endorsement Domain '{dao.id}' already exists")
 
     mint = EndorsementDomainModel.base_select(session).filter(EndorsementDomain.endorsement_domain == item.endorsement_domain).one_or_none()
-    mint_model = EndorsementDomainModel.model_validate(mint._asdict())
+    if mint is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Endorsement Domain '{item.endorsement_domain}' not found")
+    mint_model = EndorsementDomainModel.model_validate(mint)
 
     audit_data = [
         AuditChangeData(name=key, before="", after=value) for key, value in mint_model.model_dump(mode="json", exclude_unset=True, exclude_none=True).items()

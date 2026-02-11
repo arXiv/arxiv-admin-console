@@ -6,8 +6,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from sqlalchemy.orm import Session, Query as OrmQuery
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import OrcidIds
@@ -26,11 +26,10 @@ class OrcidIDModel(BaseModel):
     authenticated: Optional[bool]
     updated: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
-    def base_query(session: Session) -> Query:
+    def base_query(session: Session) -> OrmQuery:
         """
         Returns a basic query for ORCID IDs.
         """
@@ -46,8 +45,8 @@ async def list_membership_institutions(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="User ID"),
         db: Session = Depends(get_db)
     ) -> List[OrcidIDModel]:
@@ -81,7 +80,7 @@ async def list_membership_institutions(
 
 @router.get('/{id:int}')
 async def membership_institution_data(id: int, db: Session = Depends(get_db)) -> OrcidIDModel:
-    item = OrcidIDModel.base_select(db).filter(OrcidIds.user_id == id).one_or_none()
+    item = OrcidIDModel.base_query(db).filter(OrcidIds.user_id == id).one_or_none()
     if item:
         return OrcidIDModel.model_validate(item)
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

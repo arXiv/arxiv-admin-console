@@ -8,7 +8,7 @@ from arxiv.document.version import SOURCE_FORMAT
 from sqlalchemy import LargeBinary, cast
 
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime, date, timedelta, timezone
 # from .models import CrossControlModel
 import re
@@ -57,8 +57,7 @@ class MetadataModel(BaseModel):
     is_current: Optional[int] = None  # Mapped[Optional[int]] = mapped_column(Integer, server_default=FetchedValue())
     is_withdrawn: bool  # Mapped[int] = mapped_column(Integer, nullable=False, server_default=FetchedValue())
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(db: Session):
@@ -98,8 +97,8 @@ async def list_metadatas(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of metadata IDs to filter by"),
         preset: Optional[str] = Query(None),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),

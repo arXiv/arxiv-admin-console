@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, R
 from typing import Optional, List
 
 from sqlalchemy import cast, LargeBinary, update, func
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, field_validator
+from sqlalchemy.orm import Session, Query as OrmQuery
+from pydantic import BaseModel, field_validator, ConfigDict
 from enum import IntEnum
 
 from arxiv.base import logging
@@ -34,8 +34,7 @@ class WorkflowStatus(IntEnum):
     REJECTED = 3
 
 class EmailTemplateModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     short_name: str
@@ -50,7 +49,7 @@ class EmailTemplateModel(BaseModel):
     flag_system: bool
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> OrmQuery:
         return db.query(
             TapirEmailTemplate.template_id.label("id"),
             TapirEmailTemplate.short_name,
@@ -107,8 +106,8 @@ async def list_templates(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[int|List[int]] = Query(None, description="Filter by template id"),
         short_name: Optional[str] = Query(None),
         long_name: Optional[str] = Query(None),
@@ -186,7 +185,7 @@ async def update_template(request: Request,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Template '{id}' not found'")
 
     body["updated_date"] = datetime.datetime.now(tz=datetime.timezone.utc)
-    body["updated_by"] = int(current_user.user_id)
+    body["updated_by"] = int(current_user.user_id) if current_user.user_id is not None else 0
     updating_fields={"short_name", "long_name", "data", "update_date", "updated_by"}
 
     changed = False
@@ -382,14 +381,14 @@ def _send_template_message(
             detail=f"Failed to send {mode_str} email: {str(e)}"
         )
 
-    return {
+    return JSONResponse({
         "message_id": message_id,
         "subject": subject,
         "recipient": recipient,
         "template_id": id,
         "test_mode": test_mode,
         "rendered_body": rendered_body if test_mode else None  # Only return body in test mode
-    }
+    })
 
 
 @router.post('/{id:int}/send')

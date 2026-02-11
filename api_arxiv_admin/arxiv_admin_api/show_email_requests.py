@@ -4,7 +4,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session, aliased
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from enum import IntEnum
 
 from arxiv.base import logging
@@ -19,8 +19,7 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/show_email_re
 
 
 class ShowEmailRequestsModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     document_id: int
@@ -52,8 +51,8 @@ async def list_show_email_requests(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         document_id: Optional[int] = Query(None, description="Document ID"),
         user_id: Optional[int] = Query(None, description="User ID"),
         session: Session = Depends(get_db)

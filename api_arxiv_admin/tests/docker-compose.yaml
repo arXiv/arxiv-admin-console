@@ -1,8 +1,18 @@
 
 services:
+  cleanup-db:
+    image: alpine:latest
+    container_name: admin-api-db-cleanup
+    environment:
+      HOST_UID: ${UID}
+      HOST_GID: ${GID}
+    volumes:
+      - ./mysql-data:/mysql-data
+    command: sh -c "rm -rf /mysql-data/* && chown $${HOST_UID}:$${HOST_GID} /mysql-data"
+
   auth-db:
     image: postgres:16
-    container_name: aaat-auth-db
+    container_name: admin-api-auth-db
     environment:
       POSTGRES_USER: ${KC_DB_USER}
       POSTGRES_PASSWORD: ${KC_DB_PASS}
@@ -19,7 +29,7 @@ services:
 
   pubsub-emulator:
     image: google/cloud-sdk:latest
-    container_name: aaat-pubsub-emulator
+    container_name: admin-api-pubsub-emulator
     command: "/pubsub-setup.sh ${PUBSUB_EMULATOR_PORT} ${PUBSUB_PROJECT} ${GCP_EVENT_TOPIC_ID} ${KC_TAPIR_BRIDGE_SUBSCRIPTION}"
     ports:
       - "${PUBSUB_EMULATOR_PORT}:${PUBSUB_EMULATOR_PORT}"
@@ -31,7 +41,7 @@ services:
 
   keycloak:
     image: ${KC_DOCKER_TAG}:latest
-    container_name: aaat-keycloak
+    container_name: admin-api-keycloak
     environment:
       KC_PORT: ${KC_PORT}
       KC_SSL_PORT: ${KC_SSL_PORT}
@@ -75,24 +85,39 @@ services:
       - legacy-auth-provider
     network_mode: host
 
+
   arxiv-test-db:
-    image: mysql:5.7.20
-    container_name: aaat-arxiv-test-db
+    image: mysql:8.4.5
+    container_name: admin-api-arxiv-test-db
+    user: "${UID}:${GID}"
     ports:
       - "${ARXIV_DB_PORT}:${ARXIV_DB_PORT}"  # Host port:Container port
+    volumes:
+      - ./mysql-data:/var/lib/mysql  # Mount for snapshot/restore
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: arXiv
       MYSQL_USER: arxiv
       MYSQL_PASSWORD: arxiv_password
       MYSQL_TCP_PORT: ${ARXIV_DB_PORT}
-    # volumes:
-    #  - mysql_data:/var/lib/mysql  # Persist data locally (optional)
+      PORT: ${ARXIV_DB_PORT}
     network_mode: host
+    depends_on:
+      cleanup-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "${ARXIV_DB_PORT}", "--silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 30s
+    command:
+      - --log-error-suppression-list=MY-013360
+
 
   legacy-auth-provider:
     image: ${LEGACY_AUTH_DOCKER_TAG}
-    container_name: aaat-legacy-auth-provider
+    container_name: admin-api-legacy-auth-provider
     ports:
       - "${LEGACY_AUTH_PORT}:${LEGACY_AUTH_PORT}"  # Host port:Container port
     network_mode: host
@@ -108,7 +133,7 @@ services:
 
   keycloak-tapir-bridge:
     image: "${KC_TAPIR_BRIDGE_DOCKER_TAG}"
-    container_name: aaat-keycloak-tapir-bridge
+    container_name: admin-api-keycloak-tapir-bridge
     environment:
       PUBSUB_EMULATOR_HOST: 127.0.0.1:${PUBSUB_EMULATOR_PORT}
       # IRL, you set this so the app can read the events from pubsub
@@ -127,9 +152,9 @@ services:
 
   nginx-proxy:
     image: nginx:latest
-    container_name: aaat-nginx-proxy
+    container_name: admin-api-nginx-proxy
     volumes:
-      - ./config/aaat-nginx.conf:/etc/nginx/nginx.conf:ro  # Mount custom NGINX config
+      - ./config/admin-api-nginx.conf:/etc/nginx/nginx.conf:ro  # Mount custom NGINX config
       - ./nginx/:/nginx/:ro
     ports:
       - "${NGINX_PORT}:${NGINX_PORT}"
@@ -137,7 +162,7 @@ services:
     
   test-mta:
     image: "${TEST_MTA_TAG}"
-    container_name: aaat-test-mta
+    container_name: admin-api-test-mta
     ports:
       - "${SMTP_PORT}:${SMTP_PORT}"
       - "${MAIL_API_PORT}:${MAIL_API_PORT}"
@@ -146,10 +171,10 @@ services:
       SMTP_PORT: "${SMTP_PORT}"
       MAIL_API_PORT: "${MAIL_API_PORT}"
       
-    
+
   keycloak-setup:
     image: gcr.io/arxiv-development/arxiv-keycloak/python-keycloak-admin:latest
-    container_name: aaat-keycloak-setup
+    container_name: admin-api-keycloak-setup
     depends_on:
       - keycloak
     network_mode: host
@@ -161,25 +186,25 @@ services:
       KC_ADMIN_PASSWORD: "${KC_ADMIN_PASSWORD}"
       ARXIV_USER_SECRET: "${KEYCLOAK_TEST_CLIENT_SECRET}"
       LEGACY_AUTH_API_TOKEN: "${LEGACY_AUTH_API_TOKEN}"
-      SOURCE: /keycloak_bend/realms/arxiv-realm-aaat.json
+      SOURCE: /keycloak_bend/realms/arxiv-realm-admin-api.json
 
     entrypoint: sh /keycloak_bend/tools/setup-arxiv-realm.sh
 
   arxiv-test-db-setup:
-    image: mysql:5.7.20
-    container_name: aaat-arxiv-test-db-setup
-    depends_on:
-      - arxiv-test-db
-    network_mode: host
-    environment:
-      MYSQL_HOST: 127.0.0.1
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: arXiv
-      MYSQL_USER: arxiv
-      MYSQL_PASSWORD: arxiv_password
-      MYSQL_TCP_PORT: ${ARXIV_DB_PORT}
+    image: mydumper/mydumper:latest
+    container_name: admin-api-db-myloader
+    user: "${UID}:${GID}"
     volumes:
-      - ../../:/arxiv-keycloak/:ro
-    entrypoint: bash /arxiv-keycloak/tools/restore-arxiv-db.sh /arxiv-keycloak/tests/data/test-arxiv-db-data.sql.gz
-
-    
+      - ${TEST_DB_DUMP_DIR}:/myloader-data:ro
+    network_mode: host
+    depends_on:
+      arxiv-test-db:
+        condition: service_healthy
+    command:
+      - myloader
+      - --directory=/myloader-data
+      - --host=127.0.0.1
+      - --port=${ARXIV_DB_PORT}
+      - --user=root
+      - --password=root_password
+      - --overwrite-tables

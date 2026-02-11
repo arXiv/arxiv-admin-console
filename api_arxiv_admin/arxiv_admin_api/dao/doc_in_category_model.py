@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class DocInCategoryModel(BaseModel):
     document_id: str
@@ -6,5 +6,4 @@ class DocInCategoryModel(BaseModel):
     subject_class: str
     is_primary: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

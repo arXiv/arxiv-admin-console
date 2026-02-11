@@ -24,7 +24,7 @@ def audit_event_maker_positional(cls: Type[AdminAuditEvent],
                                  tracking_cookie: Optional[str] = None,
                                  ) -> AdminAuditEvent:
 
-    return cls(
+    return cls(  # type: ignore
         admin_id,
         user_id,
         session_id,
@@ -62,12 +62,7 @@ def audit_event_maker_kwarg(cls: Type[AdminAuditEvent],
         else:
             assert False, f"Invalid arg_name: {arg_name}"
 
-    return cls(
-        admin_id,
-        user_id,
-        session_id,
-        **kwargs
-    )
+    return cls(admin_id, user_id, session_id, **kwargs)  # type: ignore
 
 
 def audit_event_maker_veto_status(
@@ -91,7 +86,7 @@ def audit_event_maker_veto_status(
         "status_before": UserVetoStatus(ov),
         "status_after": UserVetoStatus(nv),
     }
-    return cls(admin_id, user_id, session_id, **kwargs)
+    return cls(admin_id, user_id, session_id, **kwargs)  # type: ignore
 
 
 user_prop_audit_registry = {
@@ -181,23 +176,10 @@ def record_user_prop_admin_action(session: Session,
     assert auditor is not None, f"Unknown admin action: {prop_name}"
 
     if len(auditor) == 2:
-        audit_class, maker = auditor
-        audit_event = maker(
-            audit_class,
-            admin_id, session_id,
-            prop_name, user_id, old_value, new_value,
-            comment=comment, remote_ip=remote_ip, remote_hostname=remote_hostname,
-            tracking_cookie=tracking_cookie
-        )
+        audit_class, maker = auditor  # type: ignore
+        audit_event = maker(audit_class, admin_id, session_id, prop_name, user_id, old_value, new_value, comment=comment, remote_ip=remote_ip, remote_hostname=remote_hostname, tracking_cookie=tracking_cookie)  # type: ignore
     else:
-        audit_class, maker, arg_name = auditor
-        audit_event = maker(
-            audit_class,
-            admin_id, session_id,
-            prop_name, user_id, old_value, new_value,
-            comment=comment, remote_ip=remote_ip, remote_hostname=remote_hostname,
-            tracking_cookie=tracking_cookie,
-            arg_name=arg_name,
-        )
+        audit_class, maker, arg_name = auditor  # type: ignore
+        audit_event = maker(audit_class, admin_id, session_id, prop_name, user_id, old_value, new_value, comment=comment, remote_ip=remote_ip, remote_hostname=remote_hostname, tracking_cookie=tracking_cookie, arg_name=arg_name)  # type: ignore
 
     admin_audit(session, audit_event)
