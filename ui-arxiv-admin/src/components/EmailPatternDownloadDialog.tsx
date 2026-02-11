@@ -98,7 +98,7 @@ export const EmailPatternDownloadDialog: React.FC<EmailPatternDownloadDialogProp
                         >
                             {emailPatternPurposeOptions.map(option => (
                                 <MenuItem key={option.id} value={option.id}>
-                                    {option.name}
+                                    {option.name}{" - "} <span style={{ fontSize: '0.9em' }}>{option.description}</span>
                                 </MenuItem>
                             ))}
                         </Select>
