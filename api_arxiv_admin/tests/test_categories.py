@@ -344,7 +344,6 @@ def test_update_delete_category_owner(admin_api_sqlite_client: TestClient,
     """
     with sqlite_session() as session:
         audit_count_0 = session.query(TapirAdminAudit.entry_id).count()
-        last_audit_entry = session.query(TapirAdminAudit.entry_id).order_by(TapirAdminAudit.entry_id.desc()).first()[0]
         cs_xc_p = session.query(Category).filter(and_(Category.archive == "cs", Category.subject_class == "XC")).count() == 1
 
     if not cs_xc_p:
@@ -378,7 +377,7 @@ def test_update_delete_category_owner(admin_api_sqlite_client: TestClient,
     assert data["category_name"] == "Extraterrestrial Computing"
 
     with sqlite_session() as session:
-        audit = session.query(TapirAdminAudit).filter(TapirAdminAudit.entry_id == last_audit_entry + 2).one()
+        audit = session.query(TapirAdminAudit).order_by(TapirAdminAudit.entry_id.desc()).first()
         assert audit.action == "arxiv-category"
         assert "update" in audit.data
 
@@ -387,6 +386,6 @@ def test_update_delete_category_owner(admin_api_sqlite_client: TestClient,
     assert response.status_code == 204
 
     with sqlite_session() as session:
-        audit = session.query(TapirAdminAudit).filter(TapirAdminAudit.entry_id == last_audit_entry + 3).one()
+        audit = session.query(TapirAdminAudit).order_by(TapirAdminAudit.entry_id.desc()).first()
         assert audit.action == "arxiv-category"
         assert "delete" in audit.data
