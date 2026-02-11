@@ -9,9 +9,9 @@ from arxiv_bizlogic.fastapi_helpers import get_authn_user, get_client_host, get_
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 
 from sqlalchemy import func, and_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import Category, ArchiveGroup
 
@@ -49,11 +49,10 @@ class CategoryModel(BaseModel):
     papers_to_endorse: int
     endorsement_domain: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def base_query(cls, db: Session) -> Query:
+    def base_query(cls, db: Session) -> OrmQuery:
         return db.query(
             func.concat(Category.archive, ".", Category.subject_class).label("id"),
             Category.archive,
@@ -71,8 +70,8 @@ class CategoryModel(BaseModel):
 async def list_categories(
         response: Response,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         archive: Optional[str] = Query(""),
         subject_class: Optional[str] = Query(""),
         active: Optional[bool] = Query(None, description="active"),
@@ -110,8 +109,8 @@ async def list_subject_classes(
         response: Response,
         archive: str,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         db: Session = Depends(get_db)
     ) -> List[CategoryModel]:
     if _start < 0 or _end < _start:
@@ -131,7 +130,7 @@ async def list_subject_classes(
 
 
 @router.get('/{archive}/subject-class/{subject_class}')
-async def get_category(
+async def get_category_with_subject_class(
         archive: str,
         subject_class: str,
         db: Session = Depends(get_db)
@@ -170,6 +169,10 @@ async def update_category(
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
         session: Session = Depends(get_db)) -> CategoryModel:
+
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
     body = await request.json()
     [archive, subject_class] = id.split(".")
     item = session.query(Category).filter(
@@ -194,7 +197,6 @@ async def update_category(
             session,
             AdminAudit_Category(
                 current_user.user_id,
-                None,
                 current_user.tapir_session_id,
                 data={"update": changes},
                 remote_ip=remote_ip,
@@ -208,23 +210,56 @@ async def update_category(
                 Category.subject_class == subject_class)).one_or_none())
 
 
-@router.post('/')
+@router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_category(
         request: Request,
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> CategoryModel:
+
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+
     body = await request.json()
 
     item = Category(**body)
     session.add(item)
-    session.commit()
+    session.flush()
     session.refresh(item)
-    return CategoryModel.model_validate(item)
+
+    admin_audit(
+        session,
+        AdminAudit_Category(
+            current_user.user_id,
+            current_user.tapir_session_id,
+            data={"create": body},
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+        )
+    )
+
+    session.commit()
+    new_category = CategoryModel.base_query(session).filter(Category.archive == item.archive, Category.subject_class == item.subject_class).one_or_none()
+    if new_category is None:
+        logger.error(f"Failed to create category {item.archive}.{item.subject_class}", extra={"user_id": current_user.user_id})
+        raise HTTPException(status_code=500, detail="Failed to create category")
+    return CategoryModel.model_validate(new_category)
 
 
 @router.delete('/{id:str}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
         id: str,
+        remote_ip: Optional[str] = Depends(get_client_host),
+        remote_hostname: Optional[str] = Depends(get_client_host_name),
+        tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> Response:
+
+    if not current_user.is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
 
     [archive, subject_class] = id.split(".")
     item = session.query(Category).filter(
@@ -234,6 +269,19 @@ async def delete_category(
     if item is None:
         raise HTTPException(status_code=404, detail=f"Category {archive}/{subject_class} does not exist.")
     session.delete(item)
+
+    admin_audit(
+        session,
+        AdminAudit_Category(
+            current_user.user_id,
+            current_user.tapir_session_id,
+            data={"delete": id},
+            remote_ip=remote_ip,
+            remote_hostname=remote_hostname,
+            tracking_cookie=tracking_cookie,
+        )
+    )
+
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -243,7 +291,7 @@ class ArchiveGroupModel(BaseModel):
     group: str
 
     @classmethod
-    def base_query(cls, db: Session) -> Query:
+    def base_query(cls, db: Session) -> OrmQuery:
         return db.query(
             ArchiveGroup.archive_id.label("archive"),
             ArchiveGroup.group_id.label("group"),
@@ -253,8 +301,8 @@ class ArchiveGroupModel(BaseModel):
 async def list_archive_groups(
         response: Response,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         archive: Optional[str] = Query(""),
         group: Optional[str] = Query(""),
         active: Optional[bool] = Query(None, description="active"),

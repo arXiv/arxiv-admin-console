@@ -1,242 +1,170 @@
-import subprocess
-import sys
-import time
-from datetime import datetime
-from pathlib import Path
+import gzip
+import shlex
+import shutil
+import sys, os
 
-from arxiv.auth.legacy.util import epoch
-from arxiv.auth.user_claims import ArxivUserClaims, ArxivUserClaimsModel
 from arxiv_bizlogic.fastapi_helpers import datetime_to_epoch
-from dotenv import load_dotenv
-from dotenv.main import DotEnv
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import Session as SASession
+
+rooddir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(rooddir)
+
+import subprocess
+from pathlib import Path
+from typing import Dict, Optional, Generator
+
+from arxiv.auth.user_claims import ArxivUserClaims, ArxivUserClaimsModel
+from dotenv import dotenv_values, load_dotenv
+from arxiv.config import Settings
+from arxiv_bizlogic.database import Database, DatabaseSession
+from arxiv_bizlogic.user_account_models import AccountIdentifierModel
 
 ADMIN_API_TEST_DIR = Path(__file__).parent
 
 dotenv_filename = 'test-env'
+dotenv_sqlite_filename = 'test-env-sqlite'
+sqlite_db_filename = 'data/arxiv-sqlite.db'
+compressed_sqlite_db_filename = 'data/arxiv-sqlite-0.db.gz'
 load_dotenv(dotenv_path=ADMIN_API_TEST_DIR.joinpath(dotenv_filename), override=True)
 
 import pytest
 import logging
 
 from time import sleep
-from typing import IO, Dict, Iterable, Iterator, Mapping, Optional, Tuple, Union, Generator
+from datetime import datetime
 
 from fastapi.testclient import TestClient
 from arxiv_admin_api.main import create_app
 import os
-from arxiv_bizlogic.database import DatabaseSession, Database
-from tests.restore_mysql import wait_for_mysql
-from arxiv.db.models import TapirUser
 
-@pytest.fixture(scope="module")
-def test_env() -> Dict[str, Optional[str]]:
-    if not ADMIN_API_TEST_DIR.joinpath(dotenv_filename).exists():
-        raise FileNotFoundError(dotenv_filename)
-    return dotenv_values(ADMIN_API_TEST_DIR.joinpath(dotenv_filename).as_posix())
 
-StrPath = Union[str, "os.PathLike[str]"]
+MYSQL_DATA_DIR = ADMIN_API_TEST_DIR / "mysql-data"
+MYSQL_SNAPSHOT_DIR = ADMIN_API_TEST_DIR / "mysql-data-snapshot"
 
-def _walk_to_root(path: str) -> Iterator[str]:
+DC_YAML = ADMIN_API_TEST_DIR.joinpath('docker-compose.yaml')
+DC_DBO_YAML = ADMIN_API_TEST_DIR.joinpath('docker-compose-db-only.yaml')
+
+ADMIN_API_DIR = ADMIN_API_TEST_DIR.parent
+ARXIV_ADMIN_CONSOLE_DIR = ADMIN_API_DIR.parent
+TEST_DB_DUMP_DIR = ARXIV_ADMIN_CONSOLE_DIR / "tests" / "data" / "test-db-dump"
+
+
+def ignore_socket_files(directory: str, files: list[str]) -> list[str]:
+    """Ignore socket files when copying directory trees.
+
+    Also ignores files that no longer exist (race condition when container stops)
+    and files with .sock extension.
     """
-    Yield directories starting from the given directory up to the root
-    """
-    if not os.path.exists(path):
-        raise IOError("Starting path not found")
-
-    if os.path.isfile(path):
-        path = os.path.dirname(path)
-
-    last_dir = None
-    current_dir = os.path.abspath(path)
-    while last_dir != current_dir:
-        yield current_dir
-        parent_dir = os.path.abspath(os.path.join(current_dir, os.path.pardir))
-        last_dir, current_dir = current_dir, parent_dir
-
-
-
-def find_dotenv(
-    filename: str = ".env",
-    raise_error_if_not_found: bool = False,
-    usecwd: bool = False,
-) -> str:
-    """
-    Search in increasingly higher folders for the given file
-
-    Returns path to the file if found, or an empty string otherwise
-    """
-
-    def _is_interactive():
-        """Decide whether this is running in a REPL or IPython notebook"""
+    import stat
+    ignored = []
+    for f in files:
+        # Always ignore .sock files by name (handles race condition where
+        # socket is enumerated but disappears before we can stat it)
+        if f.endswith('.sock'):
+            ignored.append(f)
+            continue
+        path = Path(directory) / f
         try:
-            main = __import__("__main__", None, None, fromlist=["__file__"])
-        except ModuleNotFoundError:
+            # Ignore files that don't exist (race condition: file was enumerated
+            # but disappeared before copy)
+            if not path.exists():
+                ignored.append(f)
+                continue
+            if stat.S_ISSOCK(path.stat().st_mode):
+                ignored.append(f)
+        except (OSError, IOError):
+            # If we can't stat the file, ignore it to be safe
+            ignored.append(f)
+    return ignored
+
+
+def reset_database_from_snapshot(db_port: str, container_name: str = "admin-api-arxiv-test-db") -> bool:
+    """
+    Reset the database to its initial state by restoring from snapshot.
+    If snapshot doesn't exist, creates one from current data.
+    If snapshot exists, restores the database from it.
+    Snapshot is stored in mysql-data-snapshot directory on the local disk.
+    """
+    import shutil
+
+    try:
+        # Stop the container
+        logging.info("Stopping container...")
+        subprocess.run(
+            ["docker", "stop", container_name],
+            check=True,
+            timeout=30
+        )
+
+        if not MYSQL_SNAPSHOT_DIR.exists():
+            # Snapshot doesn't exist - create it from current data
+            logging.info(f"Creating snapshot: copying {MYSQL_DATA_DIR} to {MYSQL_SNAPSHOT_DIR}...")
+            shutil.copytree(MYSQL_DATA_DIR, MYSQL_SNAPSHOT_DIR, ignore=ignore_socket_files)
+            logging.info("Snapshot created successfully")
+        else:
+            # Snapshot exists - restore from it
+            logging.info("Restoring database from snapshot...")
+            if MYSQL_DATA_DIR.exists():
+                shutil.rmtree(MYSQL_DATA_DIR)
+            shutil.copytree(MYSQL_SNAPSHOT_DIR, MYSQL_DATA_DIR, ignore=ignore_socket_files)
+            logging.info("Database restored from snapshot")
+
+        # Start the container (which will start MySQL)
+        logging.info("Starting container...")
+        subprocess.run(["docker", "start", container_name], check=True, timeout=30)
+
+        # Wait for MySQL to be ready
+        for _ in range(30):
+            sleep(1)
+            result = subprocess.run(
+                ["docker", "exec", container_name, "mysqladmin",
+                 "ping", "-h", "127.0.0.1", "-P", db_port, "--silent"],
+                capture_output=True,
+                check=False
+            )
+            if result.returncode == 0:
+                logging.info("Database reset successfully")
+                return True
+
+        logging.error("Database failed to start after reset")
+        return False
+
+    except Exception as e:
+        logging.error(f"Failed to reset database: {str(e)}")
+        return False
+
+
+def check_any_rows_in_table(schema: str, table_name: str, db_user: str, db_password: str, db_port: str = "3306", ssl: bool = True) -> bool:
+    try:
+        logging.info(f"Checking table {table_name} in schema {schema} on port {db_port}")
+        result = subprocess.run(
+            [
+                "mysql",
+                f"-u{db_user}",
+                f"-p{db_password}",
+                "-h", "127.0.0.1",
+                "-P", db_port,
+                "--default-auth=mysql_native_password",
+                "-N",
+                "-B",
+                "-e", f"SELECT COUNT(*) FROM {table_name};",
+                schema
+            ],
+            capture_output=True,
+            text=True,
+            check=False # Do not raise exception for non-zero exit codes
+        )
+        if result.returncode != 0:
+            logging.error(f"MySQL command failed with exit code {result.returncode}")
+            logging.error(f"Stdout: {result.stdout}")
+            logging.error(f"Stderr: {result.stderr}")
             return False
-        return not hasattr(main, "__file__")
-
-    def _is_debugger():
-        return sys.gettrace() is not None
-
-    if usecwd or _is_interactive() or _is_debugger() or getattr(sys, "frozen", False):
-        # Should work without __file__, e.g. in REPL or IPython notebook.
-        path = os.getcwd()
-    else:
-        # will work for .py files
-        frame = sys._getframe()
-        current_file = __file__
-
-        while frame.f_code.co_filename == current_file or not os.path.exists(
-            frame.f_code.co_filename
-        ):
-            assert frame.f_back is not None
-            frame = frame.f_back
-        frame_filename = frame.f_code.co_filename
-        path = os.path.dirname(os.path.abspath(frame_filename))
-
-    for dirname in _walk_to_root(path):
-        check_path = os.path.join(dirname, filename)
-        if os.path.isfile(check_path):
-            return check_path
-
-    if raise_error_if_not_found:
-        raise IOError("File not found")
-
-    return ""
-#
-#
-def dotenv_values(
-    dotenv_path: Optional[StrPath] = None,
-    stream: Optional[IO[str]] = None,
-    verbose: bool = False,
-    interpolate: bool = True,
-    encoding: Optional[str] = "utf-8",
-) -> Dict[str, Optional[str]]:
-    """
-    Parse a .env file and return its content as a dict.
-
-    The returned dict will have `None` values for keys without values in the .env file.
-    For example, `foo=bar` results in `{"foo": "bar"}` whereas `foo` alone results in
-    `{"foo": None}`
-
-    Parameters:
-        dotenv_path: Absolute or relative path to the .env file.
-        stream: `StringIO` object with .env content, used if `dotenv_path` is `None`.
-        verbose: Whether to output a warning if the .env file is missing.
-        encoding: Encoding to be used to read the file.
-
-    If both `dotenv_path` and `stream` are `None`, `find_dotenv()` is used to find the
-    .env file.
-    """
-    if dotenv_path is None and stream is None:
-        dotenv_path = find_dotenv()
-
-    return DotEnv(
-        dotenv_path=dotenv_path,
-        stream=stream,
-        verbose=verbose,
-        interpolate=interpolate,
-        override=True,
-        encoding=encoding,
-    ).dict()
-
-
-# def check_any_rows_in_table(schema: str, table_name: str, db_user: str, db_password: str, db_port: str = "3306", ssl: bool = True) -> bool:
-#     try:
-#         result = subprocess.run(
-#             [
-#                 "mysql",
-#                 f"-u{db_user}",
-#                 f"-p{db_password}",
-#                 "-h", "127.0.0.1",
-#                 "-P", db_port,
-#                 "--ssl-mode=ENABLED" if ssl else "--ssl-mode=DISABLED",
-#                 "-N",
-#                 "-B",
-#                 "-e", f"SELECT COUNT(*) FROM {table_name};",
-#                 schema
-#             ],
-#             capture_output=True,
-#             text=True,
-#             check=True
-#         )
-#         count = int(result.stdout.strip())
-#         return count > 0
-#     except subprocess.CalledProcessError as e:
-#         return False
-#     except ValueError:
-#         return False
-#
-#
-#
-# @pytest.fixture(scope="module")
-# def docker_compose(test_env):
-#     logging.info("Setting up docker-compose")
-#     docker_compose_file = ADMIN_API_TEST_DIR.joinpath('docker-compose.yaml')
-#     if not docker_compose_file.exists():
-#         raise FileNotFoundError(docker_compose_file.as_posix())
-#     env_arg = "--env-file=" + dotenv_filename
-#     working_dir = ADMIN_API_TEST_DIR.as_posix()
-#
-#     try:
-#         if os.environ.get("RECREATE_DOCKERS", "true") == "true":
-#             logging.info("Stopping docker-compose...")
-#             subprocess.run(["docker", "compose", env_arg, "-f", docker_compose_file, "down", "--remove-orphans"], check=False, cwd=working_dir)
-#             logging.info("Starting docker-compose...")
-#             subprocess.run(["docker", "compose", env_arg, "-f", docker_compose_file, "up", "-d"], check=True, cwd=working_dir)
-#             pass
-#
-#         # Loop until at least one row is present
-#         for _ in range(100):
-#             sleep(1)
-#             if check_any_rows_in_table("arXiv", "tapir_users", "arxiv", "arxiv_password", db_port=test_env["ARXIV_DB_PORT"], ssl=False):
-#                 break
-#         else:
-#             assert False, "Failed to load "
-#
-#         yield None
-#     except Exception as e:
-#         logging.error(f"bad... {str(e)}")
-#
-#     finally:
-#         logging.info("Leaving the docker-compose as is...")
-#
-#     try:
-#         logging.info("Stopping docker-compose...")
-#         if os.environ.get("RECREATE_DOCKERS", "true") == "true":
-#             subprocess.run(["docker", "compose", env_arg, "-f", docker_compose_file, "down", "--remove-orphans"], check=False, cwd=working_dir)
-#     except Exception:
-#         pass
-#
-
-@pytest.fixture(scope="module")
-def api_client(test_env):
-    """Start Admin API App. Since it needs the database running, it needs the arxiv db up"""
-    os.environ['TESTING'] = '1'
-    os.environ.update(test_env)
-    app = create_app()
-    # Admin API_app_port = test_env['ARXIV_OAUTH2_APP_PORT']
-    api_url = test_env['ADMIN_API_URL'].replace('/admin-api', '')
-    client = TestClient(app, base_url=api_url)
-
-    for _ in range(100):
-        response = client.get("/openapi.json")
-        if response.status_code == 200:
-            logging.info("Admin API status - OK")
-            break
-
-        if response.status_code == 404:
-            logging.error("Very wrong.")
-            raise Exception("Fix the API access first")
-
-        sleep(2)
-        logging.info("Admin API status - WAITING")
-        pass
-    else:
-        assert False, "The docker compose did not start?"
-    yield client
-    client.close()
+        count = int(result.stdout.strip())
+        logging.info(f"Table {table_name} has {count} rows.")
+        return count > 0
+    except subprocess.CalledProcessError as e:
+        return False
+    except ValueError:
+        return False
 
 
 def generate_request_headers(test_env: dict, user_id: int = 1129053, tapir_session_id: int = 0) -> Dict[str, str]:
@@ -271,109 +199,501 @@ def generate_request_headers(test_env: dict, user_id: int = 1129053, tapir_sessi
 
 
 @pytest.fixture(scope="module")
-def api_headers(test_env):
-    jwt_secret = test_env['JWT_SECRET']
-    now_epoch = datetime_to_epoch(None, datetime.now())
+def test_env() -> Dict[str, Optional[str]]:
+    if not ADMIN_API_TEST_DIR.joinpath(dotenv_filename).exists():
+        raise FileNotFoundError(dotenv_filename)
+    return dotenv_values(ADMIN_API_TEST_DIR.joinpath(dotenv_filename).as_posix())
 
-    claims_data = ArxivUserClaimsModel(
-        sub = "1129053",  # User ID - 1129053 is cookie monster
-        exp = now_epoch + 360000,  # Expiration
-        iat = now_epoch,
-        roles = ["Administrator", "Public user"],
+
+def _setup_docker_compose(test_env, compose_yaml: Path, other_compose_yaml: Path,
+                          db_container_name: str, loader_container_name: str):
+    """
+    Shared implementation for docker-compose fixtures.
+
+    Args:
+        test_env: Test environment configuration
+        compose_yaml: Path to the docker-compose YAML file to use
+        other_compose_yaml: Path to the other docker-compose YAML to shut down
+        db_container_name: Name of the database container
+        loader_container_name: Name of the myloader container
+    """
+    logging.info("Setting up database only")
+    if not compose_yaml.exists():
+        raise FileNotFoundError(compose_yaml.as_posix())
+    env_arg = "--env-file=" + dotenv_filename
+    working_dir = ADMIN_API_TEST_DIR.as_posix()
+
+    # kill off the other docker-compose instance
+    try:
+        subprocess.run(
+            ["docker", "compose", "-f", other_compose_yaml.as_posix(), "down"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+    except Exception:
+        pass
+
+    # Set UID/GID for docker-compose to run containers as current user
+    docker_env = os.environ.copy()
+    docker_env["UID"] = str(os.getuid())
+    docker_env["GID"] = str(os.getgid())
+    docker_env["TEST_DB_DUMP_DIR"] = TEST_DB_DUMP_DIR.as_posix()
+
+    try:
+        needs_data_load = False
+
+        # Check if container exists and is running
+        result = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Running}}", db_container_name],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=docker_env
+        )
+
+        # Ensure mysql-data directory exists with proper ownership for bind mount
+        if not MYSQL_DATA_DIR.exists():
+            logging.info("Creating mysql-data directory...")
+            MYSQL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        if result.returncode != 0:
+            # Container doesn't exist, start docker-compose
+            logging.info("Container doesn't exist, starting docker-compose...")
+            args = ["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"]
+            logging.info(shlex.join(args))
+            result = subprocess.run(args, cwd=working_dir, env=docker_env, capture_output=True, text=True)
+            if result.returncode != 0:
+                logging.error(f"docker-compose failed: {result.stderr}")
+                raise RuntimeError(f"docker-compose failed: {result.stderr}")
+            needs_data_load = True
+        elif result.stdout.strip() == "true":
+            # Container is running
+            logging.info("Container already running")
+        else:
+            # Container exists but is not running (stopped, created, etc.)
+            logging.info("Container exists but is not running, recreating...")
+            subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "down"],
+                           cwd=working_dir, env=docker_env)
+            result = subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"],
+                           cwd=working_dir, env=docker_env, capture_output=True, text=True)
+            if result.returncode != 0:
+                logging.error(f"docker-compose failed: {result.stderr}")
+                raise RuntimeError(f"docker-compose failed: {result.stderr}")
+            needs_data_load = True
+
+        # Wait for myloader container to complete (only if we just started docker-compose)
+        if needs_data_load:
+            logging.info("Waiting for myloader to complete...")
+            for _ in range(100):
+                result = subprocess.run(
+                    ["docker", "inspect", "-f", "{{.State.Status}}", loader_container_name],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                if result.returncode == 0 and "exited" in result.stdout:
+                    # Check if it exited successfully (exit code 0)
+                    exit_code_result = subprocess.run(
+                        ["docker", "inspect", "-f", "{{.State.ExitCode}}", loader_container_name],
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+                    if exit_code_result.returncode == 0 and "0" in exit_code_result.stdout:
+                        logging.info("Myloader completed successfully")
+                        break
+                    else:
+                        logging.error(f"Myloader failed with exit code: {exit_code_result.stdout.strip()}")
+                        assert False, "Myloader failed to load data"
+                sleep(1)
+            else:
+                assert False, "Myloader timed out"
+        else:
+            logging.info("Skipping myloader wait (container already existed)")
+
+        # Wait for MySQL to be ready
+        logging.info("Waiting for MySQL to be ready...")
+        for _ in range(30):
+            result = subprocess.run(
+                ["docker", "exec", db_container_name, "mysqladmin",
+                 "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
+                capture_output=True,
+                check=False
+            )
+            if result.returncode == 0:
+                logging.info("Backend database is ready")
+                break
+            sleep(1)
+        else:
+            assert False, "MySQL failed to become ready"
+
+        # Check if snapshot exists on local disk
+        snapshot_exists = MYSQL_SNAPSHOT_DIR.exists()
+        logging.info(f"Snapshot exists: {snapshot_exists}")
+
+        # Create snapshot if it doesn't exist
+        if not snapshot_exists:
+            import shutil
+            logging.info("Creating database snapshot on local disk...")
+            try:
+                # Flush tables to ensure data consistency
+                logging.info("Flushing tables for snapshot...")
+                subprocess.run(
+                    ["docker", "exec", db_container_name, "mysql",
+                     "-uroot", "-proot_password", "-h", "127.0.0.1",
+                     "-P", test_env["ARXIV_DB_PORT"],
+                     "-e", "FLUSH TABLES;"],
+                    check=True,
+                    timeout=30
+                )
+
+                # Stop the container to ensure clean snapshot
+                logging.info("Stopping container for snapshot...")
+                subprocess.run(
+                    ["docker", "stop", db_container_name],
+                    check=True,
+                    timeout=30
+                )
+                sleep(1)
+
+                # Copy mysql-data to snapshot directory on local disk
+                logging.info(f"Copying {MYSQL_DATA_DIR} to {MYSQL_SNAPSHOT_DIR}...")
+                shutil.copytree(MYSQL_DATA_DIR, MYSQL_SNAPSHOT_DIR, ignore=ignore_socket_files)
+
+                # Start the container again
+                logging.info("Starting container after snapshot...")
+                subprocess.run(
+                    ["docker", "start", db_container_name],
+                    check=True,
+                    timeout=30
+                )
+
+                # Wait for MySQL to be ready again
+                for _ in range(30):
+                    result = subprocess.run(
+                        ["docker", "exec", db_container_name, "mysqladmin",
+                         "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
+                        capture_output=True,
+                        check=False
+                    )
+                    if result.returncode == 0:
+                        break
+                    sleep(1)
+
+                logging.info("Database snapshot created successfully")
+
+            except Exception as e:
+                logging.error(f"Failed to create snapshot: {str(e)}")
+                raise
+
+        yield db_container_name
+    except Exception as e:
+        logging.error(f"bad... {str(e)}")
+        raise
+
+    finally:
+        logging.info("Keeping docker-compose running for subsequent tests...")
+
+
+@pytest.fixture(scope="module")
+def docker_compose(test_env):
+    yield from _setup_docker_compose(
+        test_env,
+        compose_yaml=DC_YAML,
+        other_compose_yaml=DC_DBO_YAML,
+        db_container_name="admin-api-arxiv-test-db",
+        loader_container_name="admin-api-db-myloader"
+    )
+
+
+
+@pytest.fixture(scope="module")
+def test_mta(test_env, docker_compose):
+    return f"http://127.0.0.1:{test_env['MAIL_API_PORT']}"
+
+
+@pytest.fixture(scope="module")
+def admin_api_client(test_env, docker_compose):
+    """Start Admin Console App. Since it needs the database running, it needs the arxiv db up"""
+    os.environ.update(test_env)
+    app = create_app(TESTING=True)
+    admin_api_url = test_env['ADMIN_API_URL']
+    client = TestClient(app, base_url=admin_api_url)
+
+    for _ in range(100):
+        response = client.get("/status/")
+        if response.status_code == 200:
+            logging.info("Admin-API status - OK")
+            sleep(2)
+            break
+        sleep(2)
+        logging.info("Admin-API status - WAITING")
+        pass
+    else:
+        assert False, "The docker compose did not start?"
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="module")
+def admin_api_db_only_client(test_env: Dict, docker_compose_db_only) -> Generator[TestClient, None, None]:
+    """Start Admin API with database-only setup (faster for isolated tests)"""
+    # Make sure there is no keycloak secret
+    test_env["KEYCLOAK_ADMIN_SECRET"] = "<NOT-SET>"
+
+    os.environ.update(test_env)
+    app = create_app(TESTING=True)
+    admin_api_url = test_env['ADMIN_API_URL']
+    client = TestClient(app, base_url=admin_api_url)
+
+    for _ in range(100):
+        response = client.get("/system/database_status")
+        if response.status_code == 200:
+            logging.info("AAA status - OK")
+            break
+        sleep(2)
+        logging.info("AAA status - WAITING")
+        pass
+    else:
+        assert False, "The database did not start?"
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="module")
+def admin_api_headers(test_env):
+    admin_api_token = test_env['ADMIN_API_TOKEN']
+    headers = {
+        "Authorization": f"Bearer {admin_api_token}",
+        "Content-Type": "application/json"
+    }
+    return headers
+
+@pytest.fixture(scope="module")
+def cookie_monster_claims(test_env):
+    user_info = ArxivUserClaimsModel(
+        sub = "1129053",
+        exp = 253402300799,
+        iat = 0,
+        sid = "23276925",
+        ts_id = 23276925,
+        roles = ["Administrator", "CanLock", "Approved", "Public user"],
         email_verified = True,
-        email = "developers@arxiv.org",
-
-        acc = "magic-access", # Access token
-        idt = "", # ID token
-        sid = "kc-session-id",
-
+        email = "<EMAIL>",
         first_name = "Cookie",
         last_name = "Monster",
-        username = "cookie_monster",
-        client_ipv4 = "127.0.0.1",
-        ts_id = 23276916) # 23276916 tapir_session
+        username = "cmonster",
+    )
+    return ArxivUserClaims(user_info)
 
-    api_token = ArxivUserClaims(claims_data).encode_jwt_token(jwt_secret)
 
+@pytest.fixture(scope="module")
+def admin_api_admin_user_headers(test_env, cookie_monster_claims):
+    token = cookie_monster_claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
     headers = {
-        "Authorization": f"Bearer {api_token}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     return headers
 
 
-
-DOCKER_COMPOSE_ARGS = ["docker", "compose", "-f", os.path.join(os.path.dirname(__file__), 'docker-compose-db-only.yaml'), "--env-file", os.path.join(os.path.dirname(__file__), 'test-env')]
-
-
-admin_api_root = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
-MAX_RETRIES = 3
-RETRY_DELAY = 2
-
 @pytest.fixture(scope="module")
-def setup_db_fixture(test_env) -> None:
-    subprocess.run(DOCKER_COMPOSE_ARGS + ["up", "-d"], cwd=admin_api_root)
-
-    db_host = test_env['ARXIV_DB_HOST']
-    db_port = int(test_env['ARXIV_DB_PORT'])
-    db_user = "arxiv"
-    db_password = "arxiv_password"
-
-    wait_for_mysql(db_host, db_port, db_user, db_password, "arXiv", MAX_RETRIES, RETRY_DELAY)
-    db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}?ssl=false&ssl_mode=DISABLED".format(db_user, db_password, db_host, db_port, "arXiv")
-    from arxiv.config import Settings
-    settings = Settings(
-        CLASSIC_DB_URI = db_uri,
-        LATEXML_DB_URI = None
+def oscar_the_grouch_claims(test_env):
+    oscar = ArxivUserClaimsModel(
+        sub = "1129055",
+        exp = 253402300799,
+        iat = 0,
+        sid = "23276930",
+        ts_id = 23276930,
+        roles = ["Administrator", "CanLock", "Approved", "Public user", "Owner"],
+        email_verified = True,
+        email = "<EMAIL>",
+        first_name = "Oscar",
+        last_name = "Grouch",
+        username = "ogrouch",
     )
-    database = Database(settings)
-    database.set_to_global()
-    from app_logging import setup_logger
-    setup_logger()
-    logger = logging.getLogger()
+    return ArxivUserClaims(oscar)
 
-    for _ in range(10):
-        try:
-            with DatabaseSession() as session:
-                users = session.query(TapirUser).all()
-                if len(users) > 0:
-                    break
-
-        except OperationalError:
-            logger.warning("No database session")
-            pass
-
-        except Exception as exc:
-            logger.error("Database session", exc_info=exc)
-            pass
-        time.sleep(5)
-    else:
-        logger.error("No database session - cannot continue")
-        raise Exception("No database session - cannot continue")
-
-
-def teardown_db_fixture() -> None:
-    """This method runs once after all test methods in the class."""
-    subprocess.run(DOCKER_COMPOSE_ARGS + ["down"], cwd=admin_api_root)
 
 @pytest.fixture(scope="module")
-def arxiv_db(setup_db_fixture):
-    """Fixture to set up and tear down the database."""
-    yield
-    teardown_db_fixture()
+def admin_api_owner_headers(test_env, oscar_the_grouch_claims):
+    token = oscar_the_grouch_claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    return headers
+
+
+@pytest.fixture(scope="module")
+def user0001_headers(test_env, admin_api_client, admin_api_headers):
+    response1 = admin_api_client.get("/account/identifier/?username=user0001", headers=admin_api_headers)
+    first_user: AccountIdentifierModel = AccountIdentifierModel.model_validate(response1.json()) # type: ignore
+
+    user_claims = ArxivUserClaims(
+        ArxivUserClaimsModel(
+            acc="fake-access-token",
+            sub = first_user.user_id,
+            exp = 253402300799,
+            iat = 1743465600,
+            sid = "kc-session-1",
+            roles = ["Approved", "Public user"],
+            email_verified = True,
+            email = first_user.email,
+            first_name = "Test",
+            last_name = "User",
+            username = first_user.username,
+            ts_id = 1,
+        )
+    )
+    token = user_claims.encode_jwt_token(secret=test_env['JWT_SECRET'])
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    return headers
+
+
+@pytest.fixture(scope="module")
+def docker_compose_db_only(test_env):
+    yield from _setup_docker_compose(
+        test_env,
+        compose_yaml=DC_DBO_YAML,
+        other_compose_yaml=DC_YAML,
+        db_container_name="dbot-admin-api-arxiv-test-db",
+        loader_container_name="dbot-admin-api-db-myloader"
+    )
+
+
+@pytest.fixture(scope="module")
+def reset_test_database(test_env, docker_compose_db_only):
+    """
+    Reset the database to its initial snapshot state before each test.
+    Use this fixture when you need a clean database state for each test.
+    """
+    logging.info("Resetting database from snapshot...")
+    container_name = docker_compose_db_only
+    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"], container_name=container_name)
+    if not success:
+        pytest.fail("Failed to reset database from snapshot")
+    yield None
 
 
 @pytest.fixture(scope="function")
-def db_session() -> Generator[SASession, None, None]:
+def reset_test_database_for_function(test_env, docker_compose_db_only):
     """
-    Fixture to provide a database session.
-
-    This fixture creates a new database session for each test function,
-    which ensures test isolation.
-
-    Returns:
-        SQLAlchemy Session: A session connected to the test database
+    Reset the database to its initial snapshot state before each test.
+    Use this fixture when you need a clean database state for each test.
     """
-    with DatabaseSession() as session:
-        yield session
+    logging.info("Resetting database from snapshot...")
+    container_name = docker_compose_db_only
+    success = reset_database_from_snapshot(db_port=test_env["ARXIV_DB_PORT"], container_name=container_name)
+    if not success:
+        pytest.fail("Failed to reset database from snapshot")
+    yield None
+
+
+@pytest.fixture(scope="function")
+def database_instance(test_env, docker_compose_db_only):
+    """
+    Set up the database connection for tests that need direct database access.
+    This fixture configures the global Database instance and provides DatabaseSession.
+    """
+    db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}".format(
+        "arxiv",
+        "arxiv_password",
+        "127.0.0.1",
+        test_env["ARXIV_DB_PORT"],
+        "arXiv"
+    )
+
+    settings = Settings(
+        CLASSIC_DB_URI=db_uri,
+        LATEXML_DB_URI=None
+    )
+    database = Database(settings)
+    database.set_to_global()
+    yield DatabaseSession
+
+
+@pytest.fixture(scope="module")
+def database_session(test_env, docker_compose_db_only):
+    """
+    Set up the database connection for tests that need direct database access.
+    This fixture configures the global Database instance and provides DatabaseSession.
+    """
+
+    db_uri = "mysql+mysqldb://{}:{}@{}:{}/{}".format(
+        "arxiv",
+        "arxiv_password",
+        "127.0.0.1",
+        test_env["ARXIV_DB_PORT"],
+        "arXiv"
+    )
+
+    settings = Settings(
+        CLASSIC_DB_URI=db_uri,
+        LATEXML_DB_URI=None
+    )
+    database = Database(settings)
+    database.set_to_global()
+
+    yield DatabaseSession
+
+
+@pytest.fixture(scope="module")
+def sqlite_db() -> str:
+    sqlite_0_path = ADMIN_API_TEST_DIR.joinpath(compressed_sqlite_db_filename)
+    if not sqlite_0_path.exists():
+        raise FileNotFoundError(compressed_sqlite_db_filename)
+
+    sqlite_db_path = ADMIN_API_TEST_DIR.joinpath(sqlite_db_filename)
+    sqlite_db_path.unlink(missing_ok=True)
+    temp_path = sqlite_db_path.as_posix() + ".gz"
+    shutil.copy(sqlite_0_path, temp_path)
+    subprocess.run(["gzip", "--decompress", temp_path])
+
+    db_uri = f'sqlite:///{sqlite_db_path}'
+
+    settings = Settings(
+        CLASSIC_DB_URI=db_uri,
+        LATEXML_DB_URI=None
+    )
+    database = Database(settings)
+    database.set_to_global()
+
+    return sqlite_db_path.as_posix()
+
+
+@pytest.fixture(scope="module")
+def test_env_sqlite(sqlite_db) -> Dict[str, Optional[str]]:
+    if not ADMIN_API_TEST_DIR.joinpath(dotenv_sqlite_filename).exists():
+        raise FileNotFoundError(dotenv_sqlite_filename)
+    env = dotenv_values(ADMIN_API_TEST_DIR.joinpath(dotenv_sqlite_filename).as_posix())
+    db_uri = f'sqlite:///{sqlite_db}'
+    env['CLASSIC_DB_URI'] = db_uri
+    env['DB_URI'] = db_uri
+    return env
+
+
+@pytest.fixture(scope="module")
+def sqlite_session(test_env_sqlite, sqlite_db):
+    """
+    Set up the database connection for tests that need direct database access.
+    This fixture configures the global Database instance and provides DatabaseSession.
+    """
+    yield DatabaseSession
+
+
+@pytest.fixture(scope="module")
+def admin_api_sqlite_client(test_env_sqlite: Dict, sqlite_db) -> Generator[TestClient, None, None]:
+    """Start Admin API with database-only setup (faster for isolated tests)"""
+    # Make sure there is no keycloak secret
+    test_env_sqlite["KEYCLOAK_ADMIN_SECRET"] = "<NOT-SET>"
+    os.environ.update(test_env_sqlite)
+    app = create_app(TESTING=True)
+    admin_api_url = test_env_sqlite['ADMIN_API_URL']
+    client = TestClient(app, base_url=admin_api_url)
+    yield client
+    client.close()

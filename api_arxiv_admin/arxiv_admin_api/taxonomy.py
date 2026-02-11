@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/taxonomy", tags=["Taxonomy"])
 
-
-
 shadow_groups : Dict[str, Group] = {
     "grp_q-stat": Group(
         id="grp_q-stat",
@@ -37,8 +35,8 @@ async def list_category_groups(
         response: Response,
         _sort: Optional[str] = Query("id", description="ID"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of IDs to filter by"),
     ) -> List[definitions.Group]:
 
@@ -79,8 +77,8 @@ async def list_categories(
         response: Response,
         _sort: Optional[str] = Query("document_id,archive,subject_class", description="keys"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of IDs to filter by"),
     ) -> List[definitions.Category]:
 
@@ -117,8 +115,8 @@ async def list_archives(
         response: Response,
         _sort: Optional[str] = Query("document_id,archive,subject_class", description="keys"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of IDs to filter by"),
     ) -> List[definitions.Archive]:
 
@@ -129,7 +127,7 @@ async def list_archives(
     if id is not None:
         return [group for key, group in definitions.ARCHIVES.items() if key in id]
 
-    archives: List[definitions.Archive] = definitions.ARCHIVES.values()
+    archives: List[definitions.Archive] = list(definitions.ARCHIVES.values())
 
     if _sort:
         attr = definitions.Archive.model_fields.get(_sort, None)

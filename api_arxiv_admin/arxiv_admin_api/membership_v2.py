@@ -1,10 +1,11 @@
 """
 Member institution
 """
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import MembershipInstitutions, MembershipUsers
@@ -33,11 +34,10 @@ class V2MembershipInstitutionModel(BaseModel):
     comment: Optional[str] = None
     users: Optional[List[int]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
-    def base_query(session: Session) -> Query:
+    def base_query(session: Session) -> sqlalchemy.orm.Query:
         """
         Returns a basic query for member institutions with aggregated users.
         """
@@ -73,8 +73,8 @@ async def list_membership_institutions(
         response: Response,
         _sort: Optional[str] = Query("short_name", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of member institution IDs to filter by"),
         name: Optional[str] = Query(None),
         db: Session = Depends(get_db)
@@ -130,7 +130,7 @@ async def update_membership_institution_data(
         id: int,
         body: V2MembershipInstitutionModel,
         db: Session = Depends(get_db)) -> V2MembershipInstitutionModel:
-    item: MembershipInstitutions = db.query(MembershipInstitutions).filter(MembershipInstitutions.sid == id).one_or_none()
+    item: Optional[MembershipInstitutions] = db.query(MembershipInstitutions).filter(MembershipInstitutions.sid == id).one_or_none()
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"MembershipInstitution {id} not found")
 
@@ -147,7 +147,7 @@ async def update_membership_institution_data(
     current_users: List[MembershipUsers] = db.query(MembershipUsers).filter(MembershipUsers.sid == id).all()
     u: MembershipUsers
     current_user_ids = {u.user_id for u in current_users}
-    next_user_ids = set(body.users)
+    next_user_ids = set(body.users) if body.users else set()
 
     disappearing_users = current_user_ids - next_user_ids
     appearing_users = next_user_ids - current_user_ids
@@ -192,11 +192,12 @@ async def create_membership_institution_data(
     db.flush()
     db.refresh(item)
 
-    for user_id in body.users:
-        member_user = MembershipUsers(
-            sid=item.sid,
-            user_id=user_id)
-        db.add(member_user)
+    if body.users is not None:
+        for user_id in body.users:
+            member_user = MembershipUsers(
+                sid=item.sid,
+                user_id=user_id)
+            db.add(member_user)
 
     db.commit()
     # Return the created record

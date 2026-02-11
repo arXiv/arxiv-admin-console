@@ -1,4 +1,5 @@
 """Provides integration for the external user interface."""
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
@@ -6,7 +7,7 @@ from io import StringIO
 
 from sqlalchemy import select, delete, insert
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import t_arXiv_black_email, t_arXiv_white_email, t_arXiv_block_email
@@ -20,8 +21,8 @@ router = APIRouter(dependencies=[Depends(is_admin_user)], prefix="/email_pattern
 
 
 class EmailPatternModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     purpose: str
     pass
@@ -37,8 +38,8 @@ pattern_tables = {
 async def list_email_patterns(
         response: Response,
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         pattern: Optional[str] = Query(None, description="Email pattern"),
         purpose: Optional[str] = Query("black", description="black, block or white"),
         session: Session = Depends(get_db)
@@ -82,10 +83,11 @@ async def list_email_patterns(
     return result
 
 
-@router.post('/')
+@router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_email_pattern(
+        response: Response,
         body: EmailPatternModel,
-        session: Session = Depends(get_db)
+        session: Session = Depends(get_db),
 ) -> EmailPatternModel:
 
     table = pattern_tables.get(body.purpose)
@@ -112,7 +114,7 @@ async def create_email_pattern(
         session.commit()
         
         logger.info(f"Created email pattern '{body.id}' in {body.purpose} table")
-        
+        response.status_code = status.HTTP_201_CREATED
         return body
     
     except HTTPException:
@@ -126,16 +128,21 @@ async def create_email_pattern(
 
 
 class EmailPatternListModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     ids: List[str]
 
 
-@router.delete('/{purpose:str}')
+@router.delete('/{purpose:str}', status_code=status.HTTP_204_NO_CONTENT,
+              responses={
+                  400: {"description": "Invalid purpose"},
+                  404: {"description": "No patterns found"},
+                  500: {"description": "Failed to delete patterns"}
+              })
 async def delete_email_patterns(
         response: Response,
         purpose: str,
-        body: EmailPatternListModel,
+        ids: List[str] = Query(...),
         session: Session = Depends(get_db)
 ) -> Response:
 
@@ -144,15 +151,15 @@ async def delete_email_patterns(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Invalid purpose {purpose}. Allowed values: black, block, white")
 
-    if not body.ids:
+    if not ids:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="No pattern IDs provided")
 
     try:
-        delete_query = delete(table).where(table.c.pattern.in_(body.ids))
-        result = session.execute(delete_query)
+        delete_query = delete(table).where(table.c.pattern.in_(ids))
+        result: sqlalchemy.engine.CursorResult = session.execute(delete_query) # type: ignore
         session.commit()
-        
+
         logger.info(f"Deleted {result.rowcount} email patterns from {purpose} table")
         
         return Response(status_code=status.HTTP_204_NO_CONTENT)

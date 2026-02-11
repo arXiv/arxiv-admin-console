@@ -12,7 +12,7 @@ from fastapi import FastAPI, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
-from asgi_logger import AccessLoggerMiddleware
+# from asgi_logger import AccessLoggerMiddleware
 
 import sqlalchemy
 import sqlalchemy.event
@@ -57,8 +57,8 @@ from arxiv_admin_api.endorsement_domains import router as endorsement_domains_ro
 from arxiv_admin_api.system_status import router as system_status_router
 from arxiv_admin_api.bib_feeds import router as bib_feeds_router, bib_feed_updates_router
 
-from arxiv_admin_api.frontend import router as frontend_router
-from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
+# from arxiv_admin_api.frontend import router as frontend_router
+# from arxiv_admin_api.helpers.session_cookie_middleware import SessionCookieMiddleware
 from arxiv_admin_api.helpers.user_session import UserSession
 
 from arxiv_admin_api.public_users import router as public_users_router
@@ -70,54 +70,6 @@ from google.cloud import storage as gcs
 
 from app_logging import setup_logger
 
-# API root path (excluding the host)
-ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if os.environ.get('TESTING') is None else ''
-
-# Admin app URL
-#
-ADMIN_APP_URL = os.environ.get('ADMIN_APP_URL', 'http://localhost.arxiv.org:5100/admin-console')
-#
-DB_URI = os.environ.get('CLASSIC_DB_URI')
-#
-MODAPI_URL = os.environ.get('MODAPI_URL', "https://services.dev.arxiv.org")
-MODAPI_MODKEY = os.environ.get('MODAPI_MODKEY', "not-a-modkey")
-#
-AAA_LOGIN_REDIRECT_URL = os.environ.get("AAA_LOGIN_REDIRECT_URL", "http://localhost.arxiv.org:5100/aaa/login")
-# When it got the expired, ask the oauth server to refresh the token
-# This is still WIP.
-AAA_TOKEN_REFRESH_URL = os.environ.get("AAA_TOKEN_REFRESH_URL", "http://localhost.arxiv.org:5100/aaa/refresh")
-#
-LOGOUT_REDIRECT_URL = os.environ.get("LOGOUT_REDIRECT_URL", ADMIN_APP_URL)
-#
-JWT_SECRET = os.environ.get("JWT_SECRET")
-AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "ARXIVNG_SESSION_ID")
-CLASSIC_COOKIE_NAME = os.environ.get("CLASSIC_COOKIE_NAME", "tapir_session")
-TRACKING_COOKIE_NAME = os.environ.get("TRACKING_COOKIE_NAME", "tapir_tracking")
-
-SQLALCHMEY_MAPPING = {
-    'pool_size': 8,
-    'max_overflow': 8,
-    'pool_timeout': 30,
-    'pool_recycle': 900
-}
-
-USER_ACTION_SITE = os.environ.get("USER_ACTION_SITE", "https://dev.arxiv.org")
-USER_ACTION_URLS = {
-    "replace": os.environ.get("USER_ACTION_URL_REPLACE", "{site}/user/{doc_id}/replace"),
-    "withdraw": os.environ.get("USER_ACTION_URL_WITHDRAW", "{site}/user/{doc_id}/withdraw"),
-    "cross": os.environ.get("USER_ACTION_URL_CROSS", "{site}/user/{doc_id}/cross"),
-    "jref": os.environ.get("USER_ACTION_URL_JREF", "{site}/user/{doc_id}/jref"),
-    "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
-}
-
-ARXIV_CHECK_URL = os.environ.get("ARXIV_CHECK_URL", "https://check.dev.arxiv.org")
-
-#
-#
-#
-
-GCP_PROJECT = os.environ.get("GCP_PROJECT", "arxiv-development")
-ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "arxiv-dev-data")
 
 # Auth is now handled by auth service
 # No need for keycloak URL, etc.
@@ -145,18 +97,71 @@ origins = [
 ]
 
 
-
-
 def create_app(*args, **kwargs) -> FastAPI:
     setup_logger()
 
+    # API root path (excluding the host)
+    TESTING = os.environ.get('TESTING')
+    ADMIN_API_ROOT_PATH = os.environ.get('ADMIN_API_ROOT_PATH', '/admin-api') if not TESTING else ''
+    logging.info(f"TESTING: {TESTING!r}")
+    logging.info(f"ADMIN_API_ROOT_PATH: {ADMIN_API_ROOT_PATH}")
+
+    # Admin app URL
+    #
+    ADMIN_APP_URL = os.environ.get('ADMIN_APP_URL', 'http://localhost.arxiv.org:5100/admin-console')
+    #
+    MODAPI_URL = os.environ.get('MODAPI_URL', "https://services.dev.arxiv.org")
+    MODAPI_MODKEY = os.environ.get('MODAPI_MODKEY', "not-a-modkey")
+    #
+    AAA_LOGIN_REDIRECT_URL = os.environ.get("AAA_LOGIN_REDIRECT_URL", "http://localhost.arxiv.org:5100/aaa/login")
+    # When it got the expired, ask the oauth server to refresh the token
+    # This is still WIP.
+    AAA_TOKEN_REFRESH_URL = os.environ.get("AAA_TOKEN_REFRESH_URL", "http://localhost.arxiv.org:5100/aaa/refresh")
+    #
+    LOGOUT_REDIRECT_URL = os.environ.get("LOGOUT_REDIRECT_URL", ADMIN_APP_URL)
+    #
+    JWT_SECRET = os.environ.get("JWT_SECRET")
+    AUTH_SESSION_COOKIE_NAME = os.environ.get("AUTH_SESSION_COOKIE_NAME", "ARXIVNG_SESSION_ID")
+    CLASSIC_COOKIE_NAME = os.environ.get("CLASSIC_COOKIE_NAME", "tapir_session")
+    TRACKING_COOKIE_NAME = os.environ.get("TRACKING_COOKIE_NAME", "tapir_tracking")
+
+    SQLALCHMEY_MAPPING = {
+        'pool_size': 8,
+        'max_overflow': 8,
+        'pool_timeout': 30,
+        'pool_recycle': 900
+    }
+
+    USER_ACTION_SITE = os.environ.get("USER_ACTION_SITE", "https://dev.arxiv.org")
+    USER_ACTION_URLS = {
+        "replace": os.environ.get("USER_ACTION_URL_REPLACE", "{site}/user/{doc_id}/replace"),
+        "withdraw": os.environ.get("USER_ACTION_URL_WITHDRAW", "{site}/user/{doc_id}/withdraw"),
+        "cross": os.environ.get("USER_ACTION_URL_CROSS", "{site}/user/{doc_id}/cross"),
+        "jref": os.environ.get("USER_ACTION_URL_JREF", "{site}/user/{doc_id}/jref"),
+        "pwc_link": os.environ.get("USER_ACTION_URL_PWC_LINK", "{site}/user/{doc_id}/pwc_link"),
+    }
+
+    ARXIV_CHECK_URL = os.environ.get("ARXIV_CHECK_URL", "https://check.dev.arxiv.org")
+
+    #
+    #
+    #
+
+    GCP_PROJECT = os.environ.get("GCP_PROJECT", "<NONE>")
+    ARXIV_DOCUMENT_BUCKET_NAME = os.environ.get("ARXIV_DOCUMENT_BUCKET_NAME", "<NONE>")
+
+    DB_URI = os.environ.get('CLASSIC_DB_URI')
+    #
+
     settings = Settings (
-        CLASSIC_DB_URI = DB_URI,
+        CLASSIC_DB_URI = DB_URI or "",
         LATEXML_DB_URI = None
     )
     from arxiv_bizlogic.database import Database
     database = Database(settings)
     database.set_to_global()
+
+    TESTING = kwargs.get('TESTING')
 
     # from arxiv.db import init as arxiv_db_init
     # arxiv_db_init(settings)
@@ -184,7 +189,7 @@ def create_app(*args, **kwargs) -> FastAPI:
                 "CLASSIC_SESSION_HASH": "classic-secret",
                 "SESSION_DURATION": "36000",
                 "CLASSIC_COOKIE_NAME": "tapir_session"
-            }.get(key)
+            }[key]
 
     pwc_secret = get_application_config().get('PWC_SECRET', "not-very-secret")
     pwc_arxiv_user_secret = get_application_config().get('PWC_ARXIV_USER_SECRET', "not-very-secret")
@@ -194,7 +199,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     KEYCLOAK_ACCESS_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_access_token_env, "keycloak_access_token")
     KEYCLOAK_REFRESH_TOKEN_NAME = os.environ.get(COOKIE_ENV_NAMES.keycloak_refresh_token_env, "keycloak_refresh_token")
 
-    cookie_names = {
+    extra_options: dict[str, Any] = {
         COOKIE_ENV_NAMES.classic_cookie_env: CLASSIC_COOKIE_NAME,
         COOKIE_ENV_NAMES.ng_cookie_env: ARXIVNG_COOKIE_NAME,
         COOKIE_ENV_NAMES.auth_session_cookie_env: AUTH_SESSION_COOKIE_NAME,
@@ -202,14 +207,20 @@ def create_app(*args, **kwargs) -> FastAPI:
         COOKIE_ENV_NAMES.keycloak_refresh_token_env: KEYCLOAK_REFRESH_TOKEN_NAME,
     }
 
-    # GOOGLE_APPLICATION_CREDENTIALS is needed
-    gcp_client: gcs.Client = gcs.Client(project=GCP_PROJECT)
-    document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
-    document_storage = GCPStorage(gcp_client, document_bucket_name)
+    # GOOGLE_APPLICATION_CREDENTIALS is needed (skip in testing mode)
+    if TESTING or ARXIV_DOCUMENT_BUCKET_NAME == "<NONE>" or GCP_PROJECT == "<NONE>":
+        document_storage = None
+    else:
+        gcp_client: gcs.Client = gcs.Client(project=GCP_PROJECT)
+        document_bucket_name = ARXIV_DOCUMENT_BUCKET_NAME
+        document_storage = GCPStorage(gcp_client, document_bucket_name)
 
-    extra_options = {}
-    if os.environ.get(ENABLE_USER_ACCESS_KEY):
-        extra_options[ENABLE_USER_ACCESS_KEY] = os.environ.get(ENABLE_USER_ACCESS_KEY)
+    if TESTING:
+        extra_options["TESTING"] = TESTING
+
+    enable_user_access = os.environ.get(ENABLE_USER_ACCESS_KEY)
+    if enable_user_access:
+        extra_options[ENABLE_USER_ACCESS_KEY] = enable_user_access
 
     app = FastAPI(
         root_path=ADMIN_API_ROOT_PATH,
@@ -237,15 +248,14 @@ def create_app(*args, **kwargs) -> FastAPI:
         USER_ACTION_SITE=USER_ACTION_SITE,
         USER_ACTION_URLS=USER_ACTION_URLS,
         ARXIV_CHECK_URL=ARXIV_CHECK_URL,
-        **cookie_names,
         **extra_options
-    )
+    ) # type: ignore
 
     if ADMIN_APP_URL not in origins:
         origins.append(ADMIN_APP_URL)
 
     app.add_middleware(
-        CORSMiddleware,
+        CORSMiddleware, # type: ignore
         allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
@@ -254,7 +264,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     )
 
     app.add_middleware(
-        CorrelationIdMiddleware,  # type: ignore
+        CorrelationIdMiddleware, # type: ignore
         header_name='X-Request-ID',
         update_request_header=True,
         generator=lambda: uuid4().hex,
@@ -267,7 +277,7 @@ def create_app(*args, **kwargs) -> FastAPI:
     # app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
     # app.add_middleware(SessionCookieMiddleware)
 
-    app.add_middleware(TapirCookieToUserClaimsMiddleware)
+    app.add_middleware(TapirCookieToUserClaimsMiddleware) # type: ignore
 
     # app.include_router(auth_router)
     app.include_router(system_status_router)
@@ -330,7 +340,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         try:
             secret = request.app.extra['JWT_SECRET']
             if secret and token:
-                kc_tokens = {}
+                kc_tokens: dict[str, Any] = {}
                 jwt_payload = token
                 claims = ArxivUserClaims.decode_jwt_payload(kc_tokens, jwt_payload, secret)
                 expires_at = claims.expires_at
@@ -406,7 +416,7 @@ def create_app(*args, **kwargs) -> FastAPI:
         refresh_payload = {
             "session": cookies.get(cookie_name),
             "classic": cookies.get(classic_cookie_name),
-        },
+        }
         try:
             async with httpx.AsyncClient() as client:
                 refresh_response = await client.post(AAA_TOKEN_REFRESH_URL, json=refresh_payload, cookies=cookies)

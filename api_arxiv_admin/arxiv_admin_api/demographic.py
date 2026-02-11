@@ -7,8 +7,8 @@ from typing import Optional, List
 from arxiv.base import logging
 from arxiv.db.models import Demographic, OrcidIds, AuthorIds
 from sqlalchemy import LargeBinary, cast
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from sqlalchemy.orm import Session, Query as OrmQuery
+from pydantic import BaseModel, ConfigDict
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import get_db, is_any_user, gate_admin_user, get_current_user
@@ -48,11 +48,10 @@ class DemographicModel(BaseModel):
     orcid: Optional[str] = None
     author_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
-    def base_select(db: Session) -> Query:
+    def base_select(db: Session) -> OrmQuery:
         return db.query(
             Demographic.user_id.label("id"),
             cast(Demographic.country, LargeBinary).label("country"),
@@ -94,8 +93,8 @@ async def list_demographics(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of user IDs to filter by"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         db: Session = Depends(get_db)

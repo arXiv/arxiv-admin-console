@@ -2,18 +2,18 @@
 from __future__ import annotations
 
 import os
-from enum import Enum
+from enum import Enum, StrEnum
 from pathlib import Path
 
 from arxiv.auth.user_claims import ArxivUserClaims
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request, UploadFile, File, Form
-from typing import Optional, List, BinaryIO, TextIO
+from typing import Optional, List, BinaryIO, TextIO, cast as type_cast
 from arxiv.base import logging
 from arxiv.db.models import Document, Submission, Metadata, PaperOwner, Demographic, TapirUser
 from sqlalchemy import func, and_, desc, cast, LargeBinary, Row, text
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime, date, timedelta
 # from .models import CrossControlModel
 import re
@@ -101,8 +101,7 @@ class DocumentModel(BaseModel):
 
     author_ids: Optional[List[int]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def base_select(db: Session):
@@ -174,8 +173,8 @@ async def list_documents(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
         submitter_id: Optional[str] = Query(None, description="Submitter ID"),
         submitter_name: Optional[str] = Query(None, description="Submitter Name"),
@@ -307,9 +306,9 @@ async def list_documents(
 
 
 @router.get("/paper_id/{paper_id:str}")
-def get_document(paper_id:str,
-                 current_user: ArxivUserClaims = Depends(get_authn_user),
-                 session: Session = Depends(get_db)) -> DocumentModel:
+def get_document_by_paper_id(paper_id:str,
+    current_user: ArxivUserClaims = Depends(get_authn_user),
+    session: Session = Depends(get_db)) -> DocumentModel:
     """Display a paper."""
     query = DocumentModel.base_select(session).filter(Document.paper_id == paper_id)
     doc = query.one_or_none()
@@ -348,8 +347,8 @@ def get_document_metadata(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         session: Session = Depends(get_db)) -> List[MetadataModel]:
     """List of metadata for a document."""
     doc = session.query(Document).filter(Document.document_id == id).one_or_none()
@@ -406,8 +405,8 @@ async def list_document_metadata_latest(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[int]] = Query(None, description="List of document IDs to filter by"),
         db: Session = Depends(get_db)
 ) -> List[MetadataModel]:
@@ -467,12 +466,12 @@ async def list_document_metadata_latest(
     return [MetadataModel.model_validate(sa_model_to_pydandic_model(item, MetadataModel, name_map={"id": "document_id"})) for item in results]
 
 
-class DocumentUserAction(str, Enum):
-    replace = "replace"
-    withdraw = "withdraw"
-    cross = "cross"
-    jref = "jref"
-    pwc_code = "pwc_code"
+class DocumentUserAction(StrEnum):
+    REPLACE = "replace"
+    WITHDRAW = "withdraw"
+    CROSS = "cross"
+    JREF = "jref"
+    PWC_CODE = "pwc_code"
 
 @router.get("/user-action/{id}/{action}")
 def redirect_to_user_document_action(
@@ -484,8 +483,9 @@ def redirect_to_user_document_action(
     doc = session.query(Document).filter(Document.document_id == id).one_or_none()
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {id} not found")
-    if action not in list(DocumentUserAction):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Action {action} is invalid. Must be one of {list(DocumentUserAction)}")
+    # FastAPI validates the enum from the path parameter, so this check is redundant
+    # if action not in list(DocumentUserAction):
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Action {action} is invalid. Must be one of {list(DocumentUserAction)}")
     user_id = current_user.user_id
     site = request.app.extra['USER_ACTION_SITE']
     urls = request.app.extra['USER_ACTION_URLS']
@@ -592,7 +592,6 @@ def list_related_files(xid: arXivID, all_metadata: List[Metadata], doc_storage: 
     candidate_files: List[BaseAccessor] = []
     max_version = max([metadata.version for metadata in all_metadata])
 
-    buddy_files = []
     for idx, metadata in enumerate(all_metadata):
         v_xid = arXivID("%sv%d" % (xid.ids, metadata.version))
         if max_version == metadata.version:
@@ -633,8 +632,8 @@ async def list_document_files(
         response: Response,
         _sort: Optional[str] = Query("version", description="sort by"),
         _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)) -> List[DocumentFile]:
     """Regenerate document artifacts."""
@@ -681,12 +680,15 @@ async def download_document_file(
     if doc.submitter_id != current_user.user_id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to regenerate document artifacts")
 
-    metadata: Optional[Metadata] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
-    if not metadata:
+    latest_metadata: Optional[Metadata] = session.query(Metadata).filter(Metadata.document_id == id).order_by(desc(Metadata.version)).first()
+    if not latest_metadata:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document metadata {id} not found")
 
-    doc_storage: GCPStorage = request.app.extra.get("DOCUMENT_STORAGE")
-    blobs = list_related_files(arXivID(doc.paper_id), metadata.version, doc_storage)
+    doc_storage: Optional[GCPStorage]= request.app.extra.get("DOCUMENT_STORAGE")
+    if doc_storage is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Document storage is not configured")
+    blobs: list[BaseAccessor] = list_related_files(arXivID(doc.paper_id), [latest_metadata], doc_storage)
 
     blob: BaseAccessor
     for blob in blobs:
@@ -718,9 +720,9 @@ async def download_document_file(
 async def upload_document_file(
         id: int,
         uploading: UploadFile,
+        request: Request,
         file_type: str = Form(...),
         storage_id: str = Form(...),
-        request: Request = None,
         current_user: ArxivUserClaims = Depends(get_authn_user),
         session: Session = Depends(get_db)):
     """Upload a document file."""
@@ -778,7 +780,7 @@ async def upload_document_file(
 
     # Stream the file directly to storage
     try:
-        with accessor.open(mode='wb') as fd:
+        with type_cast(BinaryIO, accessor.open(mode='wb')) as fd:
             while chunk := await uploading.read(65536):  # 8KB chunks
                 fd.write(chunk)
 

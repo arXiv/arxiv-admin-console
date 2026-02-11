@@ -11,9 +11,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, R
 
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
-from arxiv.db.models import AdminLog, Submission
+from arxiv.db.models import AdminLog, Submission, TapirAdminAudit
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, is_any_user, is_admin_user
 
@@ -23,8 +23,7 @@ router = APIRouter(prefix="/admin_logs", dependencies=[Depends(is_any_user)])
 
 
 class AdminLogModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     logtime: Optional[str] = None
@@ -64,8 +63,8 @@ async def list_admin_logs(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0),
-        _end: Optional[int] = Query(100),
+        _start: int = Query(0),
+        _end: int = Query(100),
         submission_id: Optional[int] = Query(None, description="arXid Submission ID"),
         paper_id: Optional[str] = Query(None, description="arXid Paper ID"),
         start_date: Optional[date] = Query(None, description="Start date for filtering"),
@@ -140,8 +139,8 @@ async def get_admin_log(id: int,
 
 
 class AdminUserComment(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: str
     comment: str
 
@@ -157,16 +156,17 @@ async def create_admin_log_user_comment(
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
 
-    admin_audit(
+    new_audit: TapirAdminAudit = admin_audit(
         session,
         AdminAudit_AddComment(
-            current_user.user_id,
-            body.user_id,
-            current_user.tapir_session_id,
+            str(current_user.user_id),
+            str(body.user_id),
+            str(current_user.tapir_session_id) if current_user.tapir_session_id else None,
             comment=body.comment,
             remote_ip=remote_ip,
             remote_hostname=remote_hostname,
             tracking_cookie=tracking_cookie,
         )
     )
+    return AdminLogModel.model_validate(new_audit)
 
