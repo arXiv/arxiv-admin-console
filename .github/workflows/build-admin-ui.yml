@@ -100,18 +100,18 @@ jobs:
       - name: Push image
         run: docker push --all-tags gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}
 
-  development:
-    needs: build-push
-    uses: ./.github/workflows/deploy-admin-ui.yml
-    if: ${{ github.event_name != 'workflow_dispatch' && (github.base_ref == 'master' || github.ref_name == 'master') }}
-    with:
-      env: development
-      image_tag: ${{ github.sha }}
+  # development:
+  #   needs: build-push
+  #   uses: ./.github/workflows/deploy-admin-ui.yml
+  #   if: ${{ github.event_name != 'workflow_dispatch' && (github.base_ref == 'master' || github.ref_name == 'master') }}
+  #   with:
+  #     env: development
+  #     image_tag: ${{ github.sha }}
 
-  staging:
-    needs: build-push
-    uses: ./.github/workflows/deploy-admin-ui.yml
-    if: ${{ startsWith(github.ref, 'refs/tags/RELEASE-') }}
-    with:
-      env: staging
-      image_tag: ${{ github.sha }}  
+  # staging:
+  #   needs: build-push
+  #   uses: ./.github/workflows/deploy-admin-ui.yml
+  #   if: ${{ startsWith(github.ref, 'refs/tags/RELEASE-') }}
+  #   with:
+  #     env: staging
+  #     image_tag: ${{ github.sha }}  
