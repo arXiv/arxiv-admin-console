@@ -360,14 +360,13 @@ def test_update_delete_category_owner(admin_api_sqlite_client: TestClient,
             "endorsement_domain": "cs",
         })
         assert response.status_code == 201
+        with sqlite_session() as session:
+            audit_count_1 = session.query(TapirAdminAudit.entry_id).count()
+            assert audit_count_1 == audit_count_0 + 1
+            audit = session.query(TapirAdminAudit).order_by(TapirAdminAudit.entry_id.desc()).first()
+            assert audit.action == "arxiv-category"
+            assert "create" in audit.data
 
-    with sqlite_session() as session:
-        audit_count_1 = session.query(TapirAdminAudit.entry_id).count()
-        assert audit_count_1 == audit_count_0 + 1
-
-        audit = session.query(TapirAdminAudit).filter(TapirAdminAudit.entry_id == last_audit_entry + 1).one()
-        assert audit.action == "arxiv-category"
-        assert "create" in audit.data
 
     # Update papers_to_endorse to 3
     response = admin_api_sqlite_client.put("/v1/categories/cs.XC", headers=admin_api_owner_headers, json={
