@@ -57,12 +57,21 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker
 
-      - name: Pull image and update bucket
+      - name: Pull image
         working-directory: ui-arxiv-admin
         run: |
           docker pull gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}
+          docker images -a
 
-          docker image ls
+      - name: Create container
+        working-directory: ui-arxiv-admin
+        run: |
+          docker create --name admin-ui gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}
+          docker ps -a
+
+      # the Docker image must have the gcloud SDK or a client library to cp directly to the bucket ...
+
+
       # - name: Set up terraform
       #   uses: hashicorp/setup-terraform@v3
 
