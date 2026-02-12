@@ -71,24 +71,31 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
 
-      - name: Set up terraform
-        uses: hashicorp/setup-terraform@v3
 
-      - name: Check version
-        run: terraform --version
-
-      - name: Set environment variables
+      - name: Build image, caching from latest
+        working-directory: ui-arxiv-admin
         run: |
-          TERRAFORM_ARGS="-var-file=\"envs/${{ vars.ENV_VAR }}.tfvars\" \
-            -var=\"image_path=gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}\""
+          docker pull gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}
 
-          echo "TERRAFORM_ARGS=$TERRAFORM_ARGS" >> $GITHUB_ENV
-        working-directory: terraform/admin-ui
+          docker image ls
+      # - name: Set up terraform
+      #   uses: hashicorp/setup-terraform@v3
 
-      - name: Initialize admin-api remote backend
-        run: terraform init -backend-config="bucket=${{ vars.TERRAFORM_BUCKET }}"
-        working-directory: terraform/admin-ui
+      # - name: Check version
+      #   run: terraform --version
 
-      - name: Apply
-        run: terraform apply ${{ env.TERRAFORM_ARGS }} -auto-approve
-        working-directory: terraform/admin-ui
+      # - name: Set environment variables
+      #   run: |
+      #     TERRAFORM_ARGS="-var-file=\"envs/${{ vars.ENV_VAR }}.tfvars\" \
+      #       -var=\"image_path=gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}\""
+
+      #     echo "TERRAFORM_ARGS=$TERRAFORM_ARGS" >> $GITHUB_ENV
+      #   working-directory: terraform/admin-ui
+
+      # - name: Initialize admin-api remote backend
+      #   run: terraform init -backend-config="bucket=${{ vars.TERRAFORM_BUCKET }}"
+      #   working-directory: terraform/admin-ui
+
+      # - name: Apply
+      #   run: terraform apply ${{ env.TERRAFORM_ARGS }} -auto-approve
+      #   working-directory: terraform/admin-ui
