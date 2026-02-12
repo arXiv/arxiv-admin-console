@@ -71,7 +71,7 @@ jobs:
 
       # the Docker image must have the gcloud SDK or a client library to cp directly to the bucket ...
 
-      - name: Create container
+      - name: Copy app from container
         working-directory: ui-arxiv-admin
         run: |
           docker cp admin-ui:/usr/share/nginx/html/admin-console admin-console
