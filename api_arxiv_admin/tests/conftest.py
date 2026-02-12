@@ -260,7 +260,7 @@ def _setup_docker_compose(test_env, compose_yaml: Path, other_compose_yaml: Path
         if result.returncode != 0:
             # Container doesn't exist, start docker-compose
             logging.info("Container doesn't exist, starting docker-compose...")
-            args = ["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"]
+            args = ["docker", "compose", "--ansi=never", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"]
             logging.info(shlex.join(args))
             result = subprocess.run(args, cwd=working_dir, env=docker_env, capture_output=True, text=True)
             if result.returncode != 0:
@@ -273,9 +273,9 @@ def _setup_docker_compose(test_env, compose_yaml: Path, other_compose_yaml: Path
         else:
             # Container exists but is not running (stopped, created, etc.)
             logging.info("Container exists but is not running, recreating...")
-            subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "down"],
+            subprocess.run(["docker", "compose", "--ansi=never", env_arg, "-f", compose_yaml.as_posix(), "down"],
                            cwd=working_dir, env=docker_env)
-            result = subprocess.run(["docker", "compose", "--ansi=none", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"],
+            result = subprocess.run(["docker", "compose", "--ansi=never", env_arg, "-f", compose_yaml.as_posix(), "up", "-d"],
                            cwd=working_dir, env=docker_env, capture_output=True, text=True)
             if result.returncode != 0:
                 logging.error(f"docker-compose failed: {result.stderr}")
@@ -315,7 +315,7 @@ def _setup_docker_compose(test_env, compose_yaml: Path, other_compose_yaml: Path
         # Wait for MySQL to be ready
         logging.info("Waiting for MySQL to be ready...")
         for _ in range(30):
-            result = subprocess.run(
+            result: CompletedProcess = subprocess.run(
                 ["docker", "exec", db_container_name, "mysqladmin",
                  "ping", "-h", "127.0.0.1", "-P", test_env["ARXIV_DB_PORT"], "--silent"],
                 capture_output=True,
