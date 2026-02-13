@@ -81,8 +81,15 @@ jobs:
           ls -asl
           echo "----"
           ls -aslR admin-console
-      
 
+
+      - name: Upload to GCP
+        run: |
+          gsutil rsync -r ./admin-console gs://${{ secrets.GCP_BUCKET }}/releases/${{ github.sha }}
+
+      - name: Push the deployment live
+        run: |
+          gsutil rsync -r gs://${{ secrets.GCP_BUCKET }}/releases/${{ github.sha }} gs://${{ secrets.GCP_BUCKET }}/live
 
       # - name: Set up terraform
       #   uses: hashicorp/setup-terraform@v3
