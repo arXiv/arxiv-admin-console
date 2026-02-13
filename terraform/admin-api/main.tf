@@ -7,7 +7,7 @@ terraform {
     }
   }
   backend "gcs" {
-    prefix = "admin-admin-api"
+    prefix = "admin-api"
   }
 }
 
