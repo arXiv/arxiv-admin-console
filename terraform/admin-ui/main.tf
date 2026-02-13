@@ -70,7 +70,7 @@ resource "google_storage_bucket" "admin_ui_assets" {
   location = var.gcp_region
   project  = var.gcp_project_id
 
-  public_access_prevention = "disabled"
+  public_access_prevention = "inherited"
 
   lifecycle_rule {
     action {
