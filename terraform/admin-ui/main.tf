@@ -72,7 +72,7 @@ resource "google_storage_bucket" "admin_ui_assets" {
 
   lifecycle_rule {
     action {
-      type          = "Delete"
+      type = "Delete"
     }
     condition {
       age                                     = 0
