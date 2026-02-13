@@ -123,10 +123,12 @@ jobs:
           ls -asl
           echo "----"
           ls -aslR admin-console
-
-      - name: Upload to GCP
-        run: |
+          echo "----"
           gsutil rsync -r ./admin-console gs://${{ env.GCP_BUCKET }}/releases/${{ inputs.image_tag || github.sha }}
+
+      # - name: Upload to GCP
+      #   run: |
+      #     gsutil rsync -r ./admin-console gs://${{ env.GCP_BUCKET }}/releases/${{ inputs.image_tag || github.sha }}
 
       - name: Push the deployment live
         run: |
