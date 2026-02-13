@@ -66,7 +66,7 @@ jobs:
       - name: Create container
         working-directory: ui-arxiv-admin
         run: |
-          docker create --name admin-ui gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}
+          docker create --name admin-console gcr.io/arxiv-development/${{env.IMAGE_NAME}}:${{inputs.image_tag}}
           docker ps -a
 
       # the Docker image must have the gcloud SDK or a client library to cp directly to the bucket ...
@@ -74,7 +74,7 @@ jobs:
       - name: Copy app from container
         working-directory: ui-arxiv-admin
         run: |
-          docker cp admin-ui:/usr/share/nginx/html/admin-console admin-console
+          docker cp admin-console:/usr/share/nginx/html/admin-console admin-console
           find admin-console -type d -exec chmod 755 {} \; 2>/dev/null
           find admin-console -type f -exec chmod 644 {} \; 2>/dev/null
           echo "----"
