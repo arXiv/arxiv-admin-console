@@ -66,7 +66,8 @@ const RightSidebarContainer = styled('div', {
     display: 'flex',
     flexDirection: 'column',
     paddingTop: theme.spacing(8), // Account for app bar height
-    overflow: 'hidden',
+    overflowX: 'hidden',
+    overflowY: 'auto',
 }));
 
 interface RightSidebarLayoutProps {
