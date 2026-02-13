@@ -29,6 +29,7 @@ from arxiv.db.models import PaperOwner, PaperPw, Document, DocumentCategory
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user, is_any_user, gate_admin_user, get_tracking_cookie
 from .biz.paper_owner_biz import generate_paper_pw
 from .dao.react_admin import ReactAdminUpdateResult
+from .helpers.db_compat import from_unixtime_compat
 from .helpers.mui_datagrid import MuiDataGridFilter
 
 from .documents import DocumentModel
@@ -66,7 +67,7 @@ class OwnershipModel(BaseModel):
             ).label('id'),
             PaperOwner.document_id,
             PaperOwner.user_id,
-            func.from_unixtime(PaperOwner.date).label('date'),
+            from_unixtime_compat(PaperOwner.date, session).label('date'),
             PaperOwner.added_by,
             PaperOwner.remote_addr,
             PaperOwner.remote_host,
@@ -234,16 +235,16 @@ async def list_ownerships(
                 query = query.filter(PaperOwner.date.between(t_begin, t_end))
 
         if flag_valid is not None:
-            query = query.filter(PaperOwner.valid == flag_valid)
+            query = query.filter(PaperOwner.valid == (1 if flag_valid else 0))
         else:
             if current_user and not current_user.is_admin:
                 query = query.filter(PaperOwner.valid == 1)
 
         if flag_auto is not None:
-            query = query.filter(PaperOwner.flag_auto == flag_auto)
+            query = query.filter(PaperOwner.flag_auto == (1 if flag_auto else 0))
 
         if flag_author is not None:
-            query = query.filter(PaperOwner.flag_author == flag_author)
+            query = query.filter(PaperOwner.flag_author == (1 if flag_author else 0))
 
         if datagrid_filter:
             field_name = datagrid_filter.field_name
@@ -337,7 +338,7 @@ async def list_ownerships_for_user(
             query = query.filter(PaperOwner.date.between(t_begin, t_end))
 
     if flag_valid is not None:
-        query = query.filter(PaperOwner.valid == flag_valid)
+        query = query.filter(PaperOwner.valid == (1 if flag_valid else 0))
 
     if _sort:
         keys = _sort.split(",")

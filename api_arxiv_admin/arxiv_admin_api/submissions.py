@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
 from . import get_db, VERY_OLDE, is_any_user
+from .helpers.db_compat import cast_for_encoding
 from .helpers.mui_datagrid import MuiDataGridFilter
 from .submission_categories import SubmissionCategoryModel
 import os
@@ -189,7 +190,7 @@ class SubmissionModel(BaseModel):
             Submission.viewed,
             Submission.stage,
             Submission.submitter_id,
-            cast(Submission.submitter_name, LargeBinary).label("submitter_name"),
+            cast_for_encoding(Submission.submitter_name, db).label("submitter_name"),
             Submission.submitter_email,
             Submission.created,
             Submission.updated,
@@ -203,16 +204,16 @@ class SubmissionModel(BaseModel):
             Submission.source_flags,
             Submission.has_pilot_data,
             Submission.is_withdrawn,
-            cast(Submission.title, LargeBinary).label("title"),
-            cast(Submission.authors, LargeBinary).label("authors"),
-            cast(Submission.comments, LargeBinary).label("comments"),
+            cast_for_encoding(Submission.title, db).label("title"),
+            cast_for_encoding(Submission.authors, db).label("authors"),
+            cast_for_encoding(Submission.comments, db).label("comments"),
             Submission.proxy,
             Submission.report_num,
             Submission.msc_class,
             Submission.acm_class,
             Submission.journal_ref,
             Submission.doi,
-            cast(Submission.abstract, LargeBinary).label("abstract"),
+            cast_for_encoding(Submission.abstract, db).label("abstract"),
             Submission.license,
             Submission.version,
             Submission.type,

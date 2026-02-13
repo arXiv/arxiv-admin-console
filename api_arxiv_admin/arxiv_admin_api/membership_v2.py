@@ -5,7 +5,7 @@ import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from arxiv.base import logging
 from arxiv.db.models import MembershipInstitutions, MembershipUsers
@@ -36,6 +36,19 @@ class V2MembershipInstitutionModel(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator('users', mode='before')
+    @classmethod
+    def parse_users(cls, v):
+        """Parse users from group_concat string or return as-is if already a list."""
+        if v is None or v == '':
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # group_concat returns comma-separated string, parse to list of ints
+            return [int(user_id) for user_id in v.split(',') if user_id.strip()]
+        return v
+
     @staticmethod
     def base_query(session: Session) -> sqlalchemy.orm.Query:
         """
@@ -45,7 +58,7 @@ class V2MembershipInstitutionModel(BaseModel):
         # First, create a subquery that groups users by institution
         users_subquery = session.query(
             MembershipUsers.sid,
-            func.array_agg(MembershipUsers.user_id).label("users")
+            func.group_concat(MembershipUsers.user_id).label("users")
         ).group_by(MembershipUsers.sid).subquery()
         
         # Then join this subquery with the main institutions table

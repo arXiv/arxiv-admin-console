@@ -25,6 +25,7 @@ from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 from starlette.responses import RedirectResponse, FileResponse, StreamingResponse
 
 from . import get_db, datetime_to_epoch, VERY_OLDE, get_current_user
+from .helpers.db_compat import cast_for_encoding
 from .accessors import LocalAbsAccessor, LocalTarballAccessor, LocalPDFAccessor, GCPAbsAccessor, GCPTarballAccessor, \
     GCPPDFAccessor, GCPStorage, BaseAccessor, LocalOutcomeAccessor, GCPOutcomeAccessor, GCPBlobAccessor, \
     LocalFileAccessor, VersionedFlavor, LocalPathAccessor
@@ -109,8 +110,8 @@ class DocumentModel(BaseModel):
         return db.query(
             Document.document_id.label("id"),
             Document.paper_id,
-            cast(Document.title, LargeBinary).label("title"),
-            cast(Document.authors, LargeBinary).label("authors"),
+            cast_for_encoding(Document.title, db).label("title"),
+            cast_for_encoding(Document.authors, db).label("authors"),
             Document.submitter_email,
             Document.submitter_id,
             Document.dated,

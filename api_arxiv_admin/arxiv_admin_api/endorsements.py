@@ -109,7 +109,7 @@ async def list_endorsements(
                 query = query.filter(Endorsement.issued_when.between(t_begin, t_end))
 
         if flag_valid is not None:
-            query = query.filter(Endorsement.flag_valid == flag_valid)
+            query = query.filter(Endorsement.flag_valid == (1 if flag_valid else 0))
 
         if type is not None:
             if isinstance(type, str):
@@ -125,7 +125,7 @@ async def list_endorsements(
 
         if by_suspect is not None:
             query = query.join(Demographic, Endorsement.endorser_id == Demographic.user_id)
-            query = query.filter(Demographic.flag_suspect == by_suspect)
+            query = query.filter(Demographic.flag_suspect == (1 if by_suspect else 0))
             pass
 
         if endorsee_name is not None or endorsee_email is not None:
@@ -539,7 +539,7 @@ async def list_endorsement_ids(
             query = query.filter(Endorsement.issued_when.between(t_begin, t_end))
 
     if flag_valid is not None:
-        query = query.filter(Endorsement.flag_valid == flag_valid)
+        query = query.filter(Endorsement.flag_valid == (1 if flag_valid else 0))
 
     if type is not None:
         if isinstance(type, str):
@@ -555,7 +555,7 @@ async def list_endorsement_ids(
 
     if by_suspect is not None:
         query = query.join(Demographic, Endorsement.endorser_id == Demographic.user_id)
-        query = query.filter(Demographic.flag_suspect == by_suspect)
+        query = query.filter(Demographic.flag_suspect == (1 if by_suspect else 0))
         pass
 
     if category is not None:

@@ -64,10 +64,7 @@ class EndorsementRequestModel(BaseModel):
             EndorsementRequest.subject_class,
             EndorsementRequest.secret,
             EndorsementRequest.flag_valid,
-            case(
-                (EndorsementRequest.point_value == 0, True),
-                else_=False
-            ).label("flag_open"),
+            (EndorsementRequest.point_value == 0).label("flag_open"),
             EndorsementRequest.issued_when,
             EndorsementRequest.point_value,
             Demographic.flag_suspect.label("flag_suspect"),
@@ -159,7 +156,7 @@ async def list_endorsement_requests(
                 query = query.filter(EndorsementRequest.point_value <= 0)
 
         if suspected is not None:
-            query = query.filter(Demographic.flag_suspect == suspected)
+            query = query.filter(Demographic.flag_suspect == (1 if suspected else 0))
 
         if endorsee_id is not None:
             query = query.filter(EndorsementRequest.endorsee_id == endorsee_id)

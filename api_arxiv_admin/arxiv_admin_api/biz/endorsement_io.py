@@ -5,7 +5,7 @@ from typing import Optional, List, Tuple
 from arxiv_bizlogic.audit_event import admin_audit, AdminAudit_EndorsedBySuspect, \
     AdminAudit_GotNegativeEndorsement
 from fastapi import HTTPException, status
-from sqlalchemy import and_, or_, between, text, select
+from sqlalchemy import and_, or_, between, text, select, literal
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from arxiv.db.models import (
@@ -104,14 +104,37 @@ class EndorsementDBAccessor(EndorsementAccessor):
 
         # Apply additional filters
         if require_author:
-            query = query.filter(PaperOwner.flag_author.is_(True))
+            query = query.filter(PaperOwner.flag_author == 1)
 
         if window and (window[0] or window[1]):
             query = query.filter(between(Document.dated,
                                          datetime_to_epoch(window[0], VERY_OLDE),
                                          datetime_to_epoch(window[1], datetime.now(UTC))))
 
-        query = query.group_by(PaperOwner.document_id)
+        # Original code
+        #   query = query.group_by(PaperOwner.document_id)
+        # this is problematic because it groups by document_id while
+        # selecting flag_author and title without aggregation.
+        # MySQL with ONLY_FULL_GROUP_BY disabled tolerates this,
+        # but SQLite (and strict SQL) would reject it.
+        #
+        # Why is .distinct() the same?
+        # These three columns are selected:
+        # - PaperOwner.document_id
+        # - PaperOwner.flag_author
+        # - Document.title
+        #
+        #
+        # - PaperOwner.user_id is fixed by the above filter
+        # - PaperOwner has a composite key of (user_id, document_id)
+        # - each document_id maps to exactly one flag_author value.
+        # - Document.title is joined on document_id, so it's also functionally determined.
+        # Since all three selected columns are functionally dependent on document_id,
+        # DISTINCT over the tuple (document_id, flag_author, title) produces
+        # the same result set as GROUP BY document_id.
+        #
+        # Use distinct() instead of group_by() for deduplication
+        query = query.distinct()
 
         # Convert query results into Pydantic models using model_validate
         results = [PaperProps.model_validate(row) for row in query.all()]
@@ -122,7 +145,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
 
         # Check blacklist first
         blacklist_query = select(t_arXiv_black_email.c.pattern).where(
-            text(f"'{email}' LIKE pattern")  # Match the email against stored patterns
+            literal(email).op('LIKE')(t_arXiv_black_email.c.pattern)  # Match the email against stored patterns
         )
         blacklisted_pattern = self.session.execute(blacklist_query).scalar()
 
@@ -131,7 +154,7 @@ class EndorsementDBAccessor(EndorsementAccessor):
 
         # Check whitelist
         whitelist_query = select(t_arXiv_white_email.c.pattern).where(
-            text(f"'{email}' LIKE pattern")  # Match the email against stored patterns
+            literal(email).op('LIKE')(t_arXiv_white_email.c.pattern)  # Match the email against stored patterns
         )
         whitelisted_pattern = self.session.execute(whitelist_query).scalar()
 
@@ -305,7 +328,7 @@ function tapir_audit_admin($affected_user,$action,$data="",$comment="",$user_id=
 
             if existing_endorsement:
                 # Update the existing endorsement instead of creating a new one
-                existing_endorsement.flag_valid = True
+                existing_endorsement.flag_valid = 1
                 existing_endorsement.type = endorsement_type.value
                 existing_endorsement.point_value = endorsement.point_value if endorsement_code.positive else 0
                 new_endorsement = existing_endorsement
