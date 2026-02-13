@@ -66,9 +66,10 @@ locals {
 # Bucket name is lowercase(env)-admin-console-test. Import existing: terraform import -var-file=envs/dev.tfvars 'google_storage_bucket.admin_ui_assets' dev-admin-console-test
 
 resource "google_storage_bucket" "admin_ui_assets" {
-  name     = local.storage_bucket_name
-  location = var.gcp_region
-  project  = var.gcp_project_id
+  name          = local.storage_bucket_name
+  location      = var.gcp_region
+  project       = var.gcp_project_id
+  force_destroy = true
 
   public_access_prevention = "inherited"
 
