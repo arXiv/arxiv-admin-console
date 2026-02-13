@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from arxiv_admin_api import gate_admin_user
+from arxiv_admin_api.helpers.db_compat import cast_for_encoding
 
 router = APIRouter(prefix="/tapir_admin_audit")
 
@@ -49,8 +50,8 @@ class TapirAdminAuditModel(BaseModel):
             TapirAdminAudit.affected_user,
             TapirAdminAudit.tracking_cookie,
             TapirAdminAudit.action,
-            cast(TapirAdminAudit.data, LargeBinary).label("data"),
-            cast(TapirAdminAudit.comment, LargeBinary).label("comment"))
+            cast_for_encoding(TapirAdminAudit.data, session).label("data"),
+            cast_for_encoding(TapirAdminAudit.comment, session).label("comment"))
 
 
 @router.get("/")

@@ -25,6 +25,7 @@ from arxiv_bizlogic.bizmodels.user_model import UserModel, VetoStatusEnum, _tapi
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, check_authnz
+from .helpers.db_compat import cast_for_encoding
 from .audit import record_user_prop_admin_action
 from .biz import canonicalize_category
 from .biz.document_biz import document_summary
@@ -379,7 +380,7 @@ async def list_users(
                 query = query.filter(TapirUser.first_name.startswith(first_name))
             else:
                 # Binary comparison for non-Latin characters (no case folding needed)
-                query = query.filter(cast(TapirUser.first_name, LargeBinary).like(
+                query = query.filter(cast_for_encoding(TapirUser.first_name, db).like(
                     encode_for_latin1_column(first_name + '%')))
 
         if last_name:
@@ -389,7 +390,7 @@ async def list_users(
                 query = query.filter(TapirUser.last_name.startswith(last_name))
             else:
                 # Binary comparison for non-Latin characters (no case folding needed)
-                query = query.filter(cast(TapirUser.last_name, LargeBinary).like(
+                query = query.filter(cast_for_encoding(TapirUser.last_name, db).like(
                     encode_for_latin1_column(last_name + '%')))
 
         if email:
@@ -903,10 +904,10 @@ class UserByUsernameModel(BaseModel):
         return (session.query(
             TapirNickname.nickname.label("id"),
             TapirUser.user_id,
-            cast(TapirUser.email, LargeBinary).label("email"),
-            cast(TapirUser.first_name, LargeBinary).label("first_name"),
-            cast(TapirUser.last_name, LargeBinary).label("last_name"),
-            cast(TapirUser.suffix_name, LargeBinary).label("suffix_name"),
+            cast_for_encoding(TapirUser.email, session).label("email"),
+            cast_for_encoding(TapirUser.first_name, session).label("first_name"),
+            cast_for_encoding(TapirUser.last_name, session).label("last_name"),
+            cast_for_encoding(TapirUser.suffix_name, session).label("suffix_name"),
             TapirUser.share_first_name,
             TapirUser.share_last_name,
             TapirUser.share_email,

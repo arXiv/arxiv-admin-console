@@ -17,6 +17,7 @@ from arxiv.db.models import (TapirUser, TapirNickname, t_arXiv_moderators, Demog
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import is_admin_user, get_db, VERY_OLDE, datetime_to_epoch, is_any_user, get_current_user
+from .helpers.db_compat import cast_for_encoding
 
 router = APIRouter(prefix="/public-users")
 
@@ -77,9 +78,9 @@ class PublicUserModel(BaseModel):
         return (db.query(
             TapirUser.user_id.label("id"),
             TapirUser.email,
-            cast(TapirUser.first_name, LargeBinary).label("first_name"),
-            cast(TapirUser.last_name, LargeBinary).label("last_name"),
-            cast(TapirUser.suffix_name, LargeBinary).label("suffix_name"),
+            cast_for_encoding(TapirUser.first_name, db).label("first_name"),
+            cast_for_encoding(TapirUser.last_name, db).label("last_name"),
+            cast_for_encoding(TapirUser.suffix_name, db).label("suffix_name"),
             TapirUser.flag_deleted,
             case(
                 (is_mod_subquery, True),  # Pass each "when" condition as a separate positional argument
@@ -87,8 +88,8 @@ class PublicUserModel(BaseModel):
             ).label("flag_is_mod"),
             # mod_subquery.label("moderator_id"),
             Demographic.country,
-            cast(Demographic.affiliation, LargeBinary).label("affiliation"),
-            cast(Demographic.url, LargeBinary).label("url"),
+            cast_for_encoding(Demographic.affiliation, db).label("affiliation"),
+            cast_for_encoding(Demographic.url, db).label("url"),
             Demographic.type,
             Demographic.archive,
             Demographic.subject_class,

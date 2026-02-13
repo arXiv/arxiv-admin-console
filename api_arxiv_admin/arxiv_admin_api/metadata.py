@@ -16,6 +16,7 @@ import re
 from arxiv_bizlogic.sqlalchemy_helper import update_model_fields, sa_model_to_pydandic_model
 
 from . import get_db, datetime_to_epoch, VERY_OLDE
+from .helpers.db_compat import cast_for_encoding
 from .biz.metadata_biz import propagate_metadata_to_document
 
 logger = logging.getLogger(__name__)
@@ -68,22 +69,22 @@ class MetadataModel(BaseModel):
             Metadata.created,
             Metadata.updated,
             Metadata.submitter_id,
-            cast(Metadata.submitter_name, LargeBinary).label("submitter_name"),
-            cast(Metadata.submitter_email, LargeBinary).label("submitter_email"),
+            cast_for_encoding(Metadata.submitter_name, db).label("submitter_name"),
+            cast_for_encoding(Metadata.submitter_email, db).label("submitter_email"),
             Metadata.source_size,
             Metadata.source_format,
             Metadata.source_flags,
-            cast(Metadata.title, LargeBinary).label("title"),
-            cast(Metadata.authors, LargeBinary).label("authors"),
+            cast_for_encoding(Metadata.title, db).label("title"),
+            cast_for_encoding(Metadata.authors, db).label("authors"),
             Metadata.abs_categories,
-            cast(Metadata.comments, LargeBinary).label("comments"),
+            cast_for_encoding(Metadata.comments, db).label("comments"),
             Metadata.proxy,
             Metadata.report_num,
             Metadata.msc_class,
             Metadata.acm_class,
             Metadata.journal_ref,
             Metadata.doi,
-            cast(Metadata.abstract, LargeBinary).label("abstract"),
+            cast_for_encoding(Metadata.abstract, db).label("abstract"),
             Metadata.license,
             Metadata.version,
             Metadata.modtime,
