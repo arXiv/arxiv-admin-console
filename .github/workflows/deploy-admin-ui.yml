@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set GCP bucket name
-        run: echo "GCP_BUCKET=$(echo '${{ inputs.env }}' | tr '[:upper:]' '[:lower:]')-admin-console-test2" >> $GITHUB_ENV
+        run: echo "GCP_BUCKET=$(echo '${{ vars.ENV_VAR }}' | tr '[:upper:]' '[:lower:]')-admin-console-test2" >> $GITHUB_ENV
 
       - name: Authenticate with target project workload identity
         uses: google-github-actions/auth@v3
