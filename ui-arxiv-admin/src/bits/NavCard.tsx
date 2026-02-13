@@ -15,13 +15,8 @@ import LaunchIcon from '@mui/icons-material/Launch';
 
 // Color scheme dictionary based on purpose
 const purposeColorSchemes = {
-    students: {
-        backgroundColor: '#1c1a17',
-        color: '#ffffff',
-        linkColor: '#ffffff',
-        subheaderColor: '#ffffff',
-    },
-    // Add more purpose-based color schemes here as needed
+    // Add purpose-based color schemes here as needed
+    // Example:
     // moderator: {
     //     backgroundColor: 'warning.main',
     //     color: 'warning.contrastText',
