@@ -18,7 +18,7 @@ provider "google" {
 
 locals {
   # Bucket name: lowercase(env)-admin-console-test (e.g. dev-admin-console-test, prod-admin-console-test)
-  storage_bucket_name = "${lower(var.env)}-admin-console-test"
+  storage_bucket_name = "${lower(var.env)}-admin-console-test2"
 }
 
 ### service account ###
@@ -102,4 +102,11 @@ resource "google_storage_bucket" "admin_ui_assets" {
 
   # Versioning is not supported for hierarchical namespace buckets; do not enable both.
   uniform_bucket_level_access = true
+}
+
+# Allow public read access for static website hosting
+resource "google_storage_bucket_iam_member" "admin_ui_public" {
+  bucket = google_storage_bucket.admin_ui_assets.name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
 }
