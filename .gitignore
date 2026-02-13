@@ -158,3 +158,12 @@ develop-venv/
 .bootstrap
 foo
 tui-admin-console/
+
+arxiv-sqlite.db
+mysql-data/
+mysql-data-snapshot/
+test-db-dump-0/
+test-db-dump-1/
+test-db-dump-202*/
+foo.*
+temp-test*
