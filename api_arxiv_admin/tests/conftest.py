@@ -48,6 +48,16 @@ ARXIV_ADMIN_CONSOLE_DIR = ADMIN_API_DIR.parent
 TEST_DB_DUMP_DIR = ARXIV_ADMIN_CONSOLE_DIR / "tests" / "data" / "test-db-dump"
 
 
+def pytest_sessionstart(session):
+    """Clean up leftovers from previous test runs to ensure a fresh start."""
+    if MYSQL_SNAPSHOT_DIR.exists():
+        logging.info(f"Removing stale snapshot: {MYSQL_SNAPSHOT_DIR}")
+        shutil.rmtree(MYSQL_SNAPSHOT_DIR)
+    if MYSQL_DATA_DIR.exists():
+        logging.info(f"Removing stale mysql data: {MYSQL_DATA_DIR}")
+        shutil.rmtree(MYSQL_DATA_DIR)
+
+
 def ignore_socket_files(directory: str, files: list[str]) -> list[str]:
     """Ignore socket files when copying directory trees.
 
