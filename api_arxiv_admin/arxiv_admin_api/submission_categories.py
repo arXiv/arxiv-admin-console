@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import SubmissionCategory
 
@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/submission_categories")
 
 class SubmissionCategoryModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     category: str
     is_primary: bool
@@ -32,8 +31,7 @@ class SubmissionCategoryModel(BaseModel):
 
 
 class SubmissionCategoryResultModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     categories: List[SubmissionCategoryModel]

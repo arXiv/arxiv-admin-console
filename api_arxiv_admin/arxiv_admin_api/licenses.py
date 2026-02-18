@@ -3,7 +3,7 @@ from arxiv_bizlogic.fastapi_helpers import get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from arxiv.base import logging
 from arxiv.db.models import License
@@ -17,8 +17,7 @@ router = APIRouter(prefix="/licenses")
 
 
 class LicenseModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str  # name
     label: Optional[str] = None
@@ -42,8 +41,8 @@ async def list_licenses(
         response: Response,
         _sort: Optional[str] = Query("sequence", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         id: Optional[List[str]] = Query(None, description="List of licenses"),
         active: Optional[bool] = Query(None, description="Active licenses"),
         session: Session = Depends(get_db)

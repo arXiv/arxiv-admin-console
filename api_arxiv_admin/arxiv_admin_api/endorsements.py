@@ -8,7 +8,7 @@ from arxiv_bizlogic.audit_event import AdminAudit_GotNegativeEndorsement, admin_
     AdminAudit_SetPointValue
 from arxiv_bizlogic.fastapi_helpers import get_authn, get_authn_user, get_tapir_tracking_cookie
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import and_
 
 # from sqlalchemy import select, update, func, case, Select, distinct, exists, and_, alias
@@ -36,15 +36,15 @@ router = APIRouter(dependencies=[Depends(is_any_user)], prefix="/endorsements")
 @router.get('/')
 async def list_endorsements(
         response: Response,
-        _sort: Optional[str] = Query("issued_when", description="sort by"),
-        _order: Optional[str] = Query("DESC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _sort: str = Query("issued_when", description="sort by"),
+        _order: str = Query("DESC", description="sort order"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime] = Query(None, description="End date for filtering"),
         type: Optional[List[str] | str] = Query(None, description="user, auto, admin"),
-        flag_valid: Optional[bool] = Query(True, description="Valid endorsements only"),
+        flag_valid: bool = Query(True, description="Valid endorsements only"),
         endorsee_id: Optional[int] = Query(None),
         endorser_id: Optional[int] = Query(None),
         by_suspect: Optional[bool] = Query(None),
@@ -54,7 +54,7 @@ async def list_endorsements(
         endorsee_name: Optional[str] = Query(None, description="Endorsee name. Last name, or first name + last name"),
         endorsee_email: Optional[str] = Query(None, description="Endorsee email"),
         category: Optional[str] = Query(None, description="Category"),
-        current_user: Optional[ArxivUserClaims] = Depends(get_authn),
+        current_user: ArxivUserClaims = Depends(get_authn),
         db: Session = Depends(get_db)
     ) -> List[EndorsementModel]:
     query = EndorsementModel.base_select(db)
@@ -183,7 +183,7 @@ async def list_endorsements(
 
 @router.get('/{id:int}')
 async def get_endorsement(id: int,
-                          current_user: Optional[ArxivUserClaims] = Depends(get_authn),
+                          _current_user: ArxivUserClaims = Depends(get_authn),
                           db: Session = Depends(get_db)) -> EndorsementModel:
     item = EndorsementModel.base_select(db).filter(Endorsement.endorsement_id == id).all()
     if item:
@@ -202,7 +202,7 @@ async def update_endorsement(
         request: Request,
         id: int,
         body: EndorsementUpdateModel,
-        current_user: Optional[ArxivUserClaims] = Depends(get_authn_user),
+        current_user: ArxivUserClaims = Depends(get_authn_user),
         remote_ip: Optional[str] = Depends(get_client_host),
         remote_hostname: Optional[str] = Depends(get_client_host_name),
         tracking_cookie: Optional[str] = Depends(get_tapir_tracking_cookie),
@@ -228,7 +228,7 @@ async def update_endorsement(
                         AdminAudit_SetPointValue(
                             str(current_user.user_id),
                             str(endorsement.endorsee_id),
-                            current_user.tapir_session_id,
+                            str(current_user.tapir_session_id) if current_user.tapir_session_id else None,
                             endorsement.point_value,
                             remote_ip=remote_ip,
                             remote_hostname=remote_hostname,
@@ -244,7 +244,7 @@ async def update_endorsement(
                         AdminAudit_SetEndorsementValid(
                             str(current_user.user_id),
                             str(endorsement.endorsee_id),
-                            current_user.tapir_session_id,
+                            str(current_user.tapir_session_id) if current_user.tapir_session_id else None,
                             body.flag_valid,
                             remote_ip=remote_ip,
                             remote_hostname=remote_hostname,
@@ -310,6 +310,9 @@ async def endorse(
 
     accessor = EndorsementDBAccessor(session)
 
+    if endorsement_request.archive is None or endorsement_request.subject_class is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archive and subject class are required")
+
     business = EndorsementBusiness(
         accessor,
         endorser,
@@ -320,13 +323,13 @@ async def endorse(
         subject_class=endorsement_request.subject_class,
         endorsement_code=endorsement_code,
         endorsement_request=endorsement_request,
-        session_id=str(current_tapir_session),
-        remote_host_ip=client_host,
-        remote_host_name=client_host_name,
-        tracking_cookie=tracking_cookie,
+        session_id=str(current_tapir_session) if current_tapir_session else "",
+        remote_host_ip=client_host or "",
+        remote_host_name=client_host_name or "",
+        tracking_cookie=tracking_cookie or "",
     )
 
-    if not show_email and business.endorseE.email is not None:
+    if not show_email and business.endorseE is not None and business.endorseE.email is not None:
         business.endorseE.email = ""
 
     try:
@@ -357,7 +360,7 @@ async def endorse(
             return business.outcome
         else:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            response.detail = "Endorsement criteria is met but failed on database operation"
+            business.outcome.reason = "Endorsement criteria is met but failed on database operation"
             return business.outcome
 
     except IntegrityError:
@@ -402,12 +405,12 @@ async def create_endorsement(
     if current_user.user_id != body.endorser_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorser is not the admin.")
 
-    user = UserModel.one_user(session, current_user.user_id)
+    user = UserModel.one_user(session, str(current_user.user_id))
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorser is not the admin.")
-    endorsee = PublicUserModel.one_user(session, body.endorsee_id)
+    endorsee = PublicUserModel.one_user(session, int(body.endorsee_id))
     if endorsee is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorses does not exist.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Endorsee does not exist.")
 
     audit_timestamp = datetime.now(UTC)
     endorsement_request = None
@@ -429,10 +432,10 @@ async def create_endorsement(
                               subject_class=body.subject_class,
                               endorsement_code=endorse,
                               endorsement_request=endorsement_request,
-                              session_id=current_user.tapir_session_id,
-                              remote_host_ip=client_host,
-                              remote_host_name=client_host_name,
-                              tracking_cookie=tracking_cookie)
+                              session_id=str(current_user.tapir_session_id) if current_user.tapir_session_id else "",
+                              remote_host_ip=client_host or "",
+                              remote_host_name=client_host_name or "",
+                              tracking_cookie=tracking_cookie or "")
     outcome = biz.admin_approve(current_user)
     if outcome:
         return biz.submit_endorsement()
@@ -480,8 +483,8 @@ async def delete_endorsement(
 @router.get('/ids/')
 async def list_endorsement_ids(
         response: Response,
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(1000, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(1000, alias="_end"),
         _order: Optional[str] = Query("DESC", description="sort order"),
         preset: Optional[str] = Query(None),
         current_id: Optional[int] = Query(None),
@@ -506,6 +509,8 @@ async def list_endorsement_ids(
                             detail="Invalid start or end index")
     t0 = datetime.now()
 
+    if current_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     if not current_user.is_admin:
         query = query.filter(Endorsement.endorsee_id == current_user.user_id)

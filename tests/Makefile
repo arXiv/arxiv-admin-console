@@ -1,6 +1,6 @@
 ARXIV_DB_PORT := 21601
 
-.PHONY: bootstrap up down
+.PHONY: bootstrap up down  mysql2sqlite-image
 
 bootstrap:
 	echo noop

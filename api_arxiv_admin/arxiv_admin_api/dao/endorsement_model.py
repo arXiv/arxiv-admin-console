@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import case
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from arxiv.base import logging
 from arxiv.db.models import Endorsement, EndorsementsAudit
 
@@ -34,8 +34,7 @@ class EndorsementType(str, Enum):
 
 
 class EndorsementModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int # Mapped[intpk]
     endorser_id: Optional[int] = None # Mapped[Optional[int]] = mapped_column(ForeignKey('tapir_users.user_id'), index=True)

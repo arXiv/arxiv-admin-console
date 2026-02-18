@@ -2,8 +2,8 @@
 from __future__ import annotations
 import re
 import datetime
-from enum import Enum
-from typing import Optional, Literal, List, Generic, TypeVar, Set
+from enum import Enum, StrEnum
+from typing import Optional, Literal, List, Generic, TypeVar, Set, cast
 import hashlib
 
 from arxiv.auth.user_claims import ArxivUserClaims
@@ -12,10 +12,10 @@ from arxiv_bizlogic.bizmodels.user_model import UserModel
 from arxiv_bizlogic.fastapi_helpers import get_client_host_name, get_authn, get_authn_user
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, Request
 from sqlalchemy.exc import IntegrityError
-
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query as OrmQuery
 from sqlalchemy import insert, Row, and_, select
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+
 
 from arxiv.base import logging
 from arxiv.db.models import OwnershipRequest, t_arXiv_ownership_requests_papers, PaperOwner, OwnershipRequestsAudit, \
@@ -35,15 +35,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(is_any_user)], prefix='/ownership_requests')
 
 
-class WorkflowStatus(str, Enum):
-    pending = 'pending'
-    accepted = 'accepted'
-    rejected = 'rejected'
+class WorkflowStatus(StrEnum):
+    PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    REJECTED = 'rejected'
 
 
 class OwnershipRequestModel(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int  # request_id
     user_id: int
@@ -52,10 +51,10 @@ class OwnershipRequestModel(BaseModel):
     date: Optional[datetime.datetime] = None
     document_ids: Optional[List[int]] = None
     paper_ids: Optional[List[str]] = None
-    date: Optional[datetime.datetime] = None
 
     @classmethod
-    def base_query_0(cls, session: Session) -> Query:
+    def base_query_0(cls, session: Session) -> 
+    :
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
@@ -63,7 +62,7 @@ class OwnershipRequestModel(BaseModel):
             OwnershipRequest.workflow_status)
 
     @classmethod
-    def base_query_with_audit(cls, session: Session) -> Query:
+    def base_query_with_audit(cls, session: Session) -> OrmQuery:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
@@ -124,7 +123,7 @@ class UpdateOwnershipRequestModel(BaseModel):
     is_author: bool = False
     # Use arXiv IDs or document IDs but not both
     arxiv_ids: Optional[List[str]] = None  # paper ids, not document ids
-    workflow_status: WorkflowStatus = WorkflowStatus.pending
+    workflow_status: WorkflowStatus = WorkflowStatus.PENDING
 
 
 # class PaperOwnershipDecisionModel(BaseModel):
@@ -143,16 +142,15 @@ class OwnershipRequestSubmit(BaseModel):
         None, description="Optional list of paper IDs associated with the ownership request."
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "user_id": 1129053,
-                "workflow_status": "accepted",
-                "document_ids": [2123367, 2123675, 2125897, 2130529, 2134610, 2612674, 2618378],
-                "authored_documents": [2125897, 2123675, 2130529],
-                "paper_ids": ["2208.04373", "2208.04681", "2208.06903", "2208.11535", "2209.00613"]
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "user_id": 1129053,
+            "workflow_status": "accepted",
+            "document_ids": [2123367, 2123675, 2125897, 2130529, 2134610, 2612674, 2618378],
+            "authored_documents": [2125897, 2123675, 2130529],
+            "paper_ids": ["2208.04373", "2208.04681", "2208.06903", "2208.11535", "2209.00613"]
         }
+    })
 
 
 class OwnershipRequestNavi(BaseModel):
@@ -179,8 +177,8 @@ def list_ownership_requests(
         response: Response,
         _sort: Optional[str] = Query("id", description="sort by"),
         _order: Optional[str] = Query("ASC", description="sort order"),
-        _start: Optional[int] = Query(0, alias="_start"),
-        _end: Optional[int] = Query(100, alias="_end"),
+        _start: int = Query(0, alias="_start"),
+        _end: int = Query(100, alias="_end"),
         preset: Optional[str] = Query(None),
         start_date: Optional[datetime.date] = Query(None, description="Start date for filtering"),
         end_date: Optional[datetime.date] = Query(None, description="End date for filtering"),
@@ -314,30 +312,28 @@ async def get_ownership_request(
 @router.get("/navigate")
 async def navigate(
         id: int,
-        workflow: Optional[WorkflowStatus] = Query(default="pending", description="Workflow status" ),
+        workflow: WorkflowStatus = Query(WorkflowStatus.PENDING, description="Workflow status" ),
         count: Optional[int] = Query(default=2, description="Number of prev/next IDs" ),
         session: Session = Depends(get_db),
     ) -> OwnershipRequestNavi:
-    if workflow is None:
-        workflow = WorkflowStatus.pending.value
 
     first_pending = session.query(OwnershipRequest) \
-        .filter(OwnershipRequest.workflow_status == workflow) \
+        .filter(OwnershipRequest.workflow_status == workflow.value) \
         .order_by(OwnershipRequest.request_id.asc()) \
         .first()
 
     last_pending = session.query(OwnershipRequest) \
-        .filter(OwnershipRequest.workflow_status == workflow) \
+        .filter(OwnershipRequest.workflow_status == workflow.value) \
         .order_by(OwnershipRequest.request_id.desc()) \
         .first()
 
     next_pending = session.query(OwnershipRequest) \
-        .filter(and_(OwnershipRequest.request_id > id, OwnershipRequest.workflow_status == workflow)) \
+        .filter(and_(OwnershipRequest.request_id > id, OwnershipRequest.workflow_status == workflow.value)) \
         .order_by(OwnershipRequest.request_id.asc()) \
         .limit(count).all()
 
     prev_pending = session.query(OwnershipRequest) \
-        .filter(and_(OwnershipRequest.request_id < id, OwnershipRequest.workflow_status == workflow)) \
+        .filter(and_(OwnershipRequest.request_id < id, OwnershipRequest.workflow_status == workflow.value)) \
         .order_by(OwnershipRequest.request_id.desc()) \
         .limit(count).all()
 
@@ -415,7 +411,7 @@ async def create_ownership_request(
 
     audit = OwnershipRequestsAudit(
         request_id = req.request_id,
-        session_id = int(tsid),
+        session_id = int(tsid or 0),
         remote_addr = ownership_request.remote_addr,
         remote_host = "",
         tracking_cookie = "",
@@ -557,7 +553,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     # if workflow_status is None:
     #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is required.")
 
-    if workflow_status == WorkflowStatus.pending:
+    if workflow_status == WorkflowStatus.PENDING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Workflow status is pending. It needs to be rejected or accepted.")
 
     user_id = payload.user_id
@@ -586,7 +582,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
                             detail=f"Ownership request id %s - the some documents {extra_ids!r} IDs are not in the request." % req_id)
 
     # The ownership request must be in pending statue
-    if ownership_request.workflow_status != WorkflowStatus.pending.value:
+    if ownership_request.workflow_status != WorkflowStatus.PENDING.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Ownership request id %s has been decided as {ownership_request.workflow_status }." % req_id)
 
@@ -606,6 +602,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
     if len(existing_document_ids) != len(document_ids):
         nonexistng_ids = set(document_ids) - set(existing_document_ids)
         bads = list(nonexistng_ids)
+
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=f"Ownership request id %s - the some documents {bads!r} IDs doss not exist" % req_id)
 
@@ -616,12 +613,16 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         po.document_id for po in session.query(PaperOwner.document_id).filter(and_(PaperOwner.document_id.in_(document_ids), PaperOwner.user_id == user_id)).all()
     ])
 
-    requester = UserModel.one_user(session, user_id)
+    requester = UserModel.one_user(session, str(user_id))
+    if requester is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User {user_id} not found.")
     date = datetime_to_epoch(None, datetime.datetime.now(datetime.UTC))
     ownership_request.workflow_status = workflow_status.value # type: ignore
 
     tracking_cookie = requester.tracking_cookie
-    if tracking_cookie and len(tracking_cookie) > PaperOwner.__table__.columns["tracking_cookie"].type.length:
+    tracking_cookie_col = PaperOwner.__table__.columns["tracking_cookie"]
+    tracking_cookie_max_len = getattr(tracking_cookie_col.type, "length", 32) or 32
+    if tracking_cookie and len(tracking_cookie) > tracking_cookie_max_len:
         # ntai: 2025-03-30
         # When the tracking cookie is longer than the column size (32), adding tracking cookie
         # to the record fails as it is too long.
@@ -683,20 +684,20 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
         if audit is None:
             audit = OwnershipRequestsAudit(
                 request_id = req_id,
-                session_id = int(current_tapir_session_id),
+                session_id = int(current_tapir_session_id or 0),
                 remote_addr = remote_ip,
                 remote_host = remote_host,
-                tracking_cookie = requester.tracking_cookie,
+                tracking_cookie = requester.tracking_cookie or "",
                 date = date
             )
             session.add(audit)
         else:
             # ??? The judgement has been made but the status is still penning. Rather than burf, update the
             # audit to match with this judgement
-            audit.session_id = int(current_tapir_session_id)
+            audit.session_id = int(current_tapir_session_id or 0)
             audit.remote_addr = remote_ip
             audit.remote_host = remote_host
-            audit.tracking_cookie = requester.tracking_cookie
+            audit.tracking_cookie = requester.tracking_cookie or ""
             audit.date = date
 
         session.commit()

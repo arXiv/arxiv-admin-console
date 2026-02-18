@@ -1,32 +1,57 @@
 services:
-  setup_task:
-    image: python:3.12-bookworm
-    container_name: admin-api-db-setup
+  cleanup-db:
+    image: alpine:latest
+    container_name: dbot-admin-api-db-cleanup
+    environment:
+      HOST_UID: ${UID}
+      HOST_GID: ${GID}
     volumes:
-      - ./mysql:/var/lib/mysql
-      - ./initdb.d:/initdb.d
-    command:
-      - /bin/bash
-      - -c
-      - |
-        cd /var/lib && rm -fr ./mysql/*;
-        cd /var/lib && tar xzf /initdb.d/mysql_test_data.tgz
-    
+      - ./mysql-data:/mysql-data
+    command: sh -c "rm -rf /mysql-data/* && chown $${HOST_UID}:$${HOST_GID} /mysql-data"
 
   arxiv-test-db:
-    image: mysql:5.7.20
-    container_name: admin-api-db-arxiv-test-db
+    image: mysql:8.4.5
+    container_name: dbot-admin-api-arxiv-test-db
+    user: "${UID}:${GID}"
     ports:
       - "${ARXIV_DB_PORT}:${ARXIV_DB_PORT}"  # Host port:Container port
+    volumes:
+      - ./mysql-data:/var/lib/mysql  # Mount for snapshot/restore
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: arXiv
       MYSQL_USER: arxiv
       MYSQL_PASSWORD: arxiv_password
       MYSQL_TCP_PORT: ${ARXIV_DB_PORT}
-    volumes:
-      - ./mysql:/var/lib/mysql
+      PORT: ${ARXIV_DB_PORT}
     network_mode: host
     depends_on:
-      setup_task:
+      cleanup-db:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "${ARXIV_DB_PORT}", "--silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 30s
+    command:
+      - --log-error-suppression-list=MY-013360
+
+  myloader:
+    image: mydumper/mydumper:latest
+    container_name: dbot-admin-api-db-myloader
+    user: "${UID}:${GID}"
+    volumes:
+      - ${TEST_DB_DUMP_DIR}:/myloader-data:ro
+    network_mode: host
+    depends_on:
+      arxiv-test-db:
+        condition: service_healthy
+    command:
+      - myloader
+      - --directory=/myloader-data
+      - --host=127.0.0.1
+      - --port=${ARXIV_DB_PORT}
+      - --user=root
+      - --password=root_password
+      - --overwrite-tables
