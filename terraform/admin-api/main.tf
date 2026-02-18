@@ -65,9 +65,6 @@ resource "google_cloud_run_v2_service" "admin_api" {
     service_account = google_service_account.account.email
     containers {
       image = var.image_path
-      ports {
-        container_port = 22210
-      }
       resources {
         limits = {
           memory = "1024Mi"
