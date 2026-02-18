@@ -53,8 +53,7 @@ class OwnershipRequestModel(BaseModel):
     paper_ids: Optional[List[str]] = None
 
     @classmethod
-    def base_query_0(cls, session: Session) -> 
-    :
+    def base_query_0(cls, session: Session) -> OrmQuery:
         return session.query(
             OwnershipRequest.request_id.label("id"),
             OwnershipRequest.user_id,
