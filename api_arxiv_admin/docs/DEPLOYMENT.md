@@ -1,4 +1,4 @@
-# Deployment Environment Variables
+# Admin API Deployment
 
 ## Environment variables
 
@@ -118,3 +118,11 @@ from the admin api. IOW, this is turned on on web40. It should be off for elsewh
 
 The backend needs to list the sites used for CORS. I'm not certain it should be parameterized, but I could be wrong.
 ? - not sure what these values are ... I didn't map anything in the terraform code for them.
+
+Non-secret manager variables that are not obvious - take default value.  (eg. FOO_COOKIE_NAME)  CLASSIC_SESSION_HASH is also a secret manager (ma bad) It should be already in the secret manager.
+
+Likes of MODAPI_URL, ARXIV_CHECK_URL and other FOO_URL should be obvious.  They need to match up with the dev/prod URLs. This can be auto-gened/derived from TF state?
+
+Only thing not very obvious is ADMIN_API_ENDORSER_POOL_OBJECT_URL.  First, we'd need a bucket.
+
+GCP_PROJECT_CREDS - this is needed to cross between CIT/GCP at the moment. On web40, it is needed. On GCP, I think it should be not needed / given by the runner service account credentials.  It may blow up since I haven't run admin-api on GCP ever.
