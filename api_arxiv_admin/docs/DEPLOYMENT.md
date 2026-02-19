@@ -117,3 +117,4 @@ from the admin api. IOW, this is turned on on web40. It should be off for elsewh
 ## NOTE
 
 The backend needs to list the sites used for CORS. I'm not certain it should be parameterized, but I could be wrong.
+? - not sure what these values are ... I didn't map anything in the terraform code for them.
