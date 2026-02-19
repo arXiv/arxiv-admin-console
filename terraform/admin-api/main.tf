@@ -23,8 +23,14 @@ resource "google_service_account" "account" {
   display_name = "Service account to deploy admin api cloud run instance"
 }
 
-resource "google_secret_manager_secret_iam_member" "read_db_secret_accessor" {
-  secret_id = var.read_db_secret_name
+resource "google_secret_manager_secret_iam_member" "classic_db_secret_accessor" {
+  secret_id = var.classic_db_secret_name
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.account.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "jwt_secret_accessor" {
+  secret_id = var.jwt_secret_name
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.account.email}"
 }
@@ -71,14 +77,35 @@ resource "google_cloud_run_v2_service" "admin_api" {
         }
       }
       env {
-        name  = "ENV"
-        value = var.env
+        name  = "ADMIN_API_ROOT_PATH"
+        value = var.admin_api_root_path
       }
       env {
-        name = "DEV_DATABASE_URI"
+        name  = "CLASSIC_COOKIE_NAME"
+        value = var.classic_cookie_name
+      }
+      env {
+        name = "CLASSIC_DB_URI"
         value_source {
           secret_key_ref {
-            secret  = var.read_db_secret_name
+            secret  = var.classic_db_secret_name
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name = "CLASSIC_SESSION_HASH"
+        value = var.classic_session_hash
+      }
+      env {
+        name = "CLASSIC_SESSION_DURATION"
+        value = var.session_duration
+      }
+      env {
+        name = "JWT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = var.jwt_secret_name
             version = "latest"
           }
         }
@@ -91,7 +118,7 @@ resource "google_cloud_run_v2_service" "admin_api" {
     volumes {
       name = "cloudsql"
       cloud_sql_instance {
-        instances = [var.read_db_instance]
+        instances = [var.classic_db_instance]
       }
     }
   }
