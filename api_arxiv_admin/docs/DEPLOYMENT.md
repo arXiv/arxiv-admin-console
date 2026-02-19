@@ -66,15 +66,15 @@ This should be in the secret manager.
 | `GCP_PROJECT` | `<NONE>` | GCP project ID used to initialize the GCS client for document storage. Storage is disabled if unset or `<NONE>` |
 | `ARXIV_DOCUMENT_BUCKET_NAME` | `<NONE>` | GCS bucket name for arXiv document storage. Storage is disabled if unset or `<NONE>` |
 | `GCP_PROJECT_ID` | `arxiv-development` | GCP project ID passed to the FastAPI app state |
-| `GCP_PROJECT_CREDS` | *(unset)* | Path or JSON for GCP service account credentials |
-| `GCP_SERVICE_REQUEST_SA` | *(unset)* | GCP service account for service-to-service requests |
-| `GCP_SERVICE_REQUEST_ENDPOINT` | `localhost:8080` | Endpoint for GCP service requests |
+| `GCP_PROJECT_CREDS` | *(unset)* | Path or JSON for GCP service account credentials - ? |
+| `GCP_SERVICE_REQUEST_SA` | *(unset)* | GCP service account for service-to-service requests - ? |
+| `GCP_SERVICE_REQUEST_ENDPOINT` | `localhost:8080` | Endpoint for GCP service requests - ? |
 
 ### Endorser Pool (GCP or CIT)
 
 | Variable | Default | Description                                                                                                                   |
 |---|---|-------------------------------------------------------------------------------------------------------------------------------|
-| `ADMIN_API_ENDORSER_POOL_OBJECT_URL` | *(unset)* | URL of the endorser pool object. For GCP, GCP Project credentials requires the bucket I/O. This is a file system path on CIT. |
+| `ADMIN_API_ENDORSER_POOL_OBJECT_URL` | *(unset)* | URL of the endorser pool object. For GCP, GCP Project credentials requires the bucket I/O. This is a file system path on CIT. - ?|
 
 ### Internal API
 
