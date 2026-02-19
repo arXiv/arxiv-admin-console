@@ -29,6 +29,12 @@ resource "google_secret_manager_secret_iam_member" "classic_db_secret_accessor" 
   member    = "serviceAccount:${google_service_account.account.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "classic_session_hash_accessor" {
+  secret_id = var.classic_session_hash_name
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.account.email}"
+}
+
 resource "google_secret_manager_secret_iam_member" "jwt_secret_accessor" {
   secret_id = var.jwt_secret_name
   role      = "roles/secretmanager.secretAccessor"
@@ -169,7 +175,12 @@ resource "google_cloud_run_v2_service" "admin_api" {
       }
       env {
         name  = "CLASSIC_SESSION_HASH"
-        value = var.classic_session_hash
+        value_source {
+          secret_key_ref {
+            secret  = var.classic_session_hash_name
+            version = "latest"
+          }
+        }
       }
       env {
         name  = "SESSION_DURATION"

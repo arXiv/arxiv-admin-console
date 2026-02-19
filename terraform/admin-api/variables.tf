@@ -30,10 +30,9 @@ variable "classic_db_instance" {
   type        = string
 }
 
-variable "classic_session_hash" {
-  description = "Hash of the classic session"
+variable "classic_session_hash_name" {
+  description = "Name of the classic session hash secret"
   type        = string
-  default     = "classic-secret"
 }
 
 variable "session_duration" {
