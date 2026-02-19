@@ -94,11 +94,11 @@ resource "google_cloud_run_v2_service" "admin_api" {
         }
       }
       env {
-        name = "CLASSIC_SESSION_HASH"
+        name  = "CLASSIC_SESSION_HASH"
         value = var.classic_session_hash
       }
       env {
-        name = "CLASSIC_SESSION_DURATION"
+        name  = "CLASSIC_SESSION_DURATION"
         value = var.session_duration
       }
       env {
