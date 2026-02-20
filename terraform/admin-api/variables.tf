@@ -117,3 +117,13 @@ variable "user_action_site" {
   description = "Site of the user action"
   type        = string
 }
+
+variable "admin_api_endorser_pool" {
+  description = "Name of the admin API endorser pool"
+  type        = string
+}
+
+variable "admin_api_endorser_pool_object_url_secret_name" {
+  description = "Name of the admin API endorser pool object URL secret"
+  type        = string
+}
