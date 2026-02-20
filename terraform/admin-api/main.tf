@@ -118,6 +118,11 @@ resource "google_cloud_run_v2_service" "admin_api" {
           memory = "1024Mi"
         }
       }
+      # Come back to these later
+      # GCP_PROJECT_CREDS
+      # GCP_SERVICE_REQUEST_SA
+      # GCP_SERVICE_REQUEST_ENDPOINT
+      # ADMIN_API_ENDORSER_POOL_OBJECT_URL
       env {
         name  = "ADMIN_API_ROOT_PATH"
         value = var.admin_api_root_path
@@ -174,7 +179,7 @@ resource "google_cloud_run_v2_service" "admin_api" {
         }
       }
       env {
-        name  = "CLASSIC_SESSION_HASH"
+        name = "CLASSIC_SESSION_HASH"
         value_source {
           secret_key_ref {
             secret  = var.classic_session_hash_name

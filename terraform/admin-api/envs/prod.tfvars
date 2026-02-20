@@ -20,3 +20,9 @@ modapi_modkey_secret_name      = "modapi_modkey"
 admin_app_url                  = "https://arxiv.org/admin-console"
 aaa_login_redirect_url         = "https://arxiv.org/aaa/login"
 aaa_token_refresh_url          = "https://arxiv.org/aaa/refresh"
+
+# Come back to these later ...
+gcp_project_creds_secret_name                  = "gcp_project_creds"
+gcp_service_request_sa_secret_name             = "gcp_service_request_sa"
+gcp_service_request_endpoint_secret_name       = "gcp_service_request_endpoint"
+admin_api_endorser_pool_object_url_secret_name = "admin_api_endorser_pool_object_url"
