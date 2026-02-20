@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from arxiv_bizlogic.sqlalchemy_helper import sa_model_to_pydandic_model
 
 from . import get_db, is_any_user, gate_admin_user, get_current_user
+from .helpers.db_compat import cast_for_encoding
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +55,9 @@ class DemographicModel(BaseModel):
     def base_select(db: Session) -> OrmQuery:
         return db.query(
             Demographic.user_id.label("id"),
-            cast(Demographic.country, LargeBinary).label("country"),
-            cast(Demographic.affiliation, LargeBinary).label("affiliation"),
-            cast(Demographic.url, LargeBinary).label("url"),
+            cast_for_encoding(Demographic.country, db).label("country"),
+            cast_for_encoding(Demographic.affiliation, db).label("affiliation"),
+            cast_for_encoding(Demographic.url, db).label("url"),
             Demographic.type,
             Demographic.archive,
             Demographic.subject_class,

@@ -112,4 +112,4 @@ mysql2sqlite:
 		--user $(UID):$(GID) \
 		-v $(API_TEST_DIR)/tests/data:/data \
 		mysql2sqlite \
-		-f /data/arxiv-sqlite.db -d arXiv -u arxiv --mysql-password arxiv_password -h 127.0.0.1 -P 22204
+		-f /data/arxiv-sqlite.db -d arXiv -u arxiv --mysql-password arxiv_password -h $(ARXIV_DB_HOST) -P $(ARXIV_DB_PORT)

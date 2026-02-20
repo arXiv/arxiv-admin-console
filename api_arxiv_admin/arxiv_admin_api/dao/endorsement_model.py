@@ -69,10 +69,10 @@ class EndorsementModel(BaseModel):
             Endorsement.endorsee_id,
             Endorsement.archive,
             Endorsement.subject_class,
-            case((Endorsement.flag_valid != 0, True), else_=False).label("flag_valid"),
+            Endorsement.flag_valid,
             Endorsement.type,
             Endorsement.point_value,
-            case((Endorsement.point_value > 0, True), else_=False).label("positive_endorsement"),
+            (Endorsement.point_value > 0).label("positive_endorsement"),
             Endorsement.issued_when,
             Endorsement.request_id,
             EndorsementsAudit.session_id,
@@ -80,8 +80,8 @@ class EndorsementModel(BaseModel):
             EndorsementsAudit.remote_addr,
             EndorsementsAudit.remote_host,
             EndorsementsAudit.tracking_cookie,
-            case((EndorsementsAudit.flag_knows_personally == 1, True), else_=False).label("flag_knows_personally"),
-            case((EndorsementsAudit.flag_seen_paper == 1, True), else_=False).label("flag_seen_paper"),
+            EndorsementsAudit.flag_knows_personally,
+            EndorsementsAudit.flag_seen_paper,
         ).outerjoin(
             EndorsementsAudit,
             EndorsementsAudit.endorsement_id == Endorsement.endorsement_id

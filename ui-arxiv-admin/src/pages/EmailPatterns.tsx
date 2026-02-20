@@ -35,6 +35,10 @@ import {RuntimeContext} from '../RuntimeContext';
 import {emailPatternPurposeOptions} from "../types/definitions";
 import Typography from "@mui/material/Typography";
 import ConsoleTitle from "../bits/ConsoleTitle";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AccordionDetails from "@mui/material/AccordionDetails";
 
 const EmailPatternFilter = (props: any) => {
     return (
@@ -48,7 +52,7 @@ const EmailPatternFilter = (props: any) => {
                 emptyText={emailPatternPurposeOptions[0].name}
                 sx={{minWidth: "8rem"}}
             />
-            <TextInput label={"Pattern"} source={"pattern"} alwaysOn/>
+            <TextInput label={"Domains"} source={"domains"} alwaysOn/>
         </Filter>
     );
 };
@@ -65,15 +69,15 @@ const EmailPatternBulkDeleteButton = () => {
         if (selectedIds.length > 0 && data) {
             try {
                 const purpose = data[0].purpose;
-                console.log(`Deleting ${selectedIds.length} email patterns for purpose ${purpose}`);
+                console.log(`Deleting ${selectedIds.length} email domains for purpose ${purpose}`);
                 // Delete records grouped by purpose
                 await dataProvider.deleteMany('email_patterns', {
                     ids: selectedIds,
                     meta: {purpose}
                 });
-                notify(`${selectedIds.length} email patterns deleted`, {type: 'info'});
+                notify(`${selectedIds.length} email domains deleted`, {type: 'info'});
             } catch (error) {
-                notify('Error deleting email patterns', {type: 'error'});
+                notify('Error deleting email domains', {type: 'error'});
             }
             unselectAll();
             refresh();
@@ -173,7 +177,26 @@ const EmailPatternListActions = () => {
 
 export const EmailPatternList = () => (
     <Box maxWidth={"lg"} sx={{margin: '0 auto'}}>
-        <ConsoleTitle>Email Patterns</ConsoleTitle>
+        <ConsoleTitle>Email Domains</ConsoleTitle>
+        <Accordion defaultExpanded sx={{mt: 0, pt: 0}}>
+            <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="email-domain-description"
+                id="email-domain-descriptionr"
+                sx={{ minHeight: 0, '&.Mui-expanded': { minHeight: 0 }, '& .MuiAccordionSummary-content': { my: 0.5 }, '& .MuiAccordionSummary-content.Mui-expanded': { my: 0.5 } }}
+            >
+                <Typography component="span" fontSize={"1.2em"}>Email domain patterns used for configuring account and auto-endorsement.</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{p: '0'}}>
+                <Typography component="div" fontSize={"1.1em"}>
+                    <ul>
+                        <li>Block list - email patterns that block account creation</li>
+                        <li>White list - recognized research institutions domains or auto-endorsement</li>
+                        <li>Black list - email domains preventing auto-endorsement.</li>
+                    </ul>
+                </Typography>
+            </AccordionDetails>
+        </Accordion>
         <List
             filters={<EmailPatternFilter/>}
             filterDefaultValues={{purpose: 'black'}}
@@ -181,7 +204,7 @@ export const EmailPatternList = () => (
             queryOptions={{ placeholderData: undefined }}
         >
             <Datagrid rowClick={false} bulkActionButtons={<EmailPatternBulkDeleteButton/>}>
-                <TextField source="id" label="Pattern"/>
+                <TextField source="id" label="Domains"/>
             </Datagrid>
         </List>
     </Box>
@@ -193,13 +216,16 @@ export const EmailPatternCreate = () => {
 
     return (
         <Create>
-            <ConsoleTitle>Add Pattern</ConsoleTitle>
+            <ConsoleTitle>Add Domain</ConsoleTitle>
             <SimpleForm defaultValues={{purpose: defaultPurpose}}>
-                <TextInput source="id" label="Pattern"/>
+                <TextInput source="id" label="Domain"/>
                 <SelectInput
                     source="purpose"
                     choices={emailPatternPurposeOptions}
                     label="Purpose"
+                    optionText={(choice: any) => (
+                        <span>{choice.name}{" - "} <span style={{ fontSize: '0.9em' }}>{choice.description}</span></span>
+                    )}
                 />
             </SimpleForm>
         </Create>
