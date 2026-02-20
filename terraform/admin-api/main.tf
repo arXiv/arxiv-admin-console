@@ -65,6 +65,38 @@ resource "google_secret_manager_secret_iam_member" "arxiv_document_bucket_name_a
   member    = "serviceAccount:${google_service_account.account.email}"
 }
 
+### endorser pool bucket and secret (must exist before Cloud Run) ###
+
+resource "google_storage_bucket" "endorser_pool" {
+  name     = var.admin_api_endorser_pool
+  location = var.gcp_region
+  project  = var.gcp_project_id
+}
+
+resource "google_secret_manager_secret" "endorser_pool_object_url" {
+  secret_id = var.admin_api_endorser_pool_object_url_secret_name
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "endorser_pool_object_url" {
+  secret      = google_secret_manager_secret.endorser_pool_object_url.id
+  secret_data = "gs://${google_storage_bucket.endorser_pool.name}"
+}
+
+resource "google_secret_manager_secret_iam_member" "admin_api_endorser_pool_object_url_accessor" {
+  secret_id = google_secret_manager_secret.endorser_pool_object_url.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.account.email}"
+}
+
+resource "google_storage_bucket_iam_member" "endorser_pool_reader" {
+  bucket = google_storage_bucket.endorser_pool.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.account.email}"
+}
+
 resource "google_secret_manager_secret_iam_member" "admin_api_smtp_url_accessor" {
   secret_id = var.admin_api_smtp_url_secret_name
   role      = "roles/secretmanager.secretAccessor"
@@ -109,6 +141,8 @@ resource "google_cloud_run_v2_service" "admin_api" {
 
   deletion_protection = false
 
+  depends_on = [google_secret_manager_secret_version.endorser_pool_object_url]
+
   template {
     service_account = google_service_account.account.email
     containers {
@@ -122,7 +156,15 @@ resource "google_cloud_run_v2_service" "admin_api" {
       # GCP_PROJECT_CREDS
       # GCP_SERVICE_REQUEST_SA
       # GCP_SERVICE_REQUEST_ENDPOINT
-      # ADMIN_API_ENDORSER_POOL_OBJECT_URL
+      env {
+        name = "ADMIN_API_ENDORSER_POOL_OBJECT_URL"
+        value_source {
+          secret_key_ref {
+            secret  = var.admin_api_endorser_pool_object_url_secret_name
+            version = "latest"
+          }
+        }
+      }
       env {
         name  = "ADMIN_API_ROOT_PATH"
         value = var.admin_api_root_path
