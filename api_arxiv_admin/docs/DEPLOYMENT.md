@@ -73,7 +73,12 @@ This should be in the secret manager.
 * `GCP_SERVICE_REQUEST_ENDPOINT`: The requester's expected endpoint. Leave this unset.
 * `GCP_SERVICE_REQUEST_SA`: The name of service account that talks to one above. Leave this unset.
 
-Latter two is to verify "who on GCP is talking to me". There are values on web40.
+Latter two is to verify "who on GCP is talking to me". There are values on web40's environment.
+
+    ADMIN_API_GCP_SERVICE_REQUEST_SA=...
+    ADMIN_API_GCP_SERVICE_REQUEST_ENDPOINT=...
+    ADMIN_API_GOOGLE_APPLICATION_CREDENTIALS=...
+    ADMIN_API_ENDORSER_POOL_OBJECT_URL=...
 
 ### Endorser Pool (GCP or CIT)
 
@@ -81,7 +86,7 @@ Latter two is to verify "who on GCP is talking to me". There are values on web40
 |---|---|-------------------------------------------------------------------------------------------------------------------------------|
 | `ADMIN_API_ENDORSER_POOL_OBJECT_URL` | *(unset)* | URL of the endorser pool object. For GCP, GCP Project credentials requires the bucket I/O. This is a file system path on CIT. - ?|
 
-On web40, this is set to `file:///arxiv-ce-production/endorsers.db`. On GCP, it should be `gs://bucket-object`.
+On GCP, it should be `gs://bucket-object`.
 
 ### Internal API
 
