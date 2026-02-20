@@ -61,20 +61,27 @@ This should be in the secret manager.
 
 ### GCP / Cloud Storage
 
-| Variable | Default | Description |
-|---|---|---|
-| `GCP_PROJECT` | `<NONE>` | GCP project ID used to initialize the GCS client for document storage. Storage is disabled if unset or `<NONE>` |
-| `ARXIV_DOCUMENT_BUCKET_NAME` | `<NONE>` | GCS bucket name for arXiv document storage. Storage is disabled if unset or `<NONE>` |
-| `GCP_PROJECT_ID` | `arxiv-development` | GCP project ID passed to the FastAPI app state |
-| `GCP_PROJECT_CREDS` | *(unset)* | Path or JSON for GCP service account credentials - ? |
-| `GCP_SERVICE_REQUEST_SA` | *(unset)* | GCP service account for service-to-service requests - ? |
-| `GCP_SERVICE_REQUEST_ENDPOINT` | `localhost:8080` | Endpoint for GCP service requests - ? |
+| Variable                         | Default | Description                                                                                              |
+|----------------------------------|---|----------------------------------------------------------------------------------------------------------|
+| `GCP_PROJECT`                    | `<NONE>` | GCP project ID used to initialize the GCS client for document storage. Storage is disabled if unset or `<NONE>` |
+| `ARXIV_DOCUMENT_BUCKET_NAME`     | `<NONE>` | GCS bucket name for arXiv document storage. Storage is disabled if unset or `<NONE>`                     |
+| `GOOGLE_APPLICATION_CREDENTIALS` | *(unset)* | Path or JSON for GCP service account credentials                                                         |
+| `GCP_SERVICE_REQUEST_SA`         | *(unset)* | GCP service account for service-to-service requests - ?                                                  |
+| `GCP_SERVICE_REQUEST_ENDPOINT`   | `localhost:8080` | Endpoint for GCP service requests - ?                                                                    |
+
+* `GOOGLE_APPLICATION_CREDENTIALS` is unset for GCP as the runner SA credentials used. Needed for web40
+* `GCP_SERVICE_REQUEST_ENDPOINT`: The requester's expected endpoint
+* `GCP_SERVICE_REQUEST_SA`: The name of service account that talks to one above
+
+Latter two is to verify "who on GCP is talking to me". There are values on web40.
 
 ### Endorser Pool (GCP or CIT)
 
 | Variable | Default | Description                                                                                                                   |
 |---|---|-------------------------------------------------------------------------------------------------------------------------------|
 | `ADMIN_API_ENDORSER_POOL_OBJECT_URL` | *(unset)* | URL of the endorser pool object. For GCP, GCP Project credentials requires the bucket I/O. This is a file system path on CIT. - ?|
+
+On web40, this is set to `file:///arxiv-ce-production/endorsers.db`. On GCP, it should be `gs://bucket-object`.
 
 ### Internal API
 
