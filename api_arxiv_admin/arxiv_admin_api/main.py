@@ -403,6 +403,12 @@ def create_app(*args, **kwargs) -> FastAPI:
     async def im_ok():
         return Response({}, status_code=status.HTTP_200_OK)
 
+    @app.get("/version")
+    async def version():
+        """Return the GIT_SHA set at Docker build time."""
+        git_sha = os.environ.get("GIT_SHA", "unknown")
+        return {"admin-api service running version ": git_sha}
+
     @app.exception_handler(AccessTokenExpired)
     async def user_not_authenticated_exception_handler(request: Request,
                                                        _exc: AccessTokenExpired):
