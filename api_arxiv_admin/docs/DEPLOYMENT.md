@@ -70,8 +70,8 @@ This should be in the secret manager.
 | `GCP_SERVICE_REQUEST_ENDPOINT`   | `localhost:8080` | Endpoint for GCP service requests - ?                                                                    |
 
 * `GOOGLE_APPLICATION_CREDENTIALS` is unset for GCP as the runner SA credentials used. Needed for web40
-* `GCP_SERVICE_REQUEST_ENDPOINT`: The requester's expected endpoint
-* `GCP_SERVICE_REQUEST_SA`: The name of service account that talks to one above
+* `GCP_SERVICE_REQUEST_ENDPOINT`: The requester's expected endpoint. Leave this unset.
+* `GCP_SERVICE_REQUEST_SA`: The name of service account that talks to one above. Leave this unset.
 
 Latter two is to verify "who on GCP is talking to me". There are values on web40.
 
